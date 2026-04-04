@@ -1,0 +1,19 @@
+# Python
+tools/venv/
+tools/__pycache__/
+*.pyc
+*.pyo
+ai-site-monitor/__pycache__/
+ai-site-monitor/*.log
+
+# 環境変数
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.cursor/
+*.swp
