@@ -66,4 +66,21 @@ fix: replace img with iframe in area map nav
 - **大阪（親）** `/area/osaka/`: デプロイ後、PC表示（`u-pc-only`）で iframe が出る想定
 - **日本橋（子）** `/area/nihonbashi/` 等: `taxonomy-area.php` は `is_parent_area` のときだけ地図セクションを出すため、**子エリアには地図＋ピンは表示されない**（店舗一覧アーカイブ）。ピン重ねは親エリアページのみ
 
+#### デプロイ後確認（2026-04-05、本番 HTML を curl で取得）
+- `/area/osaka/`: `class="lux-map-iframe"` の iframe が出力されていることを確認
+- `/area/nihonbashi/`: `MAP SEARCH` / `lux-map-frame` は含まれず（子エリアは地図ブロック非表示で仕様どおり）
+
+---
+
+### 2026-04-05 07:15
+#### コミット
+fix: replace img with iframe in area map nav
+
+Made-with: Cursor
+
+#### 変更ファイル
+css/single.css
+functions.php
+pm/PROGRESS.md
+taxonomy-area.php
 ---
