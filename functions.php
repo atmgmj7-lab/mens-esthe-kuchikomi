@@ -452,14 +452,14 @@ add_shortcode('area_map_nav', function() {
 
     $slug = $term->slug;
 
-    // ▼▼▼ 地図画像のURL（ご自身の画像URLに書き換えてください） ▼▼▼
+    // Google Maps 埋め込み（iframe 用。旧: 静止画URL + <img>）
     $maps = [
-        'osaka'    => '【大阪の地図画像URL】',
-        'hyogo'    => '【兵庫の地図画像URL】',
-        'kyoto'    => '【京都の地図画像URL】',
-        'nara'     => '【奈良の地図画像URL】',
-        'shiga'    => '【滋賀の地図画像URL】',
-        'wakayama' => '【和歌山の地図画像URL】',
+        'osaka'    => 'https://maps.google.com/maps?q=大阪府大阪市&output=embed',
+        'hyogo'    => 'https://maps.google.com/maps?q=兵庫県神戸市&output=embed',
+        'kyoto'    => 'https://maps.google.com/maps?q=京都府京都市&output=embed',
+        'nara'     => 'https://maps.google.com/maps?q=奈良県奈良市&output=embed',
+        'shiga'    => 'https://maps.google.com/maps?q=滋賀県大津市&output=embed',
+        'wakayama' => 'https://maps.google.com/maps?q=和歌山県和歌山市&output=embed',
     ];
     
     if (!isset($maps[$slug]) || empty($maps[$slug])) return '';
@@ -482,8 +482,14 @@ add_shortcode('area_map_nav', function() {
                 <span class="jp">地図から詳細エリアを選択</span>
             </h2>
             <div class="lux-map-frame">
-                <img src="<?php echo esc_url($map_url); ?>" alt="Map" class="lux-map-bg">
-                
+                <iframe
+                    class="lux-map-iframe"
+                    src="<?php echo esc_url($map_url); ?>"
+                    title="<?php echo esc_attr($term->name); ?>の地図"
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    allowfullscreen
+                ></iframe>
                 <?php foreach($children as $child): ?>
                     <a href="<?php echo get_term_link($child); ?>" class="lux-pin pin-<?php echo esc_attr($child->slug); ?>">
                         <span class="pin-text"><?php echo esc_html($child->name); ?></span>

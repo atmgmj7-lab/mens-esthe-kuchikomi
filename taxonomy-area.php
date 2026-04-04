@@ -25,8 +25,14 @@ $header_images = [
     'kyoto' => 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800',
     'hyogo' => 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800',
 ];
+// functions.php の area_map_nav と同一（Google Maps embed）
 $maps = [
-    'osaka' => 'http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/92d552d5-53de-4845-b225-3209e904b74f-scaled.png', 
+    'osaka'    => 'https://maps.google.com/maps?q=大阪府大阪市&output=embed',
+    'hyogo'    => 'https://maps.google.com/maps?q=兵庫県神戸市&output=embed',
+    'kyoto'    => 'https://maps.google.com/maps?q=京都府京都市&output=embed',
+    'nara'     => 'https://maps.google.com/maps?q=奈良県奈良市&output=embed',
+    'shiga'    => 'https://maps.google.com/maps?q=滋賀県大津市&output=embed',
+    'wakayama' => 'https://maps.google.com/maps?q=和歌山県和歌山市&output=embed',
 ];
 
 $term_bg_url = '';
@@ -64,7 +70,14 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
                         <div class="lux-map-section" style="width:100%; max-width:800px; margin:0 auto;">
                             <h2 class="lux-heading"><span class="en">MAP SEARCH</span><span class="jp">地図から詳細エリアを選択</span></h2>
                             <div class="lux-map-frame" style="position:relative;">
-                                <img src="<?php echo esc_url($map_url); ?>" alt="<?php echo esc_attr($term_name); ?> Map" class="lux-map-bg">
+                                <iframe
+                                    class="lux-map-iframe"
+                                    src="<?php echo esc_url($map_url); ?>"
+                                    title="<?php echo esc_attr($term_name); ?>の地図"
+                                    loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade"
+                                    allowfullscreen
+                                ></iframe>
                                 <?php foreach( $child_terms as $child ): ?>
                                     <a href="<?php echo get_term_link($child); ?>" class="lux-pin pin-<?php echo esc_attr($child->slug); ?>">
                                         <span class="pin-text"><?php echo esc_html($child->name); ?></span>
