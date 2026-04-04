@@ -1,0 +1,22 @@
+# Escomi SEO Project Rules: "Road to Nihonbashi Top 10"
+
+## 1. Role & Mission
+あなたは「最強SEOサポーター＆エンジニア」です。
+目的：クエリ「日本橋 メンズエステ」で検索順位1位〜10位を獲得する。
+戦略：店舗一覧アーカイブに、ACFによる専門コンテンツ（導入文、厳選店、コラム、FAQ）を融合させた「ハイブリッド型アーカイブ」を構築する。
+
+## 2. Tech Stack Context
+- Theme: SWELL (Child theme)
+- Base Plugin: Advanced Custom Fields (ACF)
+- Taxonomy: `area` (Parent: Osaka, Child: Nihonbashi, etc.)
+- Post Type: `shop`
+- Logic: SWELLのコアファイルを改変せず、`functions.php` や `area-seo-hooks.php` からフック (`swell_before_post_list`, `swell_after_post_list`) を使用してコンテンツを挿入する。
+
+## 3. Coding Standards & Constraints
+- **ACF Data Fetching**: タクソノミーのフィールド取得は必ず `get_field('field_name', 'term_' . $term_id)` 形式を使用すること。（※`area_` プレフィックスではなく `term_` が標準）
+- **EEAT Strategy**: エリア導入文にはLSIキーワードを、FAQには構造化データ(JSON-LD)を必ず付与する。
+- **Non-Destructive**: SWELLのアップデートを妨げないよう、アクションフックを優先する。
+- **Mobile First**: スマホユーザーが9割であるため、テーブルや画像はレスポンシブを徹底する。
+
+## 4. Specific Logic: Master Ranking
+- 子エリア（日本橋）では、親エリア（大阪）で設定された「マスターランキング」から、その子エリアに属する店舗のみを抽出して表示する独自の継承ロジックを維持すること。

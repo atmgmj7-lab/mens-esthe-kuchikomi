@@ -1,0 +1,5560 @@
+/*
+ * single.css - 投稿・固定ページ・アーカイブ用スタイル
+ * ランキング、店舗詳細、エリア一覧など
+ * 
+ * 読み込み順序: 2番目（base.cssの後）
+ * 条件: 店舗詳細、アーカイブ、タクソノミーページの場合のみ読み込み
+ */
+
+/* ============================================
+
+4. 店舗詳細・一覧ページの共通調整
+
+============================================ */
+
+
+
+/* 共通パーツ：角丸・変数適用 */
+
+.search-form-row,
+
+.mep-area-card,
+
+.shop-card,
+
+.hpb-style-wrapper {
+
+border-radius: var(--mep-radius) !important;
+
+}
+
+
+
+/* 一覧ページ：パンくずリスト */
+
+.area-breadcrumb {
+
+margin-bottom: 20px;
+
+font-size: 0.9rem;
+
+color: #666;
+
+}
+
+.area-breadcrumb a {
+
+color: #666;
+
+text-decoration: underline;
+
+}
+
+
+
+/* 一覧ページ：子エリア選択ボタン */
+
+.area-selection-wrapper {
+
+/* background: #f9f9f9; */
+
+padding: 30px;
+
+border-radius: 12px;
+
+text-align: center;
+
+margin-bottom: 40px;
+
+}
+
+.child-area-list {
+
+list-style: none;
+
+padding: 0;
+
+display: flex;
+
+flex-wrap: wrap;
+
+justify-content: center;
+
+gap: 15px;
+
+margin-top: 20px;
+
+}
+
+.child-area-btn {
+
+display: inline-block;
+
+padding: 12px 30px;
+
+background: #fff;
+
+border: 2px solid #d63384;
+
+color: #d63384;
+
+font-weight: bold;
+
+border-radius: 50px;
+
+text-decoration: none;
+
+transition: all 0.3s;
+
+min-width: 160px;
+
+}
+
+.child-area-btn:hover {
+
+background: #d63384;
+
+color: #fff;
+
+}
+
+
+
+/* 一覧ページ：店舗リストカード */
+
+.shop-list-container {
+
+display: flex;
+
+flex-direction: column;
+
+gap: 20px;
+
+}
+
+.shop-list-card {
+
+border: 1px solid #e0e0e0;
+
+background: #fff;
+
+border-radius: 8px;
+
+overflow: hidden;
+
+transition: box-shadow 0.3s;
+
+display: flex;
+
+}
+
+.shop-list-link {
+
+display: flex;
+
+text-decoration: none;
+
+color: #333;
+
+width: 100%;
+
+}
+
+.shop-list-visual {
+
+width: 30%;
+
+min-width: 200px;
+
+position: relative;
+
+background: #f0f0f0;
+
+}
+
+.shop-thumb {
+
+width: 100%;
+
+height: 100%;
+
+object-fit: cover;
+
+display: block;
+
+}
+
+.shop-list-body {
+
+width: 70%;
+
+padding: 20px;
+
+display: flex;
+
+flex-direction: column;
+
+justify-content: space-between;
+
+}
+
+.shop-list-title {
+
+font-size: 1.4rem;
+
+font-weight: bold;
+
+margin-bottom: 10px;
+
+}
+
+
+
+/* 価格表示デザイン */
+
+.meta-price-box {
+
+margin-top: 10px;
+
+background: #fff0f5;
+
+padding: 8px 12px;
+
+border-radius: 4px;
+
+display: inline-flex;
+
+align-items: baseline;
+
+gap: 8px;
+
+border: 1px solid #ffcce0;
+
+}
+
+.price-label {
+
+background: #d63384;
+
+color: #fff;
+
+font-size: 0.75rem;
+
+padding: 2px 6px;
+
+border-radius: 3px;
+
+}
+
+.price-val {
+
+font-size: 1.4rem;
+
+color: #d00;
+
+font-weight: bold;
+
+line-height: 1;
+
+}
+
+.price-val .yen { font-size: 0.9rem; color: #333; font-weight: normal; }
+
+
+
+/* 店舗詳細ページ：ブログ要素の排除と1カラム化 */
+
+.single-shop #l-container, .single-post #l-container { display: block !important; }
+
+.single-shop #l-sidebar, .single-post #l-sidebar { display: none !important; }
+
+.single-shop .l-mainContent, .single-post .l-mainContent {
+
+width: 100% !important;
+
+max-width: 900px !important;
+
+margin: 40px auto !important;
+
+float: none !important;
+
+background: transparent !important;
+
+box-shadow: none !important;
+
+border: none !important;
+
+}
+
+
+
+/* 不要パーツの非表示 */
+
+.single-shop .p-entry__title,
+
+.single-shop .c-postMeta,
+
+.single-shop .p-authorBox,
+
+.single-shop .p-snsShare,
+
+.single-shop .p-snsFollow,
+
+.single-shop #p-relatedPosts,
+
+.single-shop .p-entry__body > b,
+
+.single-shop .p-entryFooter,
+
+.single-shop .p-commentArea {
+
+display: none !important;
+
+}
+
+
+
+/* スマホ対応 */
+
+@media screen and (max-width: 600px) {
+
+.shop-list-link { flex-direction: column; }
+
+.shop-list-visual { width: 100%; aspect-ratio: 16/9; }
+
+.shop-list-body { width: 100%; }
+
+.child-area-btn { width: 100%; justify-content: center; }
+
+}
+
+/* ============================================
+
+Escomi エリアアーカイブ専用スタイル (縦詰め・配置修正版)
+
+============================================ */
+
+
+
+/* ============================================
+   Escomi エリアアーカイブ専用スタイル (修正版)
+   ============================================ */
+
+/* --- 1. 地域感のあるヘッダー --- */
+.area-archive-header {
+    position: relative;
+    width: 100vw !important;        /* 画面幅いっぱいに強制 */
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw !important;  /* SWELLの枠を突き抜ける設定 */
+    margin-right: -50vw !important;
+    height: 300px !important;       /* 高さを300pxに固定 */
+    background-size: cover !important;
+    background-position: center !important;
+    background-color: #1a2a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px !important;
+    overflow: hidden;
+}
+
+/* 画像の上の黒いフィルター */
+.area-header-overlay {
+    width: 100%; 
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+
+/* タイトル文字 */
+.area-archive-header .archive-title {
+    color: #fff !important; 
+    font-size: 2.4rem; 
+    font-weight: bold;
+    letter-spacing: 0.1em; 
+    text-shadow: 0 4px 15px rgba(0,0,0,0.6); 
+    margin: 0;
+    z-index: 2;
+}
+
+/* スマホ対応（ヘッダー高さ調整） */
+@media (max-width: 768px) {
+    .area-archive-header { 
+        height: 180px !important; /* スマホでは高さを抑える */
+    }
+    .area-archive-header .archive-title {
+        font-size: 1.6rem;
+    }
+}
+
+
+/* --- 2. エリアマップのデザイン --- */
+
+.lux-area-nav {
+
+max-width: 1000px;
+
+margin: 0 auto;
+
+font-family: 'Noto Serif JP', serif;
+
+}
+
+
+
+/* 見出し */
+
+.lux-heading { text-align: center; margin-bottom: 10px; border: none !important; }
+
+.lux-heading .en { display: block; font-family: serif; font-size: 2.2rem; color: #1a2a3a; letter-spacing: 0.1em; }
+
+.lux-heading .jp { display: block; font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: normal; }
+
+
+
+/* 地図フレーム */
+
+.lux-map-frame {
+
+position: relative;
+
+width: 100%;
+
+height: 900px !important;
+
+background: transparent;
+
+border: none;
+
+overflow: hidden;
+
+/* margin-bottom: 40px; */
+
+display: flex;
+
+align-items: center;
+
+justify-content: center;
+
+}
+
+
+
+/* 地図画像 */
+
+.lux-map-bg {
+
+transform: rotate(-90deg);
+
+max-width: 850px;
+
+width: auto;
+
+height: auto;
+
+max-height: 98%;
+
+mix-blend-mode: multiply;
+
+opacity: 0.9;
+
+}
+
+
+
+/* --- 3. ボタンデザイン（小さめ維持） --- */
+
+.lux-pin {
+
+position: absolute;
+
+transform: translate(-50%, -50%);
+
+background: rgba(255, 255, 255, 0.95);
+
+color: #d0426b;
+
+padding: 3px 6px;
+
+font-size: 0.7rem;
+
+font-weight: bold;
+
+text-decoration: none;
+
+border: 1px solid #d0426b;
+
+border-radius: 30px;
+
+box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+transition: all 0.3s;
+
+z-index: 5;
+
+white-space: nowrap;
+
+text-align: center;
+
+}
+
+.lux-pin .pin-count { font-size: 0.8em; margin-left: 1px; }
+
+.lux-pin:hover {
+
+background: #d0426b; color: #fff;
+
+transform: translate(-50%, -60%);
+
+box-shadow: 0 3px 8px rgba(208, 66, 107, 0.3);
+
+z-index: 10;
+
+}
+
+
+
+
+
+/* --- 4. マップピン位置（縦詰め＆中央寄せ） --- */
+
+/* 縦の間隔（topの差）を小さくし、左右（left）を50%に近づけました */
+
+
+
+/* ▼▼▼ 北エリア（上部） ▼▼▼ */
+
+
+
+/* 高槻・茨木・枚方（右上：ぐっと内側へ） */
+
+.pin-hokusetsu-east {
+
+top: 6%;
+
+left: 62%; /* 地図に近づける */
+
+}
+
+
+
+/* 江坂・豊中・北摂（左上：ぐっと内側へ） */
+
+.pin-hokusetsu {
+
+top: 10%;
+
+left: 38%; /* 地図に近づける */
+
+}
+
+
+
+/* 新大阪・西中島・十三 */
+
+.pin-shinosaka {
+
+top: 16%; /* 間隔詰め */
+
+left: 50%;
+
+}
+
+
+
+
+
+/* ▼▼▼ 中央エリア（縦軸：間隔を短縮） ▼▼▼ */
+
+
+
+/* 梅田・北新地・茶屋町 */
+
+.pin-umeda {
+
+top: 24%; /* 28% -> 24% */
+
+left: 50%;
+
+}
+
+
+
+/* 京橋・都島（梅田の右隣） */
+
+.pin-kyobashi {
+
+top: 25%;
+
+left: 65%; /* 内側へ */
+
+}
+
+
+
+/* 本町・淀屋橋・肥後橋 */
+
+.pin-honmachi {
+
+top: 32%; /* 38% -> 32% */
+
+left: 50%;
+
+}
+
+
+
+/* 東大阪・八尾・大東（本町の右隣） */
+
+.pin-higashiosaka {
+
+top: 36%;
+
+left: 70%; /* 大幅に内側へ */
+
+}
+
+
+
+
+
+/* ▼▼▼ ミナミエリア（順序修正＆詰め） ▼▼▼ */
+
+
+
+/* ★修正：心斎橋（北＝上） */
+
+.pin-shinsaibashi {
+
+top: 40%; /* 50% -> 40% */
+
+left: 50%;
+
+}
+
+
+
+/* ★修正：難波（南＝下） */
+
+.pin-namba {
+
+top: 48%; /* 58% -> 48% */
+
+left: 50%;
+
+}
+
+
+
+
+
+/* ▼▼▼ 南エリア（下部：詰め） ▼▼▼ */
+
+
+
+/* 天王寺・上本町（難波の右下） */
+
+.pin-tennoji {
+
+top: 58%; /* 66% -> 58% */
+
+left: 58%; /* 内側へ */
+
+}
+
+
+
+/* 堺・南大阪（一番下） */
+
+.pin-sakai {
+
+top: 75%; /* 88% -> 75% 縦に大きく詰めました */
+
+left: 48%;
+
+}
+
+
+
+
+
+/* --- 5. リスト一覧・スマホ対応 --- */
+
+.lux-heading-small {
+
+text-align: center; font-family: serif;
+
+font-size: 1.6rem; color: #c5a059; margin-bottom: 20px; border: none !important;
+
+}
+
+.lux-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
+.lux-list-item {
+
+display: flex; justify-content: space-between; align-items: center;
+
+padding: 15px; background: #fff; border: 1px solid #eee;
+
+text-decoration: none; color: #333; transition: all 0.3s;
+
+}
+
+.lux-list-item:hover { border-color: #d0426b; color: #d0426b; }
+
+
+
+@media (max-width: 768px) {
+
+.area-archive-header { height: 180px; }
+
+.lux-map-section { display: none !important; }
+
+.lux-grid { display: flex; flex-direction: column; gap: 12px; }
+
+.lux-list-item { width: 100%; box-sizing: border-box; }
+
+}
+
+
+/* =================================================================
+
+【決定版】エリアアーカイブ用スタイル (スクロール・ランキング・リスト)
+
+================================================================= */
+
+
+
+/* --- 1. 共通: セクションタイトル --- */
+
+.sec-title {
+
+font-size: 1.5rem;
+
+font-weight: bold;
+
+border-bottom: 2px solid #d4af37; /* 金色の線 */
+
+padding-bottom: 10px;
+
+margin-bottom: 30px;
+
+position: relative;
+
+}
+
+.sec-title .sub {
+
+display: block;
+
+font-size: 0.8rem;
+
+color: #d4af37;
+
+margin-top: 5px;
+
+font-family: serif;
+
+letter-spacing: 0.05em;
+
+}
+
+
+
+/* --- 2. スマホ用エリア選択 (横スクロール / B案) --- */
+
+.scroll-area-nav {
+
+width: 100%;
+
+overflow-x: auto;
+
+-webkit-overflow-scrolling: touch;
+
+padding-bottom: 10px;
+
+margin-bottom: 20px;
+
+}
+
+.scroll-area-nav::-webkit-scrollbar {
+
+display: none; /* スクロールバー非表示 */
+
+}
+
+.scroll-area-list {
+
+display: flex;
+
+gap: 12px;
+
+padding: 0 5px;
+
+list-style: none;
+
+margin: 0;
+
+width: max-content;
+
+}
+
+.scroll-area-btn {
+
+display: flex;
+
+flex-direction: column;
+
+align-items: center;
+
+justify-content: center;
+
+width: 85px;
+
+height: 85px;
+
+background: #fff;
+
+border: 1px solid #eee;
+
+border-radius: 50%; /* 完全な丸 */
+
+text-decoration: none;
+
+font-size: 0.8rem;
+
+color: #333;
+
+box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+
+transition: transform 0.2s;
+
+}
+
+.scroll-area-btn .count {
+
+font-size: 0.7rem;
+
+color: #d0426b;
+
+margin-top: 2px;
+
+}
+
+.scroll-area-btn:active {
+
+transform: scale(0.95);
+
+background: #f9f9f9;
+
+}
+
+
+
+
+
+/* --- 3. ランキング詳細スタイル (ゴージャス版 / 画像1枚目再現) --- */
+
+.wolfman-style .ranking-item {
+
+background: #fffff0; /* 薄いクリーム色 */
+
+border: 1px solid #d4af37; /* 金枠 */
+
+border-radius: 8px;
+
+margin-bottom: 50px;
+
+overflow: hidden;
+
+position: relative;
+
+padding-bottom: 25px;
+
+box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+
+}
+
+
+
+/* 順位バッジ */
+
+.wolfman-style .rank-badge {
+
+position: absolute;
+
+top: 0; left: 0;
+
+background: #d4af37;
+
+color: #fff;
+
+padding: 6px 18px;
+
+font-weight: bold;
+
+font-size: 1.1rem;
+
+z-index: 5;
+
+border-bottom-right-radius: 10px;
+
+box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+
+}
+
+/* 1位~3位の色分け */
+
+.wolfman-style .rank-1 .rank-badge { background: linear-gradient(135deg, #FFD700, #FDB931); color:#000; }
+
+.wolfman-style .rank-2 .rank-badge { background: linear-gradient(135deg, #E0E0E0, #BDBDBD); color:#000; }
+
+.wolfman-style .rank-3 .rank-badge { background: linear-gradient(135deg, #CD7F32, #A0522D); }
+
+
+
+/* メイン画像エリア */
+
+.wolfman-style .ranking-main-visual {
+
+width: 100%;
+
+margin: 0;
+
+line-height: 0;
+
+}
+
+.wolfman-style .ranking-main-visual img {
+
+width: 100%;
+
+height: auto;
+
+max-height: 400px;
+
+object-fit: cover;
+
+}
+
+
+
+/* 本文エリア */
+
+.wolfman-style .ranking-body {
+
+padding: 25px 20px;
+
+}
+
+
+
+/* 星評価と口コミリンク */
+
+.ranking-header-row {
+
+margin-bottom: 15px;
+
+border-bottom: 1px dashed #ccc;
+
+padding-bottom: 10px;
+
+}
+
+.ranking-stars {
+
+color: #f39c12;
+
+font-weight: bold;
+
+font-size: 1.2rem;
+
+display: flex;
+
+align-items: center;
+
+}
+
+.ranking-stars .rate-num {
+
+margin-left: 5px;
+
+color: #333;
+
+}
+
+.ranking-stars .review-link {
+
+font-size: 0.9rem;
+
+text-decoration: underline;
+
+color: #0073aa;
+
+margin-left: 15px;
+
+font-weight: normal;
+
+}
+
+
+
+/* スペック表（アイコン付き） */
+
+.ranking-spec-list {
+
+margin-bottom: 20px;
+
+font-size: 0.95rem;
+
+}
+
+.spec-row {
+
+display: flex;
+
+border-bottom: 1px solid #eee;
+
+padding: 10px 0;
+
+}
+
+.spec-row dt {
+
+width: 110px;
+
+font-weight: bold;
+
+color: #555;
+
+flex-shrink: 0;
+
+display: flex;
+
+align-items: center;
+
+}
+
+.spec-row dt i { margin-right: 6px; font-style: normal; font-size: 1.1em; }
+
+.spec-row dd { flex: 1; margin: 0; display: flex; align-items: center; }
+
+.spec-row dd.tel-num { font-weight: bold; font-size: 1.3rem; letter-spacing: 1px; }
+
+
+
+/* キャッチコピー & 説明文 */
+
+.ranking-catch {
+
+color: #ff6b6b; /* ピンク赤 */
+
+font-size: 1.3rem;
+
+font-weight: bold;
+
+margin: 20px 0 10px;
+
+line-height: 1.4;
+
+}
+
+.ranking-desc {
+
+font-size: 0.95rem;
+
+line-height: 1.7;
+
+margin-bottom: 25px;
+
+color: #444;
+
+}
+
+
+
+/* アクションボタン（2個並び） */
+
+.ranking-actions {
+
+display: flex;
+
+gap: 15px;
+
+margin-bottom: 20px;
+
+}
+
+.btn-action {
+
+display: flex;
+
+align-items: center;
+
+justify-content: center;
+
+width: 50%;
+
+padding: 15px;
+
+border-radius: 6px;
+
+text-decoration: none;
+
+font-weight: bold;
+
+font-size: 1rem;
+
+transition: 0.3s;
+
+border: 2px solid;
+
+position: relative;
+
+}
+
+.btn-tel {
+
+color: #0073aa;
+
+border-color: #0073aa;
+
+background: #fff;
+
+}
+
+.btn-detail {
+
+color: #fff;
+
+border-color: #ff6b6b;
+
+background: #ff6b6b;
+
+box-shadow: 0 4px 0 #c23616;
+
+}
+
+.btn-detail:active {
+
+box-shadow: none;
+
+transform: translateY(4px);
+
+}
+
+.btn-tel:hover { background: #f0f8ff; }
+
+.btn-detail:hover { opacity: 0.9; }
+
+.btn-action::after { content: '>'; position: absolute; right: 15px; font-family: monospace; }
+
+
+
+/* タグ一覧 */
+
+.ranking-tags {
+
+font-size: 0.8rem;
+
+color: #888;
+
+margin-top: 10px;
+
+display: flex;
+
+flex-wrap: wrap;
+
+gap: 8px;
+
+}
+
+.tag-item {
+
+background: #f1f1f1;
+
+padding: 2px 8px;
+
+border-radius: 3px;
+
+}
+
+.tag-item::before { content: '#'; color: #bbb; }
+
+
+
+/* ランキングのスマホ対応 */
+
+@media (max-width: 600px) {
+
+.ranking-actions { flex-direction: column; gap: 10px; }
+
+.btn-action { width: 100%; }
+
+.spec-row { font-size: 0.9rem; }
+
+}
+
+
+
+
+
+/* --- 4. 店舗一覧リストスタイル (ウルフマン風 / 画像2枚目再現) --- */
+
+.wolfman-list-container {
+
+display: flex;
+
+flex-direction: column;
+
+border-top: 1px solid #ddd; /* 一番上にも線 */
+
+}
+
+.shop-list-row {
+
+display: flex;
+
+border-bottom: 1px solid #ddd;
+
+padding: 20px 0;
+
+align-items: stretch;
+
+background: #fff;
+
+transition: background 0.2s;
+
+}
+
+.shop-list-row:hover {
+
+background: #fcfcfc;
+
+}
+
+
+
+/* 左：画像 */
+
+.shop-row-img {
+
+width: 140px; /* PCでは少し大きめ */
+
+flex-shrink: 0;
+
+margin-right: 25px;
+
+display: block;
+
+}
+
+.shop-row-img img {
+
+width: 100%;
+
+height: 105px; /* 高さを統一 */
+
+object-fit: cover;
+
+border-radius: 6px;
+
+border: 1px solid #eee;
+
+}
+
+
+
+/* 中：店舗情報 */
+
+.shop-row-info {
+
+flex: 1;
+
+display: flex;
+
+flex-direction: column;
+
+justify-content: flex-start;
+
+margin-right: 20px;
+
+}
+
+.shop-row-title {
+
+font-size: 1.2rem;
+
+font-weight: bold;
+
+margin: 0 0 12px 0;
+
+line-height: 1.4;
+
+}
+
+.shop-row-title a {
+
+color: #333;
+
+text-decoration: none;
+
+}
+
+.shop-row-title a:hover {
+
+text-decoration: underline;
+
+color: #0073aa;
+
+}
+
+.shop-row-tags {
+
+display: flex;
+
+flex-wrap: wrap;
+
+gap: 6px;
+
+}
+
+.list-tag {
+
+font-size: 0.7rem;
+
+padding: 4px 8px;
+
+border-radius: 3px;
+
+white-space: nowrap;
+
+}
+
+.list-tag.tag-black { background: #333; color: #fff; }
+
+.list-tag.tag-gray { background: #f5f5f5; color: #666; border: 1px solid #eee; }
+
+
+
+/* 右：メタ情報（料金・時間） */
+
+.shop-row-meta {
+
+width: 200px;
+
+flex-shrink: 0;
+
+display: flex;
+
+flex-direction: column;
+
+justify-content: center;
+
+align-items: flex-end;
+
+text-align: right;
+
+border-left: 1px dotted #eee; /* 左に区切り線 */
+
+padding-left: 20px;
+
+}
+
+.meta-box { margin-bottom: 8px; }
+
+.meta-box.hours { font-size: 0.9rem; color: #555; }
+
+.meta-box.price { font-weight: bold; margin-bottom: 0; }
+
+.meta-sub { font-size: 0.75rem; color: #999; margin-right: 5px; font-weight: normal; }
+
+.price-red { color: #e74c3c; font-size: 1.4rem; font-family: Arial, sans-serif; }
+
+
+
+/* リストのスマホ対応（縦積みレイアウト） */
+
+@media (max-width: 600px) {
+
+.shop-list-row {
+
+flex-wrap: wrap;
+
+padding: 15px 0;
+
+position: relative;
+
+}
+
+
+/* スマホ：画像 */
+
+.shop-row-img {
+
+width: 90px;
+
+height: auto;
+
+margin-right: 15px;
+
+margin-bottom: 0;
+
+}
+
+.shop-row-img img { height: 90px; }
+
+
+
+/* スマホ：情報（タイトルなど） */
+
+.shop-row-info {
+
+flex: 1;
+
+margin-right: 0;
+
+min-width: calc(100% - 110px); /* 画像幅を引いた残り */
+
+}
+
+.shop-row-title { font-size: 1rem; margin-bottom: 8px; }
+
+
+
+/* スマホ：メタ情報（下段へ移動） */
+
+.shop-row-meta {
+
+width: 100%;
+
+border-left: none;
+
+padding-left: 0;
+
+margin-top: 12px;
+
+padding-top: 12px;
+
+border-top: 1px dashed #eee;
+
+flex-direction: row; /* 横並びにする */
+
+justify-content: space-between;
+
+align-items: center;
+
+text-align: left;
+
+}
+
+.meta-box { margin-bottom: 0; }
+
+.price-red { font-size: 1.2rem; }
+
+}
+
+/* --- 横スクロール強制修正パッチ --- */
+
+.scroll-area-list {
+
+display: flex !important;
+
+flex-wrap: nowrap !important; /* 折り返し禁止 */
+
+width: max-content !important; /* 中身の分だけ横に伸びる */
+
+max-width: none !important; /* テーマの幅制限を解除 */
+
+}
+
+
+
+.scroll-area-item {
+
+flex: 0 0 auto !important; /* 縮小させない */
+
+}
+
+
+/* =========================================
+
+【重要】PC/スマホ 表示切り替え用スタイル
+
+========================================= */
+
+
+
+/* デフォルト（PC）の表示状態 */
+
+.u-sp-only { display: none !important; } /* スマホ用は隠す */
+
+.u-pc-only { display: grid !important; } /* PC用は表示 */
+
+
+
+/* 768px以下（スマホ）での表示状態 */
+
+@media (max-width: 768px) {
+
+.u-sp-only { display: block !important; } /* スマホ用を表示 */
+
+.u-pc-only { display: none !important; } /* PC用は隠す */
+
+}
+
+
+
+
+
+
+/* =========================================
+
+横スクロールエリアのスタイル修正版
+
+========================================= */
+
+.scroll-area-nav {
+
+width: 100%;
+
+overflow-x: auto;
+
+-webkit-overflow-scrolling: touch;
+
+padding-bottom: 10px;
+
+margin-bottom: 20px;
+
+}
+
+/* スクロールバーを隠す */
+
+.scroll-area-nav::-webkit-scrollbar {
+
+display: none;
+
+}
+
+
+
+.scroll-area-list {
+
+display: flex !important; /* 強制的に横並び */
+
+flex-wrap: nowrap !important; /* 折り返し禁止 */
+
+gap: 12px;
+
+padding: 0 5px;
+
+list-style: none;
+
+margin: 0;
+
+width: max-content !important; /* 中身の幅まで広げる */
+
+max-width: none !important; /* テーマの幅制限解除 */
+
+}
+
+
+
+.scroll-area-item {
+
+flex: 0 0 auto !important; /* 縮小させない */
+
+}
+
+
+
+.scroll-area-btn {
+
+display: flex;
+
+flex-direction: column;
+
+align-items: center;
+
+justify-content: center;
+
+width: 85px;
+
+height: 85px;
+
+background: #fff;
+
+border: 1px solid #eee;
+
+border-radius: 50%;
+
+text-decoration: none;
+
+font-size: 0.8rem;
+
+color: #333;
+
+box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+
+}
+
+.scroll-area-btn .count {
+
+font-size: 0.7rem;
+
+color: #d0426b;
+
+margin-top: 3px;
+
+}
+
+
+/* =========================================
+
+横スクロールの「見た目」修正パッチ
+
+========================================= */
+
+
+
+/* リスト全体の余白調整 */
+
+.scroll-area-list {
+
+gap: 12px !important; /* アイテム同士の間隔 */
+
+padding: 10px 20px !important; /* 左右に20pxの余白（端が切れないように） */
+
+align-items: flex-start !important; /* 上揃え */
+
+}
+
+
+
+/* 丸ボタンのサイズとレイアウト */
+
+.scroll-area-btn {
+
+width: 94px !important; /* 少し大きくして文字を入れる */
+
+height: 94px !important; /* 正円を保つ */
+
+padding: 0 4px !important; /* 横の余白を極小に */
+
+border-radius: 50% !important; /* 完全な丸 */
+
+box-shadow: 0 3px 10px rgba(0,0,0,0.08) !important; /* ふんわりした影 */
+
+border: 1px solid #eaeaea !important; /* 薄い枠線 */
+
+background: #fff !important;
+
+
+/* 中身の配置 */
+
+display: flex !important;
+
+flex-direction: column !important;
+
+align-items: center !important;
+
+justify-content: center !important;
+
+}
+
+
+
+/* エリア名（文字）の調整 */
+
+.scroll-area-btn .name {
+
+font-size: 10px !important; /* スマホで見やすい最小サイズ */
+
+line-height: 1.25 !important; /* 行間を適度に */
+
+text-align: center !important; /* 中央揃え */
+
+width: 100% !important;
+
+
+/* 長すぎる文字を3行で切る処理 */
+
+display: -webkit-box;
+
+-webkit-box-orient: vertical;
+
+-webkit-line-clamp: 3;
+
+overflow: hidden;
+
+color: #333 !important;
+
+font-weight: 500 !important;
+
+}
+
+
+
+/* 件数（数字）の調整 */
+
+.scroll-area-btn .count {
+
+font-size: 11px !important;
+
+color: #ff5a5f !important; /* サイトカラーの赤 */
+
+font-weight: bold !important;
+
+margin-top: 3px !important;
+
+background: #fff0f5; /* 薄いピンクの座布団 */
+
+padding: 1px 8px;
+
+border-radius: 10px;
+
+line-height: 1;
+
+}
+
+
+
+/* タップした時の凹み効果 */
+
+.scroll-area-btn:active {
+
+transform: scale(0.96);
+
+background: #fafafa !important;
+
+}
+
+
+/* =========================================
+
+【最適化版】高級カード型スクロールデザイン
+
+========================================= */
+
+
+
+/* リスト全体の余白調整 */
+
+.scroll-area-list {
+
+gap: 10px !important; /* カード間の隙間 */
+
+padding: 10px 20px !important; /* 左右の余白 */
+
+align-items: center !important; /* 上下中央揃え */
+
+}
+
+
+
+/* カード本体のデザイン */
+
+.scroll-area-btn {
+
+width: 140px !important; /* 横幅を広げて文字を読みやすく */
+
+height: 60px !important; /* 高さはコンパクトに */
+
+border-radius: 6px !important; /* ほんの少しだけ角を丸く（高級感） */
+
+
+/* 高級感のある配色（白ベース＋金枠） */
+
+background: linear-gradient(to bottom, #ffffff, #fdfbf7) !important;
+
+border: 1px solid #d4af37 !important; /* シャンパンゴールドの枠線 */
+
+box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important; /* 上品な影 */
+
+
+/* 中身の配置 */
+
+display: flex !important;
+
+flex-direction: column !important; /* 縦並び */
+
+align-items: center !important;
+
+justify-content: center !important;
+
+padding: 0 10px !important;
+
+transition: transform 0.2s;
+
+}
+
+
+
+/* エリア名（文字） */
+
+.scroll-area-btn .name {
+
+font-size: 12px !important; /* 文字サイズアップ */
+
+color: #333 !important;
+
+font-weight: bold !important;
+
+font-family: "Yu Mincho", "Hiragino Mincho ProN", serif !important; /* 明朝体で高級感を演出 */
+
+line-height: 1.3 !important;
+
+text-align: center !important;
+
+width: 100% !important;
+
+
+/* 2行まで表示（はみ出したら...） */
+
+display: -webkit-box;
+
+-webkit-box-orient: vertical;
+
+-webkit-line-clamp: 2;
+
+overflow: hidden;
+
+margin-bottom: 2px !important;
+
+}
+
+
+
+/* 件数表示 */
+
+.scroll-area-btn .count {
+
+font-size: 10px !important;
+
+color: #d4af37 !important; /* 文字色もゴールドに */
+
+font-weight: normal !important;
+
+background: none !important; /* 背景削除 */
+
+padding: 0;
+
+letter-spacing: 0.05em;
+
+}
+
+.scroll-area-btn .count::after {
+
+content: ' shops'; /* 英語を足しておしゃれに */
+
+font-size: 9px;
+
+opacity: 0.8;
+
+}
+
+
+
+/* タップ時の沈み込み */
+
+.scroll-area-btn:active {
+
+transform: translateY(2px);
+
+box-shadow: none !important;
+
+background: #f4f4f4 !important;
+
+}
+
+
+/* =========================================
+
+【PC版準拠】シンプル・リスト型スクロール
+
+========================================= */
+
+
+
+/* リスト全体の調整 */
+
+.scroll-area-list {
+
+gap: 10px !important; /* ボタン同士の間隔 */
+
+padding: 5px 15px !important; /* 左右の余白 */
+
+align-items: center !important;
+
+}
+
+
+
+/* ボタンのデザイン（PC版に合わせる） */
+
+.scroll-area-btn {
+
+/* サイズ設定 */
+
+width: auto !important; /* 文字数に合わせて伸縮（固定幅でもOK） */
+
+min-width: 160px !important; /* 最低でもこの幅は確保 */
+
+height: 50px !important; /* PC版に近い高さ */
+
+border-radius: 4px !important; /* 角を少しだけ丸く */
+
+
+/* 配色（シンプル・清潔感） */
+
+background: #fff !important;
+
+border: 1px solid #e0e0e0 !important; /* 薄いグレーの枠線 */
+
+box-shadow: none !important; /* 影なし（フラット） */
+
+
+/* 中身の配置（横並び） */
+
+display: flex !important;
+
+flex-direction: row !important; /* 左：名前、右：件数 */
+
+align-items: center !important;
+
+justify-content: space-between !important; /* 両端揃え */
+
+padding: 0 15px !important;
+
+text-decoration: none !important;
+
+}
+
+
+
+/* エリア名（文字） */
+
+.scroll-area-btn .name {
+
+font-size: 13px !important;
+
+color: #333 !important;
+
+font-weight: bold !important;
+
+font-family: inherit !important; /* サイト標準のゴシック体 */
+
+line-height: 1.2 !important;
+
+text-align: left !important;
+
+margin: 0 !important;
+
+
+/* 長すぎる場合は...で省略 */
+
+white-space: nowrap !important;
+
+overflow: hidden;
+
+text-overflow: ellipsis;
+
+max-width: 110px; /* 文字エリアの幅制限 */
+
+}
+
+
+
+/* 件数表示 */
+
+.scroll-area-btn .count {
+
+font-size: 11px !important;
+
+color: #d0426b !important; /* サイト共通のピンク色 */
+
+font-weight: bold !important;
+
+margin-left: 10px !important; /* 名前との隙間 */
+
+background: none !important;
+
+flex-shrink: 0; /* 縮まないようにする */
+
+}
+
+
+
+.scroll-area-btn .count::after {
+
+content: '件';
+
+font-size: 10px;
+
+color: #d0426b;
+
+margin-left: 2px;
+
+}
+
+
+
+/* タップ時の反応 */
+
+.scroll-area-btn:active {
+
+background: #fafafa !important;
+
+border-color: #ccc !important;
+
+}
+
+
+/* =========================================
+
+【最適化版】コンパクト・縦並びスタイル
+
+（金枠なし・たくさん表示・2行表示）
+
+========================================= */
+
+
+
+/* リスト全体の調整 */
+
+.scroll-area-list {
+
+gap: 8px !important; /* 隙間を詰めて数を稼ぐ */
+
+padding: 5px 15px !important;
+
+align-items: flex-start !important;
+
+}
+
+
+
+/* ボタン本体（縦並び・幅固定） */
+
+.scroll-area-btn {
+
+width: 100px !important; /* ★幅を固定してコンパクトに */
+
+height: 70px !important; /* 2行入る高さ */
+
+border-radius: 4px !important;
+
+
+/* シンプルな白デザイン */
+
+background: #fff !important;
+
+border: 1px solid #ddd !important; /* 薄いグレー枠 */
+
+box-shadow: 0 2px 4px rgba(0,0,0,0.03) !important;
+
+
+/* 中身を縦に積む */
+
+display: flex !important;
+
+flex-direction: column !important; /* 上：名前、下：件数 */
+
+align-items: center !important;
+
+justify-content: center !important;
+
+padding: 5px !important;
+
+text-decoration: none !important;
+
+}
+
+
+
+/* エリア名（2行まで表示） */
+
+.scroll-area-btn .name {
+
+font-size: 11px !important; /* 少し小さくして収まりよく */
+
+color: #333 !important;
+
+font-weight: bold !important;
+
+font-family: inherit !important;
+
+line-height: 1.3 !important;
+
+text-align: center !important; /* 中央揃え */
+
+width: 100% !important;
+
+margin: 0 !important;
+
+
+/* 長い名前は2行で折り返す */
+
+white-space: normal !important; /* 改行許可 */
+
+display: -webkit-box;
+
+-webkit-box-orient: vertical;
+
+-webkit-line-clamp: 2; /* 2行まで */
+
+overflow: hidden;
+
+}
+
+
+
+/* 件数表示 */
+
+.scroll-area-btn .count {
+
+font-size: 10px !important;
+
+color: #d0426b !important; /* ピンク色 */
+
+font-weight: normal !important;
+
+margin-top: 4px !important; /* 名前との隙間 */
+
+margin-left: 0 !important;
+
+background: none !important;
+
+line-height: 1;
+
+}
+
+
+
+.scroll-area-btn .count::after {
+
+content: '件';
+
+font-size: 9px;
+
+margin-left: 1px;
+
+opacity: 0.8;
+
+}
+
+
+
+/* タップ時の反応 */
+
+.scroll-area-btn:active {
+
+background: #f9f9f9 !important;
+
+transform: translateY(2px);
+
+box-shadow: none !important;
+
+}
+
+
+/* =========================================
+
+スクロールナビゲーション表記のスタイル
+
+========================================= */
+
+
+
+/* ラッパー（位置調整用） */
+
+.scroll-nav-wrapper {
+
+position: relative;
+
+padding-bottom: 10px;
+
+}
+
+
+
+/* 1. 「横にスクロールできます」の文字 */
+
+.scroll-hint {
+
+font-size: 10px;
+
+color: #999;
+
+text-align: right; /* 右寄せ */
+
+margin-bottom: 5px;
+
+padding-right: 10px;
+
+font-weight: bold;
+
+}
+
+
+
+/* 2. 右端に「もっとあるよ」を示すグラデーションと矢印 */
+
+.scroll-nav-wrapper::after {
+
+content: '›'; /* 矢印アイコン */
+
+position: absolute;
+
+right: 0;
+
+top: 50%; /* 上下中央 */
+
+transform: translateY(-20%);
+
+
+width: 30px;
+
+height: 60px; /* ボタンの高さに合わせる */
+
+display: flex;
+
+align-items: center;
+
+justify-content: center;
+
+
+font-size: 20px;
+
+font-family: Arial, sans-serif;
+
+color: #fff;
+
+background: rgba(0,0,0,0.3); /* 半透明の黒背景 */
+
+border-top-left-radius: 4px;
+
+border-bottom-left-radius: 4px;
+
+
+pointer-events: none; /* 邪魔にならないようにクリックを無効化 */
+
+animation: bounceRight 1.5s infinite; /* ふわふわ動かす */
+
+z-index: 5;
+
+}
+
+
+
+/* 矢印のアニメーション */
+
+@keyframes bounceRight {
+
+0%, 100% { transform: translateY(-20%) translateX(0); opacity: 0.8; }
+
+50% { transform: translateY(-20%) translateX(5px); opacity: 1; }
+
+}
+
+
+
+/* 一番最後までスクロールしたら矢印を消す（JSなしの簡易版としては常時表示が一般的ですが、
+
+邪魔であれば .scroll-nav-wrapper::after { display: none; } で消せます） */
+
+
+/* =================================================================
+
+【ランキング専用】高級・目立つデザイン修正版
+
+（他への干渉を避けた安全なコード）
+
+================================================================= */
+
+
+
+/* 1. ランキングカードの枠組み（少し浮かせて目立たせる） */
+
+.wolfman-style .ranking-item {
+
+background: #fff !important; /* 真っ白で清潔感 */
+
+border: 1px solid #f0f0f0 !important; /* 薄い枠線 */
+
+border-top: none !important; /* 上の線はバッジに任せる */
+
+border-radius: 8px !important; /* 角丸 */
+
+margin-bottom: 60px !important; /* 下の間隔を広めに */
+
+position: relative !important;
+
+overflow: visible !important; /* バッジをはみ出させる */
+
+
+/* 影をつけて「浮いている」感を出す */
+
+box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+
+transition: transform 0.3s ease !important;
+
+}
+
+
+
+/* 2. 順位バッジ（カードの左上に「リボン」のように配置） */
+
+.wolfman-style .rank-badge {
+
+position: absolute !important;
+
+top: -10px !important; /* カードより少し上に */
+
+left: -10px !important; /* カードより少し左に */
+
+z-index: 10 !important;
+
+
+/* デザイン */
+
+padding: 10px 25px !important;
+
+color: #fff !important;
+
+font-family: "Times New Roman", serif !important; /* 英語フォントで高級感 */
+
+font-weight: bold !important;
+
+font-size: 1.3rem !important;
+
+letter-spacing: 0.05em !important;
+
+
+/* 形を作る（リボン風） */
+
+border-radius: 4px !important;
+
+box-shadow: 3px 3px 10px rgba(0,0,0,0.2) !important;
+
+}
+
+
+
+/* 順位ごとの色分け（グラデーション） */
+
+.wolfman-style .rank-1 .rank-badge {
+
+background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c) !important; /* 金 */
+
+color: #000 !important; /* 1位は見やすく黒文字 */
+
+border: 1px solid #fff !important;
+
+}
+
+.wolfman-style .rank-2 .rank-badge {
+
+background: linear-gradient(135deg, #e0e0e0, #ffffff, #a9a9a9) !important; /* 銀 */
+
+color: #333 !important;
+
+}
+
+.wolfman-style .rank-3 .rank-badge {
+
+background: linear-gradient(135deg, #cd7f32, #ffdab9, #8b4513) !important; /* 銅 */
+
+color: #fff !important;
+
+}
+
+
+
+/* 王冠アイコン等の微調整 */
+
+.wolfman-style .rank-badge .crown-icon { font-size: 0.8em; margin-right: 5px; }
+
+.wolfman-style .rank-badge .num { font-style: italic; }
+
+
+
+
+
+/* 3. 画像エリア（枠線をつけて額縁のように） */
+
+.wolfman-style .ranking-main-visual {
+
+margin: 0 !important;
+
+width: 100% !important;
+
+border-bottom: 1px solid #eee !important;
+
+}
+
+.wolfman-style .ranking-main-visual img {
+
+width: 100% !important;
+
+height: auto !important;
+
+max-height: 400px !important;
+
+object-fit: cover !important;
+
+border-radius: 8px 8px 0 0 !important; /* 上だけ丸く */
+
+}
+
+
+
+
+
+/* 4. コンテンツエリア */
+
+.wolfman-style .ranking-body {
+
+padding: 30px 25px !important;
+
+}
+
+
+
+/* 5. 評価の星（ゴールド） */
+
+.ranking-stars {
+
+color: #d4af37 !important; /* 落ち着いた金 */
+
+font-size: 1.3rem !important;
+
+margin-bottom: 15px !important;
+
+display: flex !important;
+
+align-items: center !important;
+
+}
+
+.ranking-stars .review-link {
+
+font-size: 0.8rem !important;
+
+color: #fff !important;
+
+background: #1a3a4d !important; /* 紺色背景 */
+
+padding: 3px 10px !important;
+
+border-radius: 4px !important;
+
+margin-left: auto !important; /* 右寄せ */
+
+text-decoration: none !important;
+
+}
+
+
+
+/* 6. スペック表（すっきり見やすく） */
+
+.ranking-spec-list {
+
+margin-bottom: 25px !important;
+
+}
+
+.spec-row {
+
+border-bottom: 1px solid #f5f5f5 !important;
+
+padding: 10px 0 !important;
+
+display: flex !important;
+
+align-items: center !important;
+
+}
+
+.spec-row dt {
+
+color: #1a3a4d !important; /* 紺色 */
+
+font-weight: bold !important;
+
+width: 100px !important;
+
+font-size: 0.9rem !important;
+
+}
+
+.spec-row dd {
+
+font-size: 0.95rem !important;
+
+}
+
+.spec-row dd.tel-num {
+
+font-size: 1.3rem !important;
+
+font-weight: bold !important;
+
+letter-spacing: 1px !important;
+
+}
+
+
+
+/* 7. キャッチコピー（赤で強調） */
+
+.ranking-catch {
+
+color: #ff5a5f !important;
+
+font-size: 1.25rem !important;
+
+font-weight: bold !important;
+
+margin: 20px 0 15px !important;
+
+text-align: center !important;
+
+line-height: 1.4 !important;
+
+}
+
+
+
+/* 8. アクションボタン（立体的で押しやすく） */
+
+.ranking-actions {
+
+display: flex !important;
+
+gap: 15px !important;
+
+margin-top: 20px !important;
+
+}
+
+.btn-action {
+
+width: 50% !important;
+
+padding: 15px !important;
+
+text-align: center !important;
+
+border-radius: 50px !important; /* 丸ボタン */
+
+font-weight: bold !important;
+
+text-decoration: none !important;
+
+box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+
+transition: transform 0.2s !important;
+
+display: flex !important;
+
+align-items: center !important;
+
+justify-content: center !important;
+
+}
+
+.btn-tel {
+
+background: #fff !important;
+
+color: #1a3a4d !important;
+
+border: 2px solid #1a3a4d !important;
+
+}
+
+.btn-detail {
+
+background: linear-gradient(to right, #ff5a5f, #e04a4f) !important; /* 赤グラデ */
+
+color: #fff !important;
+
+border: none !important;
+
+}
+
+.btn-action:active {
+
+transform: translateY(2px) !important;
+
+box-shadow: none !important;
+
+}
+
+
+
+/* スマホ対応 */
+
+@media (max-width: 600px) {
+
+.ranking-actions { flex-direction: column !important; }
+
+.btn-action { width: 100% !important; }
+
+.wolfman-style .rank-badge { font-size: 1.1rem !important; padding: 8px 15px !important; }
+
+}
+
+
+/* =================================================================
+
+ランキングデザイン追加修正
+
+（店名・カテゴリ追加・タグのテキスト化）
+
+================================================================= */
+
+
+
+/* 1. 店名とカテゴリのエリア */
+
+.ranking-title-area {
+
+margin-bottom: 15px;
+
+padding-bottom: 10px;
+
+border-bottom: 1px dotted #ccc;
+
+text-align: left; /* 左寄せ */
+
+}
+
+
+
+/* 店名 */
+
+.ranking-name {
+
+font-size: 1.6rem;
+
+font-weight: bold;
+
+margin: 0 0 5px 0;
+
+line-height: 1.3;
+
+}
+
+.ranking-name a {
+
+color: #0056b3; /* リンク色（青） */
+
+text-decoration: underline;
+
+}
+
+.ranking-name a:hover {
+
+text-decoration: none;
+
+color: #333;
+
+}
+
+
+
+/* カテゴリ（店名の下） */
+
+.ranking-cats {
+
+font-size: 0.9rem;
+
+color: #666;
+
+font-family: "Yu Mincho", serif; /* 明朝体で少し上品に */
+
+}
+
+.ranking-cats span::after {
+
+content: '・';
+
+margin: 0 5px;
+
+color: #ccc;
+
+}
+
+.ranking-cats span:last-child::after {
+
+content: '';
+
+}
+
+
+
+
+
+/* 2. 特徴タグ（最下部・テキストのみ） */
+
+.ranking-features-text {
+
+font-size: 0.85rem;
+
+color: #888;
+
+margin-top: 20px;
+
+line-height: 1.5;
+
+text-align: left;
+
+}
+
+
+
+/* 3. 既存レイアウトの微調整 */
+
+/* 星評価の上の線を消す（店名の下に線を入れたため） */
+
+.ranking-header-row {
+
+border-bottom: none !important;
+
+margin-bottom: 15px !important;
+
+padding-bottom: 0 !important;
+
+}
+
+
+
+/* スマホ対応 */
+
+@media (max-width: 600px) {
+
+.ranking-name { font-size: 1.3rem; }
+
+.ranking-cats { font-size: 0.8rem; }
+
+}
+
+
+/* =================================================================
+
+店舗一覧用の追加CSS（カテゴリ表示）
+
+================================================================= */
+
+
+
+/* 店名の下のカテゴリ（マンション・出張など） */
+
+.shop-list-cats {
+
+font-size: 0.8rem;
+
+color: #666;
+
+margin-bottom: 8px; /* タグとの間隔 */
+
+font-family: "Yu Mincho", serif; /* 明朝体で上品に */
+
+line-height: 1.4;
+
+}
+
+
+
+/* カテゴリ同士の区切り線（・） */
+
+.shop-list-cats span::after {
+
+content: '・';
+
+margin: 0 5px;
+
+color: #ccc;
+
+}
+
+.shop-list-cats span:last-child::after {
+
+content: ''; /* 最後は消す */
+
+}
+
+
+
+/* スマホ調整 */
+
+@media (max-width: 600px) {
+
+.shop-list-cats {
+
+font-size: 0.75rem;
+
+margin-bottom: 6px;
+
+}
+
+}
+
+
+/* =================================================================
+
+店舗個別ページ (single-shop) 専用スタイル
+
+================================================================= */
+
+
+
+/* コンテナ設定 */
+
+.shop-detail-container {
+
+max-width: 900px;
+
+margin: 0 auto;
+
+background: #fff;
+
+padding: 40px 0;
+
+}
+
+
+
+/* ヘッダー */
+
+.shop-detail-header {
+
+text-align: center;
+
+margin-bottom: 30px;
+
+border-bottom: 2px solid var(--mep-gold);
+
+padding-bottom: 20px;
+
+}
+
+.shop-name {
+
+font-size: 2.2rem;
+
+font-weight: bold;
+
+color: #333;
+
+margin-bottom: 10px;
+
+}
+
+.shop-cats {
+
+font-size: 1rem;
+
+color: #666;
+
+font-family: var(--mep-font-serif);
+
+}
+
+.shop-cats span::after { content: " / "; }
+
+.shop-cats span:last-child::after { content: ""; }
+
+
+
+/* メイン行 */
+
+.shop-main-row {
+
+display: flex;
+
+gap: 30px;
+
+margin-bottom: 50px;
+
+}
+
+.shop-main-visual { flex: 1; }
+
+.shop-main-visual img { width: 100%; border-radius: 8px; box-shadow: var(--mep-shadow-md); }
+
+.shop-quick-info { width: 350px; }
+
+
+
+/* クイック情報 */
+
+.shop-stars { color: var(--mep-gold); font-size: 1.4rem; margin-bottom: 15px; }
+
+.shop-catch-text {
+
+font-weight: bold;
+
+color: var(--mep-red);
+
+line-height: 1.6;
+
+margin-bottom: 25px;
+
+font-size: 1.1rem;
+
+}
+
+
+
+/* CTAボタン */
+
+.cta-btn {
+
+display: flex; align-items: center; justify-content: center;
+
+padding: 15px; border-radius: 50px; text-decoration: none;
+
+font-weight: bold; margin-bottom: 15px; transition: 0.3s;
+
+}
+
+.btn-tel { background: var(--mep-navy); color: #fff; }
+
+.btn-line { background: #06c755; color: #fff; }
+
+.cta-btn:hover { opacity: 0.8; transform: translateY(-2px); }
+
+
+
+/* セクションタイトル */
+
+.shop-sec-title {
+
+font-size: 1.4rem;
+
+border-left: 5px solid var(--mep-navy);
+
+padding-left: 15px;
+
+margin: 60px 0 25px;
+
+color: var(--mep-navy);
+
+}
+
+
+
+/* 基本情報テーブル */
+
+.shop-info-table {
+
+width: 100%; border-collapse: collapse; margin-bottom: 40px;
+
+}
+
+.shop-info-table th {
+
+width: 180px; background: #f8f9fa; padding: 15px;
+
+border: 1px solid #eee; text-align: left; font-size: 0.9rem;
+
+}
+
+.shop-info-table td {
+
+padding: 15px; border: 1px solid #eee; font-size: 1rem;
+
+}
+
+.tel-text { font-weight: bold; font-size: 1.2rem; }
+
+
+
+/* 特徴タグ */
+
+.shop-feat-tags span {
+
+display: inline-block; background: #eee; padding: 3px 10px;
+
+border-radius: 4px; font-size: 0.8rem; margin: 0 5px 5px 0;
+
+}
+
+
+
+/* 推しポイント */
+
+.recommend-box {
+
+background: #fffcf0; border: 1px solid #f0e6cc;
+
+padding: 25px; border-radius: 8px; line-height: 1.8;
+
+}
+
+
+
+/* 公式サイトボタン */
+
+.shop-official-link { text-align: center; margin-top: 60px; }
+
+.btn-official {
+
+display: inline-block; padding: 20px 60px; background: linear-gradient(135deg, var(--mep-red), var(--mep-red-dark));
+
+color: #fff; text-decoration: none; font-weight: bold; border-radius: 50px;
+
+box-shadow: 0 5px 15px rgba(255,90,95,0.4);
+
+}
+
+
+
+/* スマホ対応 */
+
+@media (max-width: 768px) {
+
+.shop-main-row { flex-direction: column; }
+
+.shop-quick-info { width: 100%; }
+
+.shop-name { font-size: 1.6rem; }
+
+.shop-info-table th { width: 100px; padding: 10px; font-size: 0.8rem; }
+
+.shop-info-table td { padding: 10px; font-size: 0.9rem; }
+
+}
+
+
+/* =================================================================
+
+詳細ページ専用：料金テーブル（高級感・シンプル版）
+
+================================================================= */
+
+
+
+/* テーブル全体の枠組み */
+
+.shop-detail-price-table {
+
+width: 100%;
+
+border-collapse: collapse;
+
+margin-bottom: 40px;
+
+background: #fff;
+
+border-top: 2px solid var(--mep-navy); /* 上端だけ紺色で締める */
+
+}
+
+
+
+/* ヘッダー */
+
+.shop-detail-price-table th {
+
+background: #f8f9fa;
+
+color: #333;
+
+font-weight: bold;
+
+padding: 15px;
+
+font-size: 0.9rem;
+
+border-bottom: 1px solid #ddd;
+
+text-align: center;
+
+}
+
+
+
+/* 各セル */
+
+.shop-detail-price-table td {
+
+padding: 18px 15px;
+
+border-bottom: 1px solid #eee;
+
+text-align: center;
+
+color: #444;
+
+font-size: 1rem;
+
+}
+
+
+
+/* コース名（左寄せにして読みやすく） */
+
+.shop-detail-price-table .course-name {
+
+text-align: left;
+
+font-weight: bold;
+
+color: #1a3a4d;
+
+}
+
+
+
+/* 時間 */
+
+.shop-detail-price-table .course-time {
+
+font-family: Arial, sans-serif;
+
+color: #666;
+
+}
+
+
+
+/* 金額（★赤文字を廃止し、紺色か黒で高級感を出す） */
+
+.shop-detail-price-table .course-price {
+
+font-weight: bold;
+
+font-size: 1.2rem;
+
+color: #333; /* または var(--mep-navy) */
+
+font-family: Arial, sans-serif;
+
+}
+
+
+
+/* 偶数行に薄い色をつけて視認性アップ */
+
+.shop-detail-price-table tr:nth-child(even) td {
+
+background: #fafafa;
+
+}
+
+
+
+/* 料金がない時のメッセージ */
+
+.price-empty-msg {
+
+color: #999;
+
+font-size: 0.9rem;
+
+padding: 20px;
+
+text-align: center;
+
+border: 1px dashed #ccc;
+
+}
+
+
+
+/* スマホ対応 */
+
+@media (max-width: 600px) {
+
+.shop-detail-price-table th,
+
+.shop-detail-price-table td {
+
+padding: 12px 8px;
+
+font-size: 0.85rem;
+
+}
+
+.shop-detail-price-table .course-price {
+
+font-size: 1rem;
+
+}
+
+}
+
+
+/* =================================================================
+
+店舗詳細ページ (ウルフマン再現スタイル)
+
+================================================================= */
+
+
+
+/* --- 1. ヘッダーエリア --- */
+
+.shpc-header-box {
+
+border: 1px solid #ddd;
+
+margin-bottom: 30px;
+
+background: #fff;
+
+}
+
+.shpc-top-bar {
+
+background-color: #f5a0c0; /* ピンクの帯 */
+
+height: 8px;
+
+}
+
+.shpc-header-content {
+
+padding: 20px;
+
+}
+
+.shpc-badge-open {
+
+background: #8bc34a;
+
+color: #fff;
+
+padding: 3px 10px;
+
+font-size: 11px;
+
+font-weight: bold;
+
+border-radius: 3px;
+
+vertical-align: middle;
+
+margin-right: 10px;
+
+}
+
+.shpc-shop-name {
+
+font-size: 1.6rem;
+
+font-weight: bold;
+
+display: inline;
+
+color: #333;
+
+margin: 0;
+
+}
+
+.shpc-cats {
+
+margin-top: 8px;
+
+font-size: 0.9rem;
+
+color: #666;
+
+font-family: "Yu Mincho", serif;
+
+}
+
+.shpc-cats span::after { content: ' / '; }
+
+.shpc-cats span:last-child::after { content: ''; }
+
+
+
+.shpc-link-btn {
+
+background: #4caf50;
+
+color: #fff !important;
+
+padding: 8px 16px;
+
+border-radius: 4px;
+
+font-size: 12px;
+
+font-weight: bold;
+
+text-decoration: none;
+
+display: inline-block;
+
+}
+
+.shpc-header-top-row {
+
+display: flex;
+
+justify-content: space-between;
+
+align-items: flex-start;
+
+}
+
+
+
+/* --- 2. イントロエリア --- */
+
+.shpc-intro-section {
+
+display: flex;
+
+gap: 30px;
+
+margin-bottom: 40px;
+
+}
+
+.shpc-intro-image {
+
+width: 45%;
+
+flex-shrink: 0;
+
+}
+
+.shpc-intro-image img {
+
+width: 100%;
+
+border: 1px solid #eee;
+
+padding: 3px;
+
+border-radius: 4px;
+
+box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+
+}
+
+.shpc-intro-content {
+
+width: 55%;
+
+}
+
+.shpc-intro-heading {
+
+background: #fdf2f6; /* 薄いピンク背景 */
+
+color: #ec5d9f; /* 濃いピンク文字 */
+
+padding: 12px;
+
+font-weight: bold;
+
+margin-bottom: 15px;
+
+border-left: 5px solid #ec5d9f;
+
+line-height: 1.5;
+
+font-size: 1.1rem;
+
+}
+
+.shpc-stars {
+
+color: #f5bc55;
+
+margin-bottom: 10px;
+
+font-size: 1.2rem;
+
+}
+
+.shpc-intro-text {
+
+font-size: 0.95rem;
+
+line-height: 1.8;
+
+color: #333;
+
+margin-bottom: 25px;
+
+}
+
+
+
+/* --- 3. CTAボタン --- */
+
+.shpc-cta-row {
+
+display: flex;
+
+gap: 15px;
+
+}
+
+.shpc-btn-tel {
+
+flex: 1;
+
+background: #333;
+
+color: #fff !important;
+
+text-align: center;
+
+padding: 15px;
+
+border-radius: 50px;
+
+font-weight: bold;
+
+text-decoration: none;
+
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+transition: transform 0.2s;
+
+}
+
+.shpc-btn-line {
+
+flex: 1;
+
+background: #06c755; /* LINEカラー */
+
+color: #fff !important;
+
+text-align: center;
+
+padding: 15px;
+
+border-radius: 50px;
+
+font-weight: bold;
+
+text-decoration: none;
+
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+transition: transform 0.2s;
+
+}
+
+.shpc-btn-tel:hover, .shpc-btn-line:hover {
+
+transform: translateY(-2px);
+
+opacity: 0.9;
+
+}
+
+
+
+/* --- 4. 年齢層グラフ --- */
+
+.age-graph-container {
+
+padding: 25px;
+
+background: #fff;
+
+border: 1px solid #eee;
+
+border-radius: 8px;
+
+margin-bottom: 30px;
+
+}
+
+.age-bar-row {
+
+display: flex;
+
+align-items: center;
+
+margin-bottom: 12px;
+
+}
+
+.age-label {
+
+width: 80px;
+
+font-size: 13px;
+
+font-weight: bold;
+
+color: #555;
+
+}
+
+.bar-container {
+
+flex: 1;
+
+height: 16px;
+
+background: #f5f5f5;
+
+margin: 0 15px;
+
+border-radius: 8px;
+
+overflow: hidden;
+
+}
+
+.bar {
+
+height: 100%;
+
+background: linear-gradient(90deg, #b1d84e, #9bc53d); /* 黄緑グラデ */
+
+border-radius: 8px;
+
+}
+
+.bar-percentage {
+
+width: 40px;
+
+font-size: 13px;
+
+text-align: right;
+
+font-weight: bold;
+
+}
+
+
+
+/* --- 5. 料金比較グラフ --- */
+
+.swr-price-comparison {
+
+padding: 25px;
+
+background: #fff;
+
+border: 1px solid #eee;
+
+border-radius: 8px;
+
+margin-bottom: 30px;
+
+}
+
+.swr-bar-wrapper {
+
+background: #f9f9f9;
+
+padding: 20px;
+
+border-radius: 8px;
+
+position: relative;
+
+border: 1px solid #eee;
+
+}
+
+.swr-bar-average {
+
+background: #ccc;
+
+color: #555;
+
+font-size: 11px;
+
+padding: 6px 10px;
+
+margin-bottom: 10px;
+
+border-radius: 4px;
+
+white-space: nowrap;
+
+font-weight: bold;
+
+}
+
+.swr-bar-shop {
+
+background: linear-gradient(90deg, #e91e63, #f06292); /* ピンクグラデ */
+
+color: #fff;
+
+font-size: 12px;
+
+padding: 8px 10px;
+
+border-radius: 4px;
+
+white-space: nowrap;
+
+font-weight: bold;
+
+box-shadow: 2px 2px 5px rgba(233,30,99,0.2);
+
+}
+
+
+
+/* --- 6. 詳細料金表 & スペック表 --- */
+
+.shop-data-table, .shop-detail-price-table {
+
+width: 100%;
+
+border-collapse: collapse;
+
+margin-bottom: 30px;
+
+border-top: 2px solid #333; /* 上を黒で締める */
+
+}
+
+.shop-data-table th, .shop-detail-price-table th {
+
+background: #f8f9fa;
+
+padding: 15px;
+
+text-align: left;
+
+font-weight: bold;
+
+color: #333;
+
+border-bottom: 1px solid #eee;
+
+width: 25%;
+
+font-size: 0.9rem;
+
+}
+
+.shop-data-table td, .shop-detail-price-table td {
+
+padding: 15px;
+
+border-bottom: 1px solid #eee;
+
+color: #444;
+
+font-size: 0.95rem;
+
+}
+
+.course-price {
+
+font-weight: bold;
+
+color: #333;
+
+font-size: 1.1rem;
+
+}
+
+.shop-feat-tags span {
+
+display: inline-block;
+
+background: #eee;
+
+padding: 3px 10px;
+
+font-size: 12px;
+
+border-radius: 3px;
+
+margin: 0 5px 5px 0;
+
+color: #555;
+
+}
+
+.recommend-box {
+
+background: #fffcf0;
+
+border: 1px solid #f0e6cc;
+
+padding: 20px;
+
+border-radius: 8px;
+
+line-height: 1.8;
+
+}
+
+
+
+/* --- 7. スマホ対応 --- */
+
+@media (max-width: 768px) {
+
+.shpc-intro-section {
+
+flex-direction: column;
+
+gap: 15px;
+
+}
+
+.shpc-intro-image, .shpc-intro-content {
+
+width: 100%;
+
+}
+
+.shpc-shop-name {
+
+font-size: 1.3rem;
+
+}
+
+.shop-data-table th, .shop-data-table td,
+
+.shop-detail-price-table th, .shop-detail-price-table td {
+
+display: block;
+
+width: 100%;
+
+padding: 10px;
+
+}
+
+.shop-data-table th, .shop-detail-price-table th {
+
+background: #eee;
+
+border-bottom: none;
+
+}
+
+.swr-bar-average, .swr-bar-shop {
+
+font-size: 10px;
+
+padding: 5px;
+
+}
+
+}
+
+
+/* =================================================================
+
+店舗ページ：ウルフマン完全再現（セラピスト・3段階料金・ランキング）
+
+================================================================= */
+
+
+
+/* --- 1. おすすめセラピスト (3カラムカード) --- */
+
+.ts-therapist-box-wrapper {
+
+display: grid;
+
+grid-template-columns: repeat(3, 1fr);
+
+gap: 15px;
+
+margin-top: 20px;
+
+}
+
+.ts-therapist-box {
+
+position: relative;
+
+border-radius: 8px;
+
+overflow: hidden;
+
+box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+
+background: #fff;
+
+transition: transform 0.2s;
+
+}
+
+.ts-therapist-box:hover {
+
+transform: translateY(-3px);
+
+}
+
+.ts-ribbon {
+
+position: absolute;
+
+top: 10px;
+
+right: -30px;
+
+background: #EA5E7A; /* ピンク */
+
+color: #fff;
+
+font-size: 10px;
+
+font-weight: bold;
+
+padding: 5px 30px;
+
+transform: rotate(45deg);
+
+z-index: 5;
+
+box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+
+}
+
+.ts-therapist-image {
+
+position: relative;
+
+width: 100%;
+
+aspect-ratio: 3 / 4; /* 縦長比率 */
+
+overflow: hidden;
+
+}
+
+.ts-therapist-image img {
+
+width: 100%;
+
+height: 100%;
+
+object-fit: cover;
+
+}
+
+/* 画像上の黒グラデーション & テキスト */
+
+.ts-therapist-overlay {
+
+position: absolute;
+
+bottom: 0;
+
+left: 0;
+
+width: 100%;
+
+padding: 15px;
+
+background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+
+color: #fff;
+
+}
+
+.ts-therapist-name {
+
+font-size: 1.1rem;
+
+font-weight: bold;
+
+margin-bottom: 5px;
+
+text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+
+}
+
+.ts-therapist-text {
+
+font-size: 0.8rem;
+
+line-height: 1.4;
+
+opacity: 0.9;
+
+}
+
+.ts-therapist-link {
+
+display: block;
+
+background: #EA5E7A;
+
+color: #fff !important;
+
+text-align: center;
+
+padding: 10px;
+
+font-size: 0.9rem;
+
+font-weight: bold;
+
+text-decoration: none;
+
+}
+
+.ts-therapist-link:hover { opacity: 0.9; }
+
+
+
+/* スマホは1列か横スクロール */
+
+@media (max-width: 768px) {
+
+.ts-therapist-box-wrapper {
+
+grid-template-columns: repeat(2, 1fr); /* 2列表示 */
+
+gap: 10px;
+
+}
+
+.ts-therapist-name { font-size: 1rem; }
+
+.ts-therapist-text { font-size: 0.7rem; }
+
+}
+
+
+
+/* --- 2. 料金比較（3段階） --- */
+
+.swr-price-comparison {
+
+padding: 20px;
+
+background: #fff;
+
+border: 1px solid #eee;
+
+border-radius: 8px;
+
+}
+
+.comp-row-group {
+
+margin-bottom: 20px;
+
+border-bottom: 1px dashed #eee;
+
+padding-bottom: 15px;
+
+}
+
+.comp-row-group:last-child {
+
+margin-bottom: 0;
+
+border-bottom: none;
+
+padding-bottom: 0;
+
+}
+
+.comp-time-label {
+
+font-size: 1rem;
+
+font-weight: bold;
+
+margin-bottom: 10px;
+
+color: #333;
+
+border-left: 4px solid #4caf50;
+
+padding-left: 10px;
+
+}
+
+.swr-bar-wrapper {
+
+background: #f9f9f9;
+
+padding: 10px;
+
+border-radius: 6px;
+
+}
+
+.swr-bar-average, .swr-bar-shop {
+
+height: 24px;
+
+line-height: 24px;
+
+padding-left: 10px;
+
+font-size: 11px;
+
+border-radius: 4px;
+
+white-space: nowrap;
+
+overflow: hidden;
+
+margin-bottom: 5px;
+
+}
+
+.swr-bar-average { background: #ccc; color: #555; }
+
+.swr-bar-shop { background: linear-gradient(90deg, #e91e63, #f06292); color: #fff; font-weight: bold; }
+
+
+
+/* --- 3. エリアランキング --- */
+
+.ranking-section {
+
+background: #f4f8fa; /* 薄い青背景 */
+
+padding: 30px 20px;
+
+border-radius: 10px;
+
+}
+
+.highlight-red { color: red; font-weight: bold; }
+
+.ranking-list { display: flex; flex-direction: column; gap: 20px; }
+
+.ranking-item {
+
+background: #fff;
+
+border-radius: 8px;
+
+padding: 20px;
+
+box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+
+position: relative;
+
+border: 2px solid transparent;
+
+}
+
+.rank-1 { border-color: #ffd700; }
+
+.rank-badge {
+
+position: absolute;
+
+top: -10px;
+
+left: -10px;
+
+background: #EA5E7A;
+
+color: #fff;
+
+width: 60px;
+
+height: 60px;
+
+border-radius: 50%;
+
+display: flex;
+
+flex-direction: column;
+
+justify-content: center;
+
+align-items: center;
+
+box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+z-index: 2;
+
+transform: rotate(-10deg);
+
+}
+
+.crown-icon { font-size: 1.2rem; }
+
+.num { font-size: 1.1rem; font-weight: bold; }
+
+
+
+.ranking-flex { display: flex; gap: 15px; margin-top: 10px; }
+
+.ranking-img { width: 120px; flex-shrink: 0; }
+
+.ranking-img img { width: 100%; border-radius: 6px; aspect-ratio: 4/3; object-fit: cover; }
+
+.ranking-info { flex: 1; }
+
+.ranking-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; padding-left: 40px; } /* バッジ避け */
+
+.ranking-name a { color: #333; text-decoration: none; }
+
+.ranking-stars { color: #f5bc55; font-size: 0.9rem; margin-bottom: 5px; }
+
+.ranking-catch { font-size: 0.9rem; font-weight: bold; color: #EA5E7A; margin-bottom: 8px; }
+
+.ranking-meta { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
+
+.ranking-meta span { margin-right: 10px; }
+
+
+
+@media (max-width: 600px) {
+
+.ranking-flex { flex-direction: column; }
+
+.ranking-img { width: 100%; }
+
+.ranking-name { padding-left: 50px; font-size: 1.1rem; }
+
+}
+
+
+/* =================================================================
+
+店舗詳細・ウルフマン再現スタイル (フルセット)
+
+================================================================= */
+
+
+
+/* --- 共通: 見出し・ボックス --- */
+
+.shop-info-section {
+
+margin-bottom: 50px;
+
+}
+
+.mod-customColor {
+
+background: #fff;
+
+border-left: 6px solid #EA5E7A; /* ピンク */
+
+padding: 10px 15px;
+
+font-size: 1.4rem;
+
+font-weight: bold;
+
+color: #333;
+
+box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+
+margin-bottom: 20px;
+
+}
+
+
+
+/* --- 1. ヘッダーエリア --- */
+
+.shpc-header-box { border: 1px solid #ddd; margin-bottom: 30px; background: #fff; }
+
+.shpc-top-bar { background-color: #f5a0c0; height: 8px; }
+
+.shpc-header-content { padding: 20px; }
+
+.shpc-badge-open {
+
+background: #8bc34a; color: #fff; padding: 3px 10px; font-size: 11px;
+
+font-weight: bold; border-radius: 3px; vertical-align: middle; margin-right: 10px;
+
+}
+
+.shpc-shop-name { font-size: 1.8rem; font-weight: bold; display: inline; color: #333; margin: 0; }
+
+.shpc-cats { margin-top: 8px; font-size: 0.9rem; color: #666; font-family: "Yu Mincho", serif; }
+
+.shpc-cats span::after { content: ' / '; }
+
+.shpc-cats span:last-child::after { content: ''; }
+
+.shpc-link-btn {
+
+background: #4caf50; color: #fff !important; padding: 8px 16px;
+
+border-radius: 4px; font-size: 12px; font-weight: bold; text-decoration: none; display: inline-block;
+
+}
+
+.shpc-header-top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+
+
+
+/* --- 2. イントロ --- */
+
+.shpc-intro-section { display: flex; gap: 30px; margin-bottom: 40px; }
+
+.shpc-intro-image { width: 45%; flex-shrink: 0; }
+
+.shpc-intro-image img { width: 100%; border: 1px solid #eee; padding: 3px; border-radius: 4px; }
+
+.shpc-intro-content { width: 55%; }
+
+.shpc-intro-heading {
+
+background: #fdf2f6; color: #ec5d9f; padding: 12px; font-weight: bold;
+
+margin-bottom: 15px; border-left: 5px solid #ec5d9f; font-size: 1.2rem;
+
+}
+
+.shpc-intro-text { font-size: 0.95rem; line-height: 1.8; color: #333; margin-bottom: 25px; }
+
+.shpc-stars { color: #f5bc55; margin-bottom: 10px; font-size: 1.2rem; }
+
+
+
+/* CTAボタン */
+
+.shpc-cta-row { display: flex; gap: 15px; }
+
+.shpc-btn-tel, .shpc-btn-line {
+
+flex: 1; text-align: center; padding: 15px; border-radius: 50px; font-weight: bold;
+
+text-decoration: none; color: #fff !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+transition: transform 0.2s;
+
+}
+
+.shpc-btn-tel { background: #333; }
+
+.shpc-btn-line { background: #06c755; }
+
+.shpc-btn-tel:hover, .shpc-btn-line:hover { transform: translateY(-2px); opacity: 0.9; }
+
+
+
+/* --- 3. セラピスト --- */
+
+.ts-therapist-box-wrapper { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+
+.ts-therapist-box {
+
+position: relative; border-radius: 8px; overflow: hidden; background: #fff;
+
+box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: transform 0.2s;
+
+}
+
+.ts-therapist-box:hover { transform: translateY(-3px); }
+
+.ts-ribbon {
+
+position: absolute; top: 10px; right: -30px; background: #EA5E7A; color: #fff;
+
+font-size: 10px; font-weight: bold; padding: 5px 30px; transform: rotate(45deg); z-index: 5;
+
+}
+
+.ts-therapist-image { position: relative; width: 100%; aspect-ratio: 3 / 4; overflow: hidden; }
+
+.ts-therapist-image img { width: 100%; height: 100%; object-fit: cover; }
+
+.ts-therapist-overlay {
+
+position: absolute; bottom: 0; left: 0; width: 100%; padding: 15px;
+
+background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%); color: #fff;
+
+}
+
+.ts-therapist-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; text-shadow: 1px 1px 2px #000; }
+
+.ts-therapist-text { font-size: 0.8rem; line-height: 1.4; opacity: 0.9; }
+
+.ts-therapist-link {
+
+display: block; background: #EA5E7A; color: #fff !important; text-align: center;
+
+padding: 10px; font-size: 0.9rem; font-weight: bold; text-decoration: none;
+
+}
+
+
+
+/* --- 4. 年齢層・料金比較グラフ --- */
+
+.age-graph-container, .swr-price-comparison {
+
+padding: 25px; background: #fff; border: 1px solid #eee; border-radius: 8px;
+
+}
+
+.age-bar-row { display: flex; align-items: center; margin-bottom: 12px; }
+
+.age-label { width: 80px; font-size: 13px; font-weight: bold; color: #555; }
+
+.bar-container { flex: 1; height: 16px; background: #f5f5f5; margin: 0 15px; border-radius: 8px; overflow: hidden; }
+
+.bar { height: 100%; background: linear-gradient(90deg, #b1d84e, #9bc53d); }
+
+.bar-percentage { width: 40px; font-size: 13px; text-align: right; font-weight: bold; }
+
+
+
+.comp-row-group { margin-bottom: 20px; border-bottom: 1px dashed #eee; padding-bottom: 15px; }
+
+.comp-row-group:last-child { border: none; margin: 0; padding: 0; }
+
+.comp-time-label { font-size: 1rem; font-weight: bold; margin-bottom: 10px; border-left: 4px solid #4caf50; padding-left: 10px; }
+
+.swr-bar-wrapper { background: #f9f9f9; padding: 10px; border-radius: 6px; }
+
+.swr-bar-average, .swr-bar-shop {
+
+height: 24px; line-height: 24px; padding-left: 10px; font-size: 11px;
+
+border-radius: 4px; white-space: nowrap; margin-bottom: 5px; font-weight: bold;
+
+}
+
+.swr-bar-average { background: #ccc; color: #555; }
+
+.swr-bar-shop { background: linear-gradient(90deg, #e91e63, #f06292); color: #fff; }
+
+
+
+/* --- 5. 詳細テーブル --- */
+
+.shop-data-table, .shop-detail-price-table {
+
+width: 100%; border-collapse: collapse; border-top: 2px solid #333;
+
+}
+
+.shop-data-table th, .shop-detail-price-table th {
+
+background: #f8f9fa; padding: 15px; text-align: left; font-weight: bold;
+
+color: #333; border-bottom: 1px solid #eee; width: 25%;
+
+}
+
+.shop-data-table td, .shop-detail-price-table td {
+
+padding: 15px; border-bottom: 1px solid #eee; color: #444;
+
+}
+
+.course-price { font-weight: bold; color: #333; font-size: 1.1rem; }
+
+.shop-feat-tags span {
+
+display: inline-block; background: #eee; padding: 3px 10px; font-size: 12px;
+
+border-radius: 3px; margin: 0 5px 5px 0; color: #555;
+
+}
+
+.recommend-box { background: #fffcf0; border: 1px solid #f0e6cc; padding: 20px; border-radius: 8px; line-height: 1.8; }
+
+
+
+/* --- 6. ランキング --- */
+
+.ranking-section { background: #f4f8fa; padding: 30px 20px; border-radius: 10px; }
+
+.highlight-red { color: red; font-weight: bold; }
+
+.ranking-list { display: flex; flex-direction: column; gap: 20px; margin-top: 20px; }
+
+.ranking-item { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); position: relative; border: 2px solid transparent; }
+
+.rank-1 { border-color: #ffd700; }
+
+.rank-badge {
+
+position: absolute; top: -10px; left: -10px; background: #EA5E7A; color: #fff;
+
+width: 60px; height: 60px; border-radius: 50%; display: flex; flex-direction: column;
+
+justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+
+z-index: 2; transform: rotate(-10deg);
+
+}
+
+.crown-icon { font-size: 1.2rem; }
+
+.num { font-size: 1.1rem; font-weight: bold; }
+
+.ranking-flex { display: flex; gap: 15px; margin-top: 10px; }
+
+.ranking-img { width: 120px; flex-shrink: 0; }
+
+.ranking-img img { width: 100%; border-radius: 6px; aspect-ratio: 4/3; object-fit: cover; }
+
+.ranking-info { flex: 1; }
+
+.ranking-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; padding-left: 40px; }
+
+.ranking-name a { color: #333; text-decoration: none; }
+
+.ranking-stars { color: #f5bc55; font-size: 0.9rem; margin-bottom: 5px; }
+
+.ranking-catch { font-size: 0.9rem; font-weight: bold; color: #EA5E7A; margin-bottom: 8px; }
+
+.ranking-meta { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
+
+.ranking-meta span { margin-right: 10px; }
+
+
+
+
+/* =================================================================
+
+近隣エリア選択（レスポンシブ対応版）
+
+================================================================= */
+
+.area-link-section {
+
+margin-top: 50px;
+
+text-align: center;
+
+}
+
+.sec-title-simple {
+
+font-size: 1.4rem;
+
+color: #bfae6b; /* 金色 */
+
+font-weight: bold;
+
+margin-bottom: 20px;
+
+font-family: "Yu Mincho", serif;
+
+}
+
+
+
+/* ボタン共通スタイル */
+
+.area-link-item {
+
+display: block;
+
+background: #fff;
+
+border: 1px solid #ddd;
+
+border-radius: 6px;
+
+padding: 15px 10px;
+
+text-decoration: none;
+
+color: #333;
+
+transition: all 0.2s;
+
+box-sizing: border-box;
+
+}
+
+.area-link-item:hover {
+
+background: #f9f9f9;
+
+transform: translateY(-2px);
+
+box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+
+}
+
+.area-name {
+
+display: block;
+
+font-weight: bold;
+
+font-size: 0.95rem;
+
+margin-bottom: 5px;
+
+}
+
+.area-count {
+
+display: block;
+
+font-size: 0.8rem;
+
+color: #ea5e7a; /* ピンク */
+
+}
+
+
+
+/* --- PC表示 (960px以上) --- */
+
+@media (min-width: 960px) {
+
+.area-link-list {
+
+display: flex;
+
+flex-wrap: wrap; /* 折り返し有効 */
+
+gap: 15px;
+
+justify-content: center; /* 中央寄せ */
+
+}
+
+.area-link-item {
+
+width: calc(25% - 15px); /* 4列表示 */
+
+margin-bottom: 5px;
+
+}
+
+.sp-only { display: none; } /* スマホ用ヒントを消す */
+
+}
+
+
+
+/* --- スマホ・タブレット表示 (959px以下) --- */
+
+@media (max-width: 959px) {
+
+.scroll-hint {
+
+font-size: 0.8rem;
+
+color: #999;
+
+text-align: right;
+
+margin-bottom: 5px;
+
+padding-right: 10px;
+
+}
+
+.area-scroll-container {
+
+overflow-x: auto; /* 横スクロール有効 */
+
+-webkit-overflow-scrolling: touch;
+
+padding-bottom: 15px;
+
+}
+
+.area-link-list {
+
+display: flex;
+
+flex-wrap: nowrap; /* 折り返し無効 */
+
+gap: 10px;
+
+padding: 0 10px; /* 端の余白 */
+
+}
+
+.area-link-item {
+
+flex-shrink: 0; /* 縮ませない */
+
+width: 140px; /* 固定幅 */
+
+}
+
+}
+
+
+/* =================================================================
+
+Escomi 追加スタイル (v2.0)
+
+================================================================= */
+
+:root {
+    --es-gold: var(--accent-gold, #d4af37);
+
+--es-gold-light: var(--accent-gold-light, #f4d03f);
+
+--es-gold-dark: var(--accent-gold-dark, #b8962e);
+
+--es-pink: #EA5E7A;
+
+--es-pink-light: #F08095;
+
+--es-navy: #1a3a4d;
+
+--es-gray: #666666;
+
+--es-gray-light: #999999;
+
+--es-gray-bg: #F5F5F5;
+
+--es-border: #E0E0E0;
+
+}
+
+
+
+/* タイトル */
+
+.es-sec-title { margin-bottom: 25px; border: none !important; }
+
+.es-sec-title__en { display: block; font-size: 0.75rem; font-weight: 600; color: var(--es-gold); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 5px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+.es-sec-title__ja { display: block; font-size: 1.3rem; font-weight: 700; color: var(--es-navy); line-height: 1.4; }
+
+.es-sec-title-large .es-sec-title__ja, .es-sec-title-large .main { font-size: 1.5rem; }
+
+.highlight-gold { color: var(--es-gold-dark) !important; font-weight: bold; }
+
+
+
+/* 年齢層グラフ */
+
+.es-age-graph-container { padding: 25px; background: #fff; border: 1px solid var(--es-border); border-radius: 8px; }
+
+.es-age-bar-row { display: flex; align-items: center; margin-bottom: 12px; }
+
+.es-age-bar-row:last-child { margin-bottom: 0; }
+
+.es-age-label { width: 80px; font-size: 13px; font-weight: 600; color: #555; flex-shrink: 0; }
+
+.es-bar-container { flex: 1; height: 24px; background: var(--es-gray-bg); margin: 0 15px; border-radius: 12px; overflow: hidden; }
+
+.es-bar { height: 100%; border-radius: 12px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; min-width: 30px; transition: width 0.6s ease-out; }
+
+.es-bar-gold-0 { background: linear-gradient(90deg, var(--es-gold-light) 0%, var(--es-gold) 100%); }
+
+.es-bar-gold-1 { background: linear-gradient(90deg, var(--es-gold) 0%, var(--es-gold-dark) 100%); }
+
+.es-bar-gold-2 { background: linear-gradient(90deg, #c9b84a 0%, #c4a82e 100%); }
+
+.es-bar-gold-3 { background: linear-gradient(90deg, var(--es-gold-dark) 0%, #8a7d2e 100%); }
+
+.es-bar-gold-4 { background: linear-gradient(90deg, #9a8d2e 0%, #7a6d2e 100%); }
+
+.es-bar-count { width: 45px; font-size: 13px; font-weight: 600; color: var(--es-navy); text-align: right; flex-shrink: 0; }
+
+
+
+/* 料金比較グラフ */
+
+.es-price-legend { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
+
+.es-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--es-gray); }
+
+.es-legend-color { width: 16px; height: 16px; border-radius: 3px; }
+
+.es-legend-avg .es-legend-color { background: #ccc; }
+
+.es-legend-shop .es-legend-color { background: linear-gradient(135deg, var(--es-pink) 0%, var(--es-pink-light) 100%); }
+
+.es-price-comparison { display: flex; justify-content: center; align-items: flex-end; gap: 40px; padding: 30px 20px; background: #fff; border: 1px solid var(--es-border); border-radius: 8px; min-height: 250px; }
+
+.es-comp-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.es-comp-time { font-size: 1rem; font-weight: 700; color: var(--es-navy); margin: 0; order: 2; }
+
+.es-comp-bars { display: flex; align-items: flex-end; gap: 8px; height: 160px; order: 1; }
+
+.es-comp-bar { width: 50px; border-radius: 4px 4px 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; min-height: 40px; transition: height 0.5s ease-out; }
+
+.es-comp-bar-avg { background: #ccc; }
+
+.es-comp-bar-shop { background: linear-gradient(180deg, var(--es-pink) 0%, var(--es-pink-light) 100%); }
+
+.es-comp-bar-val { font-size: 10px; font-weight: 600; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+.es-comp-diff { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; order: 3; }
+
+.es-price-cheaper { background: #E8F5E9; color: #2E7D32; }
+
+.es-price-higher { background: #FFEBEE; color: #C62828; }
+
+
+
+/* エリアリンク */
+
+.es-area-link-section, .es-sibling-area-section { background: #fff; padding: 30px; border-radius: 8px; border: 1px solid var(--es-border); }
+
+.es-area-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.es-area-link-item { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: var(--es-gray-bg); border-radius: 30px; font-size: 14px; color: var(--es-gray); text-decoration: none; transition: all 0.3s ease; border: 1px solid transparent; }
+
+.es-area-link-item:hover, .es-area-link-item.is-current { background: var(--es-gold); color: #fff; border-color: var(--es-gold); }
+
+.es-area-link-item.es-area-link-all { background: var(--es-navy); color: #fff; }
+
+.es-area-link-item.es-area-link-all:hover { background: #2a4a5d; }
+
+.es-area-count { font-size: 12px; opacity: 0.8; }
+
+.es-area-scroll-container { margin: 0 -15px; padding: 0 15px; }
+
+.es-area-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; }
+
+.es-area-scroll-wrapper::-webkit-scrollbar { display: none; }
+
+.es-area-scroll-list { display: flex; gap: 10px; width: max-content; padding: 5px 0; }
+
+.es-area-scroll-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; height: 80px; background: #fff; border: 1px solid var(--es-border); border-radius: 50%; text-decoration: none; font-size: 12px; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s ease; flex-shrink: 0; }
+
+.es-area-scroll-item:active { transform: scale(0.95); }
+
+.es-area-scroll-item.is-current { background: var(--es-gold); color: #fff; border-color: var(--es-gold); }
+
+.es-area-scroll-item.es-area-link-all { background: var(--es-navy); color: #fff; border-color: var(--es-navy); }
+
+.es-area-scroll-item .es-area-name { font-weight: 600; font-size: 11px; text-align: center; line-height: 1.2; }
+
+.es-area-scroll-item .es-area-count { font-size: 10px; color: var(--es-pink); margin-top: 2px; }
+
+.es-area-scroll-item.is-current .es-area-count, .es-area-scroll-item.es-area-link-all .es-area-count { color: rgba(255,255,255,0.8); }
+
+.scroll-hint { font-size: 12px; color: var(--es-gray-light); margin-bottom: 10px; text-align: center; }
+
+
+
+/* ランキングセクション */
+
+.es-ranking-section { background: linear-gradient(135deg, #FFFEF5 0%, #FFF9E6 100%); border: 1px solid var(--es-gold-light); }
+
+.es-ranking-section .rank-badge { background: linear-gradient(135deg, var(--es-gold) 0%, var(--es-gold-dark) 100%) !important; }
+
+.es-ranking-section .rank-1 .rank-badge { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important; color: #000 !important; }
+
+.es-ranking-section .rank-2 .rank-badge { background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%) !important; color: #000 !important; }
+
+.es-ranking-section .rank-3 .rank-badge { background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%) !important; }
+
+
+
+/* セラピストカード */
+
+.ts-therapist-specs { display: flex; gap: 10px; font-size: 0.75rem; margin-bottom: 5px; opacity: 0.9; }
+
+.ts-therapist-specs span { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px; }
+
+
+
+/* レスポンシブ (SP) */
+
+.pc-only { display: flex; } .sp-only { display: none; }
+
+@media screen and (max-width: 768px) {
+
+.pc-only { display: none !important; } .sp-only { display: block !important; }
+
+.es-age-label { width: 65px; font-size: 11px; } .es-bar-container { margin: 0 10px; } .es-bar-count { font-size: 11px; width: 40px; }
+
+.es-price-comparison { gap: 20px; padding: 20px 10px; min-height: 200px; }
+
+.es-comp-bar { width: 40px; } .es-comp-bars { height: 130px; } .es-comp-bar-val { font-size: 9px; }
+
+.es-price-legend { gap: 15px; } .es-legend-item { font-size: 11px; }
+
+.es-area-link-section, .es-sibling-area-section { padding: 20px 15px; }
+
+.es-sec-title__ja { font-size: 1.1rem; }
+
+}
+
+@media screen and (max-width: 480px) {
+
+.es-price-comparison { gap: 15px; } .es-comp-bar { width: 32px; } .es-comp-time { font-size: 0.9rem; }
+
+.es-area-scroll-item { width: 70px; height: 70px; } .es-area-scroll-item .es-area-name { font-size: 10px; }
+
+}
+
+
+/* =================================================================
+
+Escomi 追加スタイル (v2.0) - 完全版
+
+================================================================= */
+
+
+
+/* --- 変数定義 --- */
+
+:root {
+
+--es-gold: var(--accent-gold, #d4af37);
+
+--es-gold-light: var(--accent-gold-light, #f4d03f);
+
+--es-gold-dark: var(--accent-gold-dark, #b8962e);
+
+--es-pink: #EA5E7A;
+
+--es-pink-light: #F08095;
+
+--es-navy: #1a3a4d;
+
+--es-gray: #666666;
+
+--es-gray-light: #999999;
+
+--es-gray-bg: #F5F5F5;
+
+--es-border: #E0E0E0;
+
+}
+
+
+
+/* --- セクションタイトル --- */
+
+.es-sec-title { margin-bottom: 25px; border: none !important; }
+
+.es-sec-title__en { display: block; font-size: 0.75rem; font-weight: 600; color: var(--es-gold); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 5px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+.es-sec-title__ja { display: block; font-size: 1.3rem; font-weight: 700; color: var(--es-navy); line-height: 1.4; }
+
+.es-sec-title-large .es-sec-title__ja, .es-sec-title-large .main { font-size: 1.5rem; }
+
+.highlight-gold { color: var(--es-gold-dark) !important; font-weight: bold; }
+
+
+
+/* --- 店舗詳細：年齢層グラフ --- */
+
+.es-age-graph-container { padding: 25px; background: #fff; border: 1px solid var(--es-border); border-radius: 8px; }
+
+.es-age-bar-row { display: flex; align-items: center; margin-bottom: 12px; }
+
+.es-age-bar-row:last-child { margin-bottom: 0; }
+
+.es-age-label { width: 80px; font-size: 13px; font-weight: 600; color: #555; flex-shrink: 0; }
+
+.es-bar-container { flex: 1; height: 24px; background: var(--es-gray-bg); margin: 0 15px; border-radius: 12px; overflow: hidden; }
+
+.es-bar { height: 100%; border-radius: 12px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; min-width: 30px; transition: width 0.6s ease-out; }
+
+.es-bar-gold-0 { background: linear-gradient(90deg, var(--es-gold-light) 0%, var(--es-gold) 100%); }
+
+.es-bar-gold-1 { background: linear-gradient(90deg, var(--es-gold) 0%, var(--es-gold-dark) 100%); }
+
+.es-bar-gold-2 { background: linear-gradient(90deg, #c9b84a 0%, #c4a82e 100%); }
+
+.es-bar-gold-3 { background: linear-gradient(90deg, var(--es-gold-dark) 0%, #8a7d2e 100%); }
+
+.es-bar-gold-4 { background: linear-gradient(90deg, #9a8d2e 0%, #7a6d2e 100%); }
+
+.es-bar-count { width: 45px; font-size: 13px; font-weight: 600; color: var(--es-navy); text-align: right; flex-shrink: 0; }
+
+
+
+/* --- 店舗詳細：料金比較グラフ --- */
+
+.es-price-legend { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
+
+.es-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--es-gray); }
+
+.es-legend-color { width: 16px; height: 16px; border-radius: 3px; }
+
+.es-legend-avg .es-legend-color { background: #ccc; }
+
+.es-legend-shop .es-legend-color { background: linear-gradient(135deg, var(--es-pink) 0%, var(--es-pink-light) 100%); }
+
+.es-price-comparison { display: flex; justify-content: center; align-items: flex-end; gap: 40px; padding: 30px 20px; background: #fff; border: 1px solid var(--es-border); border-radius: 8px; min-height: 250px; }
+
+.es-comp-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.es-comp-time { font-size: 1rem; font-weight: 700; color: var(--es-navy); margin: 0; order: 2; }
+
+.es-comp-bars { display: flex; align-items: flex-end; gap: 8px; height: 160px; order: 1; }
+
+.es-comp-bar { width: 50px; border-radius: 4px 4px 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; min-height: 40px; transition: height 0.5s ease-out; }
+
+.es-comp-bar-avg { background: #ccc; }
+
+.es-comp-bar-shop { background: linear-gradient(180deg, var(--es-pink) 0%, var(--es-pink-light) 100%); }
+
+.es-comp-bar-val { font-size: 10px; font-weight: 600; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+.es-comp-diff { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; order: 3; }
+
+.es-price-cheaper { background: #E8F5E9; color: #2E7D32; }
+
+.es-price-higher { background: #FFEBEE; color: #C62828; }
+
+
+
+/* --- 店舗詳細：エリアリンク --- */
+
+.es-area-link-section, .es-sibling-area-section { background: #fff; padding: 30px; border-radius: 8px; border: 1px solid var(--es-border); }
+
+.es-area-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.es-area-link-item { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: var(--es-gray-bg); border-radius: 30px; font-size: 14px; color: var(--es-gray); text-decoration: none; transition: all 0.3s ease; border: 1px solid transparent; }
+
+.es-area-link-item:hover { background: var(--es-gold); color: #fff; border-color: var(--es-gold); }
+
+.es-area-link-item.es-area-link-all { background: var(--es-navy); color: #fff; }
+
+.es-area-link-item.es-area-link-all:hover { background: #2a4a5d; }
+
+.es-area-count { font-size: 12px; opacity: 0.8; }
+
+.es-area-scroll-container { margin: 0 -15px; padding: 0 15px; }
+
+.es-area-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; }
+
+.es-area-scroll-wrapper::-webkit-scrollbar { display: none; }
+
+.es-area-scroll-list { display: flex; gap: 10px; width: max-content; padding: 5px 0; }
+
+.es-area-scroll-item { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; height: 80px; background: #fff; border: 1px solid var(--es-border); border-radius: 50%; text-decoration: none; font-size: 12px; color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: all 0.2s ease; flex-shrink: 0; }
+
+.es-area-scroll-item.is-current { background: var(--es-gold); color: #fff; border-color: var(--es-gold); }
+
+.es-area-scroll-item.es-area-link-all { background: var(--es-navy); color: #fff; border-color: var(--es-navy); }
+
+.es-area-scroll-item .es-area-name { font-weight: 600; font-size: 11px; text-align: center; line-height: 1.2; }
+
+.es-area-scroll-item .es-area-count { font-size: 10px; color: var(--es-pink); margin-top: 2px; }
+
+.es-area-scroll-item.is-current .es-area-count, .es-area-scroll-item.es-area-link-all .es-area-count { color: rgba(255,255,255,0.8); }
+
+.scroll-hint { font-size: 12px; color: var(--es-gray-light); margin-bottom: 10px; text-align: center; }
+
+
+
+/* --- ランキングセクション --- */
+
+.es-ranking-section { background: linear-gradient(135deg, #FFFEF5 0%, #FFF9E6 100%); border: 1px solid var(--es-gold-light); }
+
+.es-ranking-section .rank-badge { background: linear-gradient(135deg, var(--es-gold) 0%, var(--es-gold-dark) 100%) !important; }
+
+.es-ranking-section .rank-1 .rank-badge { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important; color: #000 !important; }
+
+.es-ranking-section .rank-2 .rank-badge { background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%) !important; color: #000 !important; }
+
+.es-ranking-section .rank-3 .rank-badge { background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%) !important; }
+
+
+
+/* --- セラピストカード --- */
+
+.ts-therapist-specs { display: flex; gap: 10px; font-size: 0.75rem; margin-bottom: 5px; opacity: 0.9; }
+
+.ts-therapist-specs span { background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px; }
+
+
+
+/* --- トップページ用スタイル --- */
+
+.es-hero-section { background: linear-gradient(135deg, #1a2a3a 0%, #2a4a5a 100%); padding: 60px 20px; text-align: center; color: #fff; }
+
+.es-hero-inner { max-width: 900px; margin: 0 auto; }
+
+.es-hero-sub { color: var(--es-gold); font-size: 0.9rem; margin-bottom: 15px; font-weight: 600; letter-spacing: 0.1em; }
+
+.es-hero-logo { margin: 0 0 20px 0 !important; }
+
+.es-hero-logo-img { max-width: 300px; width: 100%; height: auto; }
+
+.es-hero-desc { font-size: 0.95rem; line-height: 1.8; opacity: 0.9; margin-bottom: 30px; }
+
+.es-hero-count-box { display: inline-flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 12px 30px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.2); }
+
+.es-hero-count-box .number { font-size: 2.2rem; font-weight: 700; color: var(--es-gold); font-family: Arial; line-height: 1; }
+
+.es-hero-count-box .label, .es-hero-count-box .unit { font-size: 0.9rem; opacity: 0.9; }
+
+
+
+.es-section { padding: 60px 0; }
+
+.es-section:nth-child(even) { background: var(--es-gray-bg); }
+
+.es-container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+.es-section-title { text-align: center; margin-bottom: 40px; border: none !important; }
+
+.es-section-title__icon { font-size: 2rem; display: block; margin-bottom: 5px; }
+
+.es-section-title__text { font-size: 1.6rem; font-weight: 700; color: var(--es-navy); display: block; }
+
+.es-section-title__en { font-size: 0.8rem; color: var(--es-gold); letter-spacing: 0.1em; display: block; margin-top: 5px; font-weight: 600; }
+
+
+
+/* トップページ：エリア検索（アコーディオン） */
+
+.area-accordion-3-section { margin: 0 auto; max-width: 800px; }
+
+.area-accordion-3-title { font-size: 1.2rem; color: var(--es-navy); border-left: 5px solid var(--es-gold); padding-left: 15px; margin-bottom: 20px; }
+
+.area-accordion-3-wrapper { border: 1px solid var(--es-border); border-radius: 8px; background: #fff; overflow: hidden; }
+
+.area-accordion-3-row { display: flex; border-bottom: 1px solid var(--es-border); }
+
+.area-accordion-3-row:last-child { border-bottom: none; }
+
+.area-accordion-3-cell { flex: 1; border-right: 1px solid var(--es-border); }
+
+.area-accordion-3-cell:last-child { border-right: none; }
+
+.area-accordion-3-button { width: 100%; padding: 15px; background: #fff; border: none; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #333; transition: background 0.3s; }
+
+.area-accordion-3-button:hover { background: var(--es-gray-bg); }
+
+.area-accordion-3-button.active { background: #fdfdfd; color: var(--es-pink); }
+
+.area-accordion-3-content { display: none; padding: 15px; background: #fafafa; border-top: 1px solid var(--es-border); width: 100%; }
+
+.area-accordion-3-content.show { display: block; }
+
+.area-accordion-3-city-item { padding: 8px 10px; border-bottom: 1px dashed #eee; font-size: 0.9rem; }
+
+.area-accordion-3-city-item a { text-decoration: none; color: #555; display: block; }
+
+.area-accordion-3-city-item.prefecture-item { background: #eee; font-weight: bold; margin-top: 10px; border-radius: 4px; }
+
+.area-accordion-3-city-item.prefecture-item:first-child { margin-top: 0; }
+
+
+
+/* トップページ：カード */
+
+.es-shop-grid, .es-column-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+.es-shop-card, .es-column-card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.05); transition: transform 0.3s; }
+
+.es-shop-card:hover, .es-column-card:hover { transform: translateY(-5px); }
+
+.es-shop-card__image, .es-column-card__image { position: relative; aspect-ratio: 16/10; overflow: hidden; }
+
+.es-shop-card__image img, .es-column-card__image img { width: 100%; height: 100%; object-fit: cover; }
+
+.es-badge-new { position: absolute; top: 10px; left: 10px; background: var(--es-pink); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 3px; font-weight: bold; }
+
+.es-shop-card__area { position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 3px; }
+
+.es-shop-card__body, .es-column-card__body { padding: 15px; }
+
+.es-shop-card__title, .es-column-card__title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; line-height: 1.4; color: var(--es-navy); }
+
+.es-shop-card__meta { font-size: 0.85rem; color: var(--es-gray); display: flex; justify-content: space-between; margin-top: 10px; }
+
+.es-column-card__date { font-size: 0.8rem; color: var(--es-gray-light); display: block; margin-bottom: 5px; }
+
+
+
+/* トップページ：CTA & About */
+
+.es-cta-box { background: linear-gradient(135deg, var(--es-gold), var(--es-gold-dark)); padding: 50px 20px; text-align: center; border-radius: 12px; color: #fff; }
+
+.es-cta-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 15px; color: #fff; }
+
+.es-cta-buttons { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
+
+.es-btn-outline-white { border: 2px solid #fff; color: #fff; padding: 12px 30px; border-radius: 50px; text-decoration: none; font-weight: bold; transition: all 0.3s; }
+
+.es-btn-outline-white:hover { background: #fff; color: var(--es-gold-dark); }
+
+.es-about-links { display: flex; justify-content: center; gap: 20px; list-style: none; margin-top: 20px; }
+
+.es-about-links a { color: #fff; text-decoration: underline; opacity: 0.8; }
+
+
+
+/* --- レスポンシブ (SP) --- */
+
+.pc-only { display: flex; } .sp-only { display: none; }
+
+@media screen and (max-width: 768px) {
+
+.pc-only { display: none !important; } .sp-only { display: block !important; }
+
+.es-shop-grid, .es-column-grid { grid-template-columns: 1fr; }
+
+.es-shop-card { display: flex; }
+
+.es-shop-card__image { width: 120px; aspect-ratio: 1; }
+
+.es-shop-card__body { flex: 1; }
+
+.es-hero-count-box { width: 100%; justify-content: center; }
+
+.es-cta-buttons { flex-direction: column; }
+
+.es-about-links { flex-wrap: wrap; }
+
+.es-age-label { width: 65px; font-size: 11px; }
+
+.es-price-comparison { gap: 15px; padding: 15px; }
+
+.es-comp-bar { width: 35px; }
+
+.es-area-scroll-item { width: 70px; height: 70px; font-size: 10px; }
+
+}
+/* =================================================================
+   ランキング用 自動日付ラベルのスタイル
+   ================================================================= */
+.ranking-date-label {
+    display: inline-block;      /* 横並び */
+    font-size: 0.75em;          /* 見出しより少し小さく */
+    color: #ff5a5f;             /* サイトカラーの赤（または #d4af37 ゴールド） */
+    margin-left: 15px;          /* 文字との間隔 */
+    font-weight: normal;        /* 太字にしない */
+    vertical-align: middle;     /* 高さ位置調整 */
+    letter-spacing: 0.05em;
+    font-family: "Yu Mincho", serif; /* 明朝体 */
+}
+
+/* スマホ表示 */
+@media (max-width: 768px) {
+    .ranking-date-label {
+        display: block;         /* スマホでは改行する */
+        margin-left: 0;
+        margin-top: 5px;        /* 上の隙間 */
+        font-size: 0.6em;       /* さらに小さく */
+        text-align: center;     /* 中央寄せ */
+    }
+}
+/* =================================================================
+   ランキング見出しのスタイル（日付・配置調整）修正・決定版
+   ================================================================= */
+
+/* 1. 全体（PC/スマホ共通）のベース */
+.ranking-main-wrapper {
+    display: inline-block;
+    line-height: 1.4;
+    /* PCでは親要素(h2)の中央寄せに従う */
+}
+
+/* 2. 日付ラベル（PCベース） */
+.ranking-date-label {
+    color: var(--accent-gold, #d4af37);       /* ゴールド統一 */
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-right: 0.2em;
+    display: inline;      /* PCでは改行しない */
+}
+
+/* 3. スマホのみ（768px以下）の表示切り替え */
+@media screen and (max-width: 768px) {
+    /* ラッパー：ブロック要素にして強制的に左寄せ */
+    .ranking-main-wrapper {
+        display: block !important; 
+        text-align: left !important;  /* ★強制左寄せ */
+        width: 100% !important;       /* 横幅いっぱいに広げる */
+        margin: 0 !important;
+    }
+
+    /* 日付：ブロック化して改行・左寄せ */
+    .ranking-date-label {
+        display: block !important;    /* 改行 */
+        text-align: left !important;  /* ★ここも強制左寄せ */
+        margin-right: 0 !important;
+        margin-bottom: 5px !important;
+        font-size: 0.8em;
+        width: 100% !important;       /* 幅確保 */
+    }
+}
+/* =================================================================
+   店舗詳細ページ (single-shop) カラー一括変更
+   サイト基本カラー（ゴールド・ピンク・ネイビー）を適用
+   ================================================================= */
+
+/* 基本カラー変数の定義（確認用） */
+:root {
+    --es-gold: var(--accent-gold, #d4af37);       /* アクセントゴールド統一 */
+    --es-gold-dark: var(--accent-gold-dark, #b8962e);  /* 暗めのゴールド（文字用） */
+    --es-gold-bg: #fffcf0;    /* 薄いゴールド背景 */
+    --es-pink: #EA5E7A;       /* アクセントピンク */
+    --es-navy: #1a3a4d;       /* 深いネイビー（ベースカラー） */
+}
+
+/* --- ヘッダーエリア --- */
+/* 上部の帯をゴールドに */
+.shpc-top-bar {
+    background-color: var(--es-gold) !important;
+}
+/* 店舗名をネイビーに */
+.shpc-shop-name {
+    color: var(--es-navy) !important;
+}
+/* ヘッダー内のリンクボタンをピンクに */
+.shpc-link-btn {
+    background: var(--es-pink) !important;
+}
+
+/* --- イントロ・見出しエリア --- */
+/* キャッチコピーの背景を薄いゴールド、文字を濃いゴールドに */
+.shpc-intro-heading,
+.mod-customColor {
+    background: var(--es-gold-bg) !important;
+    color: var(--es-gold-dark) !important;
+    border-left-color: var(--es-gold) !important;
+}
+/* 評価の星をゴールドに */
+.shpc-stars {
+    color: var(--es-gold) !important;
+}
+
+/* --- ボタンエリア --- */
+/* 電話ボタンをネイビーに */
+.shpc-btn-tel {
+    background: var(--es-navy) !important;
+    border: none !important;
+}
+/* LINE/WEB予約ボタンをピンクのグラデーションに */
+.shpc-btn-line,
+.btn-official {
+    background: linear-gradient(135deg, var(--es-pink), #ff8ba7) !important;
+    border: none !important;
+}
+
+/* --- テーブル（料金表・店舗情報） --- */
+/* テーブルの上線をゴールドに */
+.shop-detail-price-table,
+.shop-data-table {
+    border-top-color: var(--es-gold) !important;
+}
+/* テーブルのヘッダー（項目名）をネイビー背景・白文字に */
+.shop-detail-price-table th,
+.shop-data-table th {
+    background: var(--es-navy) !important;
+    color: #fff !important;
+}
+/* 料金や重要な文字を濃いゴールドで強調 */
+.course-price,
+.tel-text {
+    color: var(--es-gold-dark) !important;
+}
+
+/* --- その他 --- */
+/* 推しポイントボックスをゴールド系に */
+.recommend-box {
+    background: var(--es-gold-bg) !important;
+    border-color: var(--es-gold) !important;
+}
+/* 各セクションの見出し色をネイビーに */
+.sec-title-simple,
+.shop-sec-title {
+    color: var(--es-navy) !important;
+}
+
+/* ============================================
+   ページネーション横並び修正（display: flex完全版）
+   ============================================ */
+
+/* 外側ラッパー */
+.l-main_content .l-main_content__inner > .pagination,
+.l-article .l-main_content__inner > .pagination {
+    margin: 50px auto 40px;
+    padding: 0;
+    text-align: center;
+}
+
+/* navigation本体 */
+.l-main_content .l-main_content__inner .navigation.pagination,
+.l-article .l-main_content__inner .navigation.pagination {
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+
+/* nav-links: display: flex で横並び */
+.l-main_content .l-main_content__inner .navigation.pagination .nav-links,
+.l-article .l-main_content__inner .navigation.pagination .nav-links {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0;
+    margin: 0;
+}
+
+/* page-numbers: flex-shrink: 0 で確実に横並び */
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers,
+.l-article .l-main_content__inner .navigation.pagination .page-numbers {
+    flex: 0 0 auto;
+    display: inline-block;
+    min-width: 44px;
+    height: 44px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    color: #ddd;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 24px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* ホバー */
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers:hover,
+.l-article .l-main_content__inner .navigation.pagination .page-numbers:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: #d4af37;
+    color: #d4af37;
+    transform: translateY(-2px);
+}
+
+/* 現在のページ */
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.current,
+.l-article .l-main_content__inner .navigation.pagination .page-numbers.current {
+    background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+    border-color: #d4af37;
+    color: #1a2332;
+    font-weight: 700;
+}
+
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.current:hover {
+    transform: none;
+}
+
+/* 前へ・次へ */
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.prev,
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.next {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: rgba(212, 175, 55, 0.3);
+    color: #d4af37;
+}
+
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.prev:hover,
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.next:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: #d4af37;
+}
+
+/* ドット */
+.l-main_content .l-main_content__inner .navigation.pagination .page-numbers.dots {
+    background: transparent;
+    border: none;
+    color: #666;
+}
+
+/* スクリーンリーダー */
+.l-main_content .l-main_content__inner .navigation.pagination .screen-reader-text {
+    position: absolute;
+    left: -9999px;
+}
+
+/* レスポンシブ */
+@media (max-width: 767px) {
+    .l-main_content .l-main_content__inner > .pagination {
+        margin: 35px auto 30px;
+    }
+    
+    .l-main_content .l-main_content__inner .navigation.pagination .nav-links {
+        gap: 8px;
+    }
+    
+    .l-main_content .l-main_content__inner .navigation.pagination .page-numbers {
+        min-width: 40px;
+        height: 40px;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 374px) {
+    .l-main_content .l-main_content__inner .navigation.pagination .page-numbers {
+        min-width: 36px;
+        height: 36px;
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+/* =================================================================
+   AIインテリジェンス・ビュー（店舗詳細ページ専用）
+   他サイトにはない特別な解析情報を表示
+   ================================================================= */
+
+.ai-intelligence-view .ai-intel-wrapper {
+    background: linear-gradient(135deg, rgba(212,175,55,0.04) 0%, rgba(255,255,255,0.98) 100%);
+    border: 2px solid var(--accent-gold, #d4af37);
+    border-radius: 12px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 20px rgba(212,175,55,0.08);
+    position: relative;
+}
+
+.ai-intelligence-view .ai-intel-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent-gold, #d4af37), var(--accent-gold-light, #f4d03f));
+    border-radius: 12px 12px 0 0;
+}
+
+.ai-intel-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(212,175,55,0.25);
+}
+
+.ai-intel-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--accent-gold, #d4af37) 0%, var(--accent-gold-light, #f4d03f) 100%);
+    color: #1a2332;
+    padding: 8px 18px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 8px rgba(212,175,55,0.3);
+}
+
+.ai-intel-icon {
+    font-size: 1.2em;
+    line-height: 1;
+}
+/* 編集部Reviewラベルではペンアイコンのみ表示（ドットは非表示） */
+.ai-intel-badge .ai-intel-icon::before {
+    display: none;
+}
+
+.ai-intel-update {
+    font-size: 12px;
+    color: #666;
+    font-weight: 600;
+}
+
+.ai-intel-subtitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--es-navy, #1a3a4d);
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-intel-subicon {
+    font-size: 1.1em;
+}
+
+.ai-intel-summary {
+    margin-bottom: 24px;
+}
+
+.ai-intel-summary:last-of-type {
+    margin-bottom: 0;
+}
+
+/* 編集部レビュー風：重厚な3〜4行テキストをコラムとして美しく表示 */
+.ai-intel-summary-content {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #444;
+    letter-spacing: 0.02em;
+}
+
+.ai-intel-news {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px dashed rgba(212,175,55,0.2);
+}
+
+.ai-intel-news-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ai-intel-news-item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.ai-intel-news-item:last-child {
+    border-bottom: none;
+}
+
+.ai-intel-news-date {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--accent-gold, #d4af37);
+    font-size: 12px;
+}
+
+.ai-intel-news-text {
+    flex: 1;
+    min-width: 0;
+    color: #333;
+}
+
+.ai-intel-footer-note {
+    margin: 20px 0 0 0;
+    padding-top: 16px;
+    border-top: 1px solid rgba(212,175,55,0.15);
+    font-size: 11px;
+    color: #888;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .ai-intelligence-view .ai-intel-wrapper {
+        padding: 20px 20px;
+    }
+    .ai-intel-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .ai-intel-news-item {
+        flex-direction: column;
+        gap: 4px;
+    }
+}

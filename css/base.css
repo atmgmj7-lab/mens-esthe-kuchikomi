@@ -1,0 +1,267 @@
+/*
+ * base.css - サイト共通スタイル
+ * 変数、リセット、ヘッダー、フッター、フォント設定など
+ * 
+ * 読み込み順序: 1番目（最初に読み込む）
+ */
+
+/*
+
+Theme Name: SWELL CHILD
+
+Template: swell
+
+Version: 1.0.0
+
+*/
+
+
+
+/* =================================================================
+
+以下、サイトカスタマイズ用CSS
+
+（デザイン統一・横スクロール・リスト修正版）
+
+================================================================= */
+
+
+
+
+/* ============================================
+
+1. デザイン共通設定（変数）
+
+============================================ */
+
+:root {
+
+--mep-red: #ff5a5f; /* 統一の赤 */
+
+--mep-red-dark: #e04a4f;
+
+--mep-navy: #1a3a4d; /* 見出し等の紺 */
+
+--mep-radius: 12px; /* 角丸 */
+
+--mep-gap: 50px; /* 余白 */
+
+/* アクセントカラー（ゴールド）統一 */
+--accent-gold: #d4af37;
+--accent-gold-light: #f4d03f;
+--accent-gold-dark: #b8962e;
+
+}
+
+
+
+/* コンテナ幅のリセット */
+
+.mep-container, .area-archive-container {
+
+max-width: 1100px;
+
+margin: 0 auto;
+
+padding: 0 20px;
+
+}
+
+
+
+/* SWELLの余白干渉リセット */
+
+.home .l-content, .page-template-default .l-content {
+
+max-width: 100%;
+
+padding: 0;
+
+}
+
+
+
+
+/* =================================================================
+
+Escomi ヘッダー＆フッター カスタマイズ（ウルフマン風）
+
+================================================================= */
+
+
+
+/* --- ヘッダー --- */
+
+.l-header {
+
+border-bottom: 1px solid #eee; /* 下に薄い線を入れる */
+
+box-shadow: 0 2px 10px rgba(0,0,0,0.03) !important; /* ふんわりした影 */
+
+}
+
+
+
+/* グローバルナビ（PC） */
+
+.c-gnav > li > a {
+
+font-weight: bold;
+
+color: #333;
+
+font-size: 0.95rem;
+
+transition: color 0.3s;
+
+}
+
+
+
+.c-gnav > li > a:hover {
+
+color: #00a4a6; /* ホバー時にEscomiカラー */
+
+}
+
+
+
+.c-gnav > li > a::after {
+
+background: #00a4a6 !important; /* 下線の色 */
+
+}
+
+
+
+/* スマホヘッダー */
+
+@media (max-width: 959px) {
+
+.l-header__logo img {
+
+max-height: 40px; /* ロゴサイズ調整 */
+
+}
+
+.c-iconBtn__icon {
+
+font-size: 24px; /* アイコンサイズ */
+
+}
+
+}
+
+
+
+
+
+/* --- フッター --- */
+
+.l-footer {
+
+border-top: 3px solid #00a4a6; /* 上にアクセントカラーの線 */
+
+padding-top: 40px;
+
+margin-top: 0 !important; /* コンテンツとの隙間をなくす */
+
+}
+
+
+
+/* フッターウィジェットのタイトル */
+
+.c-widget__title.-footer {
+
+font-size: 1.1rem;
+
+font-weight: bold;
+
+border-left: 4px solid #00a4a6;
+
+padding-left: 15px;
+
+margin-bottom: 20px;
+
+color: #333;
+
+background: none;
+
+}
+
+.c-widget__title.-footer::before,
+
+.c-widget__title.-footer::after {
+
+display: none; /* デフォルトの装飾を消す */
+
+}
+
+
+
+/* フッターメニュー（横並びリンク） */
+
+.l-footer__nav {
+
+justify-content: center;
+
+gap: 20px;
+
+}
+
+
+
+.l-footer__nav li a {
+
+font-size: 0.9rem;
+
+color: #666;
+
+text-decoration: none;
+
+}
+
+
+
+.l-footer__nav li a:hover {
+
+text-decoration: underline;
+
+color: #00a4a6;
+
+}
+
+
+
+/* コピーライト */
+
+.copyright {
+
+font-size: 0.8rem;
+
+color: #999;
+
+margin-top: 20px;
+
+}
+
+/* =========================================
+   サイト全体のフォントを「明朝体」に統一
+   ========================================= */
+
+/* 本文・見出し・ボタンなど全ての要素に適用 */
+body, 
+h1, h2, h3, h4, h5, h6,
+p, a, span, li, dt, dd,
+input, button, textarea, select,
+.c-gnav a {
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "YuMincho", "HGMinchoE", "MS PMincho", "MS Mincho", serif !important;
+    /* 文字の太さを少し調整して読みやすくする */
+    font-weight: 500; 
+}
+
+/* 英数字も明朝（セリフ体）に合わせる */
+.en, .number, .price, .date {
+    font-family: "Times New Roman", "Yu Mincho", serif !important;
+}

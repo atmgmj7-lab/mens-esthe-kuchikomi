@@ -1,0 +1,10 @@
+# AI巡回エンジン用依存パッケージ
+# インストール: pip install -r requirements-ai-crawl.txt
+
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+google-genai>=1.0.0
+python-dotenv>=1.0.0
+
+# 将来的にSPA対応する場合:
+# playwright>=1.40.0
