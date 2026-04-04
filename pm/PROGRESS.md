@@ -23,7 +23,7 @@
 #### 次のアクション
 - [ ] FTPパスワード取得 → GitHub Secrets登録
 - [ ] 自動デプロイ動作確認
-- [ ] デプロイ後 `/area/osaka/` で `lux-map-iframe` の表示確認
+- [x] デプロイ後 `/area/osaka/` で `lux-map-iframe` の表示確認（curl）
 - [ ] SEOツールをRenderにデプロイ
 
 ### 2026-04-05 06:01
@@ -70,17 +70,4 @@ fix: replace img with iframe in area map nav
 - `/area/osaka/`: `class="lux-map-iframe"` の iframe が出力されていることを確認
 - `/area/nihonbashi/`: `MAP SEARCH` / `lux-map-frame` は含まれず（子エリアは地図ブロック非表示で仕様どおり）
 
----
-
-### 2026-04-05 07:15
-#### コミット
-fix: replace img with iframe in area map nav
-
-Made-with: Cursor
-
-#### 変更ファイル
-css/single.css
-functions.php
-pm/PROGRESS.md
-taxonomy-area.php
 ---
