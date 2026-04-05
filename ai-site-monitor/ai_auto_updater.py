@@ -165,7 +165,7 @@ def extract_schedule_from_html(html: str, url: str) -> List[Dict[str, Any]]:
             if not name:
                 continue
 
-                result.append({
+            result.append({
                 "name": name,
                 "time": time_val or "",
                 "status": status_val or "",

@@ -4,6 +4,8 @@ tools/__pycache__/
 *.pyc
 *.pyo
 ai-site-monitor/__pycache__/
+ai-site-monitor/venv/
+ai-site-monitor/.venv/
 ai-site-monitor/*.log
 
 # 環境変数

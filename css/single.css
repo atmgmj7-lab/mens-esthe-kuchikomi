@@ -395,7 +395,7 @@ Escomi エリアアーカイブ専用スタイル (縦詰め・配置修正版)
 
 .lux-area-nav {
 
-max-width: 1000px;
+max-width: min(96vw, 1200px);
 
 margin: 0 auto;
 
@@ -413,6 +413,19 @@ font-family: 'Noto Serif JP', serif;
 
 .lux-heading .jp { display: block; font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: normal; }
 
+/* 地図ブロック：親エリアページで横幅いっぱいに近づけ、細長さを抑える */
+.lux-area-nav .lux-map-section {
+
+width: 100%;
+
+max-width: min(96vw, 1200px);
+
+margin: 0 auto;
+
+box-sizing: border-box;
+
+}
+
 
 
 /* 地図フレーム */
@@ -423,7 +436,12 @@ position: relative;
 
 width: 100%;
 
-height: 900px !important;
+/* 旧: 幅800×高900 付近で縦長に見えていた → 16:9 で横長に */
+aspect-ratio: 16 / 9;
+
+height: auto !important;
+
+min-height: 260px;
 
 background: transparent;
 
@@ -433,11 +451,7 @@ overflow: hidden;
 
 /* margin-bottom: 40px; */
 
-display: flex;
-
-align-items: center;
-
-justify-content: center;
+display: block;
 
 }
 

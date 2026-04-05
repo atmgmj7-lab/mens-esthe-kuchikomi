@@ -479,7 +479,7 @@ add_shortcode('area_map_nav', function() {
         <div class="lux-map-section">
             <h2 class="lux-heading">
                 <span class="en">MAP SEARCH</span>
-                <span class="jp">地図から詳細エリアを選択</span>
+                <span class="jp">周辺の位置関係（地図の範囲で目安）</span>
             </h2>
             <div class="lux-map-frame">
                 <iframe
@@ -490,11 +490,6 @@ add_shortcode('area_map_nav', function() {
                     referrerpolicy="no-referrer-when-downgrade"
                     allowfullscreen
                 ></iframe>
-                <?php foreach($children as $child): ?>
-                    <a href="<?php echo get_term_link($child); ?>" class="lux-pin pin-<?php echo esc_attr($child->slug); ?>">
-                        <span class="pin-text"><?php echo esc_html($child->name); ?></span>
-                    </a>
-                <?php endforeach; ?>
             </div>
         </div>
 
@@ -648,7 +643,8 @@ add_shortcode('auto_date', function() {
 // エリアアーカイブページ SEO最適化（Ecire流ハイブリッド構成）
 // ====================================================
 // 構成: ① H1+特性文 → ② 編集部厳選3店 → ③ 全店舗一覧 → ④ コラム+著者 → ⑤ FAQ+JSON-LD
-require_once get_stylesheet_directory() . '/area-seo-hooks.php';
+// 最適化版（LSI・編集部厳選・コラム・FAQ）。差し替え前は area-seo-hooks.php
+require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================
 // AI更新ログ（Human-in-the-loop 型システム）

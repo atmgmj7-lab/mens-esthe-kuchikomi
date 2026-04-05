@@ -14,7 +14,7 @@
 | GitHub Secrets登録 | ⏳ 待機 | FTPパスワード確認待ち |
 | 自動デプロイ動作確認 | ⏳ 待機 | Secrets登録後 |
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | Google Maps embed 6エリア |
-| area-seo-hooks-optimized接続 | ⏳ 未着手 | |
+| area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | REST API権限強化 | ⏳ 未着手 | |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
@@ -95,9 +95,10 @@ pm/PROGRESS.md
 - daily_cron.yml稼働確認（GitHub Actions成功）
 - sites.jsonをダミー1000件→実URLに差し替え（のち実URL4件に整理。namba は当該URLなしのため除外）
 - FTPデプロイ復旧（FTP_USERNAMEをescomi@mens-esthe-kuchikomi.comに修正）
+- `functions.php` で `area-seo-hooks-optimized.php` を読込（BLOCK-003 解除）
 
 ### 次回優先タスク
-- daily_cron.yml新設定（5URL）での実行結果確認（total_sites: 5を確認）
+- daily_cron（4URL）の定期実行確認（`total_sites` と `sites.json` の一致）
 - 日本橋エリアACFコンテンツ手動入力
 - ai_auto_updater.pyの本番テスト実行
 
@@ -203,4 +204,38 @@ Made-with: Cursor
 
 #### 変更ファイル
 pm/PROGRESS.md
+---
+
+### 2026-04-06 04:46
+#### コミット
+docs: RUNBOOK A-4 step table + log latest Daily Site Monitor run
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
+pm/RUNBOOK.md
+---
+
+### 2026-04-05
+#### コミット
+feat(seo): load area-seo-hooks-optimized; chore: deploy, map CSS, updater, BLOCKER
+
+Made-with: Cursor
+
+#### 変更内容
+- `functions.php`: `area-seo-hooks-optimized.php` を require（旧 `area-seo-hooks.php` は未読込）
+- `.gitignore`: `ai-site-monitor/venv/` 等を追加
+- `pm/BLOCKER.md`: BLOCK-002/003 を解除済みに移動
+- その他: `deploy.yml`, `ai_auto_updater.py`, `css/single.css`, `taxonomy-area.php`（先行差分のまとめ）
+
+#### 変更ファイル
+.github/workflows/deploy.yml
+.gitignore
+ai-site-monitor/ai_auto_updater.py
+css/single.css
+functions.php
+pm/BLOCKER.md
+pm/PROGRESS.md
+taxonomy-area.php
 ---

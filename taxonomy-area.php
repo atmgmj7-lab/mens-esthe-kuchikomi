@@ -67,9 +67,9 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
             ?>
                 <section class="area-map-section u-mb-50 u-pc-only">
                     <div class="lux-area-nav">
-                        <div class="lux-map-section" style="width:100%; max-width:800px; margin:0 auto;">
-                            <h2 class="lux-heading"><span class="en">MAP SEARCH</span><span class="jp">地図から詳細エリアを選択</span></h2>
-                            <div class="lux-map-frame" style="position:relative;">
+                        <div class="lux-map-section">
+                            <h2 class="lux-heading"><span class="en">MAP SEARCH</span><span class="jp">周辺の位置関係（地図の範囲で目安）</span></h2>
+                            <div class="lux-map-frame">
                                 <iframe
                                     class="lux-map-iframe"
                                     src="<?php echo esc_url($map_url); ?>"
@@ -78,11 +78,6 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
                                     referrerpolicy="no-referrer-when-downgrade"
                                     allowfullscreen
                                 ></iframe>
-                                <?php foreach( $child_terms as $child ): ?>
-                                    <a href="<?php echo get_term_link($child); ?>" class="lux-pin pin-<?php echo esc_attr($child->slug); ?>">
-                                        <span class="pin-text"><?php echo esc_html($child->name); ?></span>
-                                    </a>
-                                <?php endforeach; ?>
                             </div>
                         </div>
                     </div>

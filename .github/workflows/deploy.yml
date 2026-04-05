@@ -12,10 +12,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # FTP-Deploy-Action の server は必須。secrets.FTP_HOST が空だと
+      # 「Input required and not supplied: server」になる（Secret 未登録または名前違い）
+      - name: Validate FTP secrets
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -z "$FTP_HOST" ] && [ -z "$FTP_SERVER" ]; then
+            echo "::error::FTP_HOST または FTP_SERVER のどちらかに、FTP サーバー名（例: example.xserver.jp）を登録してください（Settings → Secrets and variables → Actions）。"
+            exit 1
+          fi
+          if [ -z "$FTP_USERNAME" ]; then
+            echo "::error::FTP_USERNAME が未設定です。"
+            exit 1
+          fi
+          if [ -z "$FTP_PASSWORD" ]; then
+            echo "::error::FTP_PASSWORD が未設定です。"
+            exit 1
+          fi
+
       - name: FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_HOST }}
+          # 参照名: リポジトリの Secret 名と一致させる（FTP_HOST を推奨。別名で登録した場合は FTP_SERVER も可）
+          server: ${{ secrets.FTP_HOST || secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_PATH }}
