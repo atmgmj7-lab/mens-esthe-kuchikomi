@@ -815,7 +815,7 @@ text-decoration: none; color: #333; transition: all 0.3s;
 
 .area-archive-header { height: 180px; }
 
-.lux-map-section { display: none !important; }
+/* 地図 iframe は SP でも表示（旧: 静止画＋ピン前提で非表示にしていた） */
 
 .lux-grid { display: flex; flex-direction: column; gap: 12px; }
 

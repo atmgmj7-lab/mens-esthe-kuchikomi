@@ -13,7 +13,7 @@
 | .gitignore | ✅ 完了 | |
 | GitHub Secrets登録 | ⏳ 待機 | FTPパスワード確認待ち |
 | 自動デプロイ動作確認 | ⏳ 待機 | Secrets登録後 |
-| エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | 座標＋ズーム・親幅拡大・フルブリード（2026-04 調整） |
+| エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | SP でも iframe 表示（2026-04） |
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | REST API権限強化 | ⏳ 未着手 | |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
@@ -240,6 +240,20 @@ pm/PROGRESS.md
 taxonomy-area.php
 ---
 
+### 2026-04-06 地図 iframe を SP 表示
+#### コミット
+fix(area-map): show Google map iframe on mobile
+
+#### 変更内容
+- `taxonomy-area.php`: `wp_is_mobile()` 条件と `u-pc-only` を外し、親エリアで地図を SP でも出力
+- `single.css`: 768px 以下で `.lux-map-section` を非表示にしていたルールを削除
+
+#### 変更ファイル
+taxonomy-area.php
+css/single.css
+pm/PROGRESS.md
+---
+
 ### 2026-04-06 地名ピンと iframe の重なり
 #### コミット
 fix(css): hide legacy lux-pin overlays when Google map iframe is present
@@ -343,4 +357,14 @@ Made-with: Cursor
 
 #### 変更ファイル
 css/single.css
+---
+
+### 2026-04-06 05:08
+#### コミット
+docs: log lux-pin iframe overlap fix
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
 ---

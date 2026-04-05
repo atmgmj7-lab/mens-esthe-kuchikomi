@@ -55,9 +55,9 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
         <?php if ( $is_parent_area ): ?>
             <?php 
             $map_url = function_exists( 'escomi_area_parent_map_embed_url' ) ? escomi_area_parent_map_embed_url( $term_slug ) : '';
-            if ( !wp_is_mobile() && $map_url && !empty($child_terms) ): 
+            if ( $map_url && ! empty( $child_terms ) ) :
             ?>
-                <section class="area-map-section u-mb-50 u-pc-only">
+                <section class="area-map-section u-mb-50">
                     <div class="lux-area-nav lux-area-nav--map-focus">
                         <div class="lux-map-section">
                             <h2 class="lux-heading"><span class="en">MAP SEARCH</span><span class="jp">周辺の位置関係（地図の範囲で目安）</span></h2>
