@@ -1585,7 +1585,11 @@ flex: 0 0 auto !important; /* 縮小させない */
 
 .u-sp-only { display: none !important; } /* スマホ用は隠す */
 
-.u-pc-only { display: grid !important; } /* PC用は表示 */
+/* PC 表示用（非表示解除）。grid だと子が 1 カラム扱いになり地図ブロック等が細長くなるため block */
+.u-pc-only { display: block !important; }
+
+/* taxonomy-area のエリアチップ一覧は従来どおり flex（.u-pc-only の block に負けないよう明示） */
+.es-area-grid.u-pc-only { display: flex !important; flex-wrap: wrap; gap: 12px; }
 
 
 
