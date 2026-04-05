@@ -403,6 +403,61 @@ font-family: 'Noto Serif JP', serif;
 
 }
 
+/* エリアタクソノミー: メインカラムを広げる（SWELL 既定の狭い inner を上書き） */
+body.tax-area .l-main_content.l-article .l-main_content__inner {
+
+max-width: min(96vw, 1400px) !important;
+
+box-sizing: border-box;
+
+}
+
+/* 親エリア地図: 旧画像相当の狭い枠から解放（ビューポート幅のフルブリード） */
+body.tax-area .area-map-section {
+
+width: 100vw;
+
+max-width: 100vw;
+
+margin-left: calc(50% - 50vw);
+
+margin-right: calc(50% - 50vw);
+
+padding-left: max(12px, env(safe-area-inset-left));
+
+padding-right: max(12px, env(safe-area-inset-right));
+
+box-sizing: border-box;
+
+}
+
+body.tax-area .area-map-section .lux-area-nav--map-focus {
+
+max-width: none;
+
+width: 100%;
+
+}
+
+/* ショートコード設置時も本文カラムを突き抜けて地図を広げる */
+.l-main_content .lux-area-nav.lux-area-nav--shortcode.lux-area-nav--map-focus {
+
+width: 100vw;
+
+max-width: 100vw;
+
+margin-left: calc(50% - 50vw);
+
+margin-right: calc(50% - 50vw);
+
+padding-left: max(12px, env(safe-area-inset-left));
+
+padding-right: max(12px, env(safe-area-inset-right));
+
+box-sizing: border-box;
+
+}
+
 
 
 /* 見出し */
@@ -418,7 +473,7 @@ font-family: 'Noto Serif JP', serif;
 
 width: 100%;
 
-max-width: min(96vw, 1200px);
+max-width: none;
 
 margin: 0 auto;
 
@@ -436,12 +491,12 @@ position: relative;
 
 width: 100%;
 
-/* 旧: 幅800×高900 付近で縦長に見えていた → 16:9 で横長に */
-aspect-ratio: 16 / 9;
+/* 横長の閲覧エリアを確保（地図の「枠」を広げる） */
+aspect-ratio: 2 / 1;
 
 height: auto !important;
 
-min-height: 260px;
+min-height: min(52vh, 520px);
 
 background: transparent;
 

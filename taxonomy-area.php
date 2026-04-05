@@ -25,15 +25,7 @@ $header_images = [
     'kyoto' => 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800',
     'hyogo' => 'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800',
 ];
-// functions.php の area_map_nav と同一（Google Maps embed）
-$maps = [
-    'osaka'    => 'https://maps.google.com/maps?q=大阪府大阪市&output=embed',
-    'hyogo'    => 'https://maps.google.com/maps?q=兵庫県神戸市&output=embed',
-    'kyoto'    => 'https://maps.google.com/maps?q=京都府京都市&output=embed',
-    'nara'     => 'https://maps.google.com/maps?q=奈良県奈良市&output=embed',
-    'shiga'    => 'https://maps.google.com/maps?q=滋賀県大津市&output=embed',
-    'wakayama' => 'https://maps.google.com/maps?q=和歌山県和歌山市&output=embed',
-];
+// functions.php の escomi_area_parent_map_embed_url() と同一 URL
 
 $term_bg_url = '';
 if ( function_exists('get_term_meta') ) {
@@ -62,11 +54,11 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
         <?php /* SECTION 1: 地図と子エリア一覧 */ ?>
         <?php if ( $is_parent_area ): ?>
             <?php 
-            $map_url = isset($maps[$term_slug]) ? $maps[$term_slug] : '';
+            $map_url = function_exists( 'escomi_area_parent_map_embed_url' ) ? escomi_area_parent_map_embed_url( $term_slug ) : '';
             if ( !wp_is_mobile() && $map_url && !empty($child_terms) ): 
             ?>
                 <section class="area-map-section u-mb-50 u-pc-only">
-                    <div class="lux-area-nav">
+                    <div class="lux-area-nav lux-area-nav--map-focus">
                         <div class="lux-map-section">
                             <h2 class="lux-heading"><span class="en">MAP SEARCH</span><span class="jp">周辺の位置関係（地図の範囲で目安）</span></h2>
                             <div class="lux-map-frame">

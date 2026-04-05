@@ -442,39 +442,60 @@ add_shortcode('escomi_column', function($atts) {
 });
 /* --------------------------------------------------
    【Luxury版】エリアマップ＆リスト自動表示
-   使い方: [area_map_nav]
+   使い方: [area_map_nav] または [area_map_nav list="1"]
+   list="1" でショートコード内の AREA LIST を表示（既定は非表示。taxonomy 側の「詳細エリアを選択」と重複しがちなため）
    -------------------------------------------------- */
-add_shortcode('area_map_nav', function() {
-    $term = get_queried_object();
-    
-    // エリアページ以外、または子エリアの場合は表示しない
-    if (!isset($term->term_id) || $term->parent != 0) return '';
-
-    $slug = $term->slug;
-
-    // Google Maps 埋め込み（iframe 用。旧: 静止画URL + <img>）
+/**
+ * 親エリアスラッグ用の Google Maps 埋め込み URL。
+ * 府県名クエリより座標＋ズームで範囲を絞り、表示をエリア中心に寄せる。
+ * 無料の output=embed では地図上のラベル完全非表示は不可（Maps JS API + スタイルが必要）。
+ */
+function escomi_area_parent_map_embed_url( $slug ) {
     $maps = [
-        'osaka'    => 'https://maps.google.com/maps?q=大阪府大阪市&output=embed',
-        'hyogo'    => 'https://maps.google.com/maps?q=兵庫県神戸市&output=embed',
-        'kyoto'    => 'https://maps.google.com/maps?q=京都府京都市&output=embed',
-        'nara'     => 'https://maps.google.com/maps?q=奈良県奈良市&output=embed',
-        'shiga'    => 'https://maps.google.com/maps?q=滋賀県大津市&output=embed',
-        'wakayama' => 'https://maps.google.com/maps?q=和歌山県和歌山市&output=embed',
+        'osaka'    => 'https://www.google.com/maps?q=34.6937,135.5023&z=11&hl=ja&output=embed',
+        'hyogo'    => 'https://www.google.com/maps?q=34.6901,135.1835&z=11&hl=ja&output=embed',
+        'kyoto'    => 'https://www.google.com/maps?q=35.0116,135.7681&z=11&hl=ja&output=embed',
+        'nara'     => 'https://www.google.com/maps?q=34.6851,135.8048&z=11&hl=ja&output=embed',
+        'shiga'    => 'https://www.google.com/maps?q=35.0045,135.8686&z=11&hl=ja&output=embed',
+        'wakayama' => 'https://www.google.com/maps?q=34.2304,135.1706&z=11&hl=ja&output=embed',
     ];
-    
-    if (!isset($maps[$slug]) || empty($maps[$slug])) return '';
-    $map_url = $maps[$slug];
+    return isset( $maps[ $slug ] ) ? $maps[ $slug ] : '';
+}
 
-    // 子エリア取得
-    $children = get_terms([
-        'taxonomy' => 'area',
-        'parent' => $term->term_id,
-        'hide_empty' => false,
-    ]);
+add_shortcode( 'area_map_nav', function ( $atts ) {
+    $atts = shortcode_atts(
+        [
+            'list' => '0',
+        ],
+        $atts,
+        'area_map_nav'
+    );
+    $show_list = ( $atts['list'] === '1' || $atts['list'] === 'true' );
+
+    $term = get_queried_object();
+
+    // エリアページ以外、または子エリアの場合は表示しない
+    if ( ! isset( $term->term_id ) || $term->parent != 0 ) {
+        return '';
+    }
+
+    $slug    = $term->slug;
+    $map_url = escomi_area_parent_map_embed_url( $slug );
+    if ( empty( $map_url ) ) {
+        return '';
+    }
+
+    $children = get_terms(
+        [
+            'taxonomy'   => 'area',
+            'parent'     => $term->term_id,
+            'hide_empty' => false,
+        ]
+    );
 
     ob_start();
     ?>
-    <div class="lux-area-nav">
+    <div class="lux-area-nav lux-area-nav--shortcode lux-area-nav--map-focus">
         
         <div class="lux-map-section">
             <h2 class="lux-heading">
@@ -484,8 +505,8 @@ add_shortcode('area_map_nav', function() {
             <div class="lux-map-frame">
                 <iframe
                     class="lux-map-iframe"
-                    src="<?php echo esc_url($map_url); ?>"
-                    title="<?php echo esc_attr($term->name); ?>の地図"
+                    src="<?php echo esc_url( $map_url ); ?>"
+                    title="<?php echo esc_attr( $term->name ); ?>の地図"
                     loading="lazy"
                     referrerpolicy="no-referrer-when-downgrade"
                     allowfullscreen
@@ -493,22 +514,24 @@ add_shortcode('area_map_nav', function() {
             </div>
         </div>
 
+        <?php if ( $show_list && ! empty( $children ) && ! is_wp_error( $children ) ) : ?>
         <div class="lux-list-section">
             <h2 class="lux-heading-small">AREA LIST</h2>
             <div class="lux-grid">
-                <?php foreach($children as $child): ?>
-                <a href="<?php echo get_term_link($child); ?>" class="lux-list-item">
-                    <span class="name"><?php echo esc_html($child->name); ?></span>
+                <?php foreach ( $children as $child ) : ?>
+                <a href="<?php echo esc_url( get_term_link( $child ) ); ?>" class="lux-list-item">
+                    <span class="name"><?php echo esc_html( $child->name ); ?></span>
                     <span class="arrow">View</span>
                 </a>
                 <?php endforeach; ?>
             </div>
         </div>
+        <?php endif; ?>
 
     </div>
     <?php
     return ob_get_clean();
-});
+} );
 /* ==================================================
    店舗保存時、子エリア選択で親エリアを自動チェック
    ================================================== */

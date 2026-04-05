@@ -13,7 +13,7 @@
 | .gitignore | ✅ 完了 | |
 | GitHub Secrets登録 | ⏳ 待機 | FTPパスワード確認待ち |
 | 自動デプロイ動作確認 | ⏳ 待機 | Secrets登録後 |
-| エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | Google Maps embed 6エリア |
+| エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | 座標＋ズーム・親幅拡大・フルブリード（2026-04 調整） |
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | REST API権限強化 | ⏳ 未着手 | |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
@@ -228,6 +228,42 @@ Made-with: Cursor
 - `.gitignore`: `ai-site-monitor/venv/` 等を追加
 - `pm/BLOCKER.md`: BLOCK-002/003 を解除済みに移動
 - その他: `deploy.yml`, `ai_auto_updater.py`, `css/single.css`, `taxonomy-area.php`（先行差分のまとめ）
+
+#### 変更ファイル
+.github/workflows/deploy.yml
+.gitignore
+ai-site-monitor/ai_auto_updater.py
+css/single.css
+functions.php
+pm/BLOCKER.md
+pm/PROGRESS.md
+taxonomy-area.php
+---
+
+### 2026-04-05 地図枠・埋め込み調整
+#### コミット
+fix(area-map): widen layout, coord+zoom embed, optional area list in shortcode
+
+Made-with: Cursor
+
+#### 変更内容
+- 親エリア地図 URL を府県名クエリから **都市中心座標＋ z=11** に変更（表示範囲を絞る。ラベル完全消去は embed では不可）
+- `body.tax-area` の **inner 最大幅 1400px**、地図ブロック **100vw フルブリード**
+- `.lux-map-frame` を **2:1・min-height 大** で枠を広げる
+- `[area_map_nav]` の **AREA LIST は既定非表示**（`list="1"` で表示）
+
+#### 変更ファイル
+css/single.css
+functions.php
+taxonomy-area.php
+pm/PROGRESS.md
+---
+
+### 2026-04-06 04:48
+#### コミット
+feat(seo): load area-seo-hooks-optimized; chore: deploy, map, updater, docs
+
+Made-with: Cursor
 
 #### 変更ファイル
 .github/workflows/deploy.yml
