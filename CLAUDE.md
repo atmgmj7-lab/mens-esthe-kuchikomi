@@ -6,6 +6,7 @@
 3. pm/ARCHITECTURE.md - 技術構成（実装時のみ）
 4. pm/RUNBOOK.md     - **運用手順・自動実行コマンド・手動/エージェントの境界**
 5. pm/CONTENT-IMPLEMENTATION-GUIDE.md - **エリア・店舗の WP コンテンツ入力・AI 分担**（ACF 作業時）
+6. pm/SHOP-AI-ROLLOUT.md - **店舗公式URL→自動更新の全店舗展開・フェーズ**（`ai_auto_updater` 運用時）
 
 ## 鉄則
 - 親テーマ(SWELL)直接編集禁止

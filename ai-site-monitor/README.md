@@ -136,12 +136,14 @@ python crawler_base.py
 
 ## AI 自動更新（ai_auto_updater.py）
 
-店舗サイトを巡回し、Gemini で要約を生成して WordPress の ACF `shop_ai_summary` に保存するスクリプト。
+店舗の **`official_url`**（公式サイト）を Playwright で開き、テキスト/HTML を取得。変更があれば Gemini で **本日出勤・空き状況・分析文**等を生成し、`POST /wp-json/ai-engine/v1/update` で **`shop_today_*` 等のメタ**を更新する。
+
+※ **`shop_ai_summary`（店舗コンセプトの月次文）はこのスクリプトからは送らない**（上書きしない設計）。
 
 ### 前提条件
 
 - `.env` に `WP_SITE_URL`, `WP_USER`, `WP_APP_PASSWORD`, `GEMINI_API_KEY` が設定済み
-- `ai-update-log.php` が読み込まれ、`shop_ai_summary` の更新に対応していること
+- 子テーマで `ai-update-log.php` が読み込まれ、`/wp-json/ai-engine/v1/update` が 200 になること
 
 ### パッケージ
 
@@ -153,16 +155,35 @@ playwright install
 ### 実行
 
 ```bash
+# 既定: 最大 3 件（テスト向け）
 python ai_auto_updater.py
+
+# 件数指定
+python ai_auto_updater.py --limit 10
+
+# 公式URL がある店舗をすべて（全店舗運用）
+python ai_auto_updater.py --all
 ```
 
-### 処理フロー
+### 環境変数（件数・待機）
 
-1. WordPress REST API から URL が有効な店舗を 3 件取得
-2. Playwright で各サイトの body 内テキストを抽出
-3. Gemini API で 200〜300 文字の紹介文を生成
-4. `POST /wp-json/ai-engine/v1/update` で `shop_ai_summary` を更新
+| 変数 | 説明 |
+|------|------|
+| `CRAWL_LIMIT` | 未指定時は `3`。正の整数＝最大件数 / `all`＝全店舗 |
+| `SHOP_DELAY_SECONDS` | 店舗ごとの待機秒（全店舗時の負荷緩和。既定 0） |
+
+### 処理フロー（概要）
+
+1. WordPress REST で `shop` 一覧を取得し、`official_url` がある店舗だけ対象にする
+2. 件数は `--all` / `--limit` / `CRAWL_LIMIT` で制御
+3. Playwright で各公式サイトの body テキスト＋ HTML を取得し、ハッシュで変更検知
+4. HTML から出勤を抽出できる場合は Gemini で分析のみ／できない場合は全文から抽出
+5. REST で `shop_today_analysis` 等を更新
 
 ### エラー時
 
 タイムアウト・Gemini エラー時はその店舗をスキップし、次の店舗へ継続します。
+
+### 展開計画（リポジトリ内ドキュメント）
+
+`pm/SHOP-AI-ROLLOUT.md` を参照。

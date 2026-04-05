@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """
 ai_auto_updater.py
-WordPress から店舗リストを取得し、Playwright で公式サイトを巡回、
-Gemini API で本日出勤データを抽出し、shop_today_* に自動保存する。
+WordPress から店舗リストを取得し、Playwright で公式サイト（official_url）を巡回、
+Gemini API で本日出勤データを抽出し、shop_today_* 等を REST で保存する。
 
-※ shop_ai_summary（月1回の基本要約）は上書きしない。
-【テスト仕様】URL が有効な店舗のうち、最初の 3 件のみ処理
+※ shop_ai_summary（月1の店舗コンセプト）は Python からは送らない（上書きしない）。
+
+件数制御（優先順）:
+  1) コマンドライン: python ai_auto_updater.py --all  /  --limit N
+  2) 環境変数 CRAWL_LIMIT（整数=最大件数 / all=公式URLがある店舗をすべて）
+  3) 未指定時は 3 件（安全なデフォルト）
+
+店舗間の待機: SHOP_DELAY_SECONDS（秒。全店舗時の負荷緩和用）
 """
 
+import argparse
 import asyncio
 import hashlib
 import json
@@ -41,8 +48,59 @@ except ImportError:
     sys.exit(1)
 
 
-# テスト用：処理する店舗数
-CRAWL_LIMIT = 3
+def _crawl_limit_from_env() -> Optional[int]:
+    """
+    CRAWL_LIMIT: 正の整数 = 最大件数 / "all" = 無制限（全店舗）。
+    未設定または不正値は 3（従来のテスト既定）。
+    """
+    raw = (os.environ.get("CRAWL_LIMIT") or "3").strip().lower()
+    if raw == "all":
+        return None
+    try:
+        n = int(raw)
+    except ValueError:
+        return 3
+    if n <= 0:
+        return None
+    return n
+
+
+def resolve_crawl_limit(args: argparse.Namespace) -> Optional[int]:
+    """CLI が環境変数より優先。None = 全店舗。"""
+    if getattr(args, "all", False):
+        return None
+    if getattr(args, "limit", None) is not None:
+        n = args.limit
+        if n <= 0:
+            return None
+        return n
+    return _crawl_limit_from_env()
+
+
+def shop_delay_seconds() -> float:
+    try:
+        return max(0.0, float(os.environ.get("SHOP_DELAY_SECONDS", "0") or "0"))
+    except ValueError:
+        return 0.0
+
+
+def parse_cli_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="店舗公式URLを巡回し、本日出勤等を WordPress REST に反映する",
+    )
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="公式URL がある店舗をすべて処理（CRAWL_LIMIT より優先）",
+    )
+    p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="最大 N 件のみ処理（未指定時は環境変数 CRAWL_LIMIT、既定3）",
+    )
+    return p.parse_args()
 
 # SQLite DB パス（スクリプトと同じ階層）
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -665,28 +723,33 @@ async def process_shop(
         print("    ERROR: WordPress への保存に失敗")
 
 
-async def main_async() -> None:
+async def main_async(args: argparse.Namespace) -> None:
     config = get_config()
+    crawl_limit = resolve_crawl_limit(args)
+    delay_sec = shop_delay_seconds()
+
     shops = fetch_shops(
         config["site_url"],
         config["user"],
         config["app_password"],
     )
 
-    # URL が有効な店舗のみ、最初の CRAWL_LIMIT 件
     valid_shops = []
     for shop in shops:
         parsed = parse_shop(shop)
         if parsed:
             valid_shops.append(parsed)
-            if len(valid_shops) >= CRAWL_LIMIT:
+            if crawl_limit is not None and len(valid_shops) >= crawl_limit:
                 break
 
     if not valid_shops:
         print("ERROR: URL が有効な店舗が 1 件もありません。")
         sys.exit(1)
 
-    print(f"処理対象: {len(valid_shops)} 件")
+    mode = "全店舗" if crawl_limit is None else f"最大 {crawl_limit} 件"
+    print(f"処理対象: {len(valid_shops)} 件（{mode}）")
+    if delay_sec > 0:
+        print(f"店舗間待機: {delay_sec} 秒（SHOP_DELAY_SECONDS）")
 
     init_db()
 
@@ -695,6 +758,8 @@ async def main_async() -> None:
 
         for i, shop in enumerate(valid_shops, 1):
             await process_shop(browser, config, shop, i)
+            if delay_sec > 0 and i < len(valid_shops):
+                await asyncio.sleep(delay_sec)
 
         await browser.close()
 
@@ -702,7 +767,8 @@ async def main_async() -> None:
 
 
 def main() -> None:
-    asyncio.run(main_async())
+    args = parse_cli_args()
+    asyncio.run(main_async(args))
 
 
 if __name__ == "__main__":

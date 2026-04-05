@@ -2,6 +2,8 @@
 
 テーマ側のフック・テンプレは **既に本番向けに接続済み**（`area-seo-hooks-optimized.php` 等）。このドキュメントは **WordPress 管理画面での入力・運用** と **AI 連携の役割分担** を指示する。
 
+**進捗・全店舗展開（AI→手動の順）:** `pm/SHOP-AI-ROLLOUT.md`
+
 ---
 
 ## 1. 全体像
@@ -75,7 +77,8 @@ WP 管理画面 → **店舗（shop）** → 各投稿を編集。
 
 ### 3.3 AI（自動更新）の対象
 
-- `ai-site-monitor/ai_auto_updater.py` … 公式サイト巡回 → Gemini で **本日出勤**等を抽出 → REST で POST
+- `ai-site-monitor/ai_auto_updater.py` … 各店舗の **`official_url`** から公式サイトを巡回 → 変更時に Gemini で **本日出勤**等を抽出 → REST で POST
+- **件数:** 既定 3 件（テスト用）。本番で全店舗に拡大する場合は `--all` または `CRAWL_LIMIT=all`（詳細は `ai-site-monitor/README.md` と `pm/SHOP-AI-ROLLOUT.md`）
 - `ai-update-log.php` の `POST /wp-json/ai-engine/v1/update` が受け取るメタ例:
 
   `shop_today_analysis`, `shop_availability`, `shop_today_therapists`, `age_*`, `shop_address`, `shop_tel`, …（`meta_mapping` 参照）

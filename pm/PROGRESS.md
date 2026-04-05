@@ -19,6 +19,7 @@
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
 | エリア・店舗コンテンツ（ACF） | ⏳ 進行中 | 手順: `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
+| 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `ai_auto_updater.py` に `--all` / `CRAWL_LIMIT=all` 実装済み。展開: `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
 - FTPパスワード未取得（自動デプロイ完成待ち）
@@ -241,6 +242,25 @@ pm/PROGRESS.md
 taxonomy-area.php
 ---
 
+### 2026-04-06 店舗AI全店舗展開（CLI・ドキュメント）
+#### コミット
+feat(ai): crawl limit --all/--limit, SHOP_DELAY_SECONDS, SHOP-AI-ROLLOUT doc
+
+#### 変更内容
+- `ai_auto_updater.py`: `--all`, `--limit N`, `CRAWL_LIMIT=all`, `SHOP_DELAY_SECONDS`
+- `pm/SHOP-AI-ROLLOUT.md`: フェーズ表・AI/手動分担・実行例
+- `ai-site-monitor/README.md` / `.env.example` 更新、`CONTENT-IMPLEMENTATION-GUIDE.md` 追記、`CLAUDE.md` 読む順追加
+
+#### 変更ファイル
+ai-site-monitor/ai_auto_updater.py
+ai-site-monitor/README.md
+ai-site-monitor/.env.example
+pm/SHOP-AI-ROLLOUT.md
+pm/CONTENT-IMPLEMENTATION-GUIDE.md
+pm/PROGRESS.md
+CLAUDE.md
+---
+
 ### 2026-04-06 コンテンツ実装指示書
 #### コミット
 docs: add CONTENT-IMPLEMENTATION-GUIDE for area and shop pages
@@ -419,5 +439,18 @@ Made-with: Cursor
 
 #### 変更ファイル
 css/single.css
+pm/PROGRESS.md
+---
+
+### 2026-04-06 05:38
+#### コミット
+docs: add CONTENT-IMPLEMENTATION-GUIDE for area and shop WP content
+
+Made-with: Cursor
+
+#### 変更ファイル
+CLAUDE.md
+pm/ARCHITECTURE.md
+pm/CONTENT-IMPLEMENTATION-GUIDE.md
 pm/PROGRESS.md
 ---
