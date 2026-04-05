@@ -240,6 +240,19 @@ pm/PROGRESS.md
 taxonomy-area.php
 ---
 
+### 2026-04-06 地名ピンと iframe の重なり
+#### コミット
+fix(css): hide legacy lux-pin overlays when Google map iframe is present
+
+#### 変更内容
+- `.lux-map-frame` 内に `.lux-map-iframe` があるとき、旧静止画用の **`.lux-pin`（地名タブ）を非表示**（Google 地図と重なる二重表示の解消）
+- iframe に `z-index: 1` を付与
+
+#### 変更ファイル
+css/single.css
+pm/PROGRESS.md
+---
+
 ### 2026-04-06 u-pc-only グリッド修正
 #### コミット
 fix(css): u-pc-only use block instead of grid to avoid narrow map layout
@@ -305,6 +318,26 @@ taxonomy-area.php
 ### 2026-04-06 05:06
 #### コミット
 fix(css): u-pc-only use block instead of grid to avoid narrow map layout
+
+Made-with: Cursor
+
+#### 変更ファイル
+css/single.css
+---
+
+### 2026-04-06 05:06
+#### コミット
+docs: log u-pc-only grid fix in PROGRESS
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
+---
+
+### 2026-04-06 05:08
+#### コミット
+fix(css): hide legacy lux-pin overlays when Google map iframe is present
 
 Made-with: Cursor
 
