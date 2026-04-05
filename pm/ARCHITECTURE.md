@@ -11,8 +11,11 @@
 - area-seo-hooks.php          : エリアSEOフック（稼働中）
 - area-seo-hooks-optimized.php: 最適化版（未接続）
 - ai-update-log.php           : AI更新ログ・REST
-- single-shop.pル（Render予定）
-  → WordPress管理画面から呼び出し予定
+- single-shop.php             : 店舗単体テンプレ（子テーマ）
 
 ## よく使うコマンド
-git add . && git commit -m "変更内容" && git push
+詳細は **pm/RUNBOOK.md**。最短デプロイ:
+
+```bash
+git add -A && git commit -m "変更内容" && git push origin main
+```

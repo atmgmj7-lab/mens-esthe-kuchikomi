@@ -1,5 +1,7 @@
 # 進行ログ
 
+**運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
+
 ## ステータスサマリー
 | 項目 | 状態 | 備考 |
 |------|------|------|
@@ -151,6 +153,16 @@ pm/PROGRESS.md
 ### 2026-04-06 04:29
 #### コミット
 docs: log daily_cron 5-URL verification and task 2-3 follow-up
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
+---
+
+### 2026-04-06 04:37
+#### コミット
+docs: note namba URL removed from monitor list
 
 Made-with: Cursor
 
