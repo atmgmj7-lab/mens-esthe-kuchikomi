@@ -240,6 +240,20 @@ pm/PROGRESS.md
 taxonomy-area.php
 ---
 
+### 2026-04-06 MAP SEARCH 見出しを SP で確実に表示
+#### コミット
+fix(css): reset area-map full-bleed on mobile so MAP SEARCH + map are visible
+
+#### 変更内容
+- 768px 以下で `body.tax-area .area-map-section` の `100vw` / 負マージンを解除（親 overflow で欠ける対策）
+- ショートコードのフルブリードも同様に SP でリセット
+- `.lux-heading` を `display:block` / `z-index` で明示
+
+#### 変更ファイル
+css/single.css
+pm/PROGRESS.md
+---
+
 ### 2026-04-06 地図 iframe を SP 表示
 #### コミット
 fix(area-map): show Google map iframe on mobile
@@ -367,4 +381,16 @@ Made-with: Cursor
 
 #### 変更ファイル
 pm/PROGRESS.md
+---
+
+### 2026-04-06 05:21
+#### コミット
+fix(area-map): show Google map iframe on mobile
+
+Made-with: Cursor
+
+#### 変更ファイル
+css/single.css
+pm/PROGRESS.md
+taxonomy-area.php
 ---

@@ -439,6 +439,59 @@ width: 100%;
 
 }
 
+/* SP: フルブリードの負マージンが親の overflow-x と干渉し、MAP SEARCH 見出しや地図が欠けるのを防ぐ */
+@media (max-width: 768px) {
+
+body.tax-area .area-map-section {
+
+width: 100%;
+
+max-width: 100%;
+
+margin-left: 0;
+
+margin-right: 0;
+
+padding-left: 0;
+
+padding-right: 0;
+
+padding-top: 0.5rem;
+
+box-sizing: border-box;
+
+}
+
+.l-main_content .lux-area-nav.lux-area-nav--shortcode.lux-area-nav--map-focus {
+
+width: 100%;
+
+max-width: 100%;
+
+margin-left: 0;
+
+margin-right: 0;
+
+padding-left: 0;
+
+padding-right: 0;
+
+}
+
+body.tax-area .area-map-section .lux-heading {
+
+display: block !important;
+
+position: relative;
+
+z-index: 1;
+
+margin-bottom: 12px;
+
+}
+
+}
+
 /* ショートコード設置時も本文カラムを突き抜けて地図を広げる */
 .l-main_content .lux-area-nav.lux-area-nav--shortcode.lux-area-nav--map-focus {
 
