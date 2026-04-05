@@ -14,7 +14,7 @@
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | Google Maps embed 6エリア |
 | area-seo-hooks-optimized接続 | ⏳ 未着手 | |
 | REST API権限強化 | ⏳ 未着手 | |
-| ai-site-monitor稼働確認 | ⏳ 未着手 | |
+| ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools で total_sites:5 確認。hashes は4URL（namba 要確認） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
 
 #### ブロッカー
@@ -99,4 +99,46 @@ pm/PROGRESS.md
 - 日本橋エリアACFコンテンツ手動入力
 - ai_auto_updater.pyの本番テスト実行
 
+---
+
+### 2026-04-06 04:25
+#### コミット
+docs: update progress log 2026-04-06
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
+---
+
+## 2026-04-07 優先タスクフォロー（1→2→3）
+
+### 1. daily_cron（5URL）実行結果確認 — 実施済み
+- **Actions**: `Daily Site Monitor` を `workflow_dispatch` で実行（run 成功・約48秒）。
+- **成果物**: `mens-esthe-seo-tools` の `ai-site-monitor/results/changes_20260405_192907.json`
+  - `total_sites`: **5**
+  - `changed_count`: 0（初回ベースライン／変更なし）
+- **`data/hashes.json`**: mens-esthe-kuchikomi.com の **4 URL** のみハッシュ保存。
+  - **`https://mens-esthe-kuchikomi.com/area/namba/` が未登録**。`main.py` は取得失敗時にスキップするため、当該URLの応答・タイムアウトを要確認（再実行または Actions ログの `[SKIP]` 確認）。
+
+### 2. 日本橋エリア ACF 手動入力 — 作業場所の整理（WP管理画面）
+- **場所**: `タクソノミー area` → **日本橋** ターム編集（`/wp-admin/term.php?taxonomy=area&tag_ID=…`）。
+- **入力するフィールド**（既存ガイド）: リポジトリ直下 `ACF-FIELDS-SETUP.md`（`area_intro_text` / `area_ranking_shops` / `area_column_content` / `area_faq_content`）。最適化版を使う場合は `SEO-OPTIMIZATION-GUIDE.md` の `area_characteristics` 等も参照。
+- **本文は手動**（このリポジトリからは自動投入しない）。
+
+### 3. ai_auto_updater.py 本番テスト — 手順のみ（未実行）
+- **前提**: `ai-site-monitor/.env` に `WP_SITE_URL`, `WP_USER`, `WP_APP_PASSWORD`, `GEMINI_API_KEY`。Playwright の `chromium` インストール済み。
+- **コマンド**（リポジトリ: `mens-esthe-seo-tools/ai-site-monitor/` または `swell_child/ai-site-monitor/`）:
+  - `pip install -r requirements.txt && playwright install chromium`
+  - `python ai_auto_updater.py`
+- スクリプトは **CRAWL_LIMIT=3** のテスト仕様。本番で店舗メタ更新できるか WP 側で確認。
+
+---
+
+### 2026-04-07 進行メモ
+#### 内容
+優先タスク1の検証（workflow 手動実行・total_sites:5・hashes 4件の記録）。タスク2・3は手順整理。
+
+#### 変更ファイル
+pm/PROGRESS.md
 ---
