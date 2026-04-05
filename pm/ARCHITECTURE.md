@@ -8,8 +8,8 @@
 
 ## 主要ファイル
 - functions.php               : メイン機能（約840行）
-- area-seo-hooks.php          : エリアSEOフック（稼働中）
-- area-seo-hooks-optimized.php: 最適化版（未接続）
+- area-seo-hooks.php          : エリアSEOフック（旧・未読込可）
+- area-seo-hooks-optimized.php: エリアSEOフック（`functions.php` から読込）
 - ai-update-log.php           : AI更新ログ・REST
 - single-shop.php             : 店舗単体テンプレ（子テーマ）
 

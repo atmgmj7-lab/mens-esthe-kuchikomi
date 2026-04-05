@@ -18,6 +18,7 @@
 | REST API権限強化 | ⏳ 未着手 | |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
+| エリア・店舗コンテンツ（ACF） | ⏳ 進行中 | 手順: `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
 
 #### ブロッカー
 - FTPパスワード未取得（自動デプロイ完成待ち）
@@ -240,6 +241,21 @@ pm/PROGRESS.md
 taxonomy-area.php
 ---
 
+### 2026-04-06 コンテンツ実装指示書
+#### コミット
+docs: add CONTENT-IMPLEMENTATION-GUIDE for area and shop pages
+
+#### 変更内容
+- `pm/CONTENT-IMPLEMENTATION-GUIDE.md` 新設（エリア ACF・店舗手動/AI 分担・チェックリスト）
+- `pm/ARCHITECTURE.md` の optimized 接続状況を更新、`CLAUDE.md` に読む順へ追記
+
+#### 変更ファイル
+pm/CONTENT-IMPLEMENTATION-GUIDE.md
+pm/ARCHITECTURE.md
+CLAUDE.md
+pm/PROGRESS.md
+---
+
 ### 2026-04-06 MAP SEARCH 見出しを SP で確実に表示
 #### コミット
 fix(css): reset area-map full-bleed on mobile so MAP SEARCH + map are visible
@@ -393,4 +409,15 @@ Made-with: Cursor
 css/single.css
 pm/PROGRESS.md
 taxonomy-area.php
+---
+
+### 2026-04-06 05:36
+#### コミット
+fix(css): reset area-map full-bleed on mobile for MAP SEARCH visibility
+
+Made-with: Cursor
+
+#### 変更ファイル
+css/single.css
+pm/PROGRESS.md
 ---
