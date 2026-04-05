@@ -148,6 +148,12 @@ pm/PROGRESS.md
 - 本サイトに `/area/namba/` 相当ページが無いため、**監視対象から削除**して問題なし（致命ではない）。
 - `mens-esthe-seo-tools/ai-site-monitor/sites.json` は **実URL4件**に更新。
 
+### RUNBOOK A-4 再実行（エージェント・Cursor）
+- `git pull` → `gh workflow run "Daily Site Monitor" --ref main` → `gh run watch` まで実施。
+- **GitHub Actions run ID:** `24009000520`（成功・約1分10秒）。
+- **検証:** `total_sites` **4** = `sites.json` の URL 数 **4** = `data/hashes.json` のキー数 **4**（一致）。
+- **成果物:** `ai-site-monitor/results/changes_20260405_194233.json`（`changed_count`: 0）。
+
 ---
 
 ### 2026-04-06 04:29
@@ -168,4 +174,17 @@ Made-with: Cursor
 
 #### 変更ファイル
 pm/PROGRESS.md
+---
+
+### 2026-04-06 04:39
+#### コミット
+docs: add RUNBOOK for agent-executable ops and clarify manual boundary
+
+Made-with: Cursor
+
+#### 変更ファイル
+CLAUDE.md
+pm/ARCHITECTURE.md
+pm/PROGRESS.md
+pm/RUNBOOK.md
 ---
