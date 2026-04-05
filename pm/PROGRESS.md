@@ -71,3 +71,32 @@ fix: replace img with iframe in area map nav
 - `/area/nihonbashi/`: `MAP SEARCH` / `lux-map-frame` は含まれず（子エリアは地図ブロック非表示で仕様どおり）
 
 ---
+
+### 2026-04-05 07:22
+#### コミット
+docs: dedupe PROGRESS log entries
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
+---
+
+## 2026-04-06
+
+### 完了タスク
+- area_map_nav iframeに変更（functions.php・taxonomy-area.php・css/single.css）
+- MCP設定完了（fetch/filesystem/github）
+- ai_auto_updater.pyのバグ修正（result.appendインデント修正）
+- REST API疎通確認（/wp-json/ai-engine/v1/update 200 OK）
+- ai-site-monitorをmens-esthe-seo-toolsリポジトリに移行
+- daily_cron.yml稼働確認（GitHub Actions成功）
+- sites.jsonをダミー1000件→実URL5件に差し替え
+- FTPデプロイ復旧（FTP_USERNAMEをescomi@mens-esthe-kuchikomi.comに修正）
+
+### 次回優先タスク
+- daily_cron.yml新設定（5URL）での実行結果確認（total_sites: 5を確認）
+- 日本橋エリアACFコンテンツ手動入力
+- ai_auto_updater.pyの本番テスト実行
+
+---
