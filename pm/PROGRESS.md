@@ -14,7 +14,7 @@
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | Google Maps embed 6エリア |
 | area-seo-hooks-optimized接続 | ⏳ 未着手 | |
 | REST API権限強化 | ⏳ 未着手 | |
-| ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools で total_sites:5 確認。hashes は4URL（namba 要確認） |
+| ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
 
 #### ブロッカー
@@ -91,7 +91,7 @@ pm/PROGRESS.md
 - REST API疎通確認（/wp-json/ai-engine/v1/update 200 OK）
 - ai-site-monitorをmens-esthe-seo-toolsリポジトリに移行
 - daily_cron.yml稼働確認（GitHub Actions成功）
-- sites.jsonをダミー1000件→実URL5件に差し替え
+- sites.jsonをダミー1000件→実URLに差し替え（のち実URL4件に整理。namba は当該URLなしのため除外）
 - FTPデプロイ復旧（FTP_USERNAMEをescomi@mens-esthe-kuchikomi.comに修正）
 
 ### 次回優先タスク
@@ -118,8 +118,7 @@ pm/PROGRESS.md
 - **成果物**: `mens-esthe-seo-tools` の `ai-site-monitor/results/changes_20260405_192907.json`
   - `total_sites`: **5**
   - `changed_count`: 0（初回ベースライン／変更なし）
-- **`data/hashes.json`**: mens-esthe-kuchikomi.com の **4 URL** のみハッシュ保存。
-  - **`https://mens-esthe-kuchikomi.com/area/namba/` が未登録**。`main.py` は取得失敗時にスキップするため、当該URLの応答・タイムアウトを要確認（再実行または Actions ログの `[SKIP]` 確認）。
+- **`data/hashes.json`**: 当時 **4 URL**（`/area/namba/` はサイト側にページが無く取得できないため **`sites.json` から除外**し、致命度はなし）。
 
 ### 2. 日本橋エリア ACF 手動入力 — 作業場所の整理（WP管理画面）
 - **場所**: `タクソノミー area` → **日本橋** ターム編集（`/wp-admin/term.php?taxonomy=area&tag_ID=…`）。
@@ -138,6 +137,22 @@ pm/PROGRESS.md
 ### 2026-04-07 進行メモ
 #### 内容
 優先タスク1の検証（workflow 手動実行・total_sites:5・hashes 4件の記録）。タスク2・3は手順整理。
+
+#### 変更ファイル
+pm/PROGRESS.md
+---
+
+### 追記（namba 除外）
+- 本サイトに `/area/namba/` 相当ページが無いため、**監視対象から削除**して問題なし（致命ではない）。
+- `mens-esthe-seo-tools/ai-site-monitor/sites.json` は **実URL4件**に更新。
+
+---
+
+### 2026-04-06 04:29
+#### コミット
+docs: log daily_cron 5-URL verification and task 2-3 follow-up
+
+Made-with: Cursor
 
 #### 変更ファイル
 pm/PROGRESS.md
