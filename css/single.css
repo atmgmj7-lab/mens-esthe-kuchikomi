@@ -554,6 +554,17 @@ mix-blend-mode: normal;
 
 opacity: 1;
 
+z-index: 1;
+
+}
+
+/* 旧：静止画地図の上に絶対配置していた地名タブ（.lux-pin / .pin-*）。
+ * Google iframe と重なると二重表示になるため、iframe 併用時は非表示にする。
+ * （地図内の Google 側ラベルや、下の「詳細エリアを選択」一覧は対象外） */
+.lux-map-frame:has(.lux-map-iframe) .lux-pin {
+
+display: none !important;
+
 }
 
 
