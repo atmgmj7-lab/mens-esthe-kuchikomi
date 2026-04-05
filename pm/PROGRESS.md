@@ -240,6 +240,19 @@ pm/PROGRESS.md
 taxonomy-area.php
 ---
 
+### 2026-04-06 u-pc-only グリッド修正
+#### コミット
+fix(css): u-pc-only use block instead of grid to avoid narrow map layout
+
+#### 変更内容
+- `.u-pc-only` の `display: grid` を `block` に変更（地図 `section` がグリッド1カラム化して細長く見える問題）
+- `.es-area-grid.u-pc-only` は `flex` を明示してエリアチップ一覧を維持
+
+#### 変更ファイル
+css/single.css
+pm/PROGRESS.md
+---
+
 ### 2026-04-05 地図枠・埋め込み調整
 #### コミット
 fix(area-map): widen layout, coord+zoom embed, optional area list in shortcode
@@ -274,4 +287,27 @@ functions.php
 pm/BLOCKER.md
 pm/PROGRESS.md
 taxonomy-area.php
+---
+
+### 2026-04-06 04:59
+#### コミット
+fix(area-map): widen layout, coord+zoom embed, optional shortcode list
+
+Made-with: Cursor
+
+#### 変更ファイル
+css/single.css
+functions.php
+pm/PROGRESS.md
+taxonomy-area.php
+---
+
+### 2026-04-06 05:06
+#### コミット
+fix(css): u-pc-only use block instead of grid to avoid narrow map layout
+
+Made-with: Cursor
+
+#### 変更ファイル
+css/single.css
 ---
