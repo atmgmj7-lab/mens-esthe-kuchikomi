@@ -52,18 +52,31 @@ curl -sS "https://mens-esthe-kuchikomi.com/wp-json/ai-engine/v1/update"
 
 **前提:** マシンに `gh`（GitHub CLI）が入り、`gh auth login` 済み。
 
+#### ステップバイステップ（エージェントは上から順に実行）
+
+| Step | 内容 | コマンド |
+|------|------|----------|
+| **A-4.1** | 監視リポジトリへ移動し、リモートを取り込む | `cd ~/Desktop/dev/mens-esthe-seo-tools && git pull origin main` |
+| **A-4.2** | Daily Site Monitor を手動起動 | `gh workflow run "Daily Site Monitor" --ref main` |
+| **A-4.3** | 直近の run ID を取得 | `gh run list --workflow="Daily Site Monitor" -L 1 --json databaseId,status` |
+| **A-4.4** | 完了まで待つ（`<RUN_ID>` は A-4.3 の `databaseId`） | `gh run watch <RUN_ID> --exit-status` |
+| **A-4.5** | Actions が push した成果物を取り込む | `cd ~/Desktop/dev/mens-esthe-seo-tools && git pull origin main` |
+| **A-4.6** | 監視対象とハッシュを表示 | `cat ai-site-monitor/sites.json` と `cat ai-site-monitor/data/hashes.json` |
+| **A-4.7** | 最新の変更レポートを確認 | `ls -t ai-site-monitor/results/changes_*.json \| head -1 \| xargs cat` |
+
+**一括用（起動まで）:**
+
 ```bash
 cd ~/Desktop/dev/mens-esthe-seo-tools
 git pull origin main
 gh workflow run "Daily Site Monitor" --ref main
 ```
 
-**実行完了待ち（任意）:**
+**実行完了待ち:**
 
 ```bash
 gh run list --workflow="Daily Site Monitor" -L 3
-# 直近の run ID を指定して:
-# gh run watch <RUN_ID> --exit-status
+gh run watch <RUN_ID> --exit-status
 ```
 
 **結果ファイル取得:**
@@ -76,7 +89,11 @@ cat ai-site-monitor/data/hashes.json
 ls -la ai-site-monitor/results/
 ```
 
-**期待:** `sites.json` の行数に相当する URL 数。`results/changes_*.json` の `total_sites` が同じ数。
+**合格条件（実装確認）:**
+
+1. `sites.json` 内の URL 本数 = `data/hashes.json` のオブジェクトキー数。
+2. 最新の `results/changes_*.json` の `total_sites` が 1 と同じ数。
+3. `gh run watch` が exit code 0（ワークフロー成功）。
 
 ---
 

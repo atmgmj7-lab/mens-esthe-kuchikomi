@@ -154,6 +154,12 @@ pm/PROGRESS.md
 - **検証:** `total_sites` **4** = `sites.json` の URL 数 **4** = `data/hashes.json` のキー数 **4**（一致）。
 - **成果物:** `ai-site-monitor/results/changes_20260405_194233.json`（`changed_count`: 0）。
 
+### RUNBOOK A-4 ステップ実装（番号手順・最新）
+- **A-4.1〜A-4.7** を `pm/RUNBOOK.md` に表形式で追記済み。合格条件3項目を明記。
+- **実行 run ID:** `24009070604`（成功・約48秒）。
+- **検証:** URL 数 4 = hashes 4 = `total_sites` 4 → **合格**。
+- **成果物:** `changes_20260405_194610.json`（`changed_count`: 0）。
+
 ---
 
 ### 2026-04-06 04:29
@@ -187,4 +193,14 @@ CLAUDE.md
 pm/ARCHITECTURE.md
 pm/PROGRESS.md
 pm/RUNBOOK.md
+---
+
+### 2026-04-06 04:43
+#### コミット
+docs: log RUNBOOK A-4 Daily Site Monitor run (total_sites 4)
+
+Made-with: Cursor
+
+#### 変更ファイル
+pm/PROGRESS.md
 ---
