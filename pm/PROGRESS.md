@@ -454,3 +454,33 @@ pm/ARCHITECTURE.md
 pm/CONTENT-IMPLEMENTATION-GUIDE.md
 pm/PROGRESS.md
 ---
+
+### 2026-04-06 05:42
+#### コミット
+feat(ai): shop auto-updater --all/--limit, rollout doc and env hints
+
+Made-with: Cursor
+
+#### 変更ファイル
+CLAUDE.md
+ai-site-monitor/.env.example
+ai-site-monitor/README.md
+ai-site-monitor/ai_auto_updater.py
+pm/CONTENT-IMPLEMENTATION-GUIDE.md
+pm/PROGRESS.md
+pm/SHOP-AI-ROLLOUT.md
+---
+
+### 2026-04-16
+#### コミット
+fix(css): 店舗「最新ニュース・動向」リストのレスポンシブ（コンテナクエリ＋任意メモ列）
+
+#### 変更内容
+- `css/single.css`: `.ai-intel-news-list` に `container-type`、狭い幅で行を縦積み。本文・メモに `min-width:0` と `overflow-wrap` で1文字縦積み回避
+- `single-shop.php`: ACF リピーターで `memo` / `note` / `status` 等があれば第3列 `.ai-intel-news-meta` として表示
+
+#### 変更ファイル
+single-shop.php
+css/single.css
+pm/PROGRESS.md
+---

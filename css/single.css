@@ -5668,12 +5668,15 @@ Escomi 追加スタイル (v2.0) - 完全版
     list-style: none;
     margin: 0;
     padding: 0;
+    container-type: inline-size;
+    container-name: ai-intel-news;
 }
 
 .ai-intel-news-item {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 8px 12px;
     padding: 10px 0;
     border-bottom: 1px solid #eee;
     font-size: 14px;
@@ -5685,16 +5688,48 @@ Escomi 追加スタイル (v2.0) - 完全版
 }
 
 .ai-intel-news-date {
-    flex-shrink: 0;
+    flex: 0 0 auto;
+    max-width: 100%;
     font-weight: 600;
     color: var(--accent-gold, #d4af37);
     font-size: 12px;
 }
 
 .ai-intel-news-text {
-    flex: 1;
+    flex: 1 1 200px;
     min-width: 0;
     color: #333;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.ai-intel-news-meta {
+    flex: 0 1 140px;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2e7d32;
+    line-height: 1.5;
+    text-align: right;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+@container ai-intel-news (max-width: 440px) {
+    .ai-intel-news-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .ai-intel-news-date {
+        align-self: flex-start;
+    }
+
+    .ai-intel-news-meta {
+        flex-basis: auto;
+        text-align: left;
+    }
 }
 
 .ai-intel-footer-note {
@@ -5716,6 +5751,11 @@ Escomi 追加スタイル (v2.0) - 完全版
     }
     .ai-intel-news-item {
         flex-direction: column;
-        gap: 4px;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .ai-intel-news-meta {
+        text-align: left;
     }
 }

@@ -230,13 +230,29 @@ get_header();
                                 <?php foreach ($news_items as $item): 
                                     $news_text = isset($item['news']) ? $item['news'] : (isset($item['news_text']) ? $item['news_text'] : (isset($item['title']) ? $item['title'] : (is_string($item) ? $item : '')));
                                     $news_date = isset($item['date']) ? $item['date'] : (isset($item['news_date']) ? $item['news_date'] : '');
-                                    if (empty($news_text) && empty($news_date)) continue;
+                                    $news_memo = '';
+                                    if (is_array($item)) {
+                                        foreach (array('memo', 'note', 'status', 'meta', 'label', 'detail') as $memo_key) {
+                                            if (!empty($item[$memo_key])) {
+                                                $news_memo = is_scalar($item[$memo_key]) ? (string) $item[$memo_key] : '';
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (empty($news_text) && empty($news_date) && $news_memo === '') {
+                                        continue;
+                                    }
                                 ?>
-                                <li class="ai-intel-news-item">
+                                <li class="ai-intel-news-item<?php echo $news_memo !== '' ? ' ai-intel-news-item--has-meta' : ''; ?>">
                                     <?php if ($news_date): ?>
                                     <span class="ai-intel-news-date"><?php echo esc_html(is_numeric($news_date) ? date_i18n('Y.m.d', $news_date) : $news_date); ?></span>
                                     <?php endif; ?>
+                                    <?php if ($news_text !== ''): ?>
                                     <span class="ai-intel-news-text"><?php echo wp_kses_post(nl2br($news_text)); ?></span>
+                                    <?php endif; ?>
+                                    <?php if ($news_memo !== ''): ?>
+                                    <span class="ai-intel-news-meta"><?php echo esc_html($news_memo); ?></span>
+                                    <?php endif; ?>
                                 </li>
                                 <?php endforeach; ?>
                             </ul>
