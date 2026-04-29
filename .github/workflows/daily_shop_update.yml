@@ -1,0 +1,63 @@
+name: Daily Shop Update
+
+on:
+  schedule:
+    # 日本時間 毎朝 6:00（UTC 21:00 前日）
+    - cron: '0 21 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-shops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('ai-site-monitor/requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          cd ai-site-monitor
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          cd ai-site-monitor
+          python -m playwright install chromium --with-deps
+
+      - name: Backup sites.json
+        run: |
+          cd ai-site-monitor
+          cp sites.json sites.json.bak
+
+      - name: Run ai_auto_updater
+        env:
+          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CRAWL_LIMIT: 'all'
+          SHOP_DELAY_SECONDS: '3'
+        run: |
+          cd ai-site-monitor
+          python ai_auto_updater.py --all
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-results-${{ github.run_id }}
+          path: ai-site-monitor/results/
+          retention-days: 7
+          if-no-files-found: warn

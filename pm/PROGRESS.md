@@ -21,7 +21,7 @@
 | agents/フォルダ構築 | ⏳ 未着手 | |
 | エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
 | 日本橋59店舗 `shop_ai_summary` JSON 投入 | ⏳ 待機 | JSON 未配置。配置後: `python3 tools/import_shop_ai_summaries.py`（`content/nihonbashi_shop_summaries.json` または引数でパス指定） |
-| 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `ai_auto_updater.py` に `--all` / `CRAWL_LIMIT=all` 実装済み。展開: `SHOP-AI-ROLLOUT.md` |
+| 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `.github/workflows/daily_shop_update.yml` 追加・`sites.json` 日本橋54件（2026-04-29）。Secrets 登録後に手動実行で確認。詳細 `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
 - FTPパスワード未取得（自動デプロイ完成待ち）
