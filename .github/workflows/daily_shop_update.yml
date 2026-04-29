@@ -49,6 +49,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CRAWL_LIMIT: 'all'
           SHOP_DELAY_SECONDS: '3'
+          AREA_TERM_ID: '7'
         run: |
           cd ai-site-monitor
           python ai_auto_updater.py --all

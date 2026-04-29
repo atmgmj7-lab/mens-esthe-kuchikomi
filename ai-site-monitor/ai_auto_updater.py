@@ -12,6 +12,9 @@ Gemini API で本日出勤データを抽出し、shop_today_* 等を REST で�
   3) 未指定時は 3 件（安全なデフォルト）
 
 店舗間の待機: SHOP_DELAY_SECONDS（秒。全店舗時の負荷緩和用）
+
+エリア絞り込み（任意）:
+  AREA_TERM_ID=正の整数 を設定すると、GET .../wp/v2/shop に area=<term_id> を付与（例: 日本橋 term_id=7）
 """
 
 import argparse
@@ -234,12 +237,29 @@ def extract_schedule_from_html(html: str, url: str) -> List[Dict[str, Any]]:
         return []
 
 
-def get_config() -> Dict[str, str]:
+def parse_optional_area_term_id() -> Optional[int]:
+    """AREA_TERM_ID が設定されていれば正の整数として返す。未設定なら None。"""
+    raw = (os.environ.get("AREA_TERM_ID") or "").strip()
+    if not raw:
+        return None
+    try:
+        n = int(raw)
+    except ValueError:
+        print(f"ERROR: AREA_TERM_ID は整数である必要があります: {raw!r}")
+        sys.exit(1)
+    if n <= 0:
+        print(f"ERROR: AREA_TERM_ID は正の整数である必要があります: {n}")
+        sys.exit(1)
+    return n
+
+
+def get_config() -> Dict[str, Any]:
     """環境変数から設定を取得"""
     site_url = os.environ.get("WP_SITE_URL", "").rstrip("/")
     user = os.environ.get("WP_USER", "")
     app_password = os.environ.get("WP_APP_PASSWORD", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    area_term_id = parse_optional_area_term_id()
 
     missing = []
     if not site_url:
@@ -255,12 +275,15 @@ def get_config() -> Dict[str, str]:
         print(f"ERROR: 以下の環境変数が未設定です: {', '.join(missing)}")
         sys.exit(1)
 
-    return {
+    cfg: Dict[str, Any] = {
         "site_url": site_url,
         "user": user,
         "app_password": app_password,
         "gemini_key": gemini_key,
     }
+    if area_term_id is not None:
+        cfg["area_term_id"] = area_term_id
+    return cfg
 
 
 def init_db() -> None:
@@ -365,13 +388,20 @@ def apply_rare_tags(shop_id: int, today_therapists: List[Dict]) -> List[Dict]:
     return result
 
 
-def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
-    """REST API で shop 投稿一覧を取得"""
+def fetch_shops(
+    site_url: str,
+    user: str,
+    app_password: str,
+    area_term_id: Optional[int] = None,
+) -> List[Dict]:
+    """REST API で shop 投稿一覧を取得。area_term_id 指定時は area タクソノミーで絞り込む。"""
     url = f"{site_url}/wp-json/wp/v2/shop"
     auth_str = f"{user}:{app_password}"
     auth_b64 = b64encode(auth_str.encode()).decode()
     headers = {"Authorization": f"Basic {auth_b64}"}
-    params = {"per_page": 100, "_fields": "id,title,official_url,acf"}
+    params: Dict[str, Any] = {"per_page": 100, "_fields": "id,title,official_url,acf"}
+    if area_term_id is not None:
+        params["area"] = area_term_id
 
     all_shops = []
     page = 1
@@ -727,11 +757,15 @@ async def main_async(args: argparse.Namespace) -> None:
     config = get_config()
     crawl_limit = resolve_crawl_limit(args)
     delay_sec = shop_delay_seconds()
+    area_term_id = config.get("area_term_id")
+    if area_term_id is not None:
+        print(f"REST API エリアフィルタ: area={area_term_id}（AREA_TERM_ID）")
 
     shops = fetch_shops(
         config["site_url"],
         config["user"],
         config["app_password"],
+        area_term_id,
     )
 
     valid_shops = []
