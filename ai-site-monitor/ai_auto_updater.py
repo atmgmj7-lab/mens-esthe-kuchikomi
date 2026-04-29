@@ -112,6 +112,15 @@ DB_PATH = SCRIPT_DIR / "escomi_crawler.db"
 # タイムアウト（ミリ秒）
 PAGE_TIMEOUT_MS = 30000
 
+# REST API: 既定の python-requests UA が WAF / セキュリティで 403 になることがある（GitHub Actions 等）
+REST_REQUEST_HEADERS_BASE = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36 EscomiAiUpdater/1.0"
+    ),
+    "Accept": "application/json",
+}
+
 # Gemini に渡すテキストの最大文字数（トークン節約）
 MAX_TEXT_LENGTH = 15000
 
@@ -398,8 +407,7 @@ def fetch_shops(
     url = f"{site_url}/wp-json/wp/v2/shop"
     auth_str = f"{user}:{app_password}"
     auth_b64 = b64encode(auth_str.encode()).decode()
-    headers = {"Authorization": f"Basic {auth_b64}"}
-    print(f"DEBUG user={user}, pass_len={len(app_password)}", file=sys.stderr)
+    headers = {**REST_REQUEST_HEADERS_BASE, "Authorization": f"Basic {auth_b64}"}
     params: Dict[str, Any] = {"per_page": 100, "_fields": "id,title,official_url,acf"}
     if area_term_id is not None:
         params["area"] = area_term_id
@@ -412,7 +420,8 @@ def fetch_shops(
         resp = requests.get(url, headers=headers, params=params, timeout=30)
 
         if resp.status_code != 200:
-            print(f"ERROR: API エラー (HTTP {resp.status_code})")
+            snippet = (resp.text or "")[:400].replace("\n", " ")
+            print(f"ERROR: API エラー (HTTP {resp.status_code}) url={url!r} snippet={snippet!r}")
             sys.exit(1)
 
         data = resp.json()
@@ -641,7 +650,13 @@ def update_shop_ai_summary(
 
     for url in urls:
         try:
-            resp = requests.post(url, json=payload, auth=auth, timeout=30)
+            resp = requests.post(
+                url,
+                json=payload,
+                auth=auth,
+                headers=REST_REQUEST_HEADERS_BASE,
+                timeout=30,
+            )
             if resp.status_code in (200, 201):
                 return True
             if resp.status_code == 404:
