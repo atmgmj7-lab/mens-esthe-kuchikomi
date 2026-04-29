@@ -12,6 +12,9 @@ ai-site-monitor/*.log
 .env
 .env.local
 
+# FTP-Deploy Action ローカル同期（本番パス混入防止）
+.ftp-deploy-sync-state.json
+
 # OS
 .DS_Store
 Thumbs.db
