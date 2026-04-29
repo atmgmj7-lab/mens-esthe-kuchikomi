@@ -181,6 +181,20 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
             </section>
         <?php endif; ?>
 
+        <?php
+        /*
+         * ACF（area_characteristics）：SWELL の do_action と整合しない taxonomy-area のためテンプレ内で出力。
+         * （area-seo-hooks-optimized.php の編集部厳選・コラム・FAQ と同順序の一部をここに配置）
+         */
+        $acf_term_key = 'term_' . $term_id;
+        $area_characteristics = get_field( 'area_characteristics', $acf_term_key );
+        if ( $area_characteristics ) {
+            ?>
+            <div class="area-characteristics-box u-mb-50"><?php echo wp_kses_post( nl2br( $area_characteristics ) ); ?></div>
+            <?php
+        }
+        ?>
+
         <?php /* SECTION 3: 店舗一覧 */ ?>
         <section class="shop-list-section">
             <h2 class="sec-title es-sec-title-large u-mb-20">
@@ -227,6 +241,69 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
                 <p class="no-shops-message">現在登録されている店舗はありません。</p>
             <?php endif; ?>
         </section>
+
+        <?php
+        $area_column = get_field( 'area_column_content', $acf_term_key );
+        if ( $area_column ) {
+            ?>
+            <div class="area-column-content u-mt-50 u-mb-50">
+                <h2 class="sec-title es-sec-title-large"><?php echo esc_html( $term_name ); ?>エリアのメンズエステ情報</h2>
+                <div class="area-column-content__body"><?php echo wp_kses_post( $area_column ); ?></div>
+            </div>
+            <?php
+        }
+
+        $faqs_raw = get_field( 'area_faq_content', $acf_term_key );
+        $faq_rows = array();
+        if ( $faqs_raw && is_array( $faqs_raw ) ) {
+            foreach ( $faqs_raw as $faq ) {
+                if ( ! is_array( $faq ) ) {
+                    continue;
+                }
+                $q = isset( $faq['question'] ) ? $faq['question'] : '';
+                $a = isset( $faq['answer'] ) ? $faq['answer'] : '';
+                if ( ! $q || ! $a ) {
+                    continue;
+                }
+                $faq_rows[] = array(
+                    'question' => $q,
+                    'answer'   => $a,
+                );
+            }
+        }
+
+        if ( ! empty( $faq_rows ) ) {
+            ?>
+            <div class="area-faq-box u-mt-50 u-mb-50">
+                <h2 class="sec-title es-sec-title-large">よくある質問</h2>
+                <dl class="area-faq-box__dl">
+                    <?php foreach ( $faq_rows as $row ) : ?>
+                        <dt><?php echo esc_html( $row['question'] ); ?></dt>
+                        <dd><?php echo wp_kses_post( $row['answer'] ); ?></dd>
+                    <?php endforeach; ?>
+                </dl>
+            </div>
+            <?php
+            $faq_ld = array(
+                '@context'   => 'https://schema.org',
+                '@type'      => 'FAQPage',
+                'mainEntity' => array(),
+            );
+            foreach ( $faq_rows as $row ) {
+                $faq_ld['mainEntity'][] = array(
+                    '@type'          => 'Question',
+                    'name'           => $row['question'],
+                    'acceptedAnswer' => array(
+                        '@type' => 'Answer',
+                        'text'  => wp_strip_all_tags( $row['answer'] ),
+                    ),
+                );
+            }
+            ?>
+            <script type="application/ld+json"><?php echo wp_json_encode( $faq_ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ); ?></script>
+            <?php
+        }
+        ?>
 
         <?php /* SECTION 4: 他エリアへのリンク */ ?>
         <?php 

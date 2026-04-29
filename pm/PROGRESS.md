@@ -15,6 +15,7 @@
 | 自動デプロイ動作確認 | ⏳ 待機 | Secrets登録後 |
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | SP でも iframe 表示（2026-04） |
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
+| 日本橋SEO／エリアページ ACF の HTML 出力 | ✅ 完了 | `taxonomy-area.php` に特性・コラム・FAQ・JSON-LD を直接出力（SWELL フック非対応分の補完）（2026-04-29） |
 | REST API権限強化 | ⏳ 未着手 | |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
