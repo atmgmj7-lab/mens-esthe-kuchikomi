@@ -131,6 +131,8 @@ python ai_auto_updater.py
 
 **注意:** スクリプト内 `CRAWL_LIMIT` はテスト用に小さめ。本番前に値の確認を。
 
+**GitHub Actions について:** エックスサーバー等では、外向きの `/wp-json` がWordPress に届く前に **エッジの 403**（ホスト固有 HTML、`Copyright XSERVER Inc.` 等）になることがあります。その場合は **サーバー内の cron** でこのスクリプトを実行する（サーバー内からの `curl`/Python は通ることが多い）、またはサーバーパネル・サポートで **ブロック／許可 IP（GitHub Actions は出口 IP が変わる）** を確認してください。
+
 ---
 
 ## C. 手動のみ（エージェントは「指示・チェックリスト」まで）

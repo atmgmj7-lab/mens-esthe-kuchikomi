@@ -397,6 +397,29 @@ def apply_rare_tags(shop_id: int, today_therapists: List[Dict]) -> List[Dict]:
     return result
 
 
+def _hint_if_rest_blocked_at_edge(status_code: int, body: Optional[str]) -> None:
+    """403 が WP の JSON でなくホストの静的ページなとき、運用上のヒントを標準エラーへ出力する。"""
+    if status_code != 403:
+        return
+    raw = body or ""
+    low = raw.lower()
+    if any(
+        x in low
+        for x in (
+            "copyright xserver",
+            'charset="euc-jp"',
+            "<title>403 forbidden</title>",
+        )
+    ):
+        print(
+            "ヒント: WordPress の応答ではなく、サーバー／WAF の 403 ページです。"
+            "GitHub Actions 等「外向き」のリクエストだけがブロックされている可能性があります。"
+            "対策: サーバー内 cron で本スクリプトを実行する、またはホスト側で許可 IP・WAF を確認。"
+            "（pm/RUNBOOK.md の ai_auto_updater の項）",
+            file=sys.stderr,
+        )
+
+
 def fetch_shops(
     site_url: str,
     user: str,
@@ -422,6 +445,7 @@ def fetch_shops(
         if resp.status_code != 200:
             snippet = (resp.text or "")[:400].replace("\n", " ")
             print(f"ERROR: API エラー (HTTP {resp.status_code}) url={url!r} snippet={snippet!r}")
+            _hint_if_rest_blocked_at_edge(resp.status_code, resp.text)
             sys.exit(1)
 
         data = resp.json()
