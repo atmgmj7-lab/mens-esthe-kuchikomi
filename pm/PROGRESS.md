@@ -18,7 +18,7 @@
 | REST API権限強化 | ⏳ 未着手 | |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
-| エリア・店舗コンテンツ（ACF） | ⏳ 進行中 | 手順: `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
+| エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
 | 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `ai_auto_updater.py` に `--all` / `CRAWL_LIMIT=all` 実装済み。展開: `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
@@ -101,7 +101,7 @@ pm/PROGRESS.md
 
 ### 次回優先タスク
 - daily_cron（4URL）の定期実行確認（`total_sites` と `sites.json` の一致）
-- 日本橋エリアACFコンテンツ手動入力
+- ✅ 日本橋エリア ACF：`area_characteristics` / FAQ（term meta） / `area_ranking_shops`（59店）を本番 WP-CLI で反映（2026-04-29）
 - ai_auto_updater.pyの本番テスト実行
 
 ---
@@ -125,10 +125,10 @@ pm/PROGRESS.md
   - `changed_count`: 0（初回ベースライン／変更なし）
 - **`data/hashes.json`**: 当時 **4 URL**（`/area/namba/` はサイト側にページが無く取得できないため **`sites.json` から除外**し、致命度はなし）。
 
-### 2. 日本橋エリア ACF 手動入力 — 作業場所の整理（WP管理画面）
-- **場所**: `タクソノミー area` → **日本橋** ターム編集（`/wp-admin/term.php?taxonomy=area&tag_ID=…`）。
-- **入力するフィールド**（既存ガイド）: リポジトリ直下 `ACF-FIELDS-SETUP.md`（`area_intro_text` / `area_ranking_shops` / `area_column_content` / `area_faq_content`）。最適化版を使う場合は `SEO-OPTIMIZATION-GUIDE.md` の `area_characteristics` 等も参照。
-- **本文は手動**（このリポジトリからは自動投入しない）。
+### 2. 日本橋エリア ACF — 投入済み（WP-CLI）（2026-04-29）
+- **対象ターム**: `tag_ID=7`（slug `nihonbashi`）
+- **反映済みメタ**: `area_characteristics`、FAQ 配列 `area_faq_content`（7件、`get_field()` 確認済）、子ターム側 `area_ranking_shops`（59 IDs・`_area_ranking_shops`= `field_6984c71ca23e5`）
+- **補足**: `_area_faq_content` がリレーション用フィールドキーを指すと `get_field()` が投稿オブジェクト側に寄るため、この投入では削除し Q&A 配列のみ保持する形にしている。親エリアの「厳選」表示はコード上 `area_ranking_pickup` や親のランキングを参照する。**未入力**: `area_column_content`。
 
 ### 3. ai_auto_updater.py 本番テスト — 手順のみ（未実行）
 - **前提**: `ai-site-monitor/.env` に `WP_SITE_URL`, `WP_USER`, `WP_APP_PASSWORD`, `GEMINI_API_KEY`。Playwright の `chromium` インストール済み。
