@@ -399,6 +399,7 @@ def fetch_shops(
     auth_str = f"{user}:{app_password}"
     auth_b64 = b64encode(auth_str.encode()).decode()
     headers = {"Authorization": f"Basic {auth_b64}"}
+    print(f"DEBUG user={user}, pass_len={len(app_password)}", file=sys.stderr)
     params: Dict[str, Any] = {"per_page": 100, "_fields": "id,title,official_url,acf"}
     if area_term_id is not None:
         params["area"] = area_term_id
