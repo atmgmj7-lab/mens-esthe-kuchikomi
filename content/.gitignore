@@ -1,0 +1,2 @@
+# Bulk import sources (often large); keep out of Git unless intentional
+nihonbashi_shop_summaries.json
