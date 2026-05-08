@@ -2,11 +2,6 @@
 
 ## 対応中
 
-### [BLOCK-001] FTPパスワード未取得
-- **起票日**: 2026-04-05
-- **影響**: GitHub Actions自動デプロイが完成しない
-- **解除条件**: FTPパスワード取得 → GitHub Secrets登録完了
-
 ### [BLOCK-004] REST APIエンドポイント権限未強化
 - **起票日**: 2026-04-05
 - **影響**: セキュリティリスク（`ai-engine/v1/update` への不正 POST 等）
@@ -22,6 +17,9 @@
 ---
 
 ## 解除済み（参考）
+
+### ~~[BLOCK-001] FTP / 自動デプロイの設定待ち~~ → **解決済み（Resolved）**（2026-05-09）
+- **解決内容**: GitHub Repository Secrets（`FTP_HOST` / `FTP_USERNAME` / `FTP_PASSWORD` / `FTP_PATH`）の登録および `SamKirkland/FTP-Deploy-Action` によるワークフロー運用。dry-run での疎通確認後、`dry-run` を解除し本番へのファイル転送を有効化済み。
 
 ### ~~[BLOCK-002] area_map_nav ダミーURL~~ → Google Maps iframe 化済み（2026-04 頃）
 
