@@ -11,8 +11,8 @@
 | GitHub Actions | ✅ 完了 | deploy.yml作成済み |
 | CLAUDE.md整理 | ✅ 完了 | スリム化・ファイル分担構成 |
 | .gitignore | ✅ 完了 | |
-| GitHub Secrets登録 | ⏳ 待機 | FTPパスワード確認待ち |
-| 自動デプロイ動作確認 | ⏳ 待機 | Secrets登録後 |
+| GitHub Secrets登録 | ✅ 完了 | FTP_HOST / FTP_USERNAME / FTP_PASSWORD / FTP_PATH（2026-05-09） |
+| 自動デプロイ動作確認 | ✅ 完了 | dry-run 成功後に本番転送へ切替（2026-05-09） |
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | SP でも iframe 表示（2026-04） |
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | 日本橋SEO／エリアページ ACF の HTML 出力 | ✅ 完了 | `taxonomy-area.php` に特性・コラム・FAQ・JSON-LD を直接出力（SWELL フック非対応分の補完）（2026-04-29） |
@@ -24,13 +24,28 @@
 | 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `.github/workflows/daily_shop_update.yml` 追加・`sites.json` 日本橋54件（2026-04-29）。Secrets 登録後に手動実行で確認。詳細 `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
-- FTPパスワード未取得（自動デプロイ完成待ち）
+- （自動デプロイ系）FTP Secrets 未登録は解除済み。残りは `pm/BLOCKER.md` の REST 強化（BLOCK-004）等
 
 #### 次のアクション
-- [ ] FTPパスワード取得 → GitHub Secrets登録
-- [ ] 自動デプロイ動作確認
+- [x] FTP Secrets 登録・自動デプロイ疎通（dry-run → 本番転送）（2026-05-09）
 - [x] デプロイ後 `/area/osaka/` で `lux-map-iframe` の表示確認（curl）
+- [ ] 日本橋エリア SEO ギャップ埋め（`area_column_content` 等・競合対策）
+- [ ] 店舗 AI 自動更新（`daily_shop_update.yml`・Secrets・ログ確認）
 - [ ] SEOツールをRenderにデプロイ
+
+### 2026-05-09 GitHub Actions 自動デプロイ（本番化）
+
+#### 内容
+- Repository secrets（`FTP_HOST` / `FTP_USERNAME` / `FTP_PASSWORD` / `FTP_PATH`）を用いた `SamKirkland/FTP-Deploy-Action@v4.3.4` によるデプロイを構築済み。
+- **exclude**: `.git` / `.github` / `*.md` / `pm/` / `ai-site-monitor/` / `tools/` / `content/` / インポート用 PHP・CSV・秘密系パターン等を転送対象外に設定。
+- **検証**: `dry-run: true` で GitHub Actions 上のテストデプロイがエラーなし完了 → `dry-run` をコメントアウトし **本番ファイル転送を有効化**。
+- **トリガー**: `main` への push および `workflow_dispatch`。
+
+#### 変更ファイル（当ログ対応コミット時）
+- `.github/workflows/deploy.yml`
+- `pm/PROGRESS.md`
+
+---
 
 ### 2026-04-05 06:01
 #### コミット

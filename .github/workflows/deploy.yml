@@ -55,8 +55,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
           server-dir: ${{ secrets.FTP_PATH }}
-          # 初回疎通確認: 実転送なし（本番転送に戻すときは false にするか行ごと削除）
-          dry-run: true
+          # 初回疎通確認: 実転送なし（必要時のみコメント解除）
+          # dry-run: true
           exclude: |
             **/.git/**
             **/.git*
