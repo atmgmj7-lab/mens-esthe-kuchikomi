@@ -20,24 +20,23 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│ ① H1「日本橋のメンズエステ」            │ ← taxonomy-area.php
+│ ① H1・親エリアは地図/子エリア導線       │ ← taxonomy-area.php
 ├─────────────────────────────────────────┤
-│ ② エリア特性（LSIキーワード強化）       │ ← get_the_archive_description
-│   「日本橋 オタロード アクセス 駐車場」 │    フィルター
+│ ② AREA RANKING（area_ranking_pickup）   │ ← taxonomy-area.php
 ├─────────────────────────────────────────┤
-│ ③ 編集部厳選3店舗（権威性・差別化）     │ ← swell_before_post_list
-│   ⭐ EDITOR'S CHOICE                   │    フック
+│ ③ エリア特性 area_characteristics       │ ← taxonomy-area.php（単一出力）
 ├─────────────────────────────────────────┤
-│ ④ SWELL標準の店舗一覧（網羅性）         │ ← SWELL本体機能
-│   全XX件を表示                          │
+│ ④ 編集部厳選3店（EDITOR'S CHOICE）       │ ← swell_before_post_list
+│       area-seo-hooks-optimized.php      │
 ├─────────────────────────────────────────┤
-│ ⑤ 地域密着コラム（専門性・EEAT）        │ ← swell_after_post_list
-│   著者情報付き                          │    フック（優先度5）
+│ ⑤ SWELL 店舗一覧（網羅性）              │ ← taxonomy-area.php 内ループ
 ├─────────────────────────────────────────┤
-│ ⑥ FAQ構造化データ（CTR向上）            │ ← swell_after_post_list
-│   JSON-LD自動出力                       │    フック（優先度10）
+│ ⑥ コラム area_column_content            │ ← taxonomy-area.php のみ
+├─────────────────────────────────────────┤
+│ ⑦ FAQ + FAQPage JSON-LD                 │ ← taxonomy-area.php のみ
 └─────────────────────────────────────────┘
 ```
+※ メタディスクリプションは Yoast/Rank Math 未設定時、`area_characteristics` から自動要約（functions.php）。詳細は `pm/ACF-FIELDS-SETUP.md`。
 
 ---
 

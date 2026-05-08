@@ -138,13 +138,13 @@ python ai_auto_updater.py
 ## C. 手動のみ（エージェントは「指示・チェックリスト」まで）
 
 - **WordPress 管理画面:** エリアタームの ACF（導入文・ランキング・コラム・FAQ 等）  
-  → 手順の参照: リポジトリ直下 `ACF-FIELDS-SETUP.md`、最適化版は `SEO-OPTIMIZATION-GUIDE.md`
+  → 手順の参照: **`pm/ACF-FIELDS-SETUP.md`（正本）**、索引はルート `ACF-FIELDS-SETUP.md`、競合視点は `SEO-OPTIMIZATION-GUIDE.md`
 - **GitHub の Repository secrets**（FTP / GEMINI 等）の**初回登録**（ブラウザ）
 - **Xserver パネル・ドメイン・メール**などホスティング固有の操作
 
 **エージェント向け指示例（コピペ用）:**
 
-> 「`pm/RUNBOOK.md` の **C** に該当する。コード変更は不要。人が WP の **エリア → 日本橋** のターム編集で ACF を入力する。フィールド名は `ACF-FIELDS-SETUP.md` に従う。」
+> 「`pm/RUNBOOK.md` の **C** に該当する。コード変更は不要。人が WP の **エリア → 日本橋** のターム編集で ACF を入力する。フィールド名は `pm/ACF-FIELDS-SETUP.md` に従う。」
 
 ---
 
