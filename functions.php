@@ -665,8 +665,58 @@ add_shortcode('auto_date', function() {
 // ====================================================
 // エリアアーカイブページ SEO最適化（Ecire流ハイブリッド構成）
 // ====================================================
-// 構成: ① H1+特性文 → ② 編集部厳選3店 → ③ 全店舗一覧 → ④ コラム+著者 → ⑤ FAQ+JSON-LD
-// 最適化版（LSI・編集部厳選・コラム・FAQ）。差し替え前は area-seo-hooks.php
+// 構成: ① taxonomy-area.php（H1・特性・ランキング・一覧・コラム・FAQ・JSON-LD）② swell_before_post_list（編集部厳選3店）
+// get_the_archive_description で特性HTMLを差す方式は廃止済み（二重表示防止）。
+//
+// Yoast SEO / Rank Math でメタディスクリプションが空のとき、ACF area_characteristics のプレーン要約を供給
+// （WP 標準ターム説明だけでは足りないケースの補完。管理画面で個別メタを入れた場合は上書きしない）
+function escomi_get_area_characteristics_metadesc_text( $term_id ) {
+    $term_id = (int) $term_id;
+    if ( $term_id < 1 || ! function_exists( 'get_field' ) ) {
+        return '';
+    }
+    $raw = get_field( 'area_characteristics', 'term_' . $term_id );
+    if ( ! is_string( $raw ) || $raw === '' ) {
+        return '';
+    }
+    $plain = wp_strip_all_tags( $raw );
+    $plain = preg_replace( '/\s+/u', ' ', trim( $plain ) );
+    if ( $plain === '' ) {
+        return '';
+    }
+    $max = 155;
+    if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+        if ( mb_strlen( $plain ) > $max ) {
+            return mb_substr( $plain, 0, $max - 1 ) . '…';
+        }
+        return $plain;
+    }
+    if ( strlen( $plain ) > $max ) {
+        return substr( $plain, 0, $max - 1 ) . '…';
+    }
+    return $plain;
+}
+
+function escomi_maybe_tax_area_metadesc_from_acf( $metadesc ) {
+    if ( ! is_tax( 'area' ) ) {
+        return $metadesc;
+    }
+    $term = get_queried_object();
+    if ( ! $term || empty( $term->term_id ) ) {
+        return $metadesc;
+    }
+    if ( is_string( $metadesc ) && trim( $metadesc ) !== '' ) {
+        return $metadesc;
+    }
+    $fallback = escomi_get_area_characteristics_metadesc_text( (int) $term->term_id );
+    return $fallback !== '' ? $fallback : $metadesc;
+}
+
+add_filter( 'wpseo_metadesc', 'escomi_maybe_tax_area_metadesc_from_acf', 15 );
+add_filter( 'wpseo_opengraph_desc', 'escomi_maybe_tax_area_metadesc_from_acf', 15 );
+add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_from_acf', 15 );
+
+// 最適化版（編集部厳選3店のみ）。差し替え前は area-seo-hooks.php
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================

@@ -40,6 +40,7 @@
 - **exclude**: `.git` / `.github` / `*.md` / `pm/` / `ai-site-monitor/` / `tools/` / `content/` / インポート用 PHP・CSV・秘密系パターン等を転送対象外に設定。
 - **検証**: `dry-run: true` で GitHub Actions 上のテストデプロイがエラーなし完了 → `dry-run` をコメントアウトし **本番ファイル転送を有効化**。
 - **トリガー**: `main` への push および `workflow_dispatch`。
+- **SEO／テンプレ整合**: `area_characteristics` の二重表示を解消し本文は `taxonomy-area.php` に一本化済み。メタディスクリプションは Yoast／Rank Math 未入力時に ACF から自動要約を供給。コラム・FAQ は `taxonomy-area.php` のみ出力（`swell_after_post_list` 側の重複を除去）。
 
 #### 変更ファイル（当ログ対応コミット時）
 - `.github/workflows/deploy.yml`
