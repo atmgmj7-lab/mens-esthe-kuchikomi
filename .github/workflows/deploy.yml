@@ -1,9 +1,14 @@
+# swell_child テーマを Xserver（本番）へ FTP デプロイ
+# Secrets: FTP_HOST, FTP_USERNAME, FTP_PASSWORD, FTP_PATH
+# FTP-Deploy-Action の仕様上、FTP_PATH（server-dir）は末尾スラッシュ付きで登録すること（例: .../themes/swell_child/）
+
 name: Deploy to Xserver
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -12,17 +17,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # FTP-Deploy-Action の server は必須。secrets.FTP_HOST が空だと
-      # 「Input required and not supplied: server」になる（Secret 未登録または名前違い）
       - name: Validate FTP secrets
         env:
           FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          if [ -z "$FTP_HOST" ] && [ -z "$FTP_SERVER" ]; then
-            echo "::error::FTP_HOST または FTP_SERVER のどちらかに、FTP サーバー名（例: example.xserver.jp）を登録してください（Settings → Secrets and variables → Actions）。"
+          if [ -z "$FTP_HOST" ]; then
+            echo "::error::FTP_HOST が未設定です（Repository secrets に FTP サーバー名を登録してください）。"
             exit 1
           fi
           if [ -z "$FTP_USERNAME" ]; then
@@ -33,22 +36,58 @@ jobs:
             echo "::error::FTP_PASSWORD が未設定です。"
             exit 1
           fi
+          if [ -z "$FTP_PATH" ]; then
+            echo "::error::FTP_PATH が未設定です。"
+            exit 1
+          fi
+          case "$FTP_PATH" in
+            */) ;;
+            *)
+              echo "::warning::FTP_PATH の末尾にスラッシュが無いです。SamKirkland/FTP-Deploy-Action は server-dir の末尾スラッシュを推奨します。"
+              ;;
+          esac
 
       - name: FTP Deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          # 参照名: リポジトリの Secret 名と一致させる（FTP_HOST を推奨。別名で登録した場合は FTP_SERVER も可）
-          server: ${{ secrets.FTP_HOST || secrets.FTP_SERVER }}
+          server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
           server-dir: ${{ secrets.FTP_PATH }}
+          # 初回疎通確認: 実転送なし（本番転送に戻すときは false にするか行ごと削除）
+          dry-run: true
           exclude: |
+            **/.git/**
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/venv/**
+            **/__pycache__/**
+            **/.pytest_cache/**
+            **/.DS_Store
+            **/.idea/**
+            **/.vscode/**
             .github/**
-            README.md
-            *.log
+            docs/**
             pm/**
             tools/**
             ai-site-monitor/**
+            content/**
+            **/*.md
+            **/*.markdown
+            **/*.MD
+            **/*.log
+            import-test.php
+            import-shops-web.php
+            extract_target_list.py
+            requirements-extract.txt
+            requirements-extract*.txt
+            shops.csv
+            wp_shops.example.json
+            .cursorrules
+            .cursor/**
+            **/.env
+            **/.env.*
+            **/*.secret
+            **/*.pem
