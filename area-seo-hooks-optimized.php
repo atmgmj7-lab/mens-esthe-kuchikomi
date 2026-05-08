@@ -6,49 +6,20 @@
  * 
  * SEO構成順序:
  * ① H1（taxonomy-area.php）
- * ② エリア特性（LSIキーワード強化）
+ * ② エリア特性（LSIキーワード強化）→ taxonomy-area.php でのみ出力（SWELL の
+ *    アーカイブ説明表示と二重にならないよう本ファイルではフックしない）
  * ③ 編集部厳選3店舗（差別化・権威性）
  * ④ SWELL標準店舗一覧（網羅性）
  * ⑤ 地域密着コラム（専門性・EEAT）
  * ⑥ FAQ構造化データ（CTR向上）
  * 
  * フック戦略:
- * - get_the_archive_description フィルター: エリア特性挿入
  * - swell_before_post_list: 編集部厳選3店舗
  * - swell_after_post_list: 地域コラム + FAQ
  */
 
 // =====================================================
-// ① H1直後：エリア特性テキスト（LSIキーワード強化）
-// =====================================================
-add_filter('get_the_archive_description', 'escomi_area_characteristics', 10);
-function escomi_area_characteristics($description) {
-    // エリアページ以外は処理しない
-    if (!is_tax('area')) return $description;
-    
-    $current_term = get_queried_object();
-    if (!$current_term) return $description;
-    
-    $term_key = 'term_' . $current_term->term_id;
-    $characteristics = get_field('area_characteristics', $term_key);
-    
-    // ACFフィールドがない場合、デフォルトの説明文を使用
-    if (!$characteristics) return $description;
-    
-    // LSIキーワードを含むエリア特性テキストを挿入
-    ob_start();
-    ?>
-    <div class="area-characteristics-box u-mb-50" style="background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(26,35,50,0.05) 100%); border-left: 4px solid #d4af37; padding: 24px 28px; border-radius: 8px; line-height: 1.9; color: #e5e5e5;">
-        <div class="characteristics-content" style="font-size: 15px;">
-            <?php echo wp_kses_post($characteristics); ?>
-        </div>
-    </div>
-    <?php
-    return ob_get_clean();
-}
-
-// =====================================================
-// ② 店舗一覧直前：編集部厳選3店舗（権威性・差別化）
+// ③ 店舗一覧直前：編集部厳選3店舗（権威性・差別化）
 // =====================================================
 add_action('swell_before_post_list', 'escomi_editorial_picks_3shops');
 function escomi_editorial_picks_3shops() {
@@ -252,7 +223,7 @@ function escomi_editorial_picks_3shops() {
 }
 
 // =====================================================
-// ③ 店舗一覧直後：地域密着コラム（EEAT強化）
+// ④ 店舗一覧直後：地域密着コラム（EEAT強化）
 // =====================================================
 add_action('swell_after_post_list', 'escomi_area_column_eeat', 5);
 function escomi_area_column_eeat() {
@@ -333,7 +304,7 @@ function escomi_area_column_eeat() {
 }
 
 // =====================================================
-// ④ FAQ構造化データ（CTR向上）
+// ⑤ FAQ構造化データ（CTR向上）
 // =====================================================
 add_action('swell_after_post_list', 'escomi_area_faq_schema', 10);
 function escomi_area_faq_schema() {

@@ -183,14 +183,18 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
 
         <?php
         /*
-         * ACF（area_characteristics）：SWELL の do_action と整合しない taxonomy-area のためテンプレ内で出力。
-         * （area-seo-hooks-optimized.php の編集部厳選・コラム・FAQ と同順序の一部をここに配置）
+         * ACF（area_characteristics）：エリア専用テンプレ内で一意に出力。
+         * get_the_archive_description 経由とは併用しない（二重表示防止）。
          */
         $acf_term_key = 'term_' . $term_id;
         $area_characteristics = get_field( 'area_characteristics', $acf_term_key );
         if ( $area_characteristics ) {
             ?>
-            <div class="area-characteristics-box u-mb-50"><?php echo wp_kses_post( nl2br( $area_characteristics ) ); ?></div>
+            <div class="area-characteristics-box u-mb-50" style="background: linear-gradient(135deg, rgba(212,175,55,0.08) 0%, rgba(26,35,50,0.05) 100%); border-left: 4px solid #d4af37; padding: 24px 28px; border-radius: 8px; line-height: 1.9; color: #e5e5e5;">
+                <div class="characteristics-content" style="font-size: 15px;">
+                    <?php echo wp_kses_post( $area_characteristics ); ?>
+                </div>
+            </div>
             <?php
         }
         ?>
