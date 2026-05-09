@@ -133,6 +133,66 @@ python ai_auto_updater.py
 
 **GitHub Actions について:** エックスサーバー等では、外向きの `/wp-json` がWordPress に届く前に **エッジの 403**（ホスト固有 HTML、`Copyright XSERVER Inc.` 等）になることがあります。その場合は **サーバー内の cron** でこのスクリプトを実行する（サーバー内からの `curl`/Python は通ることが多い）、またはサーバーパネル・サポートで **ブロック／許可 IP（GitHub Actions は出口 IP が変わる）** を確認してください。
 
+### 3. 本番反映・Daily Shop Update 初回チェックリスト（エージェントと人の分担）
+
+[`ai-update-log.php`](../ai-update-log.php) の REST 強化済み状態を本番へ載せ、[`.github/workflows/daily_shop_update.yml`](../.github/workflows/daily_shop_update.yml) の初回手動運用までの流れです。
+
+#### フェーズ A — PHP の本番反映（主に自動 / 結果は人が目視）
+
+| 誰 | やること |
+|----|----------|
+| **エージェント／CI** | 変更済み `ai-update-log.php` と `functions.php` などを **`main` にマージ済みであること** を確認。そのうえで `deploy.yml`（FTP）が実行され、サーバー側 `themes/swell_child/` に転送されていること。※`.github/workflows/daily_shop_update.yml` と `pm/` は **FTP で除外される** が `ai-update-log.php` は子テーマ直下のため転送対象です。|
+| **人（必須）** | アップロード（デプロイ）直後:**トップページ**と**`/wp-admin` ログイン**が白画面・Fatal error なく開けるか確認。**PHP構文エラーによる全消し**防止のためにここだけは必ず人がチェック。**独自 FTP で上げた場合**も同様。サーバーパス例: `/home/(ユーザー)/mens-esthe-kuchikomi.com/public_html/wp-content/themes/swell_child/ai-update-log.php` |
+
+#### フェーズ B — Application Password と GitHub Secrets（人が実行・エージェントは名称どおり転記しない）
+
+**WordPress（本番）**
+
+1. `edit_posts` 以上のアカウントでログイン（**編集者**または**管理者**）。
+2. **ユーザー → プロフィール** で **アプリケーションパスワード** を新規作成（名前例: `github-actions-ai-updater`）。
+3. 表示される **XXXX XXXX XXXX XXXX**（スペース入り）は、Secret に入れるとき **スペースを除去して 16 連続文字** で登録することが多い。**WP が発行した文字列そのまま** で通る環境もあるが、Secrets 側で **トリム・余分空白なし** であることを確認。
+
+**GitHub（Repository secrets）**
+
+| Secret | 正しさの目安 |
+|--------|----------------|
+| `WP_SITE_URL` | 末尾スラッシュなし。**本番サイトの基底 URL**（例: `https://mens-esthe-kuchikomi.com`）。ステージングに向いていないか。 |
+| `WP_USER` | 上記と同じ **ローカル part のログイン ID**（メール全文ではなく、WP でログインに使っているユーザー名）。 |
+| `WP_APP_PASSWORD` | 上記手順の **アプリケーションパスワード**のみ（通常のログインパスワードではない）。 |
+| `GEMINI_API_KEY` | 同上で利用する Gemini API キー。 |
+
+**備考:** エージェントは **チャットやログに Secrets を出力しない**。更新は Repo の Secrets 編集または「既に設定済み」の確認のみ人がブラウザで行う。
+
+#### フェーズ C — パイロット運転（workflow_dispatch で件数限定）
+
+おすすめ:**いきなり cron の全店舗に頼らず**、GitHub の **Actions** タブで **Daily Shop Update** を **Run workflow** から手動起動します（`.github/workflows/daily_shop_update.yml`）。
+
+| 入力 | 推奨 |
+|------|------|
+| `max_shops` | 初回は **`1`**。空欄のまま手動実行すると **`--all`（全店舗）** になるので初回チェックには使わない。 |
+| （スケジュール cron） | 手動入力は無視され、常に `python ai_auto_updater.py --all`。 |
+
+##### ログで見るポイント（人が確認）
+
+ジョブの **Run ai_auto_updater** ステップの標準出力を開く。
+
+1. **店舗一覧 GET**: 冒頭〜取得までで、`ERROR: API エラー (HTTP ...)` が出ていない。**200 で shop が返っている**こと。**403 + XSERVER 等の文言** が出ればエッジ止め→本节の前文のサーバー側対応を検討。
+2. **AI〜POST**: `save 失敗` や例外がなく、**`✓ WordPress に保存完了`** があるか。**`--- 集計: WordPress 更新 成功 … 件 / 失敗 … 件 ---`** で成功が想定どおりか。
+3. **終了コード**: 取得成功 0 かつ失敗ありのみ **`sys.exit(1)`** でジョブ失敗になる。
+
+##### ブラウザ外の補助（オプション・人のみ・秘密はコンソールのみ）
+
+一覧が 200 になるかのみ HTTP コードで確認する例。**`WP_USER` と `WP_APP_PASSWORD` は自分の環境の値で置換しログに載せない。**
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" -u 'WP_USER:WP_APP_PASSWORD' \
+  'https://例のドメイン/wp-json/wp/v2/shop?per_page=1&area=7'
+```
+
+更新 API は **POST と Basic 認証のみ**。本番データを書き換えるため本番での curl 検証は、テスト投稿 ID と最小ペイロードなど**事故防止の準備後**で行う。
+
+フェーズ C が緑になり、問題なければ **`max_shops` 空の手動**や **cron（毎朝 JST）** で本番運用に移れる。
+
 ---
 
 ## C. 手動のみ（エージェントは「指示・チェックリスト」まで）

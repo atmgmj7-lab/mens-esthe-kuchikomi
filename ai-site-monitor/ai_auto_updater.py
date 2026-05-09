@@ -647,7 +647,10 @@ def update_shop_ai_summary(
     today_therapists: Optional[List[Dict]] = None,
     ages: Optional[Dict[str, int]] = None,
 ) -> bool:
-    """WordPress REST API で shop_today_analysis, shop_availability, 出勤, 年齢層を更新"""
+    """WordPress REST API で shop_today_analysis, shop_availability, 出勤, 年齢層を更新。
+
+    Application Password 利用時は WP_USER と WP_APP_PASSWORD による HTTP Basic 認証（requests の auth=）が必要。
+    """
     avail_value = "" if (not availability or availability.strip().lower() == "なし") else availability.strip()
     meta = {
         "shop_today_analysis": today_analysis,
@@ -669,6 +672,7 @@ def update_shop_ai_summary(
         "summary": today_analysis,
         "log_type": "update",
     }
+    # Application Password: HTTP Basic（WP_USER / WP_APP_PASSWORD）
     auth = (user, app_password)
     urls = _build_rest_urls(site_url)
 
@@ -706,6 +710,7 @@ async def process_shop(
     config: Dict[str, str],
     shop: Dict,
     index: int,
+    wp_stats: Dict[str, int],
 ) -> None:
     """1店舗の巡回・要約・更新を実行"""
     post_id = shop["post_id"]
@@ -789,8 +794,10 @@ async def process_shop(
     if success:
         print("    ✓ WordPress に保存完了")
         update_shop_hash(int(post_id), current_hash)
+        wp_stats["ok"] += 1
     else:
         print("    ERROR: WordPress への保存に失敗")
+        wp_stats["fail"] += 1
 
 
 async def main_async(args: argparse.Namespace) -> None:
@@ -827,15 +834,32 @@ async def main_async(args: argparse.Namespace) -> None:
 
     init_db()
 
+    wp_stats = {"ok": 0, "fail": 0}
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
 
         for i, shop in enumerate(valid_shops, 1):
-            await process_shop(browser, config, shop, i)
+            await process_shop(browser, config, shop, i, wp_stats)
             if delay_sec > 0 and i < len(valid_shops):
                 await asyncio.sleep(delay_sec)
 
         await browser.close()
+
+    print(
+        f"\n--- 集計: WordPress 更新 成功 {wp_stats['ok']} 件 / 失敗 {wp_stats['fail']} 件 ---"
+    )
+    if (
+        len(valid_shops) > 0
+        and wp_stats["ok"] == 0
+        and wp_stats["fail"] > 0
+    ):
+        print(
+            "ERROR: 対象店舗はあるが WordPress への更新成功が 0 件で、"
+            "更新 API の失敗のみが発生しました（サイレント障害防止のため異常終了します）。",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     print("\n--- 完了 ---")
 

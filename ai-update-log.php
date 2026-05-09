@@ -37,21 +37,15 @@ add_action('init', function() {
 // フルURL: /wp-json/ai-engine/v1/update （パーマリンク「基本」の場合は ?rest_route=/ai-engine/v1/update）
 add_action('rest_api_init', function() {
     register_rest_route('ai-engine/v1', '/update', [
-        'methods'             => ['GET', 'POST'],
+        'methods'             => ['POST'],
         'callback'            => 'handle_ai_shop_update_final',
-        'permission_callback' => '__return_true', // テスト完了後は権限チェック（edit_posts等）を推奨
+        'permission_callback' => function () {
+            return current_user_can('edit_posts');
+        },
     ]);
 });
 
 function handle_ai_shop_update_final($request) {
-    // GET: エンドポイント動作確認用（ブラウザでアクセスして404でないことを確認）
-    if ($request->get_method() === 'GET') {
-        return new WP_REST_Response([
-            'status'  => 'ok',
-            'message' => 'ai-engine/v1/update は稼働中です。POST で shop_post_id, meta, summary を送信してください。',
-        ], 200);
-    }
-
     $params = $request->get_params();
     $shop_id = $params['shop_post_id'] ?? null;
 

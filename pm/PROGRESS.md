@@ -16,7 +16,7 @@
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | SP でも iframe 表示（2026-04） |
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | 日本橋SEO／エリアページ ACF の HTML 出力 | ✅ 完了 | `taxonomy-area.php` に特性・コラム・FAQ・JSON-LD を直接出力（SWELL フック非対応分の補完）（2026-04-29） |
-| REST API権限強化 | ⏳ 未着手 | |
+| REST API権限強化 | ✅ 完了 | `ai-engine/v1/update` は POST + `edit_posts`（2026-05-10） |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
 | エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
@@ -24,14 +24,29 @@
 | 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `.github/workflows/daily_shop_update.yml` 追加・`sites.json` 日本橋54件（2026-04-29）。Secrets 登録後に手動実行で確認。詳細 `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
-- （自動デプロイ系）FTP Secrets 未登録は解除済み。残りは `pm/BLOCKER.md` の REST 強化（BLOCK-004）等
+- （自動デプロイ系）FTP Secrets 未登録は解除済み。REST `ai-engine/v1/update` は権限チェック済み（2026-05-10）
 
 #### 次のアクション
 - [x] FTP Secrets 登録・自動デプロイ疎通（dry-run → 本番転送）（2026-05-09）
 - [x] デプロイ後 `/area/osaka/` で `lux-map-iframe` の表示確認（curl）
 - [ ] 日本橋エリア SEO ギャップ埋め（`area_column_content` 等・競合対策）
-- [ ] 店舗 AI 自動更新（`daily_shop_update.yml`・Secrets・ログ確認）
+- [ ] 店舗 AI 自動更新（`daily_shop_update.yml`: SQLite Actions キャッシュ・WP 認証強化済み／本番 `ai-update-log.php` デプロイ・手動ワークフローで疎通確認）
 - [ ] SEOツールをRenderにデプロイ
+
+### 2026-05-10 店舗AI自動更新: SQLite キャッシュ・REST 認可・異常終了
+
+#### 内容
+- **GitHub Actions**（`daily_shop_update.yml`）: `actions/cache@v4` で `ai-site-monitor/escomi_crawler.db` を保存・復元。キー `${{ runner.os }}-escomi-db-${{ github.run_id }}` + `restore-keys: ${{ runner.os }}-escomi-db-` で直近キャッシュ継承。
+- **REST**（`ai-update-log.php`）: `permission_callback` を `current_user_can('edit_posts')` に変更。メソッドは POST のみ。
+- **Python**（`ai_auto_updater.py`）: `/update` は既存どおり Basic 認証（`requests` の `auth=`）。ループ終了時に WP 更新の成功／失敗件数を出力し、成功 0・失敗ありのときは `sys.exit(1)`。
+
+#### 変更ファイル
+- `.github/workflows/daily_shop_update.yml`
+- `ai-update-log.php`
+- `ai-site-monitor/ai_auto_updater.py`
+- `pm/BLOCKER.md` / `pm/PROGRESS.md`
+
+---
 
 ### 2026-05-09 GitHub Actions 自動デプロイ（本番化）
 

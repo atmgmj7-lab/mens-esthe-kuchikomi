@@ -5,11 +5,20 @@ on:
     # 日本時間 毎朝 6:00（UTC 21:00 前日）
     - cron: '0 21 * * *'
   workflow_dispatch:
+    inputs:
+      max_shops:
+        description: '手動時のみ効く最大件数。1 を推奨（パイロット）。空欄なら cron と同じく全店舗。'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   update-shops:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # workflow_dispatch のときのみ inputs を参照し、schedule では短絡評価で読まないこと
+      MAX_SHOPS_MANUAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_shops || '' }}
 
     steps:
       - name: Checkout
@@ -36,6 +45,14 @@ jobs:
           cd ai-site-monitor
           python -m playwright install chromium --with-deps
 
+      - name: Cache SQLite database
+        uses: actions/cache@v4
+        with:
+          path: ai-site-monitor/escomi_crawler.db
+          key: ${{ runner.os }}-escomi-db-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-escomi-db-
+
       - name: Backup sites.json
         run: |
           cd ai-site-monitor
@@ -47,12 +64,17 @@ jobs:
           WP_USER: ${{ secrets.WP_USER }}
           WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          CRAWL_LIMIT: 'all'
           SHOP_DELAY_SECONDS: '3'
           AREA_TERM_ID: '7'
         run: |
           cd ai-site-monitor
-          python ai_auto_updater.py --all
+          if [ -n "${MAX_SHOPS_MANUAL}" ]; then
+            echo "::notice::Manual run: --limit ${MAX_SHOPS_MANUAL}"
+            python ai_auto_updater.py --limit "${MAX_SHOPS_MANUAL}"
+          else
+            echo "::notice::Full run (--all)"
+            python ai_auto_updater.py --all
+          fi
 
       - name: Upload results
         if: always()
