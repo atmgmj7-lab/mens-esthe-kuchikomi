@@ -720,15 +720,15 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================
-// AI更新ログ（Human-in-the-loop 型システム）
+// AI店舗自動更新・カスタム REST（escomi/v1/update）は ai-update-log.php で登録
 // ※ shop-ai-display より先に読み込み（escomi_get_latest_ai_log_for_shop が必要）
 // ====================================================
-$ai_log_path = get_stylesheet_directory() . '/ai-update-log.php';
-if (file_exists($ai_log_path)) {
-    require_once $ai_log_path;
+$ai_update_log_file = get_stylesheet_directory() . '/ai-update-log.php';
+if (file_exists($ai_update_log_file) && is_readable($ai_update_log_file)) {
+    require_once $ai_update_log_file;
 } else {
-    add_action('admin_notices', function() use ($ai_log_path) {
-        echo '<div class="error"><p>AIログファイルが見つかりません: ' . esc_html($ai_log_path) . '</p></div>';
+    add_action('admin_notices', function () use ($ai_update_log_file) {
+        echo '<div class="error"><p>AIログファイルが見つかりませんまたは読めません: ' . esc_html($ai_update_log_file) . '</p></div>';
     });
 }
 
