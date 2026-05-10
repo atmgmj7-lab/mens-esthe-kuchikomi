@@ -11,7 +11,7 @@
 
 | フェーズ | 内容 | 状態 |
 |----------|------|------|
-| **A. AI 基盤** | `ai_auto_updater.py`・`POST /wp-json/ai-engine/v1/update`・`shop_today_*` 連携 | コード済み（本リポジトリ） |
+| **A. AI 基盤** | `ai_auto_updater.py`・`POST /wp-json/escomi/v1/update`・`shop_today_*` 連携 | コード済み（本リポジトリ） |
 | **B. 件数制御** | `CRAWL_LIMIT` / `--all` / `--limit` / `SHOP_DELAY_SECONDS` でテスト〜全店舗へ段階移行 | 実装済み（`ai_auto_updater.py`） |
 | **C. パイロット** | 少数店舗（例: `--limit 10`）で本番実行・REST・表示確認 | 運用側で実施 |
 | **D. 全店舗** | `CRAWL_LIMIT=all` または `--all`、必要なら cron / GitHub Actions で日次 | 運用側で有効化 |
@@ -25,7 +25,7 @@
 2. Playwright で公式サイトのテキスト/HTML 取得。
 3. 変更検知（SQLite `shop_logs` のハッシュ）。
 4. BeautifulSoup ルート（`SCRAPING_RULES`）または Gemini で **本日出勤・分析文・空き状況・年齢層**を生成。
-5. `ai-engine/v1/update` へ POST（`shop_today_analysis`, `shop_availability`, `shop_today_therapists`, `age_*` 等）。
+5. `escomi/v1/update` へ POST（`shop_today_analysis`, `shop_availability`, `shop_today_therapists`, `age_*` 等）。
 
 **自動でやらない（手動・別フロー）**
 

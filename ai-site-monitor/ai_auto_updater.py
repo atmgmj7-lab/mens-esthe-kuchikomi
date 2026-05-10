@@ -632,8 +632,8 @@ def _build_rest_urls(site_url: str) -> list:
     """REST API の URL 候補を返す（パーマリンク形式に応じて両方試す）"""
     base = site_url.rstrip("/")
     return [
-        f"{base}/wp-json/ai-engine/v1/update",  # パーマリンク「投稿名」等
-        f"{base}/?rest_route=/ai-engine/v1/update",  # パーマリンク「基本」の場合
+        f"{base}/wp-json/escomi/v1/update",  # パーマリンク「投稿名」等
+        f"{base}/?rest_route=/escomi/v1/update",  # パーマリンク「基本」の場合
     ]
 
 

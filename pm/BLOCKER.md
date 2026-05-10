@@ -13,7 +13,7 @@
 ## 解除済み（参考）
 
 ### ~~[BLOCK-004] REST APIエンドポイント権限未強化~~ → **緩和済み（Resolved）**（2026-05-10）
-- **内容**: `/wp-json/ai-engine/v1/update` を **POST のみ**にし、`permission_callback` で `current_user_can('edit_posts')` を要求。自動更新ジョブは Application Password の HTTP Basic と組み合わせて認証。**任意の追加ハードニング**（IP 許可リスト・署名ヘッダー等）は要件に応じて別検討可。
+- **内容**: `/wp-json/escomi/v1/update` を **POST のみ**にし、`permission_callback` で `current_user_can('edit_posts')` を要求。自動更新ジョブは Application Password の HTTP Basic と組み合わせて認証。**任意の追加ハードニング**（IP 許可リスト・署名ヘッダー等）は要件に応じて別検討可。
 
 ### ~~[BLOCK-001] FTP / 自動デプロイの設定待ち~~ → **解決済み（Resolved）**（2026-05-09）
 - **解決内容**: GitHub Repository Secrets（`FTP_HOST` / `FTP_USERNAME` / `FTP_PASSWORD` / `FTP_PATH`）の登録および `SamKirkland/FTP-Deploy-Action` によるワークフロー運用。dry-run での疎通確認後、`dry-run` を解除し本番へのファイル転送を有効化済み。

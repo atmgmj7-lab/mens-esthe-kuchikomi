@@ -33,10 +33,10 @@ add_action('init', function() {
     ]);
 });
 
-// 2. REST API エンドポイントの登録
-// フルURL: /wp-json/ai-engine/v1/update （パーマリンク「基本」の場合は ?rest_route=/ai-engine/v1/update）
+// 2. REST API エンドポイントの登録（AI Engine プラグインの /wp-json/ai-engine/ と名前衝突回避のため escomi）
+// フルURL: /wp-json/escomi/v1/update （パーマリンク「基本」の場合は ?rest_route=/escomi/v1/update）
 add_action('rest_api_init', function() {
-    register_rest_route('ai-engine/v1', '/update', [
+    register_rest_route('escomi/v1', '/update', [
         'methods'             => ['POST'],
         'callback'            => 'handle_ai_shop_update_final',
         'permission_callback' => function () {

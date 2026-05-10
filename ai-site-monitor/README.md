@@ -136,14 +136,14 @@ python crawler_base.py
 
 ## AI 自動更新（ai_auto_updater.py）
 
-店舗の **`official_url`**（公式サイト）を Playwright で開き、テキスト/HTML を取得。変更があれば Gemini で **本日出勤・空き状況・分析文**等を生成し、`POST /wp-json/ai-engine/v1/update` で **`shop_today_*` 等のメタ**を更新する。
+店舗の **`official_url`**（公式サイト）を Playwright で開き、テキスト/HTML を取得。変更があれば Gemini で **本日出勤・空き状況・分析文**等を生成し、`POST /wp-json/escomi/v1/update` で **`shop_today_*` 等のメタ**を更新する。
 
 ※ **`shop_ai_summary`（店舗コンセプトの月次文）はこのスクリプトからは送らない**（上書きしない設計）。
 
 ### 前提条件
 
 - `.env` に `WP_SITE_URL`, `WP_USER`, `WP_APP_PASSWORD`, `GEMINI_API_KEY` が設定済み
-- 子テーマで `ai-update-log.php` が読み込まれ、`/wp-json/ai-engine/v1/update` が 200 になること
+- 子テーマで `ai-update-log.php` が読み込まれ、匿名 POST で `/wp-json/escomi/v1/update` が **401（未認証）** と返るなどルートがあること／認証付き POST が成功すること
 
 ### パッケージ
 

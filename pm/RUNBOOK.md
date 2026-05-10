@@ -40,13 +40,16 @@ curl -sS -o /dev/null -w "%{http_code}" "https://mens-esthe-kuchikomi.com/"
 curl -sS "https://mens-esthe-kuchikomi.com/area/osaka/" | grep -E 'lux-map-iframe|MAP SEARCH' | head -5
 ```
 
-### 3. REST `ai-engine` の生存確認
+### 3. REST `escomi` の生存確認（`/wp-json/escomi/v1/update`）
+
+`POST` と `edit_posts` のみ。**匿名 GET はしない**。未認証 **POST が 401** ならルートは認識されている（404／`rest_no_route` はパーマリンク再保存など）。
 
 ```bash
-curl -sS "https://mens-esthe-kuchikomi.com/wp-json/ai-engine/v1/update"
+curl -sS -o /dev/null -w "%{http_code}\n" -X POST \
+  "https://mens-esthe-kuchikomi.com/wp-json/escomi/v1/update"
 ```
 
-200 かつ JSON に `status` が含まれればよい。
+本番での保存成功は **Application Password での認証済み POST** または GitHub Actions ログで確認する。
 
 ### 4. `mens-esthe-seo-tools` — リポジトリ更新＆サイト監視ワークフロー手動起動
 

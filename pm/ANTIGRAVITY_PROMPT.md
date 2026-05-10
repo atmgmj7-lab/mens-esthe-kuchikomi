@@ -31,8 +31,8 @@ Cursorを起動する前に、以下4つのSecretsをGitHubに登録してくだ
 ## プロジェクト情報
 - リポジトリ: `~/Desktop/dev/mens-esthe-seo-tools`
 - WordPress: `https://mens-esthe-kuchikomi.com`
-- REST エンドポイント: `POST /wp-json/ai-engine/v1/update`
-- 認証: カスタムヘッダー `X-AI-API-Key`
+- REST エンドポイント: `POST /wp-json/escomi/v1/update`
+- 認証: Application Password を使った HTTP Basic（`WP_USER` + `WP_APP_PASSWORD`）。
 - 参照ドキュメント: `pm/RUNBOOK.md`（Bセクション）、`pm/BLOCKER.md`、`pm/SHOP-AI-ROLLOUT.md`
 
 ---
@@ -47,7 +47,8 @@ Cursorを起動する前に、以下4つのSecretsをGitHubに登録してくだ
 4. 両スクリプトの役割・実行頻度の違いを比較表で整理
 5. `.env` または `.env.example` を確認し、以下のキーの有無をチェック:
    `WP_SITE_URL`, `WP_USER`, `WP_APP_PASSWORD`, `GEMINI_API_KEY`, `AI_ENGINE_API_KEY`
-6. `ai-update-log.php`（子テーマ）の `permission_callback` を確認し、`X-AI-API-Key` 認証が実装されているか確認
+6. `ai-update-log.php`（子テーマ）の `permission_callback` と HTTP メソッド（POST と `edit_posts`）を確認する
+
 7. `.github/workflows/` 内の既存ワークフローファイルを全てリストアップし、各ファイルのcronスケジュールと処理内容を確認
 8. **不足・問題点を明示し、私（ユーザー）に確認が必要な事項があれば必ずここで質問してから次へ進む**
 
@@ -63,22 +64,21 @@ Cursorを起動する前に、以下4つのSecretsをGitHubに登録してくだ
 
 ## Phase 2: REST API 疎通テスト
 
-**未認証テスト（401を確認）:**
+**未認証テスト（401 を確認。ルート検知用。エンドポイントは POST のみ許可されている想定）:**
 ```bash
 curl -sS -w "\nHTTP: %{http_code}" \
-  -X GET "https://mens-esthe-kuchikomi.com/wp-json/ai-engine/v1/update"
+  -X POST "https://mens-esthe-kuchikomi.com/wp-json/escomi/v1/update"
 ```
 
-**認証テスト（.envからキーを読み込んで実行）:**
+**認証テスト（.env に WP_USER / WP_APP_PASSWORD があるとき）:**
 ```bash
 set -a && source .env && set +a
 curl -sS -w "\nHTTP: %{http_code}" \
-  -X POST "https://mens-esthe-kuchikomi.com/wp-json/ai-engine/v1/update" \
+  -u "${WP_USER}:${WP_APP_PASSWORD}" \
   -H "Content-Type: application/json" \
-  -H "X-AI-API-Key: $AI_ENGINE_API_KEY" \
-  -d '{"shop_id": 0}'
+  -X POST "https://mens-esthe-kuchikomi.com/wp-json/escomi/v1/update" \
+  -d '{"shop_post_id":0}'
 ```
-
 期待値: 未認証=401、認証済み=400または200。それ以外なら原因を調査して修正してから次へ進む。
 
 ---
@@ -96,7 +96,7 @@ python [選定スクリプト] --limit 1
    - WPから店舗一覧取得: 成功/失敗
    - 公式URLへのアクセス: 成功/失敗
    - Geminiでコンテンツ生成: 成功/失敗
-   - `ai-engine/v1/update` へのPOST: HTTPコード・レスポンスボディ
+   - `escomi/v1/update` へのPOST: HTTPコード・レスポンスボディ
 4. 失敗した場合はエラーを修正して再実行する
 
 **WP反映確認:**
@@ -340,7 +340,7 @@ curl -sS "https://mens-esthe-kuchikomi.com/wp-json/wp/v2/shop?per_page=100&_fiel
   3. shop_today_therapists が空の場合
      → 公式HPのセラピスト情報のみ使用（警告ログを出す）
   4. Gemini API で shop_ai_summary を生成（下記プロンプト使用）
-  5. ai-engine/v1/update に POST（shop_ai_summary フィールドのみ）
+  5. escomi/v1/update に POST（shop_ai_summary フィールドのみ）
   6. 成功/失敗/スキップをログ記録
      results/summary_YYYYMMDD_HHMMSS.json に保存
 

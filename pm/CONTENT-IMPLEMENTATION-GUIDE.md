@@ -79,7 +79,7 @@ WP 管理画面 → **店舗（shop）** → 各投稿を編集。
 
 - `ai-site-monitor/ai_auto_updater.py` … 各店舗の **`official_url`** から公式サイトを巡回 → 変更時に Gemini で **本日出勤**等を抽出 → REST で POST
 - **件数:** 既定 3 件（テスト用）。本番で全店舗に拡大する場合は `--all` または `CRAWL_LIMIT=all`（詳細は `ai-site-monitor/README.md` と `pm/SHOP-AI-ROLLOUT.md`）
-- `ai-update-log.php` の `POST /wp-json/ai-engine/v1/update` が受け取るメタ例:
+- `ai-update-log.php` の `POST /wp-json/escomi/v1/update` が受け取るメタ例:
 
   `shop_today_analysis`, `shop_availability`, `shop_today_therapists`, `age_*`, `shop_address`, `shop_tel`, …（`meta_mapping` 参照）
 
@@ -91,7 +91,7 @@ WP 管理画面 → **店舗（shop）** → 各投稿を編集。
 ### 3.4 動作確認
 
 - 店舗ページで **電話・住所・料金・出勤ブロック**が意図どおり出るか
-- `GET /wp-json/ai-engine/v1/update` が 200 で疎通するか（`DEPLOY-AI-UPDATE.md`）
+- 認証済み `POST /wp-json/escomi/v1/update` と、匿名 POST の 401 でルート有無が分かる（`DEPLOY-AI-UPDATE.md`）
 
 ---
 

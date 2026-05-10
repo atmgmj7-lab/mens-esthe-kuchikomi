@@ -455,8 +455,8 @@ def _build_rest_urls(site_url: str) -> List[str]:
     """REST API の URL 候補を返す"""
     base = site_url.rstrip("/")
     return [
-        f"{base}/wp-json/ai-engine/v1/update",
-        f"{base}/?rest_route=/ai-engine/v1/update",
+        f"{base}/wp-json/escomi/v1/update",
+        f"{base}/?rest_route=/escomi/v1/update",
     ]
 
 

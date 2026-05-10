@@ -217,8 +217,8 @@ def update_shop_price_60min(
     price_60: int,
 ) -> bool:
     """WordPress REST API で shop_price_60min を更新"""
-    url = f"{site_url.rstrip('/')}/wp-json/ai-engine/v1/update"
-    alt_url = f"{site_url.rstrip('/')}/?rest_route=/ai-engine/v1/update"
+    url = f"{site_url.rstrip('/')}/wp-json/escomi/v1/update"
+    alt_url = f"{site_url.rstrip('/')}/?rest_route=/escomi/v1/update"
 
     payload = {
         "shop_post_id": post_id,

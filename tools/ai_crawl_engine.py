@@ -54,7 +54,7 @@ def analyze_with_gemini(text):
 def post_to_wordpress(data):
     parsed = urlparse(os.environ.get("WP_BASE_URL"))
     base_url = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-    url = f"{base_url}/wp-json/ai-engine/v1/update"
+    url = f"{base_url}/wp-json/escomi/v1/update"
 
     shop_post_id = int(os.environ.get("SHOP_POST_ID", 0))
     summary = data.get("summary", "")

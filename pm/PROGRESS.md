@@ -16,7 +16,7 @@
 | エリア地図 iframe 化（area_map_nav ＋ taxonomy-area） | ✅ 完了 | SP でも iframe 表示（2026-04） |
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | 日本橋SEO／エリアページ ACF の HTML 出力 | ✅ 完了 | `taxonomy-area.php` に特性・コラム・FAQ・JSON-LD を直接出力（SWELL フック非対応分の補完）（2026-04-29） |
-| REST API権限強化 | ✅ 完了 | `ai-engine/v1/update` は POST + `edit_posts`（2026-05-10） |
+| REST API権限強化 | ✅ 完了 | `escomi/v1/update` は POST + `edit_posts`（2026-05-10） |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
 | エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
@@ -24,7 +24,7 @@
 | 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `.github/workflows/daily_shop_update.yml` 追加・`sites.json` 日本橋54件（2026-04-29）。Secrets 登録後に手動実行で確認。詳細 `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
-- （自動デプロイ系）FTP Secrets 未登録は解除済み。REST `ai-engine/v1/update` は権限チェック済み（2026-05-10）
+- （自動デプロイ系）FTP Secrets 未登録は解除済み。REST `escomi/v1/update` は権限チェック済み（2026-05-10）
 
 #### 次のアクション
 - [x] FTP Secrets 登録・自動デプロイ疎通（dry-run → 本番転送）（2026-05-09）
@@ -125,7 +125,7 @@ pm/PROGRESS.md
 - area_map_nav iframeに変更（functions.php・taxonomy-area.php・css/single.css）
 - MCP設定完了（fetch/filesystem/github）
 - ai_auto_updater.pyのバグ修正（result.appendインデント修正）
-- REST API疎通確認（/wp-json/ai-engine/v1/update 200 OK）
+- REST API疎通確認（`/wp-json/escomi/v1/update` が匿名 POST で 401、`edit_posts` 付きユーザーで認証済み POST が貫通するか）
 - ai-site-monitorをmens-esthe-seo-toolsリポジトリに移行
 - daily_cron.yml稼働確認（GitHub Actions成功）
 - sites.jsonをダミー1000件→実URLに差し替え（のち実URL4件に整理。namba は当該URLなしのため除外）
