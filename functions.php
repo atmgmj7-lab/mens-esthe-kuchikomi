@@ -721,15 +721,22 @@ require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================
 // AI店舗自動更新・カスタム REST（escomi/v1/update）は ai-update-log.php で登録
-// ※ shop-ai-display より先に読み込み（escomi_get_latest_ai_log_for_shop が必要）
+// ※ escomi_get_latest_ai_log_for_shop が必要になるコードより前に読み込むこと
 // ====================================================
 $ai_update_log_file = get_stylesheet_directory() . '/ai-update-log.php';
-if (file_exists($ai_update_log_file) && is_readable($ai_update_log_file)) {
-    require_once $ai_update_log_file;
+if ( file_exists( $ai_update_log_file ) && is_readable( $ai_update_log_file ) ) {
+	require_once $ai_update_log_file;
 } else {
-    add_action('admin_notices', function () use ($ai_update_log_file) {
-        echo '<div class="error"><p>AIログファイルが見つかりませんまたは読めません: ' . esc_html($ai_update_log_file) . '</p></div>';
-    });
+	$hint = '[Escomi] ai-update-log.php が読み込めません — REST escomi/v1/update は未定義になります — 対象パス: ' . $ai_update_log_file;
+	if ( function_exists( 'error_log' ) ) {
+		error_log( $hint );
+	}
+	add_action(
+		'admin_notices',
+		function () use ( $ai_update_log_file ) {
+			echo '<div class="error"><p>AIログファイルが見つかりませんまたは読めません: ' . esc_html( $ai_update_log_file ) . '</p></div>';
+		}
+	);
 }
 
 /**
@@ -744,12 +751,18 @@ add_action('escomi_prune_ai_update_log', 'escomi_prune_ai_update_log_callback');
 function escomi_prune_ai_update_log_callback() {
     $keep = 1000;
     global $wpdb;
-    $ids = $wpdb->get_col($wpdb->prepare(
-        "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'ai_update_log' ORDER BY post_date DESC LIMIT 99999 OFFSET %d",
-        $keep
-    ));
-    foreach ($ids ?: [] as $id) {
-        wp_delete_post((int) $id, true);
+    // AI 自動更新ログは publish で作成。ゴミ箱等を除外し OFFSET 暴走を避けるため status を限定する。
+    $ids = $wpdb->get_col(
+        $wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts}
+            WHERE post_type = 'ai_update_log' AND post_status = 'publish'
+            ORDER BY post_date DESC
+            LIMIT 99999 OFFSET %d",
+            $keep
+        )
+    );
+    foreach ( $ids ?: [] as $id ) {
+        wp_delete_post( (int) $id, true );
     }
 }
 
