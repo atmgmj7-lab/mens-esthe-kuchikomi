@@ -53,8 +53,11 @@ jobs:
           server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
           local-dir: ./
           server-dir: ${{ secrets.FTP_PATH }}
+          timeout: 30000
+          log-level: verbose
           # 初回疎通確認: 実転送なし（必要時のみコメント解除）
           # dry-run: true
           exclude: |
