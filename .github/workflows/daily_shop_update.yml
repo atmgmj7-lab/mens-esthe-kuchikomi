@@ -58,6 +58,29 @@ jobs:
           cd ai-site-monitor
           cp sites.json sites.json.bak
 
+      - name: Pre-flight REST check
+        env:
+          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
+        run: |
+          HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
+            -H "Content-Type: application/json" \
+            --max-time 15)
+          echo "::notice::REST health check: POST /wp-json/escomi/v1/update → HTTP ${HTTP_CODE}"
+          if [ "$HTTP_CODE" = "404" ]; then
+            echo "::error::escomi/v1/update が 404 (rest_no_route) — WordPress 側でルートが未登録です。"
+            echo "考えられる原因:"
+            echo "  1. ai-update-log.php が子テーマにデプロイされていない（deploy.yml の FTP_PATH を確認）"
+            echo "  2. functions.php が ai-update-log.php を require_once できていない（PHP Fatal の可能性）"
+            echo "  3. WP 管理画面 → 設定 → パーマリンク → 保存 でリライトルールの再生成が必要"
+            exit 1
+          fi
+          if [ "$HTTP_CODE" = "000" ]; then
+            echo "::error::WP_SITE_URL への接続に失敗しました（curl exit 000）。URL / WAF / Secret 設定を確認してください。"
+            exit 1
+          fi
+          echo "REST ルート確認 OK（HTTP ${HTTP_CODE} — 401 は認証なし正常）"
+
       - name: Run ai_auto_updater
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
