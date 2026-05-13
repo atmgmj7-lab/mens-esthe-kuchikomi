@@ -1,6 +1,7 @@
 <?php
 /**
  * AI Agent Integration - Step 1 Final Version
+ * @version 1.1.0 - namespace: escomi/v1 (AI Engine 競合回避済み)
  */
 
 /**

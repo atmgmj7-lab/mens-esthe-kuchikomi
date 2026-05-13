@@ -199,6 +199,18 @@ add_action('rest_api_init', function() {
         'schema' => array('description' => 'エリアスラッグ（子エリア優先）', 'type' => 'string'),
         'context' => array('view', 'embed', 'edit'),
     ));
+
+    // escomi/v1/update — AI エージェント用 REST エンドポイント
+    // ai-update-log.php でも登録しているが、FTP sync のズレで古いバージョンが残るケースへの保険
+    if ( function_exists( 'handle_ai_shop_update_final' ) ) {
+        register_rest_route( 'escomi/v1', '/update', array(
+            'methods'             => array( 'POST' ),
+            'callback'            => 'handle_ai_shop_update_final',
+            'permission_callback' => function () {
+                return current_user_can( 'edit_posts' );
+            },
+        ) );
+    }
 });
 
 /* 2. ショートコード：店舗数表示 [shop_count] */
