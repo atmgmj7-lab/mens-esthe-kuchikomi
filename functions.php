@@ -869,7 +869,24 @@ function escomi_get_today_therapists_html($post_id) {
         $shop_today_therapists = [];
     }
 
-    if (empty(trim((string) $shop_today_analysis)) && empty($shop_today_therapists)) {
+    // JSON形式で保存されている場合は早期にテキスト抽出（以降の全判定に使用）
+    $display_analysis = trim((string) $shop_today_analysis);
+    if (!empty($display_analysis) && (strpos($display_analysis, '{') === 0 || strpos($display_analysis, '```') === 0)) {
+        $cleaned = preg_replace('/```(?:json)?\s*/', '', $display_analysis);
+        $cleaned = str_replace('```', '', $cleaned);
+        $json_data = json_decode(trim($cleaned), true);
+        if (is_array($json_data)) {
+            $extracted = trim((string)($json_data['today_analysis'] ?? $json_data['summary'] ?? ''));
+            $display_analysis = !empty($extracted) ? $extracted : '';
+        } else {
+            $display_analysis = '';
+        }
+    }
+    $has_analysis = !empty($display_analysis) && strlen($display_analysis) > 10;
+    $has_therapists = !empty($shop_today_therapists);
+
+    // データが完全にない場合のみ非表示（JSON空の場合はプレースホルダーを表示するため通過）
+    if (!$has_analysis && !$has_therapists && empty(trim((string) $shop_today_analysis))) {
         return '';
     }
 
@@ -884,21 +901,8 @@ function escomi_get_today_therapists_html($post_id) {
     $html .= '<div class="escomi-today-box__header">';
     $html .= '<div class="escomi-today-box__header-left">';
     $html .= '<span class="escomi-today-box__label">Today\'s Analysis</span>';
-    $display_analysis = trim((string) $shop_today_analysis);
-    if (!empty($display_analysis)) {
-        if (strpos($display_analysis, '{') === 0 || strpos($display_analysis, '```') === 0) {
-            $display_analysis = preg_replace('/```(?:json)?\s*/', '', $display_analysis);
-            $display_analysis = str_replace('```', '', $display_analysis);
-            $display_analysis = trim($display_analysis);
-            $json_data = json_decode($display_analysis, true);
-            if (is_array($json_data)) {
-                $extracted = $json_data['today_analysis'] ?? $json_data['summary'] ?? '';
-                $display_analysis = !empty($extracted) ? $extracted : '';
-            }
-        }
-        if (!empty($display_analysis) && strpos($display_analysis, '{') !== 0 && strlen($display_analysis) > 10) {
-            $html .= '<div class="escomi-today-box__analysis">' . wp_kses_post(nl2br($display_analysis)) . '</div>';
-        }
+    if ($has_analysis) {
+        $html .= '<div class="escomi-today-box__analysis">' . wp_kses_post(nl2br($display_analysis)) . '</div>';
     }
     $html .= '</div>';
     $html .= '<div class="escomi-today-box__header-right">';
@@ -908,7 +912,7 @@ function escomi_get_today_therapists_html($post_id) {
     $html .= '</div>';
     $html .= '</div>';
 
-    if (!empty($shop_today_therapists)) {
+    if ($has_therapists) {
         $html .= '<div class="escomi-today-box__cast-scroll">';
         $html .= '<div class="escomi-today-box__cast-list">';
         foreach ($shop_today_therapists as $t) {
@@ -928,7 +932,7 @@ function escomi_get_today_therapists_html($post_id) {
         }
         $html .= '</div></div>';
     } else {
-        if (empty(trim((string) $shop_today_analysis))) {
+        if (!$has_analysis) {
             $html .= '<div class="escomi-today-box__placeholder">';
             $html .= '<p class="escomi-today-box__placeholder-text">現在、最新の出勤情報を確認中です。しばらく経ってから再度ご確認ください。</p>';
             $html .= '</div>';
