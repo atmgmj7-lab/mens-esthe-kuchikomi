@@ -581,10 +581,8 @@ def generate_analysis_only_from_therapists(
         print(f"    [Gemini] 利用可能モデル: {model_names[:5]}...")
     except Exception:
         model_names = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
+            "models/gemini-1.5-flash",
+            "models/gemini-1.5-pro",
         ]
 
     for model_name in model_names:
@@ -623,10 +621,8 @@ def generate_summary_with_gemini(text: str, gemini_key: str) -> Optional[Dict[st
         print(f"    [Gemini] 利用可能モデル: {model_names[:5]}...")
     except Exception:
         model_names = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
+            "models/gemini-1.5-flash",
+            "models/gemini-1.5-pro",
         ]
 
     for model_name in model_names:
