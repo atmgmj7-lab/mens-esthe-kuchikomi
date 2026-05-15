@@ -732,6 +732,35 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================
+// CloudSecure proxy-app-passwords.php 干渉対策
+// mu-plugins/proxy-app-passwords.php が rest_authentication_errors に
+// "Missing API key." エラーを注入するため、Authorization ヘッダー付き
+// リクエストに限りそのエラーを無効化して WordPress の標準認証へ通す。
+// ====================================================
+add_filter( 'rest_authentication_errors', function ( $result ) {
+    if ( ! is_wp_error( $result ) ) {
+        return $result;
+    }
+    if ( $result->get_error_code() !== 'rest_forbidden' ) {
+        return $result;
+    }
+    if ( strpos( $result->get_error_message(), 'Missing API key' ) === false ) {
+        return $result;
+    }
+    // Authorization ヘッダーが存在する場合は proxy の遮断を解除し
+    // WordPress の Application Password 認証に委ねる
+    $auth = $_SERVER['HTTP_AUTHORIZATION']
+        ?? $_SERVER['HTTP_X_AUTHORIZATION']
+        ?? ( function_exists( 'apache_request_headers' )
+            ? ( apache_request_headers()['Authorization'] ?? '' )
+            : '' );
+    if ( ! empty( $auth ) ) {
+        return null;
+    }
+    return $result;
+}, 99999 );
+
+// ====================================================
 // AI店舗自動更新・カスタム REST（escomi/v1/update）は ai-update-log.php で登録
 // ※ escomi_get_latest_ai_log_for_shop が必要になるコードより前に読み込むこと
 // ====================================================
