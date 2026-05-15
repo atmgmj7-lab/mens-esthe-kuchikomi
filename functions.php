@@ -200,8 +200,10 @@ add_action('rest_api_init', function() {
         'context' => array('view', 'embed', 'edit'),
     ));
 
-    // escomi/v1/update — AI エージェント用 REST エンドポイント
-    // ai-update-log.php でも登録しているが、FTP sync のズレで古いバージョンが残るケースへの保険
+});
+
+// escomi/v1/update フォールバック登録（PHP_INT_MAX = ai-update-log.php より後に実行 → mu-plugin 上書きに勝つ）
+add_action( 'rest_api_init', function () {
     if ( function_exists( 'handle_ai_shop_update_final' ) ) {
         register_rest_route( 'escomi/v1', '/update', array(
             'methods'             => array( 'POST' ),
@@ -211,7 +213,7 @@ add_action('rest_api_init', function() {
             },
         ) );
     }
-});
+}, PHP_INT_MAX );
 
 /* 2. ショートコード：店舗数表示 [shop_count] */
 add_shortcode('shop_count', function() {

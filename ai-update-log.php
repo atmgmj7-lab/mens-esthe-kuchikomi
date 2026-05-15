@@ -36,15 +36,16 @@ add_action('init', function() {
 
 // 2. REST API エンドポイントの登録（AI Engine プラグインの /wp-json/ai-engine/ と名前衝突回避のため escomi）
 // フルURL: /wp-json/escomi/v1/update （パーマリンク「基本」の場合は ?rest_route=/escomi/v1/update）
-add_action('rest_api_init', function() {
-    register_rest_route('escomi/v1', '/update', [
-        'methods'             => ['POST'],
+// PHP_INT_MAX: mu-plugin が高優先度で上書き登録しても、テーマは後に読まれるため FIFO で必ず最後に実行され上書きできる
+add_action('rest_api_init', function () {
+    register_rest_route( 'escomi/v1', '/update', array(
+        'methods'             => array( 'POST' ),
         'callback'            => 'handle_ai_shop_update_final',
         'permission_callback' => function () {
-            return current_user_can('edit_posts');
+            return current_user_can( 'edit_posts' );
         },
-    ]);
-});
+    ) );
+}, PHP_INT_MAX );
 
 function handle_ai_shop_update_final($request) {
     $params = $request->get_params();
