@@ -732,24 +732,60 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================
-// "Missing API key." エラー無条件解除
-// CloudSecure 削除後も同エラーが残存する場合に備え、
-// nginx+PHP-FPM では HTTP_AUTHORIZATION が $SERVER に渡らないため
-// Authorization ヘッダー検出を行わず無条件で解除する。
+// "Missing API key." エラー完全封じ込め v4
+// CloudSecure の proxy-app-passwords.php は rest_authentication_errors だけでなく
+// rest_pre_dispatch を使う場合がある。rest_pre_dispatch で返された WP_Error は
+// check_authentication() より先に処理されるため authentication_errors フィルター
+// をいくら高優先度で登録しても無効になる。両方のフックで遮断する。
 // ====================================================
+
+// (A) rest_authentication_errors — 最高優先度で解除
 add_filter( 'rest_authentication_errors', function ( $result ) {
-    if ( ! is_wp_error( $result ) ) {
-        return $result;
+    if ( is_wp_error( $result )
+        && $result->get_error_code() === 'rest_forbidden'
+        && strpos( $result->get_error_message(), 'Missing API key' ) !== false
+    ) {
+        return null;
     }
-    if ( $result->get_error_code() !== 'rest_forbidden' ) {
-        return $result;
+    return $result;
+}, PHP_INT_MAX );
+
+// (B) rest_pre_dispatch — proxy-app-passwords.php がここに注入する場合の対策
+add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
+    if ( is_wp_error( $result )
+        && $result->get_error_code() === 'rest_forbidden'
+        && strpos( $result->get_error_message(), 'Missing API key' ) !== false
+    ) {
+        return null;
     }
-    if ( strpos( $result->get_error_message(), 'Missing API key' ) === false ) {
-        return $result;
+    return $result;
+}, PHP_INT_MAX, 3 );
+
+// (C) mu-plugin が再生成されていても次リクエストから削除
+add_action( 'init', function () {
+    $mu = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/mu-plugins/proxy-app-passwords.php' : '';
+    if ( $mu && file_exists( $mu ) ) {
+        @unlink( $mu );
     }
-    // "Missing API key" は CloudSecure の残滓。無条件で解除し WP 標準認証へ委ねる。
-    return null;
-}, 99999 );
+}, 1 );
+
+// (D) デプロイ確認用デバッグエンドポイント（認証不要・一時的）
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'escomi/v1', '/debug', array(
+        'methods'             => 'GET',
+        'callback'            => function () {
+            $mu_dir = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/mu-plugins/' : '';
+            return array(
+                'deployed'          => 'v4',
+                'mu_proxy_exists'   => $mu_dir ? file_exists( $mu_dir . 'proxy-app-passwords.php' ) : 'unknown',
+                'mu_plugins'        => $mu_dir && is_dir( $mu_dir ) ? array_values( array_diff( scandir( $mu_dir ), array( '.', '..' ) ) ) : array(),
+                'auth_filter_count' => has_filter( 'rest_authentication_errors' ),
+                'pre_dispatch_count'=> has_filter( 'rest_pre_dispatch' ),
+            );
+        },
+        'permission_callback' => '__return_true',
+    ) );
+} );
 
 // ====================================================
 // AI店舗自動更新・カスタム REST（escomi/v1/update）は ai-update-log.php で登録
