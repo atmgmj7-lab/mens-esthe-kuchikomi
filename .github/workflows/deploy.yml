@@ -58,7 +58,6 @@ jobs:
           server-dir: ${{ secrets.FTP_PATH }}
           timeout: 30000
           log-level: verbose
-          state-name: ".ftp-deploy-sync-state-v5.json"
           # 初回疎通確認: 実転送なし（必要時のみコメント解除）
           # dry-run: true
           exclude: |
