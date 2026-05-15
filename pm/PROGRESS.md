@@ -17,20 +17,26 @@
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | 日本橋SEO／エリアページ ACF の HTML 出力 | ✅ 完了 | `taxonomy-area.php` に特性・コラム・FAQ・JSON-LD を直接出力（SWELL フック非対応分の補完）（2026-04-29） |
 | REST API権限強化 | ✅ 完了 | `escomi/v1/update` は POST + `edit_posts`（2026-05-10） |
+| REST API 401「Missing API key.」修正 | ✅ 完了 | CloudSecure が書き換えた `permission_callback` をサーバー直接修正（2026-05-15） |
+| Gemini モデル動的選択・JSON表示バグ修正 | ✅ 完了 | `ai_auto_updater.py` + `functions.php` 修正（2026-05-16） |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
 | エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
 | 日本橋59店舗 `shop_ai_summary` JSON 投入 | ⏳ 待機 | JSON 未配置。配置後: `python3 tools/import_shop_ai_summaries.py`（`content/nihonbashi_shop_summaries.json` または引数でパス指定） |
-| 店舗AI自動更新（全店舗） | ⏳ 段階導入 | `.github/workflows/daily_shop_update.yml` 追加・`sites.json` 日本橋54件（2026-04-29）。Secrets 登録後に手動実行で確認。詳細 `SHOP-AI-ROLLOUT.md` |
+| 店舗AI自動更新（全店舗） | ✅ パイロット完了 | `escomi/v1/update` 疎通確認済み（401→認証 OK）。手動1件実行 OK（2026-05-14）。詳細 `SHOP-AI-ROLLOUT.md` |
 
 #### ブロッカー
 - （自動デプロイ系）FTP Secrets 未登録は解除済み。REST `escomi/v1/update` は権限チェック済み（2026-05-10）
+- `.htaccess` Authorization ヘッダー転送: サーバー直接作業が必要。Xserver ファイルマネージャーで `/public_html/.htaccess` 先頭付近（`# BEGIN WordPress` の上）に `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` を追加する。
 
 #### 次のアクション
 - [x] FTP Secrets 登録・自動デプロイ疎通（dry-run → 本番転送）（2026-05-09）
 - [x] デプロイ後 `/area/osaka/` で `lux-map-iframe` の表示確認（curl）
+- [x] REST API 401「Missing API key.」解消（2026-05-15）
+- [x] Gemini モデル自動選択・JSON 生表示バグ修正（2026-05-16）
+- [ ] `.htaccess` Authorization ヘッダー設定（Xserver ファイルマネージャーで手動）
 - [ ] 日本橋エリア SEO ギャップ埋め（`area_column_content` 等・競合対策）
-- [ ] 店舗 AI 自動更新（`daily_shop_update.yml`: SQLite Actions キャッシュ・WP 認証強化済み／本番 `ai-update-log.php` デプロイ・手動ワークフローで疎通確認）
+- [x] 店舗 AI 自動更新パイロット（`daily_shop_update.yml` 1件実行成功・`escomi/v1/update` 疎通確認 2026-05-14）
 - [ ] SEOツールをRenderにデプロイ
 
 ### 2026-05-10 店舗AI自動更新: SQLite キャッシュ・REST 認可・異常終了

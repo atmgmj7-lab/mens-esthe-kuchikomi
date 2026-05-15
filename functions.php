@@ -873,14 +873,32 @@ function escomi_get_today_therapists_html($post_id) {
         return '';
     }
 
-    $availability_text = !empty(trim((string) $shop_availability)) ? $shop_availability : '本日すぐご案内可能';
+    $raw_availability = trim((string) $shop_availability);
+    if (empty($raw_availability) || $raw_availability === 'なし' || strpos($raw_availability, '{') === 0) {
+        $availability_text = '本日すぐご案内可能';
+    } else {
+        $availability_text = $raw_availability;
+    }
 
     $html = '<div class="escomi-today-box">';
     $html .= '<div class="escomi-today-box__header">';
     $html .= '<div class="escomi-today-box__header-left">';
     $html .= '<span class="escomi-today-box__label">Today\'s Analysis</span>';
-    if (!empty(trim((string) $shop_today_analysis))) {
-        $html .= '<div class="escomi-today-box__analysis">' . wp_kses_post(nl2br($shop_today_analysis)) . '</div>';
+    $display_analysis = trim((string) $shop_today_analysis);
+    if (!empty($display_analysis)) {
+        if (strpos($display_analysis, '{') === 0 || strpos($display_analysis, '```') === 0) {
+            $display_analysis = preg_replace('/```(?:json)?\s*/', '', $display_analysis);
+            $display_analysis = str_replace('```', '', $display_analysis);
+            $display_analysis = trim($display_analysis);
+            $json_data = json_decode($display_analysis, true);
+            if (is_array($json_data)) {
+                $extracted = $json_data['today_analysis'] ?? $json_data['summary'] ?? '';
+                $display_analysis = !empty($extracted) ? $extracted : '';
+            }
+        }
+        if (!empty($display_analysis) && strpos($display_analysis, '{') !== 0 && strlen($display_analysis) > 10) {
+            $html .= '<div class="escomi-today-box__analysis">' . wp_kses_post(nl2br($display_analysis)) . '</div>';
+        }
     }
     $html .= '</div>';
     $html .= '<div class="escomi-today-box__header-right">';
@@ -910,9 +928,11 @@ function escomi_get_today_therapists_html($post_id) {
         }
         $html .= '</div></div>';
     } else {
-        $html .= '<div class="escomi-today-box__placeholder">';
-        $html .= '<p class="escomi-today-box__placeholder-text">現在、最新の出勤情報を確認中です。しばらく経ってから再度ご確認ください。</p>';
-        $html .= '</div>';
+        if (empty(trim((string) $shop_today_analysis))) {
+            $html .= '<div class="escomi-today-box__placeholder">';
+            $html .= '<p class="escomi-today-box__placeholder-text">現在、最新の出勤情報を確認中です。しばらく経ってから再度ご確認ください。</p>';
+            $html .= '</div>';
+        }
     }
 
     $html .= '</div>';

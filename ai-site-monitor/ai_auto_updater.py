@@ -508,14 +508,26 @@ async def scrape_text_with_playwright(browser: Browser, url: str) -> Tuple[Optio
 
 
 def _parse_gemini_json(raw: str) -> Optional[Dict[str, Any]]:
-    """Gemini の応答から全フィールドをパース。失敗時は None"""
+    """Gemini の応答から全フィールドをパース。不完全なJSONは修復を試みる。失敗時は None"""
     raw = (raw or "").strip()
     if not raw:
         return None
 
     if "```" in raw:
         m = re.search(r"```(?:json)?\s*([\s\S]*?)```", raw)
-        raw = m.group(1).strip() if m else raw
+        raw = m.group(1).strip() if m else raw.replace("```", "").strip()
+
+    if raw.endswith(',') or raw.endswith(',\n'):
+        raw = raw.rstrip(',\n') + '\n}'
+
+    open_braces = raw.count('{')
+    close_braces = raw.count('}')
+    if open_braces > close_braces:
+        raw += '\n' + '}' * (open_braces - close_braces)
+    open_brackets = raw.count('[')
+    close_brackets = raw.count(']')
+    if open_brackets > close_brackets:
+        raw = raw.rstrip() + '\n]' * (open_brackets - close_brackets)
 
     try:
         data = json.loads(raw)
@@ -559,14 +571,23 @@ def generate_analysis_only_from_therapists(
 {therapists_json}
 """
 
-    models = [
-        "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-pro",
-        "models/gemini-1.5-flash",
-        "models/gemini-flash-latest",
-    ]
-    for model_name in models:
+    try:
+        client_temp = genai.Client(api_key=gemini_key)
+        available = client_temp.models.list()
+        model_names = [m.name for m in available if 'gemini' in m.name and 'flash' in m.name]
+        if not model_names:
+            model_names = [m.name for m in available if 'gemini' in m.name]
+        model_names.sort(reverse=True)
+        print(f"    [Gemini] 利用可能モデル: {model_names[:5]}...")
+    except Exception:
+        model_names = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+        ]
+
+    for model_name in model_names:
         try:
             client = genai.Client(api_key=gemini_key)
             response = client.models.generate_content(
@@ -592,15 +613,23 @@ def generate_summary_with_gemini(text: str, gemini_key: str) -> Optional[Dict[st
 
     truncated = text[:MAX_TEXT_LENGTH] if len(text) > MAX_TEXT_LENGTH else text
 
-    models = [
-        "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-pro",
-        "models/gemini-1.5-flash",
-        "models/gemini-flash-latest",
-    ]
+    try:
+        client_temp = genai.Client(api_key=gemini_key)
+        available = client_temp.models.list()
+        model_names = [m.name for m in available if 'gemini' in m.name and 'flash' in m.name]
+        if not model_names:
+            model_names = [m.name for m in available if 'gemini' in m.name]
+        model_names.sort(reverse=True)
+        print(f"    [Gemini] 利用可能モデル: {model_names[:5]}...")
+    except Exception:
+        model_names = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+        ]
 
-    for model_name in models:
+    for model_name in model_names:
         try:
             client = genai.Client(api_key=gemini_key)
             prompt = f"{SUMMARY_PROMPT}\n\n【店舗サイトのテキスト】\n{truncated}"
@@ -652,8 +681,16 @@ def update_shop_ai_summary(
     Application Password 利用時は WP_USER と WP_APP_PASSWORD による HTTP Basic 認証（requests の auth=）が必要。
     """
     avail_value = "" if (not availability or availability.strip().lower() == "なし") else availability.strip()
+    clean_analysis = today_analysis
+    if clean_analysis and clean_analysis.strip().startswith('{'):
+        try:
+            parsed = json.loads(clean_analysis)
+            inner = parsed.get('today_analysis', '') or parsed.get('summary', '')
+            clean_analysis = inner.strip() if inner and inner.strip() else ''
+        except Exception:
+            pass
     meta = {
-        "shop_today_analysis": today_analysis,
+        "shop_today_analysis": clean_analysis,
         "shop_availability": avail_value,
     }
     if today_therapists is not None:
