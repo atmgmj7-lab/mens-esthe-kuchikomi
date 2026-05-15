@@ -81,6 +81,14 @@ jobs:
           fi
           echo "REST ルート確認 OK（HTTP ${HTTP_CODE} — 401 は認証なし正常）"
 
+          - name: Debug - Check IP and country
+        run: |
+          echo "GitHub Actions の送信元IP:"
+          curl -s https://api.ipify.org
+          echo ""
+          echo "国情報:"
+          curl -s https://ipapi.co/json/ | grep -E '"ip"|"country_name"|"country_code"'
+
       - name: Run ai_auto_updater
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
