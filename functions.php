@@ -732,10 +732,10 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 
 // ====================================================
-// CloudSecure proxy-app-passwords.php 干渉対策
-// mu-plugins/proxy-app-passwords.php が rest_authentication_errors に
-// "Missing API key." エラーを注入するため、Authorization ヘッダー付き
-// リクエストに限りそのエラーを無効化して WordPress の標準認証へ通す。
+// "Missing API key." エラー無条件解除
+// CloudSecure 削除後も同エラーが残存する場合に備え、
+// nginx+PHP-FPM では HTTP_AUTHORIZATION が $SERVER に渡らないため
+// Authorization ヘッダー検出を行わず無条件で解除する。
 // ====================================================
 add_filter( 'rest_authentication_errors', function ( $result ) {
     if ( ! is_wp_error( $result ) ) {
@@ -747,17 +747,8 @@ add_filter( 'rest_authentication_errors', function ( $result ) {
     if ( strpos( $result->get_error_message(), 'Missing API key' ) === false ) {
         return $result;
     }
-    // Authorization ヘッダーが存在する場合は proxy の遮断を解除し
-    // WordPress の Application Password 認証に委ねる
-    $auth = $_SERVER['HTTP_AUTHORIZATION']
-        ?? $_SERVER['HTTP_X_AUTHORIZATION']
-        ?? ( function_exists( 'apache_request_headers' )
-            ? ( apache_request_headers()['Authorization'] ?? '' )
-            : '' );
-    if ( ! empty( $auth ) ) {
-        return null;
-    }
-    return $result;
+    // "Missing API key" は CloudSecure の残滓。無条件で解除し WP 標準認証へ委ねる。
+    return null;
 }, 99999 );
 
 // ====================================================
