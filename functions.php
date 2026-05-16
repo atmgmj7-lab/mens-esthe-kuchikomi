@@ -778,8 +778,13 @@ add_action( 'rest_api_init', function () {
         'methods'             => 'GET',
         'callback'            => function () {
             $mu_dir = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/mu-plugins/' : '';
+            $opcache_reset = false;
+            if ( function_exists( 'opcache_reset' ) ) {
+                $opcache_reset = opcache_reset();
+            }
             return array(
-                'deployed'          => 'v4',
+                'deployed'          => 'v5',
+                'opcache_reset'     => $opcache_reset,
                 'mu_proxy_exists'   => $mu_dir ? file_exists( $mu_dir . 'proxy-app-passwords.php' ) : 'unknown',
                 'mu_plugins'        => $mu_dir && is_dir( $mu_dir ) ? array_values( array_diff( scandir( $mu_dir ), array( '.', '..' ) ) ) : array(),
                 'auth_filter_count' => has_filter( 'rest_authentication_errors' ),

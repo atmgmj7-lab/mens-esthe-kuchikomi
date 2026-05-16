@@ -95,11 +95,19 @@ jobs:
             **/*.secret
             **/*.pem
 
-      - name: Post-deploy REST check
+      - name: Clear OPcache
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
         run: |
           sleep 10
+          RESULT=$(curl -sS "${WP_SITE_URL}/wp-json/escomi/v1/debug" --max-time 15 2>/dev/null || echo '{}')
+          echo "OPcache clear: $(echo $RESULT | grep -o '"opcache_reset":[^,}]*' || echo 'n/a')"
+
+      - name: Post-deploy REST check
+        env:
+          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
+        run: |
+          sleep 5
           HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
             -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
             -H "Content-Type: application/json" \
