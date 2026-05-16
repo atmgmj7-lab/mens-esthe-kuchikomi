@@ -1020,3 +1020,245 @@ function escomi_ai_summary_premium_styles() {
     if (!is_singular('shop')) return;
     echo '<style id="escomi-ai-intel-styles">' . escomi_ai_intel_box_css() . '</style>';
 }
+
+// ============================================================
+// 店舗表示強化: ヘルパー関数（2026-05-17 追加）
+// ============================================================
+
+/**
+ * 店舗コンセプトHTMLを返す
+ */
+function escomi_get_shop_concept($post_id) {
+    $summary = get_field('shop_ai_summary', $post_id) ?: get_post_meta($post_id, 'shop_ai_summary', true);
+    if (empty($summary) || strlen(trim((string)$summary)) < 10) {
+        return '';
+    }
+    $display_summary = trim((string)$summary);
+    // JSON形式ガード
+    if (strpos($display_summary, '{') === 0 || strpos($display_summary, '```') === 0) {
+        $cleaned = preg_replace('/```(?:json)?\s*/', '', $display_summary);
+        $cleaned = str_replace('```', '', $cleaned);
+        $json_data = json_decode(trim($cleaned), true);
+        if (is_array($json_data)) {
+            $extracted = trim((string)($json_data['summary'] ?? $json_data['concept'] ?? $json_data['ai_summary'] ?? ''));
+            $display_summary = !empty($extracted) ? $extracted : '';
+        } else {
+            $display_summary = '';
+        }
+    }
+    if (empty($display_summary) || strlen($display_summary) < 10) {
+        return '';
+    }
+    $html = '<div class="escomi-shop-concept">';
+    $html .= '<h3 class="escomi-shop-concept__title">店舗の特徴・コンセプト</h3>';
+    $html .= '<div class="escomi-shop-concept__content">' . wp_kses_post(nl2br($display_summary)) . '</div>';
+    $html .= '</div>';
+    return $html;
+}
+
+/**
+ * 最終更新日を返す
+ */
+function escomi_get_shop_update_date($post_id) {
+    $last_check = get_field('shop_last_ai_check', $post_id) ?: get_post_meta($post_id, 'shop_last_ai_check', true);
+    if (empty($last_check)) return '';
+    $timestamp = strtotime($last_check);
+    if (!$timestamp) return '';
+    return date_i18n('Y年n月j日', $timestamp);
+}
+
+/**
+ * 最安価格を返す
+ */
+function escomi_get_shop_price($post_id) {
+    $price = get_field('basic_price', $post_id) ?: get_post_meta($post_id, 'basic_price', true);
+    if (empty($price)) return '';
+    $price = (int) $price;
+    if ($price <= 0) return '';
+    return '¥' . number_format($price) . '〜';
+}
+
+/**
+ * 本日出勤情報があるか判定
+ */
+function escomi_has_today_staff($post_id) {
+    $therapists = get_field('shop_today_therapists', $post_id);
+    if (empty($therapists)) {
+        $therapists = get_post_meta($post_id, 'shop_today_therapists', true);
+    }
+    if (!is_array($therapists) || empty($therapists)) return false;
+    $first = reset($therapists);
+    return is_array($first) && !empty($first['name']);
+}
+
+/**
+ * 店舗情報ボックス（コンセプト＋価格＋更新日＋公式リンク）
+ */
+function escomi_get_shop_info_box($post_id) {
+    $concept = escomi_get_shop_concept($post_id);
+    $price = escomi_get_shop_price($post_id);
+    $update_date = escomi_get_shop_update_date($post_id);
+    $official_url = get_field('official_url', $post_id) ?: get_post_meta($post_id, 'official_url', true);
+
+    if (empty($concept) && empty($price) && empty($update_date) && empty($official_url)) {
+        return '';
+    }
+
+    $html = '<div class="escomi-shop-info-box">';
+    if (!empty($concept)) {
+        $html .= $concept;
+    }
+    if (!empty($price) || !empty($update_date) || !empty($official_url)) {
+        $html .= '<div class="escomi-shop-info-box__meta">';
+        if (!empty($price)) {
+            $html .= '<div class="escomi-shop-info-box__price">';
+            $html .= '<span class="escomi-shop-info-box__label">最安料金</span>';
+            $html .= '<span class="escomi-shop-info-box__value escomi-shop-info-box__value--price">' . esc_html($price) . '</span>';
+            $html .= '</div>';
+        }
+        if (!empty($update_date)) {
+            $html .= '<div class="escomi-shop-info-box__update">';
+            $html .= '<span class="escomi-shop-info-box__label">最終更新日</span>';
+            $html .= '<span class="escomi-shop-info-box__value">' . esc_html($update_date) . '</span>';
+            $html .= '</div>';
+        }
+        if (!empty($official_url)) {
+            $html .= '<div class="escomi-shop-info-box__link">';
+            $html .= '<a href="' . esc_url($official_url) . '" class="escomi-shop-info-box__button" target="_blank" rel="noopener noreferrer">';
+            $html .= '出勤スケジュールを見る <span class="escomi-shop-info-box__button-icon">→</span>';
+            $html .= '</a>';
+            $html .= '</div>';
+        }
+        $html .= '</div>';
+    }
+    $html .= '</div>';
+    return $html;
+}
+
+// ============================================================
+// 店舗詳細ページの表示フック
+// ============================================================
+
+add_action('swell_before_post_content', 'escomi_display_shop_info_box', 3);
+function escomi_display_shop_info_box() {
+    if (!is_singular('shop')) return;
+    $post_id = get_the_ID() ?: get_queried_object_id();
+    if (!$post_id) return;
+    $html = escomi_get_shop_info_box($post_id);
+    if ($html) echo $html;
+}
+
+// ============================================================
+// ショートコード登録
+// ============================================================
+
+add_shortcode('shop_concept', function($atts) {
+    $atts = shortcode_atts(['id' => 0], $atts ?? []);
+    $post_id = (int)($atts['id'] ?? 0) ?: (get_the_ID() ?: get_queried_object_id());
+    return $post_id ? escomi_get_shop_concept($post_id) : '';
+});
+
+add_shortcode('shop_update_date', function($atts) {
+    $atts = shortcode_atts(['id' => 0], $atts ?? []);
+    $post_id = (int)($atts['id'] ?? 0) ?: (get_the_ID() ?: get_queried_object_id());
+    return $post_id ? esc_html(escomi_get_shop_update_date($post_id)) : '';
+});
+
+add_shortcode('shop_price', function($atts) {
+    $atts = shortcode_atts(['id' => 0], $atts ?? []);
+    $post_id = (int)($atts['id'] ?? 0) ?: (get_the_ID() ?: get_queried_object_id());
+    return $post_id ? esc_html(escomi_get_shop_price($post_id)) : '';
+});
+
+add_shortcode('shop_today_badge', function($atts) {
+    $atts = shortcode_atts(['id' => 0], $atts ?? []);
+    $post_id = (int)($atts['id'] ?? 0) ?: (get_the_ID() ?: get_queried_object_id());
+    if (!$post_id) return '';
+    if (escomi_has_today_staff($post_id)) {
+        return '<span class="escomi-badge escomi-badge--active">出勤速報あり</span>';
+    }
+    return '<span class="escomi-badge escomi-badge--pending">出勤情報確認中</span>';
+});
+
+// ============================================================
+// 店舗一覧・アーカイブページ用フィルター
+// ============================================================
+
+add_filter('the_content', 'escomi_add_shop_archive_badges', 20);
+function escomi_add_shop_archive_badges($content) {
+    if (is_singular('shop')) return $content;
+    if (!is_post_type_archive('shop') && !is_tax('area') && !is_tax('shop_category')) {
+        return $content;
+    }
+    global $post;
+    if (!$post || $post->post_type !== 'shop') return $content;
+
+    $post_id = $post->ID;
+    $badge_html = '';
+    $price_html = '';
+    $update_html = '';
+
+    if (escomi_has_today_staff($post_id)) {
+        $badge_html = '<span class="escomi-archive-badge escomi-archive-badge--active">出勤速報あり</span>';
+    } else {
+        $badge_html = '<span class="escomi-archive-badge escomi-archive-badge--pending">出勤情報確認中</span>';
+    }
+
+    $price = escomi_get_shop_price($post_id);
+    if ($price) {
+        $price_html = '<span class="escomi-archive-price">' . esc_html($price) . '</span>';
+    }
+
+    $last_check = get_field('shop_last_ai_check', $post_id) ?: get_post_meta($post_id, 'shop_last_ai_check', true);
+    if ($last_check) {
+        $timestamp = strtotime($last_check);
+        if ($timestamp) {
+            $update_html = '<span class="escomi-archive-update">更新: ' . date_i18n('n/j', $timestamp) . '</span>';
+        }
+    }
+
+    if ($badge_html || $price_html || $update_html) {
+        $badge_block = '<div class="escomi-archive-shop-meta">' . $badge_html . $price_html . $update_html . '</div>';
+        $content = $badge_block . $content;
+    }
+
+    return $content;
+}
+
+// ============================================================
+// 店舗情報ボックス用CSS
+// ============================================================
+
+add_action('wp_head', 'escomi_shop_info_box_styles', 26);
+function escomi_shop_info_box_styles() {
+    if (!is_singular('shop') && !is_post_type_archive('shop') && !is_tax('area') && !is_tax('shop_category')) {
+        return;
+    }
+    ?>
+    <style id="escomi-shop-info-styles">
+    .escomi-shop-info-box{background:#FDFBF6;border:1px solid #D4AF37;border-radius:8px;padding:24px 28px 20px;margin-bottom:28px;box-shadow:0 2px 12px rgba(212,175,55,0.12)}
+    .escomi-shop-concept__title{font-size:.85rem;font-weight:600;letter-spacing:.12em;color:#D4AF37;margin:0 0 12px;text-transform:uppercase;border-bottom:1px solid rgba(212,175,55,.2);padding-bottom:8px}
+    .escomi-shop-concept__content{font-size:1rem;line-height:1.7;color:#5a4a3a;margin-bottom:20px}
+    .escomi-shop-info-box__meta{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding-top:16px;border-top:1px solid rgba(212,175,55,.2)}
+    .escomi-shop-info-box__price,.escomi-shop-info-box__update{display:flex;flex-direction:column;gap:2px}
+    .escomi-shop-info-box__label{font-size:.65rem;font-weight:600;letter-spacing:.1em;color:#8b7d6b;text-transform:uppercase}
+    .escomi-shop-info-box__value{font-size:.9rem;font-weight:500;color:#5a4a3a}
+    .escomi-shop-info-box__value--price{font-size:1.1rem;font-weight:700;color:#1b5e20}
+    .escomi-shop-info-box__link{margin-left:auto}
+    .escomi-shop-info-box__button{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,#D4AF37,#b8962e);color:#fff;font-size:.82rem;font-weight:600;letter-spacing:.05em;border-radius:4px;text-decoration:none;transition:all .2s ease;box-shadow:0 2px 6px rgba(212,175,55,.3)}
+    .escomi-shop-info-box__button:hover{background:linear-gradient(135deg,#c19b2f,#a38424);box-shadow:0 4px 12px rgba(212,175,55,.4);transform:translateY(-1px);color:#fff;text-decoration:none}
+    .escomi-shop-info-box__button-icon{font-size:.9rem;transition:transform .2s ease}
+    .escomi-shop-info-box__button:hover .escomi-shop-info-box__button-icon{transform:translateX(3px)}
+    .escomi-archive-shop-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
+    .escomi-archive-badge{display:inline-block;font-size:.65rem;font-weight:600;letter-spacing:.08em;padding:3px 10px;border-radius:3px}
+    .escomi-archive-badge--active{background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff}
+    .escomi-archive-badge--pending{background:#e0e0e0;color:#888}
+    .escomi-archive-price{font-size:.8rem;font-weight:600;color:#1b5e20}
+    .escomi-archive-update{font-size:.65rem;color:#999;margin-left:auto}
+    .escomi-badge{display:inline-block;font-size:.7rem;font-weight:600;letter-spacing:.08em;padding:4px 12px;border-radius:3px}
+    .escomi-badge--active{background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff}
+    .escomi-badge--pending{background:#e0e0e0;color:#888}
+    @media (max-width:767px){.escomi-shop-info-box{padding:16px 16px 14px;margin-bottom:20px}.escomi-shop-info-box__meta{flex-direction:column;align-items:flex-start;gap:10px}.escomi-shop-info-box__link{margin-left:0;width:100%}.escomi-shop-info-box__button{width:100%;justify-content:center;text-align:center}.escomi-shop-concept__content{font-size:.9rem}}
+    </style>
+    <?php
+}
