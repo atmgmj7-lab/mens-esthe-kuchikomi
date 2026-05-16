@@ -207,21 +207,29 @@ if ( empty($term_bg_url) && !$is_parent_area && $parent_term ) $term_bg_url = $h
             </h2>
             <?php if ( have_posts() ) : ?>
                 <div class="wolfman-list-container">
-                    <?php while ( have_posts() ) : the_post(); 
-                        $hours  = get_field('shop_hours');
-                        $price  = get_field('basic_price');
-                        $time   = get_field('basic_time'); 
-                        $cats   = get_the_terms(get_the_ID(), 'shop_category');
-                        $feats  = get_the_terms(get_the_ID(), 'shop_feature');
+                    <?php while ( have_posts() ) : the_post();
+                        $hours      = get_field('shop_hours');
+                        $price      = get_field('basic_price');
+                        $time       = get_field('basic_time');
+                        $cats       = get_the_terms(get_the_ID(), 'shop_category');
+                        $feats      = get_the_terms(get_the_ID(), 'shop_feature');
+                        $has_staff  = function_exists('escomi_has_today_staff') && escomi_has_today_staff(get_the_ID());
+                        $upd_date   = function_exists('escomi_get_shop_update_date') ? escomi_get_shop_update_date(get_the_ID()) : '';
                     ?>
                         <article class="shop-list-row">
                             <a href="<?php the_permalink(); ?>" class="shop-row-img">
                                 <?php if( has_post_thumbnail() ) { the_post_thumbnail('medium'); } else { echo '<img src="'.get_theme_file_uri('/assets/img/no-image.png').'" alt="No Image">'; } ?>
                             </a>
                             <div class="shop-row-info">
-                                <h3 class="shop-row-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+                                <div class="shop-row-title-line">
+                                    <h3 class="shop-row-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+                                    <?php if ($has_staff): ?>
+                                    <span class="escomi-archive-badge escomi-archive-badge--active">出勤中</span>
+                                    <?php endif; ?>
+                                </div>
                                 <?php if($cats): ?><div class="shop-list-cats"><?php foreach($cats as $cat) echo '<span>'.esc_html($cat->name).'</span>'; ?></div><?php endif; ?>
                                 <?php if($feats): ?><div class="shop-row-tags"><?php foreach($feats as $feat) echo '<span class="list-tag tag-gray">'.esc_html($feat->name).'</span>'; ?></div><?php endif; ?>
+                                <?php if($upd_date): ?><div class="escomi-archive-update">更新: <?php echo esc_html($upd_date); ?></div><?php endif; ?>
                             </div>
                             <div class="shop-row-meta">
                                 <?php if($hours): ?><div class="meta-box hours"><?php echo esc_html($hours); ?></div><?php endif; ?>

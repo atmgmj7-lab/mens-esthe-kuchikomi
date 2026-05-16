@@ -1091,62 +1091,6 @@ function escomi_has_today_staff($post_id) {
     return is_array($first) && !empty($first['name']);
 }
 
-/**
- * 店舗情報ボックス（コンセプト＋価格＋更新日＋公式リンク）
- */
-function escomi_get_shop_info_box($post_id) {
-    $concept = escomi_get_shop_concept($post_id);
-    $price = escomi_get_shop_price($post_id);
-    $update_date = escomi_get_shop_update_date($post_id);
-    $official_url = get_field('official_url', $post_id) ?: get_post_meta($post_id, 'official_url', true);
-
-    if (empty($concept) && empty($price) && empty($update_date) && empty($official_url)) {
-        return '';
-    }
-
-    $html = '<div class="escomi-shop-info-box">';
-    if (!empty($concept)) {
-        $html .= $concept;
-    }
-    if (!empty($price) || !empty($update_date) || !empty($official_url)) {
-        $html .= '<div class="escomi-shop-info-box__meta">';
-        if (!empty($price)) {
-            $html .= '<div class="escomi-shop-info-box__price">';
-            $html .= '<span class="escomi-shop-info-box__label">最安料金</span>';
-            $html .= '<span class="escomi-shop-info-box__value escomi-shop-info-box__value--price">' . esc_html($price) . '</span>';
-            $html .= '</div>';
-        }
-        if (!empty($update_date)) {
-            $html .= '<div class="escomi-shop-info-box__update">';
-            $html .= '<span class="escomi-shop-info-box__label">最終更新日</span>';
-            $html .= '<span class="escomi-shop-info-box__value">' . esc_html($update_date) . '</span>';
-            $html .= '</div>';
-        }
-        if (!empty($official_url)) {
-            $html .= '<div class="escomi-shop-info-box__link">';
-            $html .= '<a href="' . esc_url($official_url) . '" class="escomi-shop-info-box__button" target="_blank" rel="noopener noreferrer">';
-            $html .= '出勤スケジュールを見る <span class="escomi-shop-info-box__button-icon">→</span>';
-            $html .= '</a>';
-            $html .= '</div>';
-        }
-        $html .= '</div>';
-    }
-    $html .= '</div>';
-    return $html;
-}
-
-// ============================================================
-// 店舗詳細ページの表示フック
-// ============================================================
-
-add_action('swell_before_post_content', 'escomi_display_shop_info_box', 3);
-function escomi_display_shop_info_box() {
-    if (!is_singular('shop')) return;
-    $post_id = get_the_ID() ?: get_queried_object_id();
-    if (!$post_id) return;
-    $html = escomi_get_shop_info_box($post_id);
-    if ($html) echo $html;
-}
 
 // ============================================================
 // ショートコード登録

@@ -146,7 +146,8 @@ get_header();
             if (!is_array($shop_latest_news)) {
                 $shop_latest_news = $shop_latest_news ? [['news' => $shop_latest_news]] : [];
             }
-            $display_update_date = get_the_modified_date('Y年n月j日', $post_id);
+            $display_update_date = (function_exists('escomi_get_shop_update_date') ? escomi_get_shop_update_date($post_id) : '')
+                ?: get_the_modified_date('Y年n月j日', $post_id);
             $has_ai_content = !empty(trim((string) $shop_ai_summary)) || (!empty($shop_latest_news) && count($shop_latest_news) > 0);
         ?>
 
