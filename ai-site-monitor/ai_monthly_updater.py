@@ -14,6 +14,7 @@ ai_monthly_updater.py
 ※ shop_today_analysis / shop_today_therapists 等の毎日出勤データは一切送信しない。
 """
 
+import argparse
 import asyncio
 import json
 import os
@@ -21,6 +22,7 @@ import re
 import sys
 import time
 from base64 import b64encode
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
 
@@ -506,6 +508,7 @@ def update_shop_monthly_summary(
 
     meta: Dict[str, Any] = {
         "shop_ai_summary": summary.strip(),
+        "shop_last_ai_check": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "age_18_19": age_dist.get("age_18_19", 0),
         "age_20_24": age_dist.get("age_20_24", 0),
         "age_25_29": age_dist.get("age_25_29", 0),
@@ -687,6 +690,16 @@ async def main_async() -> None:
 
 
 def main() -> None:
+    global CRAWL_LIMIT
+    parser = argparse.ArgumentParser(description="月次店舗サマリー更新")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--all", action="store_true", help="全店舗を処理（デフォルト）")
+    group.add_argument("--limit", type=int, metavar="N", help="最大N店舗のみ処理")
+    args = parser.parse_args()
+    if args.limit and args.limit > 0:
+        CRAWL_LIMIT = args.limit
+    else:
+        CRAWL_LIMIT = 0
     asyncio.run(main_async())
 
 

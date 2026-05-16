@@ -1,0 +1,62 @@
+name: Monthly Shop Summary Update
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      max_shops:
+        description: '最大店舗数。空欄なら全店舗'
+        required: false
+        type: string
+        default: ''
+jobs:
+  update-monthly-summaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      MAX_SHOPS_MANUAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_shops || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('ai-site-monitor/requirements.txt') }}
+      - name: Install dependencies
+        run: cd ai-site-monitor && pip install -r requirements.txt
+      - name: Install Playwright browsers
+        run: cd ai-site-monitor && python -m playwright install chromium --with-deps
+      - name: Pre-flight REST check
+        env:
+          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
+        run: |
+          HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" -H "Content-Type: application/json" --max-time 15)
+          echo "REST health: HTTP ${HTTP_CODE}"
+          if [ "$HTTP_CODE" = "404" ]; then exit 1; fi
+      - name: Run ai_monthly_updater
+        env:
+          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
+          WP_USER: ${{ secrets.WP_USER }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SHOP_DELAY_SECONDS: '5'
+        run: |
+          cd ai-site-monitor
+          if [ -n "${MAX_SHOPS_MANUAL}" ]; then
+            python ai_monthly_updater.py --limit "${MAX_SHOPS_MANUAL}"
+          else
+            python ai_monthly_updater.py --all
+          fi
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-update-results-${{ github.run_id }}
+          path: ai-site-monitor/results/
+          retention-days: 14
+          if-no-files-found: warn

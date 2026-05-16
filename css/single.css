@@ -5759,3 +5759,30 @@ Escomi 追加スタイル (v2.0) - 完全版
         text-align: left;
     }
 }
+
+/* ============================================================
+   店舗情報ボックス（2026-05-17 追加）
+   ============================================================ */
+.escomi-shop-info-box{background:#FDFBF6;border:1px solid #D4AF37;border-radius:8px;padding:24px 28px 20px;margin-bottom:28px;box-shadow:0 2px 12px rgba(212,175,55,0.12)}
+.escomi-shop-concept__title{font-size:.85rem;font-weight:600;letter-spacing:.12em;color:#D4AF37;margin:0 0 12px;text-transform:uppercase;border-bottom:1px solid rgba(212,175,55,.2);padding-bottom:8px}
+.escomi-shop-concept__content{font-size:1rem;line-height:1.7;color:#5a4a3a;margin-bottom:20px}
+.escomi-shop-info-box__meta{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding-top:16px;border-top:1px solid rgba(212,175,55,.2)}
+.escomi-shop-info-box__price,.escomi-shop-info-box__update{display:flex;flex-direction:column;gap:2px}
+.escomi-shop-info-box__label{font-size:.65rem;font-weight:600;letter-spacing:.1em;color:#8b7d6b;text-transform:uppercase}
+.escomi-shop-info-box__value{font-size:.9rem;font-weight:500;color:#5a4a3a}
+.escomi-shop-info-box__value--price{font-size:1.1rem;font-weight:700;color:#1b5e20}
+.escomi-shop-info-box__link{margin-left:auto}
+.escomi-shop-info-box__button{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,#D4AF37,#b8962e);color:#fff;font-size:.82rem;font-weight:600;letter-spacing:.05em;border-radius:4px;text-decoration:none;transition:all .2s ease;box-shadow:0 2px 6px rgba(212,175,55,.3)}
+.escomi-shop-info-box__button:hover{background:linear-gradient(135deg,#c19b2f,#a38424);box-shadow:0 4px 12px rgba(212,175,55,.4);transform:translateY(-1px);color:#fff;text-decoration:none}
+.escomi-shop-info-box__button-icon{font-size:.9rem;transition:transform .2s ease}
+.escomi-shop-info-box__button:hover .escomi-shop-info-box__button-icon{transform:translateX(3px)}
+.escomi-archive-shop-meta{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
+.escomi-archive-badge{display:inline-block;font-size:.65rem;font-weight:600;letter-spacing:.08em;padding:3px 10px;border-radius:3px}
+.escomi-archive-badge--active{background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff}
+.escomi-archive-badge--pending{background:#e0e0e0;color:#888}
+.escomi-archive-price{font-size:.8rem;font-weight:600;color:#1b5e20}
+.escomi-archive-update{font-size:.65rem;color:#999;margin-left:auto}
+.escomi-badge{display:inline-block;font-size:.7rem;font-weight:600;letter-spacing:.08em;padding:4px 12px;border-radius:3px}
+.escomi-badge--active{background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff}
+.escomi-badge--pending{background:#e0e0e0;color:#888}
+@media (max-width:767px){.escomi-shop-info-box{padding:16px 16px 14px;margin-bottom:20px}.escomi-shop-info-box__meta{flex-direction:column;align-items:flex-start;gap:10px}.escomi-shop-info-box__link{margin-left:0;width:100%}.escomi-shop-info-box__button{width:100%;justify-content:center;text-align:center}.escomi-shop-concept__content{font-size:.9rem}}
