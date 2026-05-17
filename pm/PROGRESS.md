@@ -21,6 +21,7 @@
 | Gemini モデル動的選択・JSON表示バグ修正 | ✅ 完了 | `ai_auto_updater.py` + `functions.php` 修正（2026-05-16） |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
 | agents/フォルダ構築 | ⏳ 未着手 | |
+| ダッシュボード 静的書き出し + GA4連携 | ✅ 完了 | `dashboard/` Next.js 16 静的書き出し。GA4プロキシ・モックUI・CIビルド設定済み（2026-05-17） |
 | エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
 | 日本橋59店舗 `shop_ai_summary` JSON 投入 | ⏳ 待機 | JSON 未配置。配置後: `python3 tools/import_shop_ai_summaries.py`（`content/nihonbashi_shop_summaries.json` または引数でパス指定） |
 | 店舗AI自動更新（全店舗） | ✅ パイロット完了 | `escomi/v1/update` 疎通確認済み（401→認証 OK）。手動1件実行 OK（2026-05-14）。詳細 `SHOP-AI-ROLLOUT.md` |

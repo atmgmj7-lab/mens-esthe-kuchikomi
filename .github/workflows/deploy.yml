@@ -47,6 +47,21 @@ jobs:
               ;;
           esac
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Build Dashboard
+        run: |
+          cd dashboard
+          npm ci
+          npm run build
+          cp -r out/. .
+          rm -rf out
+
       - name: FTP Deploy
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -95,6 +110,23 @@ jobs:
             **/.env.*
             **/*.secret
             **/*.pem
+            dashboard/app/**
+            dashboard/lib/**
+            dashboard/components/**
+            dashboard/public/**
+            dashboard/.next/**
+            dashboard/out/**
+            dashboard/next.config.ts
+            dashboard/tsconfig.json
+            dashboard/postcss.config.mjs
+            dashboard/eslint.config.mjs
+            dashboard/package.json
+            dashboard/package-lock.json
+            dashboard/next-env.d.ts
+            dashboard/README.md
+            dashboard/CLAUDE.md
+            dashboard/AGENTS.md
+            dashboard/.gitignore
 
       - name: Clear OPcache
         env:
