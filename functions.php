@@ -945,6 +945,10 @@ function escomi_get_today_therapists_html($post_id) {
         }
     }
 
+    $update_date = function_exists('escomi_get_shop_update_date') ? escomi_get_shop_update_date($post_id) : '';
+    if ($update_date) {
+        $html .= '<div class="escomi-today-box__update">最終更新: ' . esc_html($update_date) . '</div>';
+    }
     $html .= '</div>';
     return $html;
 }

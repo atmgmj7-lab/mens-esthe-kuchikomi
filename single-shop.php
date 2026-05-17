@@ -313,10 +313,6 @@ get_header();
                 if ($today_box_html): 
                 ?>
                 <section class="shop-info-section u-mt-40 u-mb-50">
-                    <h2 class="mod-customColor es-sec-title">
-                        <span class="es-sec-title__en">TODAY'S STAFF</span>
-                        <span class="es-sec-title__ja">本日の出勤＆空き状況</span>
-                    </h2>
                     <?php echo $today_box_html; ?>
                 </section>
                 <?php endif; ?>
