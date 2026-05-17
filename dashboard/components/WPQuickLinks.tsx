@@ -1,3 +1,8 @@
+const AGENT_LINKS = [
+  { label: "📊 進捗モニター", href: "http://localhost:3333" },
+  { label: "🧠 AI記憶", href: "http://localhost:3333" },
+];
+
 type Props = {
   adminUrl?: string;
 };
@@ -18,7 +23,25 @@ export default function WPQuickLinks({
   adminUrl = "https://mens-esthe-kuchikomi.com",
 }: Props) {
   return (
-    <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
+    <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
+      <div>
+        <p className="text-sm font-medium text-zinc-300 mb-1">Agent Foundation</p>
+        <p className="text-xs text-zinc-600 mb-2">※ローカル起動時のみ</p>
+        <div className="flex flex-wrap gap-2">
+          {AGENT_LINKS.map((link) => (
+            <a
+              key={link.label}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 text-xs rounded-lg bg-indigo-950 text-indigo-300 hover:bg-indigo-900 hover:text-white transition-colors border border-indigo-800"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+      </div>
+      <div>
       <p className="text-sm font-medium text-zinc-300 mb-3">WP管理画面</p>
       <div className="flex flex-wrap gap-2">
         {LINKS.map((link) => (
@@ -32,6 +55,7 @@ export default function WPQuickLinks({
             {link.label}
           </a>
         ))}
+      </div>
       </div>
     </div>
   );
