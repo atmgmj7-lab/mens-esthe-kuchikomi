@@ -16,16 +16,34 @@ export type PageMetric = {
   path: string;
   title: string;
   pageviews: number;
+  sessions: number;
 };
+
+export type CreativeMetric = {
+  creative: string;
+  campaign: string;
+  pageviews: number;
+  sessions: number;
+  users: number;
+  bounceRate: number;
+  avgDuration: number;
+};
+
+import type { PeriodDays } from "./period";
 
 const PROXY_URL =
   "/wp-content/themes/swell_child/dashboard/api/ga-proxy.php";
 
-async function fetchProxy<T>(action: string, fallback: T): Promise<T> {
+async function fetchProxy<T>(
+  action: string,
+  days: PeriodDays,
+  fallback: T
+): Promise<T> {
   try {
-    const res = await fetch(`${PROXY_URL}?action=${action}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${PROXY_URL}?action=${action}&days=${encodeURIComponent(String(days))}`,
+      { cache: "no-store" }
+    );
     if (!res.ok) return fallback;
     const json = await res.json();
     return json as T;
@@ -34,11 +52,11 @@ async function fetchProxy<T>(action: string, fallback: T): Promise<T> {
   }
 }
 
-// ─── モックデータ ───────────────────────────────
-function mockDaily(): DailyMetric[] {
+function mockDaily(days: PeriodDays): DailyMetric[] {
+  const count = days === "all" ? 90 : days;
   const data: DailyMetric[] = [];
   const now = new Date();
-  for (let i = 29; i >= 0; i--) {
+  for (let i = count - 1; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const dow = d.getDay();
@@ -64,38 +82,57 @@ function mockDaily(): DailyMetric[] {
   return data;
 }
 
-const MOCK_TOTALS: Totals = {
-  pageviews: 28450,
-  sessions: 19320,
-  bounceRate: 42.3,
-  avgDuration: 187,
-  _mock: true,
-};
+function mockTotals(days: PeriodDays): Totals {
+  const daily = mockDaily(days);
+  const pageviews = daily.reduce((s, d) => s + d.pageviews, 0);
+  const sessions = daily.reduce((s, d) => s + d.sessions, 0);
+  return {
+    pageviews,
+    sessions,
+    bounceRate: 42.3,
+    avgDuration: 187,
+    _mock: true,
+  };
+}
 
 const MOCK_PAGES: PageMetric[] = [
-  { path: "/shop/genie/", title: "ジーニー（渋谷）", pageviews: 3240 },
-  { path: "/shop/relax-men/", title: "RELAX MEN（新宿）", pageviews: 2870 },
-  { path: "/shop/bliss-tokyo/", title: "BLISS TOKYO", pageviews: 2310 },
-  { path: "/area/tokyo/", title: "東京エリアのメンズエステ", pageviews: 2100 },
-  { path: "/shop/angel-spa/", title: "エンジェルスパ（池袋）", pageviews: 1890 },
-  { path: "/area/osaka/", title: "大阪エリアのメンズエステ", pageviews: 1720 },
-  { path: "/shop/serene-touch/", title: "セリーンタッチ（梅田）", pageviews: 1540 },
-  { path: "/ranking/", title: "人気ランキング", pageviews: 1380 },
-  { path: "/shop/pure-hands/", title: "ピュアハンズ（横浜）", pageviews: 1260 },
-  { path: "/", title: "メンズエステ口コミランキング TOP", pageviews: 1140 },
+  { path: "/shop/genie/", title: "ジーニー（渋谷）", pageviews: 3240, sessions: 2180 },
+  { path: "/shop/relax-men/", title: "RELAX MEN（新宿）", pageviews: 2870, sessions: 1920 },
+  { path: "/shop/bliss-tokyo/", title: "BLISS TOKYO", pageviews: 2310, sessions: 1540 },
+  { path: "/area/tokyo/", title: "東京エリアのメンズエステ", pageviews: 2100, sessions: 1480 },
+  { path: "/shop/angel-spa/", title: "エンジェルスパ（池袋）", pageviews: 1890, sessions: 1260 },
+  { path: "/area/osaka/", title: "大阪エリアのメンズエステ", pageviews: 1720, sessions: 1150 },
+  { path: "/shop/serene-touch/", title: "セリーンタッチ（梅田）", pageviews: 1540, sessions: 1030 },
+  { path: "/ranking/", title: "人気ランキング", pageviews: 1380, sessions: 920 },
+  { path: "/shop/pure-hands/", title: "ピュアハンズ（横浜）", pageviews: 1260, sessions: 840 },
+  { path: "/", title: "メンズエステ口コミランキング TOP", pageviews: 1140, sessions: 760 },
 ];
 
-// ─── Public API ─────────────────────────────────
-export async function fetchGA4Daily(): Promise<DailyMetric[]> {
-  return fetchProxy<DailyMetric[]>("daily", mockDaily());
+const MOCK_CREATIVES: CreativeMetric[] = [
+  { creative: "バナーA_日本橋", campaign: "Search_関西", pageviews: 4820, sessions: 3210, users: 2890, bounceRate: 38.4, avgDuration: 204 },
+  { creative: "テキスト_初回割", campaign: "Search_関西", pageviews: 3910, sessions: 2680, users: 2410, bounceRate: 41.2, avgDuration: 178 },
+  { creative: "リスティング_口コミ訴求", campaign: "Search_東京", pageviews: 3540, sessions: 2390, users: 2150, bounceRate: 44.8, avgDuration: 165 },
+  { creative: "P-MAX_動画01", campaign: "PMAX_全国", pageviews: 2980, sessions: 2100, users: 1980, bounceRate: 52.1, avgDuration: 142 },
+  { creative: "ディスプレイ_300x250", campaign: "Display_リターゲ", pageviews: 2210, sessions: 1540, users: 1420, bounceRate: 58.6, avgDuration: 118 },
+  { creative: "バナーB_梅田", campaign: "Search_関西", pageviews: 1870, sessions: 1290, users: 1180, bounceRate: 46.3, avgDuration: 171 },
+  { creative: "テキスト_24h営業", campaign: "Search_名古屋", pageviews: 1620, sessions: 1120, users: 1040, bounceRate: 49.7, avgDuration: 156 },
+  { creative: "YouTube_15s", campaign: "Video_認知", pageviews: 1340, sessions: 980, users: 920, bounceRate: 61.2, avgDuration: 95 },
+];
+
+export async function fetchGA4Daily(days: PeriodDays): Promise<DailyMetric[]> {
+  return fetchProxy<DailyMetric[]>("daily", days, mockDaily(days));
 }
 
-export async function fetchGA4Totals(): Promise<Totals> {
-  return fetchProxy<Totals>("totals", MOCK_TOTALS);
+export async function fetchGA4Totals(days: PeriodDays): Promise<Totals> {
+  return fetchProxy<Totals>("totals", days, mockTotals(days));
 }
 
-export async function fetchGA4Pages(): Promise<PageMetric[]> {
-  return fetchProxy<PageMetric[]>("pages", MOCK_PAGES);
+export async function fetchGA4Pages(days: PeriodDays): Promise<PageMetric[]> {
+  return fetchProxy<PageMetric[]>("pages", days, MOCK_PAGES);
+}
+
+export async function fetchGA4Creatives(days: PeriodDays): Promise<CreativeMetric[]> {
+  return fetchProxy<CreativeMetric[]>("creatives", days, MOCK_CREATIVES);
 }
 
 export function formatDuration(seconds: number): string {
@@ -106,4 +143,8 @@ export function formatDuration(seconds: number): string {
 
 export function formatNumber(n: number): string {
   return n.toLocaleString("ja-JP");
+}
+
+export function formatPercent(n: number): string {
+  return `${n.toFixed(1)}%`;
 }

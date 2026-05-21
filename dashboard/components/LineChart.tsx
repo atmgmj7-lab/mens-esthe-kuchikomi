@@ -6,6 +6,7 @@ type Props = {
   data: DailyMetric[];
   loading?: boolean;
   error?: string;
+  periodLabel?: string;
 };
 
 const W = 800;
@@ -31,7 +32,12 @@ function fmtDate(yyyymmdd: string): string {
   return `${parseInt(m)}/${parseInt(d)}`;
 }
 
-export default function LineChart({ data, loading, error }: Props) {
+export default function LineChart({
+  data,
+  loading,
+  error,
+  periodLabel = "30日",
+}: Props) {
   if (loading) {
     return (
       <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
@@ -74,7 +80,7 @@ export default function LineChart({ data, loading, error }: Props) {
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
       <div className="flex items-center gap-4 mb-3">
         <p className="text-sm font-medium text-zinc-300">
-          PV / セッション推移（30日）
+          PV / セッション推移（{periodLabel}）
         </p>
         <span className="flex items-center gap-1 text-xs text-indigo-400">
           <span className="inline-block w-3 h-0.5 bg-indigo-400 rounded" /> PV

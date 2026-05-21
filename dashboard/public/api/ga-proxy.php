@@ -1,10 +1,7 @@
 <?php
 /**
  * GA4 Data API プロキシ
- * 設定: wp-config.php に以下を追加
- *   define('GA4_PROPERTY_ID', 'properties/XXXXXXXXX');
- *   define('GA4_CREDENTIALS_PATH', '/path/to/service-account.json');
- * 未設定時はモックデータを返す
+ * クエリ: action=daily|totals|pages|creatives & days=7|30|90|all
  */
 
 header('Content-Type: application/json; charset=utf-8');
@@ -18,28 +15,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $action = $_GET['action'] ?? 'daily';
+$days   = $_GET['days'] ?? '30';
 
-// GA4設定確認
 $configured = defined('GA4_PROPERTY_ID') && defined('GA4_CREDENTIALS_PATH')
     && file_exists(GA4_CREDENTIALS_PATH);
 
 if (!$configured) {
-    echo json_encode(get_mock_data($action));
+    echo json_encode(get_mock_data($action, $days));
     exit;
 }
 
 try {
     $token = get_access_token(GA4_CREDENTIALS_PATH);
-    $data  = fetch_ga4_data($action, GA4_PROPERTY_ID, $token);
+    $data  = fetch_ga4_data($action, GA4_PROPERTY_ID, $token, $days);
     echo json_encode($data);
 } catch (Exception $e) {
-    // エラー時はモックにフォールバック（本番障害を防ぐ）
-    echo json_encode(get_mock_data($action));
+    echo json_encode(get_mock_data($action, $days));
 }
 
-// ─────────────────────────────────────────────
-// GA4 認証（JWT → アクセストークン）
-// ─────────────────────────────────────────────
+function get_date_range(string $days): array
+{
+    $today = date('Y-m-d');
+    if ($days === 'all') {
+        return ['startDate' => '2020-01-01', 'endDate' => $today];
+    }
+    $n = max(1, min(366, (int) $days));
+    return [
+        'startDate' => date('Y-m-d', strtotime('-' . ($n - 1) . ' days')),
+        'endDate'   => $today,
+    ];
+}
+
 function get_access_token(string $credentials_path): string
 {
     $creds = json_decode(file_get_contents($credentials_path), true);
@@ -80,13 +86,10 @@ function get_access_token(string $credentials_path): string
     return $json['access_token'];
 }
 
-// ─────────────────────────────────────────────
-// GA4 Data API v1beta runReport
-// ─────────────────────────────────────────────
-function fetch_ga4_data(string $action, string $property, string $token): array
+function fetch_ga4_data(string $action, string $property, string $token, string $days): array
 {
     $url  = "https://analyticsdata.googleapis.com/v1beta/{$property}:runReport";
-    $body = build_report_body($action);
+    $body = build_report_body($action, $days);
 
     $ctx = stream_context_create(['http' => [
         'method'  => 'POST',
@@ -103,15 +106,14 @@ function fetch_ga4_data(string $action, string $property, string $token): array
     return parse_ga4_response($action, json_decode($res, true));
 }
 
-function build_report_body(string $action): array
+function build_report_body(string $action, string $days): array
 {
-    $today = date('Y-m-d');
-    $d30   = date('Y-m-d', strtotime('-29 days'));
+    $range = get_date_range($days);
 
     switch ($action) {
         case 'totals':
             return [
-                'dateRanges' => [['startDate' => $d30, 'endDate' => $today]],
+                'dateRanges' => [$range],
                 'metrics'    => [
                     ['name' => 'screenPageViews'],
                     ['name' => 'sessions'],
@@ -121,15 +123,32 @@ function build_report_body(string $action): array
             ];
         case 'pages':
             return [
-                'dateRanges' => [['startDate' => $d30, 'endDate' => $today]],
+                'dateRanges' => [$range],
                 'dimensions' => [['name' => 'pagePath'], ['name' => 'pageTitle']],
-                'metrics'    => [['name' => 'screenPageViews']],
+                'metrics'    => [['name' => 'screenPageViews'], ['name' => 'sessions']],
                 'orderBys'   => [['metric' => ['metricName' => 'screenPageViews'], 'desc' => true]],
                 'limit'      => 10,
             ];
-        default: // daily
+        case 'creatives':
             return [
-                'dateRanges' => [['startDate' => $d30, 'endDate' => $today]],
+                'dateRanges' => [$range],
+                'dimensions' => [
+                    ['name' => 'sessionManualAdContent'],
+                    ['name' => 'sessionCampaignName'],
+                ],
+                'metrics'    => [
+                    ['name' => 'screenPageViews'],
+                    ['name' => 'sessions'],
+                    ['name' => 'totalUsers'],
+                    ['name' => 'bounceRate'],
+                    ['name' => 'averageSessionDuration'],
+                ],
+                'orderBys'   => [['metric' => ['metricName' => 'sessions'], 'desc' => true]],
+                'limit'      => 20,
+            ];
+        default:
+            return [
+                'dateRanges' => [$range],
                 'dimensions' => [['name' => 'date']],
                 'metrics'    => [['name' => 'screenPageViews'], ['name' => 'sessions']],
                 'orderBys'   => [['dimension' => ['dimensionName' => 'date']]],
@@ -156,10 +175,29 @@ function parse_ga4_response(string $action, array $raw): array
             'path'      => $r['dimensionValues'][0]['value'] ?? '/',
             'title'     => $r['dimensionValues'][1]['value'] ?? '',
             'pageviews' => (int)($r['metricValues'][0]['value'] ?? 0),
+            'sessions'  => (int)($r['metricValues'][1]['value'] ?? 0),
         ], $rows);
     }
 
-    // daily
+    if ($action === 'creatives') {
+        return array_map(function ($r) {
+            $creative = $r['dimensionValues'][0]['value'] ?? '(not set)';
+            $campaign = $r['dimensionValues'][1]['value'] ?? '(not set)';
+            if ($creative === '(not set)' || $creative === '') {
+                $creative = '(クリエイティブ未設定)';
+            }
+            return [
+                'creative'    => $creative,
+                'campaign'    => $campaign,
+                'pageviews'   => (int)($r['metricValues'][0]['value'] ?? 0),
+                'sessions'    => (int)($r['metricValues'][1]['value'] ?? 0),
+                'users'       => (int)($r['metricValues'][2]['value'] ?? 0),
+                'bounceRate'  => round((float)($r['metricValues'][3]['value'] ?? 0) * 100, 1),
+                'avgDuration' => (int)($r['metricValues'][4]['value'] ?? 0),
+            ];
+        }, $rows);
+    }
+
     return array_map(fn($r) => [
         'date'      => $r['dimensionValues'][0]['value'] ?? '',
         'pageviews' => (int)($r['metricValues'][0]['value'] ?? 0),
@@ -167,15 +205,23 @@ function parse_ga4_response(string $action, array $raw): array
     ], $rows);
 }
 
-// ─────────────────────────────────────────────
-// モックデータ（GA4未設定時・エラー時）
-// ─────────────────────────────────────────────
-function get_mock_data(string $action): array
+function mock_day_count(string $days): int
+{
+    if ($days === 'all') {
+        return 90;
+    }
+    return max(1, min(366, (int) $days));
+}
+
+function get_mock_data(string $action, string $days): array
 {
     if ($action === 'totals') {
+        $daily = get_mock_data('daily', $days);
+        $pv = array_sum(array_column($daily, 'pageviews'));
+        $ses = array_sum(array_column($daily, 'sessions'));
         return [
-            'pageviews'   => 28450,
-            'sessions'    => 19320,
+            'pageviews'   => $pv,
+            'sessions'    => $ses,
             'bounceRate'  => 42.3,
             'avgDuration' => 187,
             '_mock'       => true,
@@ -184,27 +230,44 @@ function get_mock_data(string $action): array
 
     if ($action === 'pages') {
         $pages = [
-            ['/shop/genie/', 'ジーニー（渋谷）', 3240],
-            ['/shop/relax-men/', 'RELAX MEN（新宿）', 2870],
-            ['/shop/bliss-tokyo/', 'BLISS TOKYO', 2310],
-            ['/area/tokyo/', '東京エリアのメンズエステ', 2100],
-            ['/shop/angel-spa/', 'エンジェルスパ（池袋）', 1890],
-            ['/area/osaka/', '大阪エリアのメンズエステ', 1720],
-            ['/shop/serene-touch/', 'セリーンタッチ（梅田）', 1540],
-            ['/ranking/', '人気ランキング', 1380],
-            ['/shop/pure-hands/', 'ピュアハンズ（横浜）', 1260],
-            ['/', 'メンズエステ口コミランキング TOP', 1140],
+            ['/shop/genie/', 'ジーニー（渋谷）', 3240, 2180],
+            ['/shop/relax-men/', 'RELAX MEN（新宿）', 2870, 1920],
+            ['/shop/bliss-tokyo/', 'BLISS TOKYO', 2310, 1540],
+            ['/area/tokyo/', '東京エリアのメンズエステ', 2100, 1480],
+            ['/shop/angel-spa/', 'エンジェルスパ（池袋）', 1890, 1260],
+            ['/area/osaka/', '大阪エリアのメンズエステ', 1720, 1150],
+            ['/shop/serene-touch/', 'セリーンタッチ（梅田）', 1540, 1030],
+            ['/ranking/', '人気ランキング', 1380, 920],
+            ['/shop/pure-hands/', 'ピュアハンズ（横浜）', 1260, 840],
+            ['/', 'メンズエステ口コミランキング TOP', 1140, 760],
         ];
         return array_map(fn($p) => [
-            'path' => $p[0], 'title' => $p[1], 'pageviews' => $p[2],
+            'path' => $p[0], 'title' => $p[1], 'pageviews' => $p[2], 'sessions' => $p[3],
         ], $pages);
     }
 
-    // daily: 30日分
+    if ($action === 'creatives') {
+        $items = [
+            ['バナーA_日本橋', 'Search_関西', 4820, 3210, 2890, 38.4, 204],
+            ['テキスト_初回割', 'Search_関西', 3910, 2680, 2410, 41.2, 178],
+            ['リスティング_口コミ訴求', 'Search_東京', 3540, 2390, 2150, 44.8, 165],
+            ['P-MAX_動画01', 'PMAX_全国', 2980, 2100, 1980, 52.1, 142],
+            ['ディスプレイ_300x250', 'Display_リターゲ', 2210, 1540, 1420, 58.6, 118],
+            ['バナーB_梅田', 'Search_関西', 1870, 1290, 1180, 46.3, 171],
+            ['テキスト_24h営業', 'Search_名古屋', 1620, 1120, 1040, 49.7, 156],
+            ['YouTube_15s', 'Video_認知', 1340, 980, 920, 61.2, 95],
+        ];
+        return array_map(fn($c) => [
+            'creative' => $c[0], 'campaign' => $c[1], 'pageviews' => $c[2],
+            'sessions' => $c[3], 'users' => $c[4], 'bounceRate' => $c[5], 'avgDuration' => $c[6],
+        ], $items);
+    }
+
+    $count = mock_day_count($days);
     $data = [];
     $base_pv  = 900;
     $base_ses = 620;
-    for ($i = 29; $i >= 0; $i--) {
+    for ($i = $count - 1; $i >= 0; $i--) {
         $noise   = (int)(sin($i * 0.7) * 150 + cos($i * 1.3) * 80);
         $weekend = in_array(date('N', strtotime("-{$i} days")), ['6', '7']) ? 200 : 0;
         $data[]  = [
