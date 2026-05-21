@@ -17,10 +17,10 @@
 | area-seo-hooks-optimized接続 | ✅ 完了 | `functions.php` で `area-seo-hooks-optimized.php` を読込 |
 | 日本橋SEO／エリアページ ACF の HTML 出力 | ✅ 完了 | `taxonomy-area.php` に特性・コラム・FAQ・JSON-LD を直接出力（SWELL フック非対応分の補完）（2026-04-29） |
 | REST API権限強化 | ✅ 完了 | `escomi/v1/update` は POST + `edit_posts`（2026-05-10） |
-| REST API 401「Missing API key.」修正 | ✅ 完了 | CloudSecure が書き換えた `permission_callback` をサーバー直接修正（2026-05-15） |
+| REST API 401「Missing API key.」修正 | ⏳ 再調査中 | `functions.php` v4/v5 デプロイ済みだが本番匿名 POST は依然 `Missing API key.`（2026-05-21） |
 | Gemini モデル動的選択・JSON表示バグ修正 | ✅ 完了 | `ai_auto_updater.py` + `functions.php` 修正（2026-05-16） |
 | ai-site-monitor稼働確認 | ✅ 一部完了 | mens-esthe-seo-tools: 実URL4件監視（`/area/namba/` はサイトに該当ページなしのため対象外） |
-| agents/フォルダ構築 | ⏳ 未着手 | |
+| Agent Foundation（ローカル監視） | ✅ 一部完了 | `agent-foundation/` Flask + `start.sh` で Dashboard 連携起動（2026-05-21） |
 | ダッシュボード 静的書き出し + GA4連携 | ✅ 完了 | `dashboard/` Next.js 16 静的書き出し。GA4プロキシ・モックUI・CIビルド設定済み（2026-05-17） |
 | エリア・店舗コンテンツ（ACF） | ✅ 一部完了（日本橋 WP-CLI 投入済） | その他エリア・`area_column_content` 等は `pm/CONTENT-IMPLEMENTATION-GUIDE.md` |
 | 日本橋59店舗 `shop_ai_summary` JSON 投入 | ⏳ 待機 | JSON 未配置。配置後: `python3 tools/import_shop_ai_summaries.py`（`content/nihonbashi_shop_summaries.json` または引数でパス指定） |
@@ -28,6 +28,7 @@
 
 #### ブロッカー
 - （自動デプロイ系）FTP Secrets 未登録は解除済み。REST `escomi/v1/update` は権限チェック済み（2026-05-10）
+- **本番 REST `Missing API key.` 再発**: ローカルに該当文字列なし → サーバー側 `mu-plugins/proxy-app-passwords.php` 再生成、OPcache、または `rest_pre_dispatch` 経路の切り分けが必要。確認: `GET /wp-json/escomi/v1/debug`（`deployed: v5` か）
 - `.htaccess` Authorization ヘッダー転送: サーバー直接作業が必要。Xserver ファイルマネージャーで `/public_html/.htaccess` 先頭付近（`# BEGIN WordPress` の上）に `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` を追加する。
 
 #### 次のアクション
@@ -39,6 +40,21 @@
 - [ ] 日本橋エリア SEO ギャップ埋め（`area_column_content` 等・競合対策）
 - [x] 店舗 AI 自動更新パイロット（`daily_shop_update.yml` 1件実行成功・`escomi/v1/update` 疎通確認 2026-05-14）
 - [ ] SEOツールをRenderにデプロイ
+- [ ] 本番 `Missing API key.` 解消（`/escomi/v1/debug` → mu-plugins 確認 → 認証付き POST 再テスト）
+
+### 2026-05-21 REST API 再調査 + Agent Foundation ローカル起動
+
+#### 内容
+- **REST 401 再調査**: デプロイ後も `POST /wp-json/escomi/v1/update`（認証なし）が `rest_forbidden` + `Missing API key.` のまま。OPcache 単独説は不十分。`functions.php` では `rest_authentication_errors` と `rest_pre_dispatch` の両方で遮断、`init` で `proxy-app-passwords.php` 自動削除、`GET /escomi/v1/debug`（v5・OPcache reset）を実装済み。
+- **Agent Foundation**: `agent-foundation/`（Flask 監視 UI・Obsidian エクスポート・WP/GA モック連携）と `start.sh`（Dashboard + Agent Foundation 一括起動）を追加。
+- **作業メモ**: 別チャット相談用に調査ログを整理済み。
+
+#### 変更ファイル
+- `agent-foundation/`（新規）
+- `start.sh`（新規）
+- `pm/PROGRESS.md`
+
+---
 
 ### 2026-05-10 店舗AI自動更新: SQLite キャッシュ・REST 認可・異常終了
 
