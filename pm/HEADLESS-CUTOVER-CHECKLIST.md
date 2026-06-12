@@ -260,10 +260,10 @@ Search Console の **ページ** → **インデックス作成** で、切替�
 
 ### 14. キャッシュ・再検証
 
-1. **初回（本番・手動）:** `wp-config.php` に `define('ESCOMI_REVALIDATE_SECRET', '…');` を追加（Vercel `REVALIDATE_SECRET` と同値）。任意で `ESCOMI_HEADLESS_REVALIDATE_URL`。
+1. **初回（本番・手動）:** `wp-config.php` に `define('ESCOMI_REVALIDATE_SECRET', '…');` を追加（Vercel `REVALIDATE_SECRET` と同値）。任意で `ESCOMI_HEADLESS_REVALIDATE_URL`（例: `https://mens-esthe-kuchikomi.com/api/revalidate/`）。
 2. 子テーマ `functions.php`（`escomi_headless_*`）が FTP 反映済みであること。
 3. WP で店舗・投稿・エリアを 1 件更新 → 本番 Headless の表示が追従するか確認。
-4. API 直接確認: `pm/RUNBOOK.md` **A-5** の curl（`?tag=wp` または POST + `x-revalidate-secret`）。
+4. API 直接確認: `pm/RUNBOOK.md` **A-5** の curl（`?tag=wp` または `POST /api/revalidate/` + `x-revalidate-secret`）。
 
 自動通知は 20 秒 throttle。autosave / revision は除外。
 

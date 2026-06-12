@@ -4,6 +4,8 @@
 
 ### 2026-06-13 app-development Phase 1-3（WP revalidate 通知 + CSS 余白基盤）
 
+- POST先 revalidate URL を末尾スラッシュ付き（`/api/revalidate/`）へ正規化し、308 リダイレクトを回避
+
 #### 要件 A: WordPress 更新 → Next 即時反映
 - `functions.php` に `escomi_headless_*` で revalidate 通知を追加
 - フック: `save_post_shop/post/page`, `trashed_post`, `deleted_post`, `edited_area`, `created_area`, `delete_area`

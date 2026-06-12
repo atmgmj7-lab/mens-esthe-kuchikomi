@@ -1184,10 +1184,16 @@ function escomi_add_shop_archive_badges($content) {
 
 if (!function_exists('escomi_headless_revalidate_get_url')) {
     function escomi_headless_revalidate_get_url() {
-        if (defined('ESCOMI_HEADLESS_REVALIDATE_URL') && ESCOMI_HEADLESS_REVALIDATE_URL) {
-            return ESCOMI_HEADLESS_REVALIDATE_URL;
+        $url = (defined('ESCOMI_HEADLESS_REVALIDATE_URL') && ESCOMI_HEADLESS_REVALIDATE_URL)
+            ? ESCOMI_HEADLESS_REVALIDATE_URL
+            : 'https://mens-esthe-kuchikomi.com/api/revalidate/';
+
+        $query_pos = strpos($url, '?');
+        if ($query_pos !== false) {
+            return trailingslashit(substr($url, 0, $query_pos)) . substr($url, $query_pos);
         }
-        return 'https://mens-esthe-kuchikomi.com/api/revalidate';
+
+        return trailingslashit($url);
     }
 }
 

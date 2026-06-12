@@ -200,7 +200,7 @@ curl -sS -o /dev/null -w "%{http_code}\n" -u 'WP_USER:WP_APP_PASSWORD' \
 
 ## A-5. WordPress → Headless キャッシュ再検証（即時反映）
 
-店舗・投稿・固定ページ・`area` タクソノミーを WordPress で保存すると、子テーマ `functions.php` の `escomi_headless_*` が Next の `/api/revalidate` へ POST します（20 秒 throttle・同一リクエストは 1 回）。
+店舗・投稿・固定ページ・`area` タクソノミーを WordPress で保存すると、子テーマ `functions.php` の `escomi_headless_*` が Next の `/api/revalidate/` へ POST します（20 秒 throttle・同一リクエストは 1 回）。
 
 ### C. 初回設定（`wp-config.php`・手動）
 
@@ -209,7 +209,7 @@ curl -sS -o /dev/null -w "%{http_code}\n" -u 'WP_USER:WP_APP_PASSWORD' \
 ```php
 define('ESCOMI_REVALIDATE_SECRET', 'VercelのREVALIDATE_SECRETと同じ値');
 // 任意: プレビュー URL や別ドメイン向け
-// define('ESCOMI_HEADLESS_REVALIDATE_URL', 'https://mens-esthe-kuchikomi.com/api/revalidate');
+// define('ESCOMI_HEADLESS_REVALIDATE_URL', 'https://mens-esthe-kuchikomi.com/api/revalidate/');
 ```
 
 代替: 環境変数 `ESCOMI_REVALIDATE_SECRET`、または WP option `escomi_revalidate_secret`（定数が最優先）。
@@ -226,7 +226,7 @@ curl -sS "https://mens-esthe-kuchikomi.com/api/revalidate?tag=wp"
 curl -sS "https://mens-esthe-kuchikomi.com/api/revalidate?tag=wp&secret=<SECRET>"
 
 # POST（WP から送る形式に近い）
-curl -sS -X POST "https://mens-esthe-kuchikomi.com/api/revalidate" \
+curl -sS -X POST "https://mens-esthe-kuchikomi.com/api/revalidate/" \
   -H "Content-Type: application/json" \
   -H "x-revalidate-secret: <SECRET>" \
   -d '{"tag":"wp","reason":"manual_test"}'
