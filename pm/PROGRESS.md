@@ -2,6 +2,15 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless origin proxy 本番反映完了
+
+- commit `2260655` を `main` に push 済み
+- GitHub Actions: Deploy Headless to Vercel run `27403883247` 成功、Deploy to Xserver run `27403883246` 成功
+- `https://escomi-headless.vercel.app` で `/wp-json`・`/wp-content`・SEO cutover check が成功
+- DNS はまだ Xserver のまま（A=`85.131.213.108` / MX=`mens-esthe-kuchikomi.com`）。次は MX を `sv16727.xserver.jp` に変更してから A を Vercel へ切り替える
+
+---
+
 ### 2026-06-12 Headless WP origin proxy（DNS 切替前）
 
 - DNS 切替後も WP REST API / wp-content が壊れないよう、headless に origin proxy を実装
