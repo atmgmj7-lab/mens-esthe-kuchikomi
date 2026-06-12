@@ -2,6 +2,17 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless DNS cutover 完了
+
+- MX: 優先度 0 `sv16727.xserver.jp` に反映済み
+- A レコード: `mens-esthe-kuchikomi.com` / `www` / wildcard → `76.76.21.21` に反映済み
+- Vercel certs issue: `mens-esthe-kuchikomi.com` と `www` の証明書を発行済み
+- `https://mens-esthe-kuchikomi.com` → HTTP/2 200、`/wp-json`・`/wp-content` → 200
+- `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` 全合格
+- 次: Search Console で sitemap 送信と URL 検査
+
+---
+
 ### 2026-06-12 Headless origin proxy 本番反映完了
 
 - commit `2260655` を `main` に push 済み
