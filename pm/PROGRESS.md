@@ -2,6 +2,15 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless Vercel CI workflow 修正（GitHub secrets 経由 SMTP）
+
+- Vercel pull だけでは GitHub Actions 内の SMTP チェックに機密 env が渡らず失敗した
+- GitHub Repository Secrets に SMTP/CONTACT 系の値を登録済み
+- workflow の contact:check-env ステップへ secrets を env として渡すよう修正
+- 検証予定: `npm run contact:check-env` / `npm run lint` / `npm run build` / main push 後の GitHub Actions 確認
+
+---
+
 ### 2026-06-12 Headless Vercel CI workflow 修正（env 同期）
 
 #### 失敗原因（run 27400076147）

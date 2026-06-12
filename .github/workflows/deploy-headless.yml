@@ -105,6 +105,14 @@ jobs:
         run: npm run build
 
       - name: Check contact form environment
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          CONTACT_FROM_EMAIL: ${{ secrets.CONTACT_FROM_EMAIL }}
+          CONTACT_TO_EMAIL: ${{ secrets.CONTACT_TO_EMAIL }}
+          CONTACT_FORM_DRY_RUN: ${{ secrets.CONTACT_FORM_DRY_RUN }}
         run: npm run contact:check-env
 
       - name: Vercel build (prebuilt)
