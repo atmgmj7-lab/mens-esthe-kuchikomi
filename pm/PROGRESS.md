@@ -2,6 +2,18 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 Search Console 初期反映
+
+- sitemap.xml を Search Console に送信済み
+- URL検査でトップ、`/area/osaka/`、`/area/nihonbashi/`、`/shops/` をインデックス登録リクエスト済み
+- robots.txt / sitemap.xml / canonical / noindex / GA4 / sitemap内店舗URLサンプルの事前チェックは合格済み
+- 次タスク: SEO強化（エリア本文増強、構造化データ強化、内部リンク強化、title/description改善）
+
+#### 変更ファイル
+- `pm/PROGRESS.md`
+
+---
+
 ### 2026-06-13 app-development Phase 1-3（WP revalidate 通知 + CSS 余白基盤）
 
 - POST先 revalidate URL を末尾スラッシュ付き（`/api/revalidate/`）へ正規化し、308 リダイレクトを回避
@@ -548,7 +560,7 @@
 | 項目 | 状態 | 備考 |
 |------|------|------|
 | GA4実装 | ✅ 完了 | G-6XFMW5XKBW |
-| Search Console | ✅ 完了 | サイトマップ送信済み |
+| Search Console | ✅ 完了 | sitemap 送信・主要4URLインデックス登録リクエスト済み（2026-06-13） |
 | GitHubリポジトリ | ✅ 完了 | atmgmj7-lab/mens-esthe-kuchikomi |
 | GitHub Actions | ✅ 完了 | deploy.yml作成済み |
 | CLAUDE.md整理 | ✅ 完了 | スリム化・ファイル分担構成 |
@@ -574,6 +586,8 @@
 - `.htaccess` Authorization ヘッダー転送: サーバー直接作業が必要。Xserver ファイルマネージャーで `/public_html/.htaccess` 先頭付近（`# BEGIN WordPress` の上）に `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` を追加する。
 
 #### 次のアクション
+- [x] Search Console 初期反映（sitemap 送信・主要URLインデックス登録リクエスト）（2026-06-13）
+- [ ] SEO強化（エリア本文増強、構造化データ強化、内部リンク強化、title/description改善）
 - [x] FTP Secrets 登録・自動デプロイ疎通（dry-run → 本番転送）（2026-05-09）
 - [x] デプロイ後 `/area/osaka/` で `lux-map-iframe` の表示確認（curl）
 - [x] REST API 401「Missing API key.」解消（2026-05-15）
