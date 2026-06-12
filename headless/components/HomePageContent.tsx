@@ -31,6 +31,8 @@ export function HomePageContent({
                       alt="Escomi（エスコミ）| 関西メンズエステ口コミナビ"
                       width={400}
                       height={120}
+                      fetchPriority="high"
+                      decoding="async"
                     />
                   </h1>
                   <div className="mep-hero-count-box">

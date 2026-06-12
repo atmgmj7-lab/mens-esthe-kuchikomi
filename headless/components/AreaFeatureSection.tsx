@@ -13,7 +13,14 @@ export function AreaFeatureSection() {
           <div className="p-areaFeature__item hl-card-hover">
             <div className="p-areaFeature__img">
               <Link href={`/area/${AREA_FEATURE.slug}/`} className="c-card__thumb">
-                <img src={AREA_FEATURE.image} alt={AREA_FEATURE.title} />
+                <img
+                  src={AREA_FEATURE.image}
+                  alt={AREA_FEATURE.title}
+                  width={800}
+                  height={450}
+                  loading="lazy"
+                  decoding="async"
+                />
               </Link>
             </div>
             <div className="p-areaFeature__body">

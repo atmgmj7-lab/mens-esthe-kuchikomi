@@ -36,7 +36,15 @@ export function ShopCard({
     return (
       <article className="shop-list-row hl-card-hover">
         <Link className="shop-row-img" href={`/shops/${shop.slug}/`}>
-          <img className="shop-thumb" src={image} alt={shop.title} />
+          <img
+            className="shop-thumb"
+            src={image}
+            alt={shop.title}
+            width={100}
+            height={100}
+            loading="lazy"
+            decoding="async"
+          />
         </Link>
         <div className="shop-row-info">
           <div className="shop-row-title-line">
@@ -66,7 +74,15 @@ export function ShopCard({
         <Link href={`/shops/${shop.slug}/`} className="mep-shop-link">
           <div className="mep-card-img">
             {hasImage ? (
-              <img className="shop-card__image" src={image} alt={shop.title} />
+              <img
+                className="shop-card__image"
+                src={image}
+                alt={shop.title}
+                width={400}
+                height={300}
+                loading="lazy"
+                decoding="async"
+              />
             ) : (
               <div className="hl-no-image-placeholder">
                 <span>No Image</span>
@@ -90,7 +106,15 @@ export function ShopCard({
     <article className="mep-feature-card hl-card-hover">
       <Link href={`/shops/${shop.slug}/`} className="mep-shop-link">
         <div className="mep-card-img">
-          <img className="shop-card__image" src={image} alt={shop.title} />
+          <img
+            className="shop-card__image"
+            src={image}
+            alt={shop.title}
+            width={400}
+            height={300}
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       </Link>
       <div className="mep-card-body">

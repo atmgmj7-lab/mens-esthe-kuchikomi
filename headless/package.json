@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seo:cutover-check": "node scripts/seo-cutover-check.mjs",
     "seo:url-parity": "node scripts/url-parity-check.mjs",
-    "contact:check-env": "node scripts/check-contact-env.mjs"
+    "contact:check-env": "node scripts/check-contact-env.mjs",
+    "perf:check": "node scripts/performance-check.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

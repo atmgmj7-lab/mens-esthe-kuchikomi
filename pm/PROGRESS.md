@@ -2,6 +2,22 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless 速度・運用品質改善（実装完了）
+
+- `/wp-content/[...path]` の cache-control をパス種別ごとに最適化（uploads=1年 immutable / theme CSS・JS=短ブラウザ+長CDN+SWR / その他 wp-content も CDN 向け SWR）
+- 画像読み込み属性を最適化（ヘッダーロゴは `loading="eager"`、LCP 候補（トップロゴ・コラム詳細アイキャッチ等）は `fetchPriority="high"`、一覧・特集・詳細は `loading`/`decoding`/寸法）
+- `headless/scripts/performance-check.mjs` と `npm run perf:check` を追加（主要ページ・CSS・WP JSON の status/TTFB/サイズ閾値チェック）
+
+#### 検証
+- `npm run lint` 成功
+- `npm run build` 成功
+- ローカル本番 `http://127.0.0.1:3021` で `npm run seo:cutover-check` 全合格
+- `npm run perf:check` 全合格
+- CSS cache-control: `public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800`
+- uploads 画像 cache-control: `public, max-age=31536000, s-maxage=31536000, immutable`
+
+---
+
 ### 2026-06-12 Headless DNS cutover 完了
 
 - MX: 優先度 0 `sv16727.xserver.jp` に反映済み

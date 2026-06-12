@@ -114,7 +114,15 @@ export function ShopDetail({
 
           <section className="shpc-intro-section">
             <div className="shpc-intro-image">
-              <img src={image} alt={shop.title} />
+              <img
+                src={image}
+                alt={shop.title}
+                width={800}
+                height={533}
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+              />
             </div>
             <div className="shpc-intro-content">
               <div className="shpc-stars">

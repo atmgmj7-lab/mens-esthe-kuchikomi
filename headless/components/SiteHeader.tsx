@@ -7,7 +7,14 @@ export function SiteHeader() {
     <header className="l-header hl-header">
       <div className="l-container">
         <Link className="l-header__logo hl-header__logo" href="/">
-          <img src={HEADER_LOGO} alt="Escomi（エスコミ）" width={120} height={32} />
+          <img
+            src={HEADER_LOGO}
+            alt="Escomi（エスコミ）"
+            width={120}
+            height={32}
+            loading="eager"
+            decoding="async"
+          />
         </Link>
         <nav aria-label="メインナビゲーション">
           <ul className="c-gnav hl-gnav">
