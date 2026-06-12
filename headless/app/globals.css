@@ -362,16 +362,16 @@ img {
   background-image: url("/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg") !important;
 }
 
-/* ── AREA FEATURE card (PC height ~280px) ── */
+/* ── AREA FEATURE card (PC: 固定高さを緩めて余白を確保) ── */
 @media (min-width: 769px) {
   .p-areaFeature__item {
-    max-height: 280px;
+    min-height: 280px;
     align-items: stretch;
   }
 
   .p-areaFeature__img {
     width: 45%;
-    height: 280px;
+    min-height: 280px;
     flex-shrink: 0;
   }
 
@@ -384,17 +384,22 @@ img {
 
   .p-areaFeature__body {
     width: 55%;
-    padding: 20px 24px;
+    padding: 32px 40px;
+    gap: var(--hl-stack-gap);
+  }
+
+  .p-areaFeature__sub {
+    margin-bottom: var(--hl-cluster-gap);
   }
 
   .p-areaFeature__title {
     font-size: 1.35rem;
-    margin-bottom: 10px;
+    margin-bottom: var(--hl-stack-gap);
   }
 
   .p-areaFeature__desc {
-    margin-bottom: 16px;
-    line-height: 1.7;
+    margin-bottom: 24px;
+    line-height: 1.75;
   }
 }
 
@@ -436,7 +441,8 @@ img {
   position: relative;
 }
 
-.hl-no-image-placeholder .mep-badge--new {
+.hl-no-image-placeholder .mep-badge--new,
+.mep-card-img .mep-badge--new {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -906,6 +912,19 @@ img {
 
   .p-areaFeature__img {
     height: 200px;
+    min-height: 200px;
+  }
+
+  .p-areaFeature__body {
+    padding: 24px var(--hl-gutter);
+  }
+
+  .p-areaFeature__title {
+    margin-bottom: var(--hl-cluster-gap);
+  }
+
+  .p-areaFeature__desc {
+    margin-bottom: 20px;
   }
 
   .u-pc-only,

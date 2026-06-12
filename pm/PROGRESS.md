@@ -2,6 +2,35 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 UI修正: エリア特集余白・店舗デフォルト画像
+
+- AREA FEATURE カード: PC の `max-height: 280px` 固定を解除し、本文 padding・要素間余白を拡大（金色枠・横並びレイアウトは維持）
+- SP 縦並び時も画像下〜本文上の余白を `globals.css` で調整
+- 店舗画像未設定時のフォールバックを `DEFAULT_SHOP_IMAGE`（`/shop-default-image.webp`）に統一
+- `headless/public/shop-default-image.webp` を追加（元 PNG 1536px → 800px WebP 約 33KB）
+- `ShopCard`（compact / 通常 / 新着）・`ShopDetail` で共通定数を使用。新着カードは No Image 文言ではなくデフォルト画像 + NEW バッジ
+
+#### 変更ファイル
+- `headless/public/shop-default-image.webp`（新規）
+- `headless/lib/design-constants.ts`
+- `headless/components/ShopCard.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint` → 成功
+- `cd headless && npm run build` → 成功
+- ビルド出力のトップページ HTML で画像なし新着店舗に `/shop-default-image.webp` を確認
+- ローカル `next start` 3033 で Playwright 確認済み
+- トップ PC/SP で AREA FEATURE の余白と横スクロールなしを確認
+- トップ新着店舗で `/shop-default-image.webp` が6件表示
+- 日本橋一覧で compact 画像なし店舗に `/shop-default-image.webp` が7件表示
+- 画像なし店舗詳細（`/shops/アテナ/`）で詳細メイン画像に `/shop-default-image.webp` が表示された
+- スクリーンショット: `/tmp/escomi-ui-fix-home-desktop.png` `/tmp/escomi-ui-fix-home-mobile.png` `/tmp/escomi-ui-fix-nihonbashi-list.png` `/tmp/escomi-ui-fix-shop-detail-default.png`
+
+---
+
 ### 2026-06-13 SEO強化 Phase 1 エリアSEOガイド基盤
 
 - headless 側にエリアページ共通の SEO ガイド基盤を追加（店舗一覧直後、`area_column_content` 前）

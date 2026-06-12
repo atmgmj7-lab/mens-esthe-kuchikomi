@@ -1,8 +1,7 @@
 import Link from "next/link";
+import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
 import { safeText } from "@/lib/wp/client";
 import type { ShopView } from "@/lib/wp/types";
-
-const fallbackImage = "/no-image.svg";
 
 function areaLabel(shop: ShopView): string {
   const areaTerm = shop.terms.find((t) => t.parent !== 0) || shop.terms[0];
@@ -29,8 +28,7 @@ export function ShopCard({
   const basicTime = safeText(shop.acf.basic_time);
   const catchText = safeText(shop.acf.shop_catch, shop.excerpt);
   const onDuty = safeText(shop.acf.shop_availability) === "出勤中" || Boolean(shop.acf.shop_today_analysis);
-  const hasImage = Boolean(shop.imageUrl);
-  const image = shop.imageUrl || fallbackImage;
+  const image = shop.imageUrl || DEFAULT_SHOP_IMAGE;
 
   if (compact) {
     return (
@@ -73,23 +71,16 @@ export function ShopCard({
       <article className="mep-feature-card hl-card-hover hl-new-shop-card">
         <Link href={`/shops/${shop.slug}/`} className="mep-shop-link">
           <div className="mep-card-img">
-            {hasImage ? (
-              <img
-                className="shop-card__image"
-                src={image}
-                alt={shop.title}
-                width={400}
-                height={300}
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div className="hl-no-image-placeholder">
-                <span>No Image</span>
-                <span className="mep-badge mep-badge--new">NEW</span>
-              </div>
-            )}
-            {hasImage ? <span className="mep-badge mep-badge--new">NEW</span> : null}
+            <img
+              className="shop-card__image"
+              src={image}
+              alt={shop.title}
+              width={400}
+              height={300}
+              loading="lazy"
+              decoding="async"
+            />
+            <span className="mep-badge mep-badge--new">NEW</span>
           </div>
         </Link>
         <div className="mep-card-body">

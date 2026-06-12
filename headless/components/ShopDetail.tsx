@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { AreaQuickLinks } from "@/components/AreaQuickLinks";
 import { ShopContactCtaPanel, ShopContactFixedBar } from "@/components/ShopContactCta";
+import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
 import { phoneHref, shopField } from "@/lib/shop-contact";
 import type { AreaView, ShopView } from "@/lib/wp/types";
-
-const fallbackImage = "/no-image.svg";
 
 function field(shop: ShopView, key: string, fallback = "") {
   return shopField(shop, key, fallback);
@@ -33,7 +32,7 @@ export function ShopDetail({
   parentArea?: AreaView | null;
   allAreas?: AreaView[];
 }) {
-  const image = shop.imageUrl || fallbackImage;
+  const image = shop.imageUrl || DEFAULT_SHOP_IMAGE;
   const tel = field(shop, "shop_tel");
   const line = field(shop, "shop_line");
   const officialUrl = shop.officialUrl || field(shop, "official_url");

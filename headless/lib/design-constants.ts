@@ -6,6 +6,9 @@ export const COLORS = {
   turquoise: "#00a4a6"
 } as const;
 
+/** 店舗画像未設定時のフォールバック（public/shop-default-image.webp） */
+export const DEFAULT_SHOP_IMAGE = "/shop-default-image.webp";
+
 export const AREA_HERO_IMAGES: Record<string, string> = {
   osaka: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",
   kyoto: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200",
