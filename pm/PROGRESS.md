@@ -2,6 +2,26 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 UI微調整: エリア特集カード高さ圧縮
+
+- AREA FEATURE カード: PC は `height: 320px` / `max-height: 340px` で縦サイズを抑制し、画像は `object-fit: cover` でトリミング
+- PC 本文 padding・要素間余白を前回より詰めつつ `justify-content: center` で縦中央寄せ
+- SP 画像高さを 180px に抑え、本文 padding を 18px に調整
+- 金色枠・横並びレイアウト・他コンポーネントは変更なし
+
+#### 変更ファイル
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint` → 成功
+- `cd headless && npm run build` → 成功
+- SP画像高さ180pxに再調整（`front-page.css` の 200px 上書きを `!important` で打ち消し）
+- ローカル `next start` 3035 + Playwright でトップ PC/SP を確認
+- PC itemHeight 320 / imageHeight 318 / 横スクロールなし
+- SP imageHeight 180 / 横スクロールなし
+- スクリーンショット: `/tmp/escomi-area-feature-compact2-desktop.png` `/tmp/escomi-area-feature-compact2-mobile.png`
+
 ### 2026-06-13 UI修正: エリア特集余白・店舗デフォルト画像
 
 - AREA FEATURE カード: PC の `max-height: 280px` 固定を解除し、本文 padding・要素間余白を拡大（金色枠・横並びレイアウトは維持）
