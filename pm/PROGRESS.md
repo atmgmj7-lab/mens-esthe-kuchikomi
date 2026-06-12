@@ -43,6 +43,7 @@
 #### 懸念・本番作業
 - `wp-config.php` への `ESCOMI_REVALIDATE_SECRET` 登録は人手（RUNBOOK C / A-5）
 - secret 未設定時は Next 側 `REVALIDATE_SECRET` も空なら revalidate は通るが、本番では両方設定推奨
+- 初回 push 後の Xserver Action は FTP 425 で失敗。`deploy.yml` を安全化（`dangerous-clean-slate: false`、不要フォルダ除外、headless/pm 等のみの変更ではXserver deployを走らせない）して再実行対象にした
 
 ---
 

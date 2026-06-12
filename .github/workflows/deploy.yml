@@ -8,6 +8,15 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'headless/**'
+      - 'pm/**'
+      - 'docs/**'
+      - 'tools/**'
+      - 'ai-site-monitor/**'
+      - 'content/**'
+      - '*.md'
+      - '.DS_Store'
   workflow_dispatch:
 
 jobs:
@@ -73,7 +82,7 @@ jobs:
           server-dir: ${{ secrets.FTP_PATH }}
           timeout: 30000
           log-level: verbose
-          dangerous-clean-slate: true
+          dangerous-clean-slate: false
           # 初回疎通確認: 実転送なし（必要時のみコメント解除）
           # dry-run: true
           exclude: |
@@ -94,6 +103,8 @@ jobs:
             tools/**
             ai-site-monitor/**
             content/**
+            agent-foundation/**
+            MensEsthe-Notes/**
             **/*.md
             **/*.markdown
             **/*.MD
