@@ -1140,3 +1140,269 @@ img {
   font-size: 0.92rem;
   line-height: 1.75;
 }
+
+/* ── Shops listing filter ── */
+.hl-shops-page__lead {
+  margin: -8px 0 24px;
+  color: #666;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.hl-shops-filter {
+  margin-bottom: 28px;
+  padding: 20px 22px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.hl-shops-filter__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hl-shops-filter__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.hl-shops-filter__row--actions {
+  align-items: center;
+}
+
+.hl-shops-filter__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.hl-shops-filter__field--grow {
+  flex: 1 1 220px;
+}
+
+.hl-shops-filter__label {
+  color: var(--mep-navy);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.hl-shops-filter__input,
+.hl-shops-filter__select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8d8d8;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.hl-shops-filter__input:focus,
+.hl-shops-filter__select:focus {
+  outline: none;
+  border-color: var(--es-gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.hl-shops-filter__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.hl-shops-filter__checkbox input {
+  accent-color: var(--mep-navy);
+}
+
+.hl-shops-filter__submit {
+  padding: 10px 28px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+}
+
+.hl-shops-filter__clear,
+.hl-shops-result-bar__clear {
+  color: var(--es-turquoise);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.88rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hl-shops-result-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.hl-shops-result-bar__count {
+  margin: 0;
+  color: #555;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.92rem;
+}
+
+.hl-shops-result-bar__count strong {
+  color: var(--mep-navy);
+  font-size: 1.15rem;
+}
+
+.hl-shops-result-bar__filters {
+  margin-left: 6px;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.hl-area-quick-links {
+  margin-bottom: 24px;
+}
+
+.hl-area-quick-links__title {
+  margin: 0 0 14px;
+  color: var(--mep-navy);
+  font-family: var(--hl-serif);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.hl-area-quick-links__grid {
+  gap: 10px;
+}
+
+.empty-state {
+  padding: 36px 20px;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin: 0 0 10px;
+  color: var(--mep-navy);
+  font-size: 1.05rem;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #666;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+/* ── Shop detail CTA ── */
+.hl-shop-cta-panel__body {
+  padding: 22px 24px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  background: var(--es-gold-bg);
+}
+
+.hl-shop-cta-panel__lead {
+  margin: 0 0 16px;
+  color: #555;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.75;
+}
+
+.hl-shop-cta-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.hl-shop-cta-panel__web {
+  padding: 10px 22px;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.hl-shop-cta-panel__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.hl-shop-cta-panel__link {
+  color: var(--es-turquoise);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 0.88rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.hl-shop-fixed-cta {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .hl-shop-page--has-fixed-cta .l-mainContent__inner {
+    padding-bottom: 88px;
+  }
+
+  .hl-shop-fixed-cta {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.97);
+    border-top: 1px solid #e8e8e8;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .hl-shop-fixed-cta__btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 12px 8px;
+    border-radius: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hl-shop-fixed-cta__web {
+    background: #fff;
+    border: 2px solid var(--mep-navy);
+    color: var(--mep-navy);
+  }
+
+  .hl-shop-page--has-fixed-cta .hl-back-to-top {
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 768px) {
+  .hl-shops-filter__row--actions {
+    justify-content: flex-start;
+  }
+}

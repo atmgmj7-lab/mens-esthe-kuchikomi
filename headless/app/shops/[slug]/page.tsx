@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ShopDetail } from "@/components/ShopDetail";
-import { getAreaById, getChildAreas } from "@/lib/wp/areas";
+import { getAreaById, getAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
 import { getShopBySlug } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
@@ -12,6 +12,18 @@ type Props = {
 };
 
 async function resolveShopParentArea(shop: ShopView) {
+  const allAreas = await getAreas();
+
+  if (shop.areaSlug) {
+    const matched = allAreas.find((a) => a.slug === shop.areaSlug);
+    if (matched) {
+      if (matched.parent) {
+        return getAreaById(matched.parent);
+      }
+      return matched;
+    }
+  }
+
   const childArea = shop.terms.find((t) => t.parent !== 0);
   if (childArea?.parent) {
     return getAreaById(childArea.parent);
@@ -48,7 +60,7 @@ async function ShopPageContent({ params }: Props) {
   if (!shop) notFound();
 
   const parentArea = await resolveShopParentArea(shop);
-  const siblingAreas = parentArea ? await getChildAreas(parentArea.id) : [];
+  const allAreas = await getAreas();
 
-  return <ShopDetail shop={shop} siblingAreas={siblingAreas} parentArea={parentArea} />;
+  return <ShopDetail shop={shop} parentArea={parentArea} allAreas={allAreas} />;
 }

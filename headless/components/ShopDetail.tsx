@@ -1,33 +1,37 @@
 import Link from "next/link";
+import { AreaQuickLinks } from "@/components/AreaQuickLinks";
+import { ShopContactCtaPanel, ShopContactFixedBar } from "@/components/ShopContactCta";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
-import { safeText } from "@/lib/wp/client";
+import { phoneHref, shopField } from "@/lib/shop-contact";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 const fallbackImage = "/no-image.svg";
 
 function field(shop: ShopView, key: string, fallback = "") {
-  return safeText(shop.acf[key], fallback);
+  return shopField(shop, key, fallback);
 }
 
-function phoneHref(phone: string) {
-  const normalized = phone.replace(/[^0-9]/g, "");
-  return normalized ? `tel:${normalized}` : "#";
-}
+function resolveShopAreaNav(shop: ShopView, allAreas: AreaView[], parentArea?: AreaView | null) {
+  const fromCatalog = shop.areaSlug ? allAreas.find((a) => a.slug === shop.areaSlug) : undefined;
+  const fromTerms = shop.areaSlug ? shop.terms.find((t) => t.slug === shop.areaSlug) : undefined;
+  const fallbackTerm = shop.terms.length > 0 ? shop.terms[shop.terms.length - 1] : undefined;
 
-function shopAreaTerms(shop: ShopView) {
-  const child = shop.terms.find((t) => t.parent !== 0);
-  const parent = child ? shop.terms.find((t) => t.id === child.parent) : shop.terms.find((t) => t.parent === 0);
-  return { child, parent };
+  const areaSlugForNav =
+    shop.areaSlug || fromCatalog?.slug || fromTerms?.slug || fallbackTerm?.slug || parentArea?.slug;
+  const areaName =
+    fromCatalog?.name || fromTerms?.name || fallbackTerm?.name || parentArea?.name || "エリア";
+
+  return { areaSlugForNav, areaName };
 }
 
 export function ShopDetail({
   shop,
-  siblingAreas = [],
-  parentArea
+  parentArea,
+  allAreas = []
 }: {
   shop: ShopView;
-  siblingAreas?: AreaView[];
   parentArea?: AreaView | null;
+  allAreas?: AreaView[];
 }) {
   const image = shop.imageUrl || fallbackImage;
   const tel = field(shop, "shop_tel");
@@ -37,8 +41,7 @@ export function ShopDetail({
   const todayAnalysis = field(shop, "shop_today_analysis");
   const recommend = field(shop, "recommend_text");
   const rate = field(shop, "review_star", "4.0");
-  const { child: childArea } = shopAreaTerms(shop);
-  const areaName = childArea?.name || parentArea?.name || "エリア";
+  const { areaName, areaSlugForNav } = resolveShopAreaNav(shop, allAreas, parentArea);
 
   const ages = [
     ["18〜19歳", Number(field(shop, "age_18_19") || field(shop, "age_18") || 0)],
@@ -70,7 +73,7 @@ export function ShopDetail({
   const feats = shop.terms.filter((t) => t.parent === 0 || shop.terms.length <= 3);
 
   return (
-    <main id="main_content" className="l-mainContent l-article hl-shop-page">
+    <main id="main_content" className="l-mainContent l-article hl-shop-page hl-shop-page--has-fixed-cta">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -362,28 +365,17 @@ export function ShopDetail({
             </table>
           </section>
 
-          {parentArea && siblingAreas.length > 0 ? (
-            <section className="area-link-section es-area-link-section u-mt-50">
-              <h2 className="sec-title-simple es-sec-title">
-                <span className="es-sec-title__en">AREA LIST</span>
-                <span className="es-sec-title__ja">{parentArea.name}のエリア一覧</span>
-              </h2>
-              <div className="es-area-grid pc-only">
-                {siblingAreas.map((child) => (
-                  <Link
-                    key={child.id}
-                    href={`/area/${child.slug}/`}
-                    className={`es-area-link-item ${childArea?.slug === child.slug ? "is-current" : ""}`}
-                  >
-                    <span className="es-area-name">{child.name}</span>
-                    <span className="es-area-count">({child.count}件)</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
+          <ShopContactCtaPanel shop={shop} />
+
+          <AreaQuickLinks
+            areas={allAreas}
+            current={areaSlugForNav}
+            title="エリアから探す"
+            className="u-mt-50"
+          />
         </article>
       </div>
+      <ShopContactFixedBar shop={shop} />
     </main>
   );
 }

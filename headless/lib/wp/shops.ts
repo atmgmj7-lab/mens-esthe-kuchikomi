@@ -65,6 +65,28 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   return entries;
 }
 
+export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("wp", "shops", "shops:listing-all");
+
+  const perPage = 100;
+  const shops: ShopView[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages && shops.length < maxShops) {
+    const { data, pagination } = await wpFetchPaginated<WpShop[]>(
+      `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_embed=1`
+    );
+    shops.push(...data.map(normalizeShop));
+    totalPages = pagination.totalPages;
+    page += 1;
+  }
+
+  return shops.slice(0, maxShops);
+}
+
 export async function getShopCount(): Promise<number> {
   "use cache";
   cacheLife("minutes");

@@ -2,6 +2,32 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 店舗詳細CTAの細エリア導線を修正
+
+- `shop.areaSlug` を最優先し、WP REST `_embed` で parent 欠落時も細エリア（例: 日本橋）へ CTA・エリア導線を向ける
+- 対象: `shop-contact.ts` / `ShopDetail.tsx` / `shops/[slug]/page.tsx` / `seo.ts`（`areaServed`）
+
+---
+
+### 2026-06-12 Headless 回遊・CV改善（実装完了）
+
+- `/shops/` を `searchParams` 対応（`q` / `area` / `available`）。GET フォームで URL に条件を保持
+- WP API から最大500件をページング取得・キャッシュし、サーバー側で絞り込み（`getAllShopsForListing` + `shop-filter`）
+- `AreaQuickLinks` を `/shops/` と店舗詳細下部に追加（`es-area-link-item` 系、`/area/[slug]/` リンク）
+- 店舗詳細に「予約・問い合わせ」CTA パネルとモバイル固定 CTA バー（tel / LINE / 公式）を追加
+- `headless/app/globals.css` にフィルター・結果表示・固定 CTA 用スタイルを追加
+
+#### 検証
+- `npm run lint` 成功
+- `npm run build` 成功
+- ローカル `http://127.0.0.1:3022` で `npm run seo:cutover-check` 全合格
+- ローカル `http://127.0.0.1:3022` で `npm run perf:check` 全合格（キャッシュ後 `/shops/` total 約48ms）
+- Playwright確認: `/shops/?q=genie` で検索フォーム・結果1件・genie表示OK
+- Playwright確認: genie店舗詳細で CONTACT が「日本橋エリア」、`/shops/?area=nihonbashi` 導線、モバイル固定CTA表示OK
+- スクリーンショット: `/tmp/escomi-shops-filter.png`, `/tmp/escomi-shop-detail-desktop.png`, `/tmp/escomi-shop-detail-mobile.png`
+
+---
+
 ### 2026-06-12 Headless 速度・運用品質改善（実装完了）
 
 - `/wp-content/[...path]` の cache-control をパス種別ごとに最適化（uploads=1年 immutable / theme CSS・JS=短ブラウザ+長CDN+SWR / その他 wp-content も CDN 向け SWR）

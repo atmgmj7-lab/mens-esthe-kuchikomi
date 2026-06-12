@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { resolveShopAreaTerm } from "@/lib/shop-contact";
 import { stripHtml } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -130,10 +131,7 @@ export function areaBreadcrumbJsonLd(
 export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown> {
   const tel = stripHtml(shop.acf.shop_tel);
   const address = stripHtml(shop.acf.shop_address);
-  const childArea = shop.terms.find((t) => t.parent !== 0);
-  const parentArea = childArea
-    ? shop.terms.find((t) => t.id === childArea.parent)
-    : shop.terms.find((t) => t.parent === 0);
+  const areaTerm = resolveShopAreaTerm(shop);
 
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -150,7 +148,7 @@ export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown>
       addressCountry: "JP"
     };
   }
-  const areaServed = childArea?.name || parentArea?.name;
+  const areaServed = areaTerm?.name;
   if (areaServed) {
     data.areaServed = {
       "@type": "Place",
