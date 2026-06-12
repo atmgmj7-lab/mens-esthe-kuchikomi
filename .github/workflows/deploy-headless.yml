@@ -1,7 +1,6 @@
 # headless/ Next.js を Vercel 本番（escomi-headless）へデプロイ
 # Secrets: VERCEL_TOKEN
 # Variables または Secrets: VERCEL_ORG_ID, VERCEL_PROJECT_ID
-# Variables（任意）: VERCEL_SCOPE（未設定時 narikiyos-projects）
 # 本番 DNS 切替（mens-esthe-kuchikomi.com → Vercel）は手動。本 workflow は Vercel へのデプロイのみ。
 
 name: Deploy Headless to Vercel
@@ -34,7 +33,6 @@ jobs:
           VERCEL_ORG_ID_SECRET: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID_VAR: ${{ vars.VERCEL_PROJECT_ID }}
           VERCEL_PROJECT_ID_SECRET: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_SCOPE_VAR: ${{ vars.VERCEL_SCOPE }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "::error::VERCEL_TOKEN が未設定です（Repository secrets に Vercel トークンを登録してください）。"
@@ -59,12 +57,6 @@ jobs:
             exit 1
           fi
 
-          if [ -n "$VERCEL_SCOPE_VAR" ]; then
-            echo "VERCEL_SCOPE=$VERCEL_SCOPE_VAR" >> "$GITHUB_ENV"
-          else
-            echo "VERCEL_SCOPE=narikiyos-projects" >> "$GITHUB_ENV"
-          fi
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -87,7 +79,7 @@ jobs:
           printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Sync Vercel env for contact check
         run: |
@@ -116,13 +108,13 @@ jobs:
         run: npm run contact:check-env
 
       - name: Vercel build (prebuilt)
-        run: vercel build --prod --yes --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+        run: vercel build --prod --yes --token="$VERCEL_TOKEN"
 
       - name: Deploy to Vercel production
         id: deploy
         run: |
           set -euo pipefail
-          OUTPUT=$(vercel deploy --prebuilt --prod --yes --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" 2>&1)
+          OUTPUT=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1)
           echo "$OUTPUT" | sed -E 's/(SMTP_PASS|VERCEL_TOKEN|REVALIDATE_SECRET)=[^[:space:]]+/\1=***/g' || true
           DEPLOYMENT_URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | tail -1 || true)
           if [ -z "$DEPLOYMENT_URL" ]; then

@@ -2,6 +2,13 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 GitHub Actions Headless デプロイ（Vercel scope 固定を外した）
+
+- `.github/workflows/deploy-headless.yml` から `VERCEL_SCOPE` 依存を削除（`vercel pull` / `vercel build` / `vercel deploy` は `.vercel/project.json` の orgId/projectId のみ使用）
+- 原因: `scope-not-accessible`（run `27417847473`）
+
+---
+
 ### 2026-06-12 店舗詳細CTAの細エリア導線を修正
 
 - `shop.areaSlug` を最優先し、WP REST `_embed` で parent 欠落時も細エリア（例: 日本橋）へ CTA・エリア導線を向ける
