@@ -1,0 +1,112 @@
+import Link from "next/link";
+import { safeText } from "@/lib/wp/client";
+import type { ShopView } from "@/lib/wp/types";
+
+const fallbackImage = "/no-image.svg";
+
+function areaLabel(shop: ShopView): string {
+  const areaTerm = shop.terms.find((t) => t.parent !== 0) || shop.terms[0];
+  return areaTerm?.name || "";
+}
+
+function formatPrice(price: string): string {
+  const num = Number(price.replace(/[^0-9]/g, ""));
+  if (!num) return "0円";
+  return `${num.toLocaleString("ja-JP")}円`;
+}
+
+export function ShopCard({
+  shop,
+  compact = false,
+  variant = "default"
+}: {
+  shop: ShopView;
+  compact?: boolean;
+  variant?: "default" | "new";
+}) {
+  const price = safeText(shop.acf.basic_price);
+  const hours = safeText(shop.acf.shop_hours);
+  const basicTime = safeText(shop.acf.basic_time);
+  const catchText = safeText(shop.acf.shop_catch, shop.excerpt);
+  const onDuty = safeText(shop.acf.shop_availability) === "出勤中" || Boolean(shop.acf.shop_today_analysis);
+  const hasImage = Boolean(shop.imageUrl);
+  const image = shop.imageUrl || fallbackImage;
+
+  if (compact) {
+    return (
+      <article className="shop-list-row hl-card-hover">
+        <Link className="shop-row-img" href={`/shops/${shop.slug}/`}>
+          <img className="shop-thumb" src={image} alt={shop.title} />
+        </Link>
+        <div className="shop-row-info">
+          <div className="shop-row-title-line">
+            <h3 className="shop-row-title">
+              <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
+            </h3>
+            {onDuty ? (
+              <span className="escomi-archive-badge escomi-archive-badge--active">出勤中</span>
+            ) : null}
+          </div>
+          {catchText ? <p className="shop-row-catch">{catchText}</p> : null}
+        </div>
+        <div className="shop-row-meta">
+          {hours ? <div className="meta-box hours">{hours}</div> : null}
+          <div className="meta-box price-area">
+            {basicTime ? <span className="meta-time">{basicTime}分</span> : null}
+            <span className="meta-price">{formatPrice(price || "0")}</span>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  if (variant === "new") {
+    return (
+      <article className="mep-feature-card hl-card-hover hl-new-shop-card">
+        <Link href={`/shops/${shop.slug}/`} className="mep-shop-link">
+          <div className="mep-card-img">
+            {hasImage ? (
+              <img className="shop-card__image" src={image} alt={shop.title} />
+            ) : (
+              <div className="hl-no-image-placeholder">
+                <span>No Image</span>
+                <span className="mep-badge mep-badge--new">NEW</span>
+              </div>
+            )}
+            {hasImage ? <span className="mep-badge mep-badge--new">NEW</span> : null}
+          </div>
+        </Link>
+        <div className="mep-card-body">
+          <span className="mep-area-label">{areaLabel(shop)}</span>
+          <h3 className="mep-card-title">
+            <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
+          </h3>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article className="mep-feature-card hl-card-hover">
+      <Link href={`/shops/${shop.slug}/`} className="mep-shop-link">
+        <div className="mep-card-img">
+          <img className="shop-card__image" src={image} alt={shop.title} />
+        </div>
+      </Link>
+      <div className="mep-card-body">
+        <div className="shop-row-tags">
+          {shop.terms.slice(0, 2).map((term) => (
+            <span className="list-tag tag-gray" key={`${shop.id}-${term.id}`}>
+              {term.name}
+            </span>
+          ))}
+        </div>
+        <h3 className="mep-card-title">
+          <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
+        </h3>
+        {catchText ? <p>{catchText}</p> : null}
+        {price ? <div className="mep-card-price">¥{Number(price).toLocaleString("ja-JP")}〜</div> : null}
+      </div>
+    </article>
+  );
+}

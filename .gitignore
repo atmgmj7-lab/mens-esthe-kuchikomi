@@ -19,6 +19,9 @@ ai-site-monitor/*.log
 .DS_Store
 Thumbs.db
 
+# Headless 生成レポート（URL パリティ等）
+headless/reports/
+
 # エディタ
 .cursor/
 *.swp

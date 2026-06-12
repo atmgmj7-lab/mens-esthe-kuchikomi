@@ -89,6 +89,7 @@ jobs:
             **/.vscode/**
             .github/**
             docs/**
+            headless/**
             pm/**
             tools/**
             ai-site-monitor/**

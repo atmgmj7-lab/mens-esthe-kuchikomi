@@ -1,0 +1,116 @@
+# headless/ Next.js を Vercel 本番（escomi-headless）へデプロイ
+# Secrets: VERCEL_TOKEN
+# Variables または Secrets: VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# Variables（任意）: VERCEL_SCOPE（未設定時 narikiyos-projects）
+# 本番 DNS 切替（mens-esthe-kuchikomi.com → Vercel）は手動。本 workflow は Vercel へのデプロイのみ。
+
+name: Deploy Headless to Vercel
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'headless/**'
+      - '.github/workflows/deploy-headless.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: headless
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Vercel credentials
+        env:
+          VERCEL_ORG_ID_VAR: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_ORG_ID_SECRET: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID_VAR: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_ID_SECRET: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_SCOPE_VAR: ${{ vars.VERCEL_SCOPE }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN が未設定です（Repository secrets に Vercel トークンを登録してください）。"
+            exit 1
+          fi
+
+          if [ -n "$VERCEL_ORG_ID_VAR" ]; then
+            echo "VERCEL_ORG_ID=$VERCEL_ORG_ID_VAR" >> "$GITHUB_ENV"
+          elif [ -n "$VERCEL_ORG_ID_SECRET" ]; then
+            echo "VERCEL_ORG_ID=$VERCEL_ORG_ID_SECRET" >> "$GITHUB_ENV"
+          else
+            echo "::error::VERCEL_ORG_ID が未設定です（Repository variables または secrets に team ID を登録してください）。"
+            exit 1
+          fi
+
+          if [ -n "$VERCEL_PROJECT_ID_VAR" ]; then
+            echo "VERCEL_PROJECT_ID=$VERCEL_PROJECT_ID_VAR" >> "$GITHUB_ENV"
+          elif [ -n "$VERCEL_PROJECT_ID_SECRET" ]; then
+            echo "VERCEL_PROJECT_ID=$VERCEL_PROJECT_ID_SECRET" >> "$GITHUB_ENV"
+          else
+            echo "::error::VERCEL_PROJECT_ID が未設定です（Repository variables または secrets に project ID を登録してください）。"
+            exit 1
+          fi
+
+          if [ -n "$VERCEL_SCOPE_VAR" ]; then
+            echo "VERCEL_SCOPE=$VERCEL_SCOPE_VAR" >> "$GITHUB_ENV"
+          else
+            echo "VERCEL_SCOPE=narikiyos-projects" >> "$GITHUB_ENV"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: headless/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Link Vercel project
+        run: |
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+
+      - name: Build (CI validation)
+        run: npm run build
+
+      - name: Check contact form environment
+        run: npm run contact:check-env
+
+      - name: Vercel build (prebuilt)
+        run: vercel build --prod --yes --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+
+      - name: Deploy to Vercel production
+        id: deploy
+        run: |
+          set -euo pipefail
+          OUTPUT=$(vercel deploy --prebuilt --prod --yes --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN" 2>&1)
+          echo "$OUTPUT" | sed -E 's/(SMTP_PASS|VERCEL_TOKEN|REVALIDATE_SECRET)=[^[:space:]]+/\1=***/g' || true
+          DEPLOYMENT_URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | tail -1 || true)
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "::error::Vercel デプロイ URL を取得できませんでした。CLI の出力に https URL が含まれているか確認してください。"
+            exit 1
+          fi
+          echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
+          echo "::notice::Vercel 本番デプロイ URL: $DEPLOYMENT_URL"
+
+      - name: SEO cutover check
+        run: npm run seo:cutover-check -- "${{ steps.deploy.outputs.url }}"
