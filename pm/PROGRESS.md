@@ -2,6 +2,21 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 店舗詳細の日本語slug 404修正
+
+- `getShopBySlug`: Next params（URLデコード済み）と WP REST `shop.slug`（percent-encoded）の不一致で404になる問題を修正
+- 直接 slug クエリは複数バリアント（encode / 生値）を試行し、失敗時は search → 一覧で `decodeURIComponent` 正規化後の完全一致フォールバック
+- `cacheTag` を `shop:h:{sha256先頭16}` に短縮（256文字制限対策）
+- 対象: `headless/lib/wp/shops.ts`
+
+#### 検証
+- `npm run lint` 成功
+- `npm run build` 成功
+- ローカル `http://127.0.0.1:3025` で `/shops/genie%ef%bc%88.../`・`/shops/genie/`・zenith-spa エンコード slug → 200
+- `npm run seo:cutover-check -- http://127.0.0.1:3025` の sitemap 店舗サンプルは本番 URL を叩くため未反映時は 404（コード側はローカルで確認済み）
+
+---
+
 ### 2026-06-12 Headless 遷移中の空画面抑制
 
 - 空の Suspense fallback（`<main class="..."></main>` のみ）を削除

@@ -1,7 +1,88 @@
+import { createHash } from "crypto";
 import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import type { ShopView, WpShop } from "@/lib/wp/types";
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function slugsMatch(a: string, b: string): boolean {
+  return safeDecodeURIComponent(a).toLowerCase() === safeDecodeURIComponent(b).toLowerCase();
+}
+
+function shopSlugCacheTag(slug: string): string {
+  const normalized = safeDecodeURIComponent(slug).toLowerCase();
+  const hash = createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+  return `shop:h:${hash}`;
+}
+
+function getSlugQueryVariants(slug: string): string[] {
+  const variants: string[] = [];
+  const seen = new Set<string>();
+  const add = (value: string) => {
+    if (!seen.has(value)) {
+      seen.add(value);
+      variants.push(value);
+    }
+  };
+
+  add(encodeURIComponent(slug));
+
+  if (slug.includes("%")) {
+    add(slug);
+    const decoded = safeDecodeURIComponent(slug);
+    if (decoded !== slug) {
+      add(encodeURIComponent(decoded));
+    }
+  }
+
+  return variants;
+}
+
+async function findShopViaSearchOrListing(slug: string): Promise<WpShop | null> {
+  const needle = slug.toLowerCase();
+  const searchResults = await wpFetch<WpShop[]>(
+    `/wp/v2/shop?search=${encodeURIComponent(slug)}&per_page=100&_embed=1`
+  );
+
+  const exactMatch = searchResults.find((shop) => slugsMatch(shop.slug, slug));
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const partialMatch = searchResults.find((shop) => {
+    const shopSlug = shop.slug.toLowerCase();
+    const title = (shop.title?.rendered ?? "").toLowerCase();
+    return shopSlug.includes(needle) || title.includes(needle);
+  });
+  if (partialMatch) {
+    return partialMatch;
+  }
+
+  const perPage = 100;
+  let page = 1;
+  let totalPages = 1;
+
+  while (page <= totalPages) {
+    const { data, pagination } = await wpFetchPaginated<WpShop[]>(
+      `/wp/v2/shop?per_page=${perPage}&page=${page}&_embed=1`
+    );
+    const listingMatch = data.find((shop) => slugsMatch(shop.slug, slug));
+    if (listingMatch) {
+      return listingMatch;
+    }
+    totalPages = pagination.totalPages;
+    page += 1;
+  }
+
+  return null;
+}
 
 export async function getLatestShops(limit = 6): Promise<ShopView[]> {
   "use cache";
@@ -14,27 +95,21 @@ export async function getLatestShops(limit = 6): Promise<ShopView[]> {
 export async function getShopBySlug(slug: string): Promise<ShopView | null> {
   "use cache";
   cacheLife("hours");
-  cacheTag("wp", "shops", `shop:${slug}`);
-  const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?slug=${encodeURIComponent(slug)}&_embed=1`);
-  if (shops[0]) {
-    return normalizeShop(shops[0]);
+  cacheTag("wp", "shops", shopSlugCacheTag(slug));
+
+  for (const variant of getSlugQueryVariants(slug)) {
+    const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?slug=${variant}&_embed=1`);
+    if (shops[0]) {
+      return normalizeShop(shops[0]);
+    }
   }
 
-  const needle = slug.toLowerCase();
-  const searchResults = await wpFetch<WpShop[]>(
-    `/wp/v2/shop?search=${encodeURIComponent(slug)}&per_page=10&_embed=1`
-  );
-  const match = searchResults.find((shop) => {
-    const shopSlug = shop.slug.toLowerCase();
-    const title = (shop.title?.rendered ?? "").toLowerCase();
-    return shopSlug.includes(needle) || title.includes(needle);
-  });
-
+  const match = await findShopViaSearchOrListing(slug);
   if (!match) {
     return null;
   }
 
-  cacheTag("wp", "shops", `shop:${match.slug}`);
+  cacheTag("wp", "shops", shopSlugCacheTag(match.slug));
   return normalizeShop(match);
 }
 
