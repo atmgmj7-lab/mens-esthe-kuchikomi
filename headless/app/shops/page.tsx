@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AreaQuickLinks } from "@/components/AreaQuickLinks";
 import { EmptyState } from "@/components/EmptyState";
+import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { ShopCard } from "@/components/ShopCard";
 import { ShopsSearchForm } from "@/components/ShopsSearchForm";
 import { pageMetadata } from "@/lib/seo";
@@ -33,7 +34,7 @@ function describeFilters(params: ShopFilterParams, areas: { slug: string; name: 
 
 export default function ShopsPage({ searchParams }: Props) {
   return (
-    <Suspense fallback={<main className="l-main_content l-article hl-shops-page" id="main_content" />}>
+    <Suspense fallback={<RoutePageFallback variant="shops-list" />}>
       <ShopsPageContent searchParams={searchParams} />
     </Suspense>
   );

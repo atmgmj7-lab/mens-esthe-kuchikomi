@@ -2,6 +2,21 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless 遷移中の空画面抑制
+
+- 空の Suspense fallback（`<main class="..."></main>` のみ）を削除
+- `area/[slug]` / `shops/[slug]` / `[slug]` / `column/[slug]` は `generateStaticParams` + async default export に変更（Suspense 不要化）
+- `/shops/` のみ `searchParams` 都合で Suspense を維持し、`RoutePageFallback`（min-height 確保）に差し替え
+- 目的: 画面遷移時にヘッダー＋フッターだけの一瞬の空白を出さない
+
+#### 検証
+- `npm run lint` 成功
+- `npm run build` 成功（Cache Components 有効）
+- ローカル `http://127.0.0.1:3023` で `/area/nihonbashi/` `/shops/` `/shops/genie/` `/about/` → 200
+- curl HTML: 空の `<main class="l-main_content l-article"></main>` 系 fallback は未検出
+
+---
+
 ### 2026-06-12 GitHub Actions Headless デプロイ（Vercel scope 固定を外した）
 
 - `.github/workflows/deploy-headless.yml` から `VERCEL_SCOPE` 依存を削除（`vercel pull` / `vercel build` / `vercel deploy` は `.vercel/project.json` の orgId/projectId のみ使用）

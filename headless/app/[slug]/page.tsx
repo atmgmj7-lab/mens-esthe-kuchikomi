@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { WpStaticPage } from "@/components/WpStaticPage";
 import {
   isStaticPageSlug,
@@ -39,14 +38,6 @@ export default async function StaticWpPage({ params }: Props) {
   const { slug } = await params;
   if (!isStaticPageSlug(slug)) notFound();
 
-  return (
-    <Suspense fallback={<main className="l-mainContent hl-static-page" id="main_content" />}>
-      <StaticWpPageContent slug={slug} />
-    </Suspense>
-  );
-}
-
-async function StaticWpPageContent({ slug }: { slug: StaticPageSlug }) {
   const page = await getPageBySlug(slug);
   return <WpStaticPage slug={slug} page={page} />;
 }

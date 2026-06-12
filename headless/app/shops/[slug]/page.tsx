@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { ShopDetail } from "@/components/ShopDetail";
 import { getAreaById, getAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
-import { getShopBySlug } from "@/lib/wp/shops";
+import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateStaticParams() {
+  const shops = await getShopsForSitemap();
+  return shops.map((shop) => ({ slug: shop.slug }));
+}
 
 async function resolveShopParentArea(shop: ShopView) {
   const allAreas = await getAreas();
@@ -46,15 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default function ShopPage({ params }: Props) {
-  return (
-    <Suspense fallback={<main className="l-mainContent l-article" />}>
-      <ShopPageContent params={params} />
-    </Suspense>
-  );
-}
-
-async function ShopPageContent({ params }: Props) {
+export default async function ShopPage({ params }: Props) {
   const { slug } = await params;
   const shop = await getShopBySlug(slug);
   if (!shop) notFound();

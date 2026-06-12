@@ -116,6 +116,15 @@ img {
   padding: 0 20px 60px;
 }
 
+.hl-route-fallback {
+  min-height: calc(100dvh - 140px);
+}
+
+.hl-route-fallback__spacer {
+  display: block;
+  min-height: 55vh;
+}
+
 .hl-area-page .l-main_content__inner,
 .hl-shop-page .l-mainContent__inner {
   padding-top: 0;
