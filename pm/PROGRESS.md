@@ -2,6 +2,16 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 本番反映（遷移空画面対策・店舗slug 404修正）
+
+- main に `118b7d1`（遷移空画面対策）・`565c7c5`（店舗slug 404修正）を push 済み
+- Vercel CLI `vercel deploy --prebuilt --prod --yes --archive=tgz` で本番 `https://mens-esthe-kuchikomi.com` に反映
+- 本番確認: `/area/nihonbashi/` 200、空 fallback 未検出、`/shops/genie.../` と `/shops/zenith-spa.../` 200
+- `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` 合格、`npm run perf:check -- https://mens-esthe-kuchikomi.com` 合格
+- 残課題: GitHub Actions Headless は VERCEL_TOKEN 無効 / Xserver は今回 FTP timeout（WP 側変更なし・Next 本番表示への影響なし）
+
+---
+
 ### 2026-06-12 店舗詳細の日本語slug 404修正
 
 - `getShopBySlug`: Next params（URLデコード済み）と WP REST `shop.slug`（percent-encoded）の不一致で404になる問題を修正
