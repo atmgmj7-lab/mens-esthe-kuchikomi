@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">No Image</title>
+  <desc id="desc">Neutral image placeholder for Escomi shop cards.</desc>
+  <rect width="800" height="500" fill="#f4f4f4"/>
+  <rect x="36" y="36" width="728" height="428" rx="16" fill="#ffffff" stroke="#e5e5e5" stroke-width="2"/>
+  <path d="M270 300l86-92 70 70 44-48 82 70H270z" fill="#d9d9d9"/>
+  <circle cx="502" cy="178" r="34" fill="#d9d9d9"/>
+  <text x="400" y="382" text-anchor="middle" fill="#9a9a9a" font-family="Arial, sans-serif" font-size="34" font-weight="700">NO IMAGE</text>
+</svg>

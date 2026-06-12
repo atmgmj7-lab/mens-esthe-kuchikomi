@@ -2,6 +2,339 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless Vercel CI workflow 修正
+
+#### 内容
+- `check-contact-env.mjs`: `.env` → `.env.local` の順で読み込み（後者優先）。読み込み前から存在した process.env は上書きしない。`SMTP_PASS` は引き続きマスク表示。
+- `deploy-headless.yml`: `lint` → Vercel CLI install → link → `vercel pull --scope` → `npm run build` → `contact:check-env` → `vercel build` → `vercel deploy` → SEO check の順に整理。非対話 CI 向け `--scope`（既定 `narikiyos-projects`）と `--yes` を付与。デプロイ URL は CLI 出力の最後の https を抽出、空なら日本語エラー。
+- `HEADLESS-CUTOVER-CHECKLIST.md` §0 の workflow 手順を上記順序に合わせて更新。
+
+#### 検証（ローカル）
+- `npm run lint` / `npm run build` / `npm run contact:check-env`（headless/）
+
+#### 残課題
+- GitHub secrets/variables 登録後、workflow 初回実行で green を確認。
+- DNS A レコード切替 → 本番ドメインで §8 再チェック。
+
+---
+
+### 2026-06-12 Headless Vercel GitHub Actions CI/CD
+
+#### 内容
+- `.github/workflows/deploy-headless.yml` 新規: `main` へ `headless/**` 変更 push 時および `workflow_dispatch` で Vercel 本番（`escomi-headless`）へデプロイ。
+- Node 24、`npm ci` → `lint` → Vercel pull → `build` → `contact:check-env` → Vercel prebuilt deploy。デプロイ URL に `npm run seo:cutover-check`。
+- `VERCEL_TOKEN`（secret）と `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`（variables または secrets）未設定時は日本語エラーで停止。
+- `pm/HEADLESS-CUTOVER-CHECKLIST.md` §0 に GitHub 設定値と DNS 手動切替の注意を追記。
+- 既存 `deploy.yml`（Xserver FTP / WP テーマ）は未変更。
+
+#### GitHub 登録（運用者）
+- Secret: `VERCEL_TOKEN`
+- Variable（推奨）: `VERCEL_ORG_ID=team_WBpmGGwLZPtutzOCsGN2lluQ`, `VERCEL_PROJECT_ID=prj_lgQwu8WqzjHvKLEGAGBh4Xyq38b8`, `VERCEL_SCOPE=narikiyos-projects`（任意）
+
+#### 残課題
+- 上記 secrets/variables を GitHub に登録後、workflow 初回実行で green を確認。
+- DNS A レコード切替 → 本番ドメインで §8 再チェック。
+
+---
+
+### 2026-06-12 Headless Vercel 本番デプロイ準備
+
+#### 内容
+- Vercel プロジェクト `escomi-headless` を `narikiyos-projects` 配下に作成。
+- 本番用環境変数を Vercel に登録済み（値はログ・ドキュメントに記載しない）。
+- 初回 Vercel デプロイは Framework が `Other` のため 404。プロジェクト設定を `nextjs` に修正後、再デプロイ成功。
+- 本番エイリアス `https://escomi-headless.vercel.app` は **READY**。
+- カスタムドメイン `mens-esthe-kuchikomi.com` を Vercel プロジェクトに追加済み。
+
+#### 検証（2026-06-12）
+- `npm run seo:cutover-check -- https://escomi-headless.vercel.app` … **PASS**
+- `npm run seo:url-parity -- --current https://mens-esthe-kuchikomi.com --candidate https://escomi-headless.vercel.app` … **PASS**（WARN のみ、exit 0）
+
+#### DNS / 切替
+- 現行 DNS は Xserver `85.131.213.108` を向いたまま。**本番ドメイン切替前**に DNS プロバイダで `mens-esthe-kuchikomi.com` の A レコードを `76.76.21.21`（Vercel）へ変更すること。
+- `www.mens-esthe-kuchikomi.com` も Vercel プロジェクトに追加済み。www を Vercel で配信する場合は、DNS プロバイダで `www.mens-esthe-kuchikomi.com` の A レコードを `76.76.21.21` へ設定すること。
+- 現行 WP 本番ドメインは DNS 更新まで変更なし。
+
+#### 残課題
+- main への push / 現行 GitHub Actions は headless をデプロイしない（従来どおり WP のみ）。
+- DNS A レコード切替 → Vercel 本番ドメイン反映 → 切替チェックリスト §5 以降。
+
+---
+
+### 2026-06-12 Headless SEO カットオーバー URL パリティ CLI
+
+#### 内容
+- `headless/` のみ編集。WP PHP/CSS は未変更。
+- `url-parity-check.mjs` 新規: 現行 WP と候補 Next を `--current` / `--candidate` で比較。sitemap（`/sitemap.xml`・`/wp-sitemap.xml`・インデックス再帰）、主要パス・エリア・固定ページ・店舗サンプルのステータス / canonical / noindex / タイトルを検査。
+- `npm run seo:url-parity` 追加。レポート出力は `headless/reports/`（ルート `.gitignore`）。
+- `HEADLESS-CUTOVER-CHECKLIST.md` §4 に自動パリティ手順を追加（手動目視の前）。
+- 検証（2026-06-12 成功）: `npm run lint` / `npm run build` / `npm run seo:cutover-check` / `npm run contact:check-env` / `npm run seo:url-parity`（本番 vs `localhost:3000`、`npm run start` 後）。候補 sitemap 425 URL、主要10パスは候補 200、タイトル差分は WARN のみ exit 0。現行 WP sitemap は本番で 404 のため WARN。
+
+#### 変更ファイル（headless/）
+- `scripts/url-parity-check.mjs`, `package.json`
+
+#### 変更ファイル（pm/）
+- `HEADLESS-CUTOVER-CHECKLIST.md`, `PROGRESS.md`
+
+#### 残課題
+- main への push・本番デプロイは未実施
+
+---
+
+### 2026-06-12 Headless 切替前完成度（legacy sitemap・SEO CLI・SMTPチェック）
+
+#### 内容
+- `headless/` のみ編集。WP PHP/CSS は未変更。
+- `next.config.ts`: 旧 WP sitemap URL（`/wp-sitemap.xml`, `/sitemap_index.xml`, 代表子 sitemap, `/wp-sitemap-:slug`）を `/sitemap.xml` へ permanent redirect。
+- `seo-cutover-check.mjs` 強化: legacy sitemap redirect、canonical/noindex、GA4、 sitemap 店舗 URL サンプル 200、件数 300 未満 WARN。
+- `check-contact-env.mjs` 新規 + `npm run contact:check-env`。`.env.example` / `HEADLESS-CUTOVER-CHECKLIST.md` に追記。
+- 問い合わせ: `targetUrl` は http/https 以外 400、`sourceUrl` は 2048 文字で切り詰め。
+
+#### 変更ファイル（headless/）
+- `next.config.ts`, `lib/contact-validation.ts`
+- `scripts/seo-cutover-check.mjs`, `scripts/check-contact-env.mjs`
+- `package.json`, `.env.example`
+
+#### 変更ファイル（pm/）
+- `HEADLESS-CUTOVER-CHECKLIST.md`, `PROGRESS.md`
+
+#### 残課題
+- 本番 SMTP 実値設定と実メール送信確認
+- main への push・本番デプロイは未実施
+
+---
+
+### 2026-06-12 Headless [slug] 404 修正（PPR シェル 200 回避）
+
+- `headless/app/[slug]/page.tsx`: 未知 slug は Suspense 前に `notFound()`。`generateMetadata` も同様。検証: `npm run lint` / `npm run build` / `seo:cutover-check` で 404 警告解消。
+
+---
+
+### 2026-06-12 Headless お問い合わせフォーム + 切替チェック整備
+
+#### 内容
+- `headless/` のみ編集。WP PHP/CSS は未変更。
+- `/contact/` 固定ページ（`WpStaticPage`）内に Next 側 `ContactForm` を追加。種別・名前・メール・店舗名・対象URL・本文・同意・honeypot 対応。
+- `POST /api/contact/` を追加。nodemailer 送信、バリデーション、メモリベースレート制限（同一IP 60秒5回）、`CONTACT_FORM_DRY_RUN`、本番 SMTP 未設定時 503。
+- 送信成功時 GA4 `contact_form_submit` イベント。フォーム CSS を `globals.css` に追加（白・ネイビー・ゴールド）。
+- 切替前チェック: `pm/HEADLESS-CUTOVER-CHECKLIST.md` 新規、`headless/scripts/seo-cutover-check.mjs` + `npm run seo:cutover-check`。
+- `.env.example` に SMTP / 問い合わせ用 env を追記。`nodemailer` 依存追加。
+- 検証: `npm run lint` / `npm run build` 成功。`CONTACT_FORM_DRY_RUN=true` で API 200、`seo:cutover-check` 主要URL 200・sitemap 425件・`/listing/` 308 確認。
+
+#### 変更ファイル（headless/）
+- `components/ContactForm.tsx`, `components/WpStaticPage.tsx`
+- `app/api/contact/route.ts`, `app/globals.css`
+- `lib/contact-validation.ts`, `lib/contact-rate-limit.ts`
+- `scripts/seo-cutover-check.mjs`, `package.json`, `package-lock.json`, `.env.example`
+
+#### 変更ファイル（pm/）
+- `HEADLESS-CUTOVER-CHECKLIST.md`, `PROGRESS.md`
+
+#### 残課題
+- 本番 SMTP 設定と実メール送信確認（`CONTACT_FORM_DRY_RUN` を本番でオフ）
+- main への push・本番デプロイは未実施
+- Search Console への sitemap 再送信はドメイン切替後（チェックリスト参照）
+- PPR 環境では存在しない URL が 200 シェルになる場合あり（404 警告は手動確認推奨）
+
+---
+
+### 2026-06-12 Headless SEO/URL事故防止（sitemap全件・固定ページ・listingリダイレクト）
+
+#### 内容
+- `headless/` のみ編集。WP PHP/CSS は未変更。
+- sitemap: `getShopsForSitemap` / `getPostsForSitemap` を `x-wp-totalpages` ベースの順次ページングに変更（店舗382件=4ページを全件取得）。
+- 固定ページ `/contact/` `/about/` `/sitemap/` `/storelisting/` `/osaka-nihonbashi/` を `app/[slug]/page.tsx` で表示。REST `content.rendered` 空時は用途別フォールバック本文+CTA。
+- metadata: 固定ページに title / description / canonical / OGP を付与（canonical は `https://mens-esthe-kuchikomi.com/{slug}/`）。
+- `/listing/` → `/storelisting/` へ permanent redirect。ヘッダー/フッター/トップCTA のリンクを `/storelisting/` に統一。
+- GA4: `listing_click` を `/listing` と `/storelisting` の両方で判定。
+- sitemap static routes に固定ページ5件を追加。固定ページ用 CSS を `globals.css` に追加。
+- 検証: `npm run lint` / `npm run build` 成功。dev server で `/sitemap.xml` 200・店舗URL 382件、`/listing/` → 308 `/storelisting/`、`/contact/` `/storelisting/` 200 を確認。
+
+#### 変更ファイル（headless/）
+- `lib/wp/client.ts`, `lib/wp/shops.ts`, `lib/wp/posts.ts`, `lib/wp/pages.ts`, `lib/static-pages.ts`
+- `app/[slug]/page.tsx`, `app/sitemap.ts`, `next.config.ts`, `app/globals.css`
+- `components/WpStaticPage.tsx`, `GoogleAnalytics.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx`, `HomePageContent.tsx`
+
+#### 残課題
+- 本番デプロイ・ドメイン切替は未実施
+- Search Console への headless 用 sitemap 再送信は切替後
+- contact 固定ページは WP 側本文空のため、フォーム連携（CF7等）の REST 公開は別途検討
+
+---
+
+### 2026-06-12 Headless SEO/GA4基盤 実装
+
+#### 内容
+- `headless/` のみ編集。WP PHP/CSS は参照のみ・未変更。
+- GA4: `G-6XFMW5XKBW`（`NEXT_PUBLIC_GA_MEASUREMENT_ID` で上書き可）。`send_page_view: false` + 手動 `page_view`。pathname/searchParams 監視で SPA 遷移計測。tel・外部リンク・問い合わせ/掲載・店舗詳細のイベント委譲。
+- GA4 補強: `URL(href, origin)` 正規化後の pathname で `/contact` `/listing` を判定し、同一ドメインリンクでも `contact_click` / `listing_click` を送信。
+- SEO: layout + 全主要ページに canonical（末尾スラッシュ統一）、openGraph、twitter、robots。`trailingSlash: true`。
+- `app/sitemap.ts` / `app/robots.ts` 追加（エリア・店舗100件・コラム100件まで）。
+- JSON-LD: トップ WebSite+Organization、エリア BreadcrumbList、店舗 HealthAndBeautyBusiness。既存 FAQ JSON-LD は維持。
+- `npm run lint` / `npm run build` 成功。`curl` で `/sitemap.xml` `/robots.txt` 200 確認。
+
+#### 変更ファイル（headless/）
+- `app/layout.tsx`, `app/page.tsx`, `app/sitemap.ts`, `app/robots.ts`
+- `app/area/[slug]/page.tsx`, `app/shops/page.tsx`, `app/shops/[slug]/page.tsx`
+- `app/column/page.tsx`, `app/column/[slug]/page.tsx`
+- `components/GoogleAnalytics.tsx`, `components/AreaPageView.tsx`, `components/ShopDetail.tsx`
+- `lib/seo.ts`, `lib/gtag.ts`, `lib/wp/shops.ts`, `lib/wp/posts.ts`
+- `types/gtag.d.ts`, `next.config.ts`, `.env.example`
+
+#### 残課題
+- 本番デプロイ・ドメイン切替は未実施（別タスク）
+- sitemap 店舗/コラムは `per_page=100` 上限（全件化は WP 件数確認後）
+- Search Console への headless 用 sitemap 再送信は切替後
+
+---
+
+### 2026-06-12 Headless デザイン再現 追加修正
+
+#### 内容
+- フォントを Shippori Mincho + Playfair Display に変更（WP `functions.php` と同方向）。
+- ヘッダー: ネイビー上線、ロゴ画像、薄い高さ。
+- トップ見出し（人気エリア・新着店舗・新着コラム）: 絵文字除去、中央 + 金色短線。WP 赤線を上書き。
+- 関西タイル画像（奈良・滋賀・和歌山）を WP 本番 URL に統一。
+- AREA FEATURE カード PC 高さ ~280px、本文余白調整。
+- `getShopBySlug`: slug 直取得失敗時に search フォールバック（`/shops/genie` 対応）。
+- MAP SEARCH: iframe 非表示時用の地図風 CSS 背景を `lux-map-frame` に追加。
+- MAP SEARCH: フォールバックを iframe 上に薄く重ね、中央に赤ピン追加（白紙 iframe 対策）。
+- `npm run lint` / `npm run build` 成功（cacheComponents 維持）。
+
+#### 変更ファイル（headless/）
+- `app/globals.css`
+- `components/SiteHeader.tsx`, `HomePageContent.tsx`, `KansaiAreaGrid.tsx`
+- `lib/design-constants.ts`, `lib/wp/shops.ts`
+
+---
+
+### 2026-06-12 Headless デザイン再現（WPスクショ準拠）
+
+#### 内容
+- `headless/` のみ編集。WP PHP/CSS は参照のみ。
+- トップ: AREA FEATURE、6分割エリアタイル、新着店舗3カラム+CTA、コラム/About、フッター（ターコイズ罫線）を実装。
+- エリア: ヒーロー画像、MAP SEARCH（大阪親エリア）、導入文ボックス、SHOP LIST、ページネーション、OTHER AREAS を実装。
+- 店舗詳細: OPEN/WEBバッジ、星評価、編集部Review、出勤枠（静的プレースホルダ）、AGE/PRICE/SHOP INFO/AREA LIST セクションを実装。
+- フォント（Noto Serif JP）、色（#143d4d / #d4af37 / #00a4a6）、fade-in / card hover アニメーション追加。
+- `npm run lint` / `npm run build` 成功（Next.js 16.2 cacheComponents 維持）。
+
+#### 変更ファイル（headless/）
+- `app/page.tsx`, `app/globals.css`, `app/area/[slug]/page.tsx`, `app/shops/[slug]/page.tsx`
+- `components/HomePageContent.tsx`, `AreaFeatureSection.tsx`, `KansaiAreaGrid.tsx`, `AreaHero.tsx`, `SectionTitle.tsx`, `Pagination.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx`, `ShopCard.tsx`, `ShopDetail.tsx`, `AreaPageView.tsx`
+- `lib/design-constants.ts`, `lib/wp/areas.ts`
+
+#### 残課題
+- AI出勤: REST 連携後に本格実装（現状は静的プレースホルダ）
+- エリアページネーション: UI のみ（API ページング未接続）
+- 店舗 `shop_feature` タクソノミーの REST 分離表示
+
+---
+
+#### 内容
+- WordPress を CMS として残し、表側を Next.js で段階的に再構築する方針で要件定義を作成。
+- 現行の `front-page.php` / `taxonomy-area.php` / `single-shop.php` / `functions.php` / `ai-update-log.php` / `dashboard/` / `ai-site-monitor/` を確認し、再現対象の画面・ACF項目・API要件・SEO要件・工数・リスクを整理。
+- 公式情報として WordPress REST API、Next.js ISR、WPGraphQL の前提を確認。現行 `dashboard` の `output: "export"` では ISR が使えないため、本体サイトは Node.js 実行環境を前提にする必要あり。
+- Gemini にも全体分析を依頼し、API戦略、ACF公開、ルーティング、レンダリング、プレビュー、ショートコード棚卸し、AI更新ログ、ダッシュボード統合の観点を確認。シェル変数名の衝突でコマンド終了コードは1になったが、分析本文は取得できた。
+- Cursor Agent 調査は2回実行したが、どちらもセッション作成直後に空出力で失敗。ローカル調査と既存資料をもとに作成。
+- `docs/ai-skills.md` は見つからなかった。
+
+#### 変更ファイル
+- `pm/HEADLESS-WP-REQUIREMENTS.md`（新規）
+- `pm/PROGRESS.md`
+
+---
+
+### 2026-06-11 Headless Phase 1 実装準備
+
+#### 内容
+- 作業ブランチ `codex/headless-phase1` を作成。
+- Phase 1 実装計画 `docs/superpowers/plans/2026-06-11-headless-phase1.md` を作成。
+- 方針: 既存 WordPress 本番表示は維持し、`headless/` に Next.js アプリを別建てで追加する。公開切り替えは全ページ比較・SEO確認後。
+- Cursor Agent へ実装依頼を3回実行:
+  - Phase 1 Task 1〜4 一括: 空出力で失敗。
+  - Task 1のみ、`gpt-5.3-codex-low-fast`: 空出力で失敗。
+  - `--status` / `--models` は成功し、ログインと利用可能モデルは確認済み。
+- 現時点では Cursor Agent ブリッジが初期化後に実行へ進まないため、コード実装は未着手。
+
+#### 変更ファイル
+- `docs/superpowers/plans/2026-06-11-headless-phase1.md`（新規）
+- `pm/PROGRESS.md`
+
+---
+
+### 2026-06-11 Headless Phase 1 初期実装
+
+#### 内容
+- `headless/` に Next.js App Router アプリを新規作成。
+- WordPress REST API 取得層を追加し、`shop` / `area` / 通常投稿を取得できるようにした。
+- トップ、エリア詳細 `/area/[slug]/`、店舗一覧 `/shops/`、店舗詳細 `/shops/[slug]/`、コラム一覧 `/column/`、コラム詳細 `/column/[slug]/` を実装。
+- 既存 WordPress 本番FTPデプロイに混ざらないよう `.github/workflows/deploy.yml` の exclude に `headless/**` を追加。
+- ローカル表示確認:
+  - `http://localhost:3001/` 表示OK。
+  - `http://localhost:3001/area/nihonbashi/` 表示OK、店舗24件取得。
+  - 日本橋の店舗詳細1件（アテナ）表示OK。
+  - `http://localhost:3001/column/` と記事詳細 `hello-world` 表示OK。
+- `npm run lint` 成功。
+- `npm run build` 成功。
+
+#### 注意
+- REST API上で ACF の全項目が返っていないため、FAQ / エリアコラム / 店舗AIサマリー等は未表示のページがある。完全再現には WordPress 側で headless 用 REST 拡張または WPGraphQL 導入が必要。
+- Browser のスクリーンショット取得は CDP タイムアウトで失敗。DOMベースの表示確認は完了。
+
+#### 変更ファイル
+- `.github/workflows/deploy.yml`
+- `headless/`
+- `pm/PROGRESS.md`
+
+---
+
+### 2026-06-11 23:39 Headless デザイン再現・Next.js 16.2 キャッシュ対応
+
+#### 内容
+- Cursor Agent へ headless 側のデザイン再現とキャッシュ実装を依頼。初回は長時間停止したが、最終的に headless 側の一部編集・lint/build まで実行された。
+- 既存ファイル `css/base.css` / `css/front-page.css` / `css/single.css` と `front-page.php` / `taxonomy-area.php` / `single-shop.php` を参照し、Next側のマークアップを既存クラスへ寄せた。
+- トップページを `mep-homeNightLux` / `mep-hero-estama mep-hero-nightlux` / `mep-hero-glass` / `mep-feature-card` 中心の構造へ変更。
+- エリアページを `area-archive-header` / `wolfman-list-container` / `shop-list-row` 中心の構造へ変更。
+- 店舗詳細を `shpc-header-box` / `shpc-intro-section` / `shop-info-section` / `mod-customColor` 中心の構造へ変更。
+- 本番WordPressの子テーマCSSを `headless/app/globals.css` から読み込む形に変更し、Next側で不足していたヘッダー横並び、フッター、エリアカード、No Image の補完CSSを追加。
+- `next.config.ts` に `cacheComponents: true` を追加。
+- WordPress取得関数に Next.js 16.2 の `"use cache"` / `cacheLife()` / `cacheTag()` を追加。
+- キャッシュタグは全体 `wp`、カテゴリ `areas` / `shops` / `posts`、個別タグの3段構成にした。
+- WordPress更新後にNextキャッシュを更新できるよう `/api/revalidate?tag=wp` を追加。
+- 動的ページは `params` を Promise として扱い、`Suspense` 内で取得する構造に修正。同期 `params` 化による 404 と、`cacheComponents` の build エラーを解消。
+
+#### 検証
+- `npm run lint` 成功。
+- `npm run build` 成功。Next.js 16.2.6 / Cache Components enabled。
+- `http://localhost:3001/` 200。
+- `http://localhost:3001/area/nihonbashi/` 200。
+- `http://localhost:3001/shops/アテナ/` 200。
+- ブラウザで主要CSS変数 `--mep-red` / `--mep-navy` / `--accent-gold` と、主要パネルの背景色・角丸・影を確認。
+- `/api/revalidate?tag=wp` は `{ "ok": true, "tag": "wp" }` を返すことを確認。
+
+#### 注意
+- 親テーマSWELLのCSSすべてをNextへ移植しているわけではないため、現時点では子テーマ主要CSS + Next補完CSSでの再現。
+- REST APIに出ていないACF項目は引き続き未表示。完全再現には WordPress側の headless REST 拡張または WPGraphQL が必要。
+
+#### 変更ファイル
+- `headless/app/globals.css`
+- `headless/app/page.tsx`
+- `headless/app/api/revalidate/route.ts`
+- `headless/app/area/[slug]/page.tsx`
+- `headless/app/shops/[slug]/page.tsx`
+- `headless/app/column/[slug]/page.tsx`
+- `headless/components/ShopCard.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/lib/wp/areas.ts`
+- `headless/lib/wp/shops.ts`
+- `headless/lib/wp/posts.ts`
+- `headless/next.config.ts`
+- `headless/.env.example`
+- `headless/public/no-image.svg`
+- `pm/PROGRESS.md`
+
+---
+
 ## ステータスサマリー
 | 項目 | 状態 | 備考 |
 |------|------|------|
