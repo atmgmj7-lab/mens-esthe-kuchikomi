@@ -16,6 +16,13 @@
 - CSS cache-control: `public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800`
 - uploads 画像 cache-control: `public, max-age=31536000, s-maxage=31536000, immutable`
 
+#### 本番反映
+- commit `969a283` を `main` に push 済み
+- GitHub Actions: Deploy Headless to Vercel run `27408389607` 成功、Deploy to Xserver run `27408389612` 成功
+- 本番 `https://mens-esthe-kuchikomi.com` で `npm run seo:cutover-check` 全合格
+- `npm run perf:check` 全合格
+- CSS と uploads 画像で `x-vercel-cache: HIT` を確認
+
 ---
 
 ### 2026-06-12 Headless DNS cutover 完了
