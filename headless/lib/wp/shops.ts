@@ -1,4 +1,4 @@
-import { wpApiBase, wpFetch, wpFetchPaginated } from "@/lib/wp/client";
+import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import type { ShopView, WpShop } from "@/lib/wp/types";
@@ -70,10 +70,8 @@ export async function getShopCount(): Promise<number> {
   cacheLife("minutes");
   cacheTag("wp", "shops", "shops:count");
   try {
-    const response = await fetch(`${wpApiBase}/wp/v2/shop?per_page=1`, {
-      next: {}
-    });
-    return Number(response.headers.get("x-wp-total") || 0);
+    const { pagination } = await wpFetchPaginated<WpShop[]>("/wp/v2/shop?per_page=1");
+    return pagination.total;
   } catch {
     return 0;
   }

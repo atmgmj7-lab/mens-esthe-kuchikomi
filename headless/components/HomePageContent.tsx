@@ -27,7 +27,7 @@ export function HomePageContent({
                   <p className="mep-hero-sub">関西メンズエステの口コミ情報サイト【エスコミ】</p>
                   <h1 className="mep-hero-logo">
                     <img
-                      src="https://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png"
+                      src="/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png"
                       alt="Escomi（エスコミ）| 関西メンズエステ口コミナビ"
                       width={400}
                       height={120}

@@ -6,6 +6,12 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL, canonicalUrl } from "@/lib/seo";
 
+const WP_THEME_STYLES = [
+  "/wp-content/themes/swell_child/css/base.css",
+  "/wp-content/themes/swell_child/css/front-page.css",
+  "/wp-content/themes/swell_child/css/single.css"
+] as const;
+
 export const metadata: Metadata = {
   title: {
     default: SITE_NAME,
@@ -38,6 +44,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
+      <head>
+        {WP_THEME_STYLES.map((href) => (
+          <link key={href} rel="stylesheet" href={href} />
+        ))}
+      </head>
       <body>
         <Suspense fallback={null}>
           <GoogleAnalytics />

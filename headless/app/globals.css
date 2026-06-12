@@ -1,7 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Playfair+Display:opsz,wght@5..1200,400;500;600;700&display=swap");
-@import url("https://mens-esthe-kuchikomi.com/wp-content/themes/swell_child/css/base.css");
-@import url("https://mens-esthe-kuchikomi.com/wp-content/themes/swell_child/css/front-page.css");
-@import url("https://mens-esthe-kuchikomi.com/wp-content/themes/swell_child/css/single.css");
+/* SWELL child theme CSS: /wp-content/... は layout.tsx の <link> で読み込み（Turbopack は @import の root 相対 URL を解決できない） */
 
 :root {
   --mep-navy: #143d4d;
@@ -230,13 +228,13 @@ img {
   background-image: url("https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800") !important;
 }
 .bg-nara {
-  background-image: url("http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/d90bb876a73297001ed594f8d073d88c_t.jpeg") !important;
+  background-image: url("/wp-content/uploads/2026/01/d90bb876a73297001ed594f8d073d88c_t.jpeg") !important;
 }
 .bg-shiga {
-  background-image: url("http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/360_F_1174299064_3GAJ1DwZ6w3CNuPMgivzwakXMbLnDTBY.jpg") !important;
+  background-image: url("/wp-content/uploads/2026/01/360_F_1174299064_3GAJ1DwZ6w3CNuPMgivzwakXMbLnDTBY.jpg") !important;
 }
 .bg-wakayama {
-  background-image: url("http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg") !important;
+  background-image: url("/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg") !important;
 }
 
 /* ── AREA FEATURE card (PC height ~280px) ── */

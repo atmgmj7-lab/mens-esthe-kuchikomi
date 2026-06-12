@@ -7,15 +7,13 @@ export const COLORS = {
 } as const;
 
 export const AREA_HERO_IMAGES: Record<string, string> = {
-  osaka:
-    "https://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",
+  osaka: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",
   kyoto: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200",
   hyogo: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=1200",
   nara: "https://images.unsplash.com/photo-1545569341-9eb1b6746a34?w=1200",
   shiga: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=1200",
   wakayama: "https://images.unsplash.com/photo-1494500764479-0c8a291d42e8?w=1200",
-  nihonbashi:
-    "https://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg"
+  nihonbashi: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg"
 };
 
 export const AREA_MAP_EMBED: Record<string, string> = {
@@ -40,9 +38,9 @@ export const KANSAI_TILE_IMAGES: Record<string, string> = {
   osaka: "https://images.unsplash.com/photo-1590559899731-a382839e5549?w=800",
   kyoto: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800",
   hyogo: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=800",
-  nara: "http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/d90bb876a73297001ed594f8d073d88c_t.jpeg",
-  shiga: "http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/360_F_1174299064_3GAJ1DwZ6w3CNuPMgivzwakXMbLnDTBY.jpg",
-  wakayama: "http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg"
+  nara: "/wp-content/uploads/2026/01/d90bb876a73297001ed594f8d073d88c_t.jpeg",
+  shiga: "/wp-content/uploads/2026/01/360_F_1174299064_3GAJ1DwZ6w3CNuPMgivzwakXMbLnDTBY.jpg",
+  wakayama: "/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg"
 };
 
 export const AREA_FEATURE = {
@@ -52,8 +50,7 @@ export const AREA_FEATURE = {
   description:
     "大阪・日本橋エリアのメンズエステを徹底比較。口コミ・料金・営業時間から、あなたにぴったりの店舗が見つかります。",
   btnText: "日本橋エリアの特集を見る",
-  image:
-    "https://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg"
+  image: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg"
 };
 
 export function resolveAreaHeroImage(area: AreaView, parent?: AreaView | null): string {

@@ -2,6 +2,18 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless WP origin proxy（DNS 切替前）
+
+- DNS 切替後も WP REST API / wp-content が壊れないよう、headless に origin proxy を実装
+- Node fetch では `Host` ヘッダーが効かないため、origin proxy は `node:http` で中継（`lib/wp/origin-request.ts`）
+- サーバー fetch: `WP_API_BASE_URL` 既定を `http://85.131.213.108/wp-json`、`WP_ORIGIN_HOST` で `Host` ヘッダー付与（`lib/wp/client.ts`）
+- Route Handler: `/wp-content/[...path]` / `/wp-json/[[...path]]` → Xserver origin へプロキシ
+- 表示用画像・CSS を `/wp-content/...` 相対 URL に変更（JSON-LD logo 等の canonical 絶対 URL は維持）
+- テーマ CSS は Turbopack が `@import` の root 相対 URL を解決できないため `layout.tsx` の `<link href="/wp-content/...">` で読み込み
+- `.env.example` に `WP_API_BASE_URL` / `WP_ORIGIN_HOST` を追記、`HEADLESS-CUTOVER-CHECKLIST.md` §1 を更新
+
+---
+
 ### 2026-06-12 Headless Vercel CI SEOチェックURL固定
 
 - Vercel deploy は成功したが、SEO check が DNS 未切替の `mens-esthe-kuchikomi.com` を見て失敗した

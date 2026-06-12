@@ -51,13 +51,20 @@ headless 本番環境に以下が入っているか確認します。
 
 | 変数名 | 用途 |
 |--------|------|
-| `NEXT_PUBLIC_WP_BASE_URL` | WP 本番 URL |
-| `WP_API_BASE_URL` | WP REST API |
+| `NEXT_PUBLIC_WP_BASE_URL` | 公開サイトの canonical ドメイン（既定: `https://mens-esthe-kuchikomi.com`） |
+| `WP_API_BASE_URL` | サーバー側 WP REST API の接続先（既定: `http://85.131.213.108/wp-json`） |
+| `WP_ORIGIN_HOST` | Xserver origin へ IP 直アクセス時に付与する `Host` ヘッダー（既定: `mens-esthe-kuchikomi.com`） |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | GA4（`G-6XFMW5XKBW`） |
 | `REVALIDATE_SECRET` | キャッシュ再検証 |
 | `SMTP_HOST` など SMTP 一式 | お問い合わせメール送信 |
 | `CONTACT_FROM_EMAIL` / `CONTACT_TO_EMAIL` | 送信元・宛先 |
 | `CONTACT_FORM_DRY_RUN` | **本番では `false` または未設定**（`true` だとメールは送られません） |
+
+**DNS 切替後の WP 接続（実装済み）**
+
+- A レコードを Vercel に向けたあとも、Next.js は **Xserver origin（`85.131.213.108`）** へサーバー fetch し、`Host: mens-esthe-kuchikomi.com` を付けて WP REST API を取得します。
+- ブラウザ向けの `/wp-content/*` と `/wp-json/*` は Next の Route Handler 経由で同じ origin へプロキシします（画像・テーマ CSS・必要時の REST 呼び出し）。
+- 画面表示用の画像/CSS は `/wp-content/...` の同一ドメイン相対 URL に寄せています。
 
 SMTP 設定の自動確認:
 

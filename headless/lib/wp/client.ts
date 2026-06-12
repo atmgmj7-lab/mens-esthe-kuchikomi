@@ -1,8 +1,55 @@
-const DEFAULT_WP_API_BASE = "https://mens-esthe-kuchikomi.com/wp-json";
+import { requestWpOrigin } from "@/lib/wp/origin-request";
+import { usesWpOriginIp } from "@/lib/wp/origin";
+
+const DEFAULT_WP_API_BASE = "http://85.131.213.108/wp-json";
 const DEFAULT_WP_BASE = "https://mens-esthe-kuchikomi.com";
+
+export { WP_ORIGIN_IP, wpOriginBaseUrl, wpOriginHost } from "@/lib/wp/origin";
 
 export const wpApiBase = process.env.WP_API_BASE_URL || DEFAULT_WP_API_BASE;
 export const wpBase = process.env.NEXT_PUBLIC_WP_BASE_URL || DEFAULT_WP_BASE;
+
+function toOriginPath(url: string): string {
+  const parsed = new URL(url);
+  return `${parsed.pathname}${parsed.search}`;
+}
+
+function pickForwardHeaders(init?: HeadersInit): HeadersInit | undefined {
+  if (!init) {
+    return undefined;
+  }
+
+  const incoming = new Headers(init);
+  const headers = new Headers();
+  const authorization = incoming.get("authorization");
+  const contentType = incoming.get("content-type");
+
+  if (authorization) {
+    headers.set("Authorization", authorization);
+  }
+  if (contentType) {
+    headers.set("Content-Type", contentType);
+  }
+
+  return headers.entries().next().done ? undefined : headers;
+}
+
+async function wpRequest(path: string, init?: RequestInit): Promise<Response> {
+  const url = path.startsWith("http") ? path : `${wpApiBase}${path}`;
+
+  if (usesWpOriginIp(wpApiBase)) {
+    return requestWpOrigin(toOriginPath(url), {
+      method: init?.method,
+      headers: pickForwardHeaders(init?.headers),
+      body: init?.body ?? null
+    });
+  }
+
+  return fetch(url, {
+    ...init,
+    next: { ...(init?.next || {}) }
+  });
+}
 
 export type WpPagination = {
   total: number;
@@ -19,10 +66,7 @@ export async function wpFetchPaginated<T>(
   init?: RequestInit
 ): Promise<{ data: T; pagination: WpPagination }> {
   const url = path.startsWith("http") ? path : `${wpApiBase}${path}`;
-  const response = await fetch(url, {
-    ...init,
-    next: { ...(init?.next || {}) }
-  });
+  const response = await wpRequest(path, init);
 
   if (!response.ok) {
     throw new Error(`WordPress fetch failed: ${response.status} ${url}`);
