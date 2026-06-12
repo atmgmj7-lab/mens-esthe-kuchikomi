@@ -9,6 +9,9 @@
 - SP 画像高さを 180px に抑え、本文 padding を 18px に調整
 - 金色枠・横並びレイアウト・他コンポーネントは変更なし
 
+#### 本番反映
+- Vercel production deployment `dpl_5hYBr4tsHWHG8ee5k1g85fZPXfK5` → https://mens-esthe-kuchikomi.com に反映済み
+
 #### 変更ファイル
 - `headless/app/globals.css`
 - `pm/PROGRESS.md`
@@ -21,6 +24,8 @@
 - PC itemHeight 320 / imageHeight 318 / 横スクロールなし
 - SP imageHeight 180 / 横スクロールなし
 - スクリーンショット: `/tmp/escomi-area-feature-compact2-desktop.png` `/tmp/escomi-area-feature-compact2-mobile.png`
+- `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` → 成功
+- `npm run perf:check -- https://mens-esthe-kuchikomi.com` → 成功
 
 ### 2026-06-13 UI修正: エリア特集余白・店舗デフォルト画像
 
