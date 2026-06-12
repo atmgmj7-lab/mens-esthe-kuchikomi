@@ -49,7 +49,7 @@ async function ShopsPageContent({ searchParams }: Props) {
 
   return (
     <main id="main_content" className="l-main_content l-article hl-shops-page">
-      <div className="l-main_content__inner">
+      <div className="l-main_content__inner hl-page-inner">
         <h1 className="sec-title es-sec-title-large">店舗一覧</h1>
         <p className="hl-shops-page__lead">
           関西エリアのメンズエステ店舗を、キーワード・エリア・出勤状況から探せます。

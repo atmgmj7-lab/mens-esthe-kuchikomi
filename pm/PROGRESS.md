@@ -2,6 +2,50 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 app-development Phase 1-3（WP revalidate 通知 + CSS 余白基盤）
+
+#### 要件 A: WordPress 更新 → Next 即時反映
+- `functions.php` に `escomi_headless_*` で revalidate 通知を追加
+- フック: `save_post_shop/post/page`, `trashed_post`, `deleted_post`, `edited_area`, `created_area`, `delete_area`
+- autosave / revision 除外、20 秒 transient throttle、shutdown で非同期送信
+- `wp_remote_post` は `blocking => false` / `timeout => 0.1` の fire-and-forget とし、WP 保存画面を待たせない設計
+- レビュー時に重複していた revalidate ブロックを削除し、フック登録は1セットのみに整理
+- secret 取得順: `ESCOMI_REVALIDATE_SECRET` 定数 → 環境変数 → option `escomi_revalidate_secret`
+- `pm/RUNBOOK.md` A-5、`pm/HEADLESS-CUTOVER-CHECKLIST.md` §14 に設定・テスト手順を追記
+
+#### 要件 B: CSS / コンポーネント余白基盤
+- `headless/app/globals.css`: デザイントークン（container / gutter / section gap / radius / shadow / 色系）と `.hl-page-inner` `.hl-section` `.hl-surface` `.hl-stack` `.hl-cluster` を追加
+- 既存色 `--mep-navy` `--es-gold` `--es-turquoise` は維持
+- `AreaPageView` / `ShopDetail` / `ShopContactCta` / `WpStaticPage` / `shops/page` に最小限 `hl-*` クラス適用
+- スマホ向け overflow-wrap / gutter 縮小を追加
+
+#### 検証
+- `npm run lint` 成功
+- `npm run build` 成功（Next.js 16.2.6 / Cache Components 有効 / 435 routes）
+- `php -l functions.php` 成功
+- ローカル `http://127.0.0.1:3030` で `/` `/area/nihonbashi/` `/shops/` `/about/` → 200
+- Playwright で desktop/mobile の `/` `/area/nihonbashi/` `/shops/` `/shops/genie.../` `/about/` を確認。ページ全体の横スクロールなし（スマホのエリアチップ横スクロールは意図したUI）
+- 本番 `GET /api/revalidate?tag=wp`（secret なし）→ `401 Invalid secret`（`REVALIDATE_SECRET` 設定済みを確認）
+- ローカル同 API → 同上（secret 必須環境）。WP 連携の E2E は `wp-config.php` 設定後に実施
+
+#### 変更ファイル
+- `functions.php`
+- `headless/app/globals.css`
+- `headless/components/AreaPageView.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/components/ShopContactCta.tsx`
+- `headless/components/WpStaticPage.tsx`
+- `headless/app/shops/page.tsx`
+- `pm/RUNBOOK.md`
+- `pm/HEADLESS-CUTOVER-CHECKLIST.md`
+- `pm/PROGRESS.md`
+
+#### 懸念・本番作業
+- `wp-config.php` への `ESCOMI_REVALIDATE_SECRET` 登録は人手（RUNBOOK C / A-5）
+- secret 未設定時は Next 側 `REVALIDATE_SECRET` も空なら revalidate は通るが、本番では両方設定推奨
+
+---
+
 ### 2026-06-12 本番反映（遷移空画面対策・店舗slug 404修正）
 
 - main に `118b7d1`（遷移空画面対策）・`565c7c5`（店舗slug 404修正）を push 済み

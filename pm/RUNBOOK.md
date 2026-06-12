@@ -198,6 +198,46 @@ curl -sS -o /dev/null -w "%{http_code}\n" -u 'WP_USER:WP_APP_PASSWORD' \
 
 ---
 
+## A-5. WordPress → Headless キャッシュ再検証（即時反映）
+
+店舗・投稿・固定ページ・`area` タクソノミーを WordPress で保存すると、子テーマ `functions.php` の `escomi_headless_*` が Next の `/api/revalidate` へ POST します（20 秒 throttle・同一リクエストは 1 回）。
+
+### C. 初回設定（`wp-config.php`・手動）
+
+本番 Xserver の `wp-config.php`（`/* That's all, stop editing! */` の直前）に追加します。**値は Vercel の `REVALIDATE_SECRET` と同一**にしてください（秘密値はリポジトリにコミットしない）。
+
+```php
+define('ESCOMI_REVALIDATE_SECRET', 'VercelのREVALIDATE_SECRETと同じ値');
+// 任意: プレビュー URL や別ドメイン向け
+// define('ESCOMI_HEADLESS_REVALIDATE_URL', 'https://mens-esthe-kuchikomi.com/api/revalidate');
+```
+
+代替: 環境変数 `ESCOMI_REVALIDATE_SECRET`、または WP option `escomi_revalidate_secret`（定数が最優先）。
+
+子テーマ `functions.php` を FTP デプロイ後、WP 管理画面で店舗またはエリアを 1 件更新し、Headless 側の表示が追従するか確認します。
+
+### A. API 疎通確認（エージェント実行可・secret は環境から）
+
+```bash
+# secret 未設定の環境（ローカル）例
+curl -sS "https://mens-esthe-kuchikomi.com/api/revalidate?tag=wp"
+
+# secret 設定済み（<SECRET> は wp-config / Vercel と同じ値。チャットに貼らない）
+curl -sS "https://mens-esthe-kuchikomi.com/api/revalidate?tag=wp&secret=<SECRET>"
+
+# POST（WP から送る形式に近い）
+curl -sS -X POST "https://mens-esthe-kuchikomi.com/api/revalidate" \
+  -H "Content-Type: application/json" \
+  -H "x-revalidate-secret: <SECRET>" \
+  -d '{"tag":"wp","reason":"manual_test"}'
+```
+
+期待: `{"ok":true,"tag":"wp"}`。secret 不一致時は `401`。
+
+`WP_DEBUG` 有効時のみ、WP の `error_log` に `[escomi_headless] revalidate queued request ...` または失敗ログが出ます。
+
+---
+
 ## C. 手動のみ（エージェントは「指示・チェックリスト」まで）
 
 - **WordPress 管理画面:** エリアタームの ACF（導入文・ランキング・コラム・FAQ 等）  

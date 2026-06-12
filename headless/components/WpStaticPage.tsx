@@ -11,8 +11,8 @@ export function WpStaticPage({ slug, page }: { slug: StaticPageSlug; page: PageV
 
   return (
     <main className="l-mainContent hl-static-page" id="main_content">
-      <div className="mep-container hl-static-page-inner">
-        <article className="hl-static-page-card">
+      <div className="mep-container hl-page-inner hl-static-page-inner">
+        <article className="hl-static-page-card hl-surface">
           <h1 className="hl-static-page-title">{title}</h1>
           <div className="rich-text hl-static-page-body" dangerouslySetInnerHTML={{ __html: contentHtml }} />
           {slug === "contact" ? (

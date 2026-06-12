@@ -41,11 +41,11 @@ export function AreaPageView({
       />
       <AreaHero area={area} parent={parentArea} />
 
-      <div className="l-main_content__inner">
+      <div className="l-main_content__inner hl-page-inner">
         <AreaBreadcrumb area={area} parent={parentArea} />
 
         {isParentArea && mapUrl && childAreas.length > 0 ? (
-          <section className="area-map-section u-mb-50 hl-fade-in">
+          <section className="area-map-section hl-section hl-fade-in">
             <div className="lux-area-nav lux-area-nav--map-focus">
               <div className="lux-map-section">
                 <h2 className="lux-heading">
@@ -68,7 +68,7 @@ export function AreaPageView({
         ) : null}
 
         {isParentArea && childAreas.length > 0 ? (
-          <section className="child-area-select-section u-mb-50 hl-fade-in">
+          <section className="child-area-select-section hl-section hl-fade-in">
             <h2 className="lux-heading-small">詳細エリアを選択</h2>
             <div className="es-area-grid u-pc-only">
               {childAreas.map((child) => (
@@ -95,12 +95,12 @@ export function AreaPageView({
         ) : null}
 
         {!isParentArea && characteristics ? (
-          <section className="area-characteristics-box u-mb-50 hl-fade-in">
+          <section className="area-characteristics-box hl-section hl-fade-in">
             <div dangerouslySetInnerHTML={{ __html: characteristics }} />
           </section>
         ) : null}
 
-        <section className="shop-list-section hl-fade-in">
+        <section className="shop-list-section hl-section hl-fade-in">
           <EsSectionTitle en="SHOP LIST" ja={`${area.name}の店舗一覧`} large />
           {shops.length > 0 ? (
             <>
@@ -117,14 +117,14 @@ export function AreaPageView({
         </section>
 
         {column ? (
-          <section className="area-column-content u-mt-50 u-mb-50">
+          <section className="area-column-content hl-section">
             <EsSectionTitle en="AREA INFO" ja={`${area.name}エリアのメンズエステ情報`} large />
             <div className="area-column-content__body" dangerouslySetInnerHTML={{ __html: column }} />
           </section>
         ) : null}
 
         {faqRows.length > 0 ? (
-          <section className="area-faq-box u-mt-50 u-mb-50">
+          <section className="area-faq-box hl-section">
             <EsSectionTitle en="FAQ" ja="よくある質問" large />
             <dl className="area-faq-box__dl">
               {faqRows.map((row) => (
@@ -142,7 +142,7 @@ export function AreaPageView({
         ) : null}
 
         {!isParentArea && parentArea && siblingAreas.length > 0 ? (
-          <section className="es-sibling-area-section u-mt-50 hl-fade-in">
+          <section className="es-sibling-area-section hl-section hl-fade-in">
             <h2 className="sec-title-simple es-sec-title">
               <span className="es-sec-title__en">OTHER AREAS</span>
               <span className="es-sec-title__ja">{parentArea.name}の他のエリア</span>

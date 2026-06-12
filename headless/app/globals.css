@@ -2,14 +2,47 @@
 /* SWELL child theme CSS: /wp-content/... は layout.tsx の <link> で読み込み（Turbopack は @import の root 相対 URL を解決できない） */
 
 :root {
+  /* Brand colors (legacy aliases preserved) */
   --mep-navy: #143d4d;
   --es-navy: #143d4d;
   --es-gold: #d4af37;
   --es-gold-dark: #b8962e;
   --es-gold-bg: #fffcf0;
   --es-turquoise: #00a4a6;
+
+  /* Extended palette */
+  --hl-text: #333;
+  --hl-text-muted: #666;
+  --hl-text-subtle: #888;
+  --hl-border: #e8e8e8;
+  --hl-border-strong: #ddd;
+  --hl-surface: #fff;
+  --hl-surface-muted: #fafafa;
+
+  /* Layout tokens */
+  --hl-container-max: 1100px;
+  --hl-container-narrow: 820px;
+  --hl-gutter: 20px;
+  --hl-gutter-sm: 16px;
+  --hl-section-gap: 50px;
+  --hl-section-gap-tight: 30px;
+  --hl-stack-gap: 16px;
+  --hl-cluster-gap: 12px;
+
+  /* Shape & elevation */
+  --hl-radius-sm: 4px;
+  --hl-radius-md: 8px;
+  --hl-radius-lg: 12px;
+  --hl-shadow-sm: 0 2px 8px rgba(20, 61, 77, 0.06);
+  --hl-shadow-md: 0 4px 16px rgba(20, 61, 77, 0.08);
+
+  /* Typography */
   --hl-serif: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   --hl-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --hl-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --hl-font-sm: 0.85rem;
+  --hl-font-base: 0.95rem;
+  --hl-font-lg: 1.15rem;
 }
 
 * {
@@ -110,10 +143,93 @@ img {
 }
 
 .l-main_content__inner,
-.l-mainContent__inner {
-  max-width: 1100px;
+.l-mainContent__inner,
+.hl-page-inner {
+  max-width: var(--hl-container-max);
   margin: 0 auto;
-  padding: 0 20px 60px;
+  padding: 0 var(--hl-gutter) 60px;
+}
+
+/* ── Headless layout primitives ── */
+.hl-section {
+  margin-bottom: var(--hl-section-gap);
+}
+
+.hl-section--tight {
+  margin-bottom: var(--hl-section-gap-tight);
+}
+
+.hl-section:last-child {
+  margin-bottom: 0;
+}
+
+.hl-surface {
+  border: 1px solid var(--hl-border);
+  border-radius: var(--hl-radius-md);
+  background: var(--hl-surface);
+  box-shadow: var(--hl-shadow-sm);
+}
+
+.hl-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hl-stack-gap);
+}
+
+.hl-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hl-cluster-gap);
+}
+
+.hl-page-inner > .hl-section + .hl-section {
+  margin-top: 0;
+}
+
+.shpc-intro-section + .shop-info-section.hl-section {
+  margin-top: 40px;
+}
+
+/* Mobile overflow guard */
+.hl-page-inner,
+.hl-section,
+.hl-surface,
+.hl-stack,
+.hl-cluster {
+  min-width: 0;
+}
+
+.hl-page-inner img,
+.hl-page-inner table,
+.hl-page-inner pre {
+  max-width: 100%;
+}
+
+.hl-page-inner a,
+.hl-page-inner button,
+.shpc-link-btn,
+.hl-shop-cta-panel__web,
+.hl-shop-fixed-cta__btn {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 767px) {
+  .l-main_content__inner,
+  .l-mainContent__inner,
+  .hl-page-inner {
+    padding-left: var(--hl-gutter-sm);
+    padding-right: var(--hl-gutter-sm);
+  }
+
+  .hl-section {
+    margin-bottom: calc(var(--hl-section-gap) * 0.8);
+  }
+
+  .hl-section--tight {
+    margin-bottom: calc(var(--hl-section-gap-tight) * 0.85);
+  }
 }
 
 .hl-route-fallback {
@@ -893,15 +1009,16 @@ img {
 }
 
 .hl-static-page-inner {
-  max-width: 820px;
+  max-width: var(--hl-container-narrow);
 }
 
 .hl-static-page-card {
-  border: 1px solid #e8e8e8;
   border-top: 3px solid var(--mep-navy);
-  background: #fff;
   padding: 28px 24px 36px;
-  box-shadow: 0 2px 12px rgba(20, 61, 77, 0.06);
+}
+
+.hl-static-page-card.hl-surface {
+  border-color: var(--hl-border);
 }
 
 .hl-static-page-title {

@@ -1178,3 +1178,193 @@ function escomi_add_shop_archive_badges($content) {
     return $content;
 }
 
+// ============================================================
+// Headless Next.js キャッシュ再検証（WordPress 更新 → Next 即時反映）
+// ============================================================
+
+if (!function_exists('escomi_headless_revalidate_get_url')) {
+    function escomi_headless_revalidate_get_url() {
+        if (defined('ESCOMI_HEADLESS_REVALIDATE_URL') && ESCOMI_HEADLESS_REVALIDATE_URL) {
+            return ESCOMI_HEADLESS_REVALIDATE_URL;
+        }
+        return 'https://mens-esthe-kuchikomi.com/api/revalidate';
+    }
+}
+
+if (!function_exists('escomi_headless_revalidate_get_secret')) {
+    function escomi_headless_revalidate_get_secret() {
+        if (defined('ESCOMI_REVALIDATE_SECRET') && ESCOMI_REVALIDATE_SECRET) {
+            return (string) ESCOMI_REVALIDATE_SECRET;
+        }
+        $env = getenv('ESCOMI_REVALIDATE_SECRET');
+        if (is_string($env) && $env !== '') {
+            return $env;
+        }
+        $opt = get_option('escomi_revalidate_secret', '');
+        return is_string($opt) ? $opt : '';
+    }
+}
+
+if (!function_exists('escomi_headless_revalidate_skip_post')) {
+    function escomi_headless_revalidate_skip_post($post_id) {
+        $post_id = (int) $post_id;
+        if ($post_id <= 0) {
+            return true;
+        }
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return true;
+        }
+        if (wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
+            return true;
+        }
+        return false;
+    }
+}
+
+if (!function_exists('escomi_headless_revalidate_is_relevant_post_type')) {
+    function escomi_headless_revalidate_is_relevant_post_type($post_type) {
+        return in_array($post_type, array('shop', 'post', 'page'), true);
+    }
+}
+
+if (!function_exists('escomi_headless_revalidate_is_throttled')) {
+    function escomi_headless_revalidate_is_throttled() {
+        return (bool) get_transient('escomi_headless_revalidate_throttle');
+    }
+}
+
+if (!function_exists('escomi_headless_revalidate_set_throttle')) {
+    function escomi_headless_revalidate_set_throttle() {
+        set_transient('escomi_headless_revalidate_throttle', 1, 20);
+    }
+}
+
+if (!function_exists('escomi_headless_send_revalidate')) {
+    function escomi_headless_send_revalidate($reason = 'content_update') {
+        $url = escomi_headless_revalidate_get_url();
+        $secret = escomi_headless_revalidate_get_secret();
+
+        $headers = array('Content-Type' => 'application/json');
+        if ($secret !== '') {
+            $headers['x-revalidate-secret'] = $secret;
+        } elseif (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('[escomi_headless] revalidate secret not configured; sending without secret');
+        }
+
+        $body = wp_json_encode(array(
+            'tag' => 'wp',
+            'reason' => (string) $reason,
+        ));
+
+        $response = wp_remote_post($url, array(
+            'timeout' => 0.1,
+            'blocking' => false,
+            'headers' => $headers,
+            'body' => $body,
+        ));
+
+        if (!defined('WP_DEBUG') || !WP_DEBUG) {
+            return;
+        }
+
+        if (is_wp_error($response)) {
+            error_log('[escomi_headless] revalidate failed: ' . $response->get_error_message() . ' reason=' . $reason);
+            return;
+        }
+
+        error_log('[escomi_headless] revalidate queued request reason=' . $reason);
+    }
+}
+
+if (!function_exists('escomi_headless_queue_revalidate')) {
+    function escomi_headless_queue_revalidate($reason = 'content_update') {
+        if (escomi_headless_revalidate_is_throttled()) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[escomi_headless] revalidate skipped (throttled): ' . $reason);
+            }
+            return;
+        }
+
+        escomi_headless_revalidate_set_throttle();
+
+        static $queued_reason = null;
+        if ($queued_reason !== null) {
+            return;
+        }
+        $queued_reason = (string) $reason;
+
+        add_action('shutdown', function () use ($queued_reason) {
+            escomi_headless_send_revalidate($queued_reason);
+        }, 20);
+    }
+}
+
+if (!function_exists('escomi_headless_on_save_post')) {
+    function escomi_headless_on_save_post($post_id, $post, $update) {
+        unset($update);
+        if (escomi_headless_revalidate_skip_post($post_id)) {
+            return;
+        }
+        if (!($post instanceof WP_Post)) {
+            return;
+        }
+        if ($post->post_status === 'auto-draft') {
+            return;
+        }
+        if (!escomi_headless_revalidate_is_relevant_post_type($post->post_type)) {
+            return;
+        }
+        escomi_headless_queue_revalidate('save_' . $post->post_type . ':' . $post_id);
+    }
+}
+
+if (!function_exists('escomi_headless_on_trashed_post')) {
+    function escomi_headless_on_trashed_post($post_id) {
+        if (escomi_headless_revalidate_skip_post($post_id)) {
+            return;
+        }
+        $post_type = get_post_type($post_id);
+        if (!$post_type || !escomi_headless_revalidate_is_relevant_post_type($post_type)) {
+            return;
+        }
+        escomi_headless_queue_revalidate('trashed_' . $post_type . ':' . $post_id);
+    }
+}
+
+if (!function_exists('escomi_headless_on_deleted_post')) {
+    function escomi_headless_on_deleted_post($post_id, $post = null) {
+        if (escomi_headless_revalidate_skip_post($post_id)) {
+            return;
+        }
+        $post_type = ($post instanceof WP_Post) ? $post->post_type : get_post_type($post_id);
+        if (!$post_type || !escomi_headless_revalidate_is_relevant_post_type($post_type)) {
+            return;
+        }
+        escomi_headless_queue_revalidate('deleted_' . $post_type . ':' . $post_id);
+    }
+}
+
+if (!function_exists('escomi_headless_on_area_taxonomy_change')) {
+    function escomi_headless_on_area_taxonomy_change($term_id, $tt_id = 0) {
+        unset($tt_id);
+        escomi_headless_queue_revalidate('area_term:' . (int) $term_id);
+    }
+}
+
+if (!function_exists('escomi_headless_on_area_taxonomy_delete')) {
+    function escomi_headless_on_area_taxonomy_delete($term, $tt_id, $taxonomy, $deleted_term) {
+        unset($tt_id, $taxonomy, $deleted_term);
+        $term_id = is_object($term) && isset($term->term_id) ? (int) $term->term_id : 0;
+        escomi_headless_queue_revalidate('delete_area:' . $term_id);
+    }
+}
+
+add_action('save_post_shop', 'escomi_headless_on_save_post', 20, 3);
+add_action('save_post_post', 'escomi_headless_on_save_post', 20, 3);
+add_action('save_post_page', 'escomi_headless_on_save_post', 20, 3);
+add_action('trashed_post', 'escomi_headless_on_trashed_post', 20, 1);
+add_action('deleted_post', 'escomi_headless_on_deleted_post', 20, 2);
+add_action('edited_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
+add_action('created_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
+add_action('delete_area', 'escomi_headless_on_area_taxonomy_delete', 20, 4);
+

@@ -9,7 +9,7 @@ export function ShopContactCtaPanel({ shop }: { shop: ShopView }) {
   if (!hasPrimary && !areaPageUrl) return null;
 
   return (
-    <section className="shop-info-section hl-shop-cta-panel" aria-label="予約・問い合わせ">
+    <section className="shop-info-section hl-section hl-shop-cta-panel" aria-label="予約・問い合わせ">
       <h2 className="mod-customColor es-sec-title">
         <span className="es-sec-title__en">CONTACT</span>
         <span className="es-sec-title__ja">予約・問い合わせ</span>

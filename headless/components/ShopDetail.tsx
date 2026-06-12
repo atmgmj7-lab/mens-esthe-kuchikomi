@@ -80,7 +80,7 @@ export function ShopDetail({
           __html: JSON.stringify(shopLocalBusinessJsonLd(shop))
         }}
       />
-      <div className="l-mainContent__inner">
+      <div className="l-mainContent__inner hl-page-inner">
         <div className="shop-breadcrumb area-breadcrumb u-mb-20">
           <Link href="/">ホーム</Link> &gt; <Link href="/shops/">店舗情報</Link> &gt;{" "}
           <span>{shop.title}</span>
@@ -155,7 +155,7 @@ export function ShopDetail({
           </section>
 
           {summary ? (
-            <section className="shop-info-section ai-intelligence-view u-mt-40 u-mb-50">
+            <section className="shop-info-section ai-intelligence-view hl-section">
               <div className="ai-intel-wrapper">
                 <div className="ai-intel-header">
                   <span className="ai-intel-badge">
@@ -182,7 +182,7 @@ export function ShopDetail({
             </section>
           ) : null}
 
-          <section className="shop-info-section hl-attendance-placeholder">
+          <section className="shop-info-section hl-section hl-attendance-placeholder">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__ja">本日の出勤＆空き状況</span>
             </h2>
@@ -198,7 +198,7 @@ export function ShopDetail({
             </div>
           </section>
 
-          <section className="shop-info-section">
+          <section className="shop-info-section hl-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">AGE RANGE</span>
               <span className="es-sec-title__ja">在籍セラピスト年齢層</span>
@@ -219,7 +219,7 @@ export function ShopDetail({
             </div>
           </section>
 
-          <section className="shop-info-section">
+          <section className="shop-info-section hl-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">PRICE COMPARISON</span>
               <span className="es-sec-title__ja">エリア平均料金との比較</span>
@@ -264,7 +264,7 @@ export function ShopDetail({
           </section>
 
           {prices.length > 0 ? (
-            <section className="shop-price-section u-mb-50">
+            <section className="shop-price-section hl-section">
               <h2 className="sec-title-simple shop-sec-title">
                 <span className="en">PRICE LIST</span>
                 <span className="ja">基本料金詳細</span>
@@ -290,7 +290,7 @@ export function ShopDetail({
           ) : null}
 
           {recommend ? (
-            <section className="shop-info-section">
+            <section className="shop-info-section hl-section">
               <h2 className="mod-customColor es-sec-title">
                 <span className="es-sec-title__en">RECOMMEND</span>
                 <span className="es-sec-title__ja">この店舗の推しポイント</span>
@@ -302,7 +302,7 @@ export function ShopDetail({
             </section>
           ) : null}
 
-          <section className="shop-info-section">
+          <section className="shop-info-section hl-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">SHOP INFO</span>
               <span className="es-sec-title__ja">店舗詳細データ</span>
