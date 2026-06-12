@@ -133,4 +133,10 @@ jobs:
           echo "::notice::Vercel 本番デプロイ URL: $DEPLOYMENT_URL"
 
       - name: SEO cutover check
-        run: npm run seo:cutover-check -- "${{ steps.deploy.outputs.url }}"
+        env:
+          HEADLESS_CI_CHECK_URL: ${{ vars.HEADLESS_CI_CHECK_URL }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          CHECK_URL="${HEADLESS_CI_CHECK_URL:-$DEPLOYMENT_URL}"
+          echo "SEO チェック対象: $CHECK_URL"
+          npm run seo:cutover-check -- "$CHECK_URL"

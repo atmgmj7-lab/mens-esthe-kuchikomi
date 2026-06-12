@@ -2,6 +2,15 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless Vercel CI SEOチェックURL固定
+
+- Vercel deploy は成功したが、SEO check が DNS 未切替の `mens-esthe-kuchikomi.com` を見て失敗した
+- GitHub Repository Variable `HEADLESS_CI_CHECK_URL` で `https://escomi-headless.vercel.app` を指定済み
+- workflow は `HEADLESS_CI_CHECK_URL` を優先し、未設定時のみ deploy output URL を使う
+- DNS 切替後はこの variable を本番ドメインへ変更または削除してもよい
+
+---
+
 ### 2026-06-12 Headless Vercel CI workflow 修正（GitHub secrets 経由 SMTP）
 
 - Vercel pull だけでは GitHub Actions 内の SMTP チェックに機密 env が渡らず失敗した
