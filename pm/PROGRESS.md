@@ -10,6 +10,9 @@
 - `headless/public/shop-default-image.webp` を追加（元 PNG 1536px → 800px WebP 約 33KB）
 - `ShopCard`（compact / 通常 / 新着）・`ShopDetail` で共通定数を使用。新着カードは No Image 文言ではなくデフォルト画像 + NEW バッジ
 
+#### 本番反映
+- Vercel production deployment `dpl_EocDtXjJhtKTmmkzEZKs84fsLxXs` → https://mens-esthe-kuchikomi.com に反映済み
+
 #### 変更ファイル
 - `headless/public/shop-default-image.webp`（新規）
 - `headless/lib/design-constants.ts`
@@ -28,6 +31,11 @@
 - 日本橋一覧で compact 画像なし店舗に `/shop-default-image.webp` が7件表示
 - 画像なし店舗詳細（`/shops/アテナ/`）で詳細メイン画像に `/shop-default-image.webp` が表示された
 - スクリーンショット: `/tmp/escomi-ui-fix-home-desktop.png` `/tmp/escomi-ui-fix-home-mobile.png` `/tmp/escomi-ui-fix-nihonbashi-list.png` `/tmp/escomi-ui-fix-shop-detail-default.png`
+- `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` → 成功
+- `npm run perf:check -- https://mens-esthe-kuchikomi.com` → 成功
+- 本番 `https://mens-esthe-kuchikomi.com/shop-default-image.webp` → 200 / image/webp / content-length 33688
+- 本番トップで `/shop-default-image.webp` 12件
+- 本番日本橋一覧で `/shop-default-image.webp` 14件検出
 
 ---
 
