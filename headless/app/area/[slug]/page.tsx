@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${area.name}のメンズエステ`,
     description: makeDescription(
       area.acf.area_characteristics || area.description,
-      `${area.name}エリアのメンズエステ店舗一覧、料金、営業時間、口コミ情報。`
+      `${area.name}のメンズエステ店舗一覧。駅近、営業時間、料金、口コミ、予約導線を比較しながら探せます。`
     ),
     path: `/area/${area.slug}/`
   });

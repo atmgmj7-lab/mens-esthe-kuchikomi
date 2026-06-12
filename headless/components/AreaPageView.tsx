@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AreaBreadcrumb, AreaHero } from "@/components/AreaHero";
+import { AreaSeoGuide } from "@/components/AreaSeoGuide";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { EsSectionTitle } from "@/components/SectionTitle";
@@ -115,6 +116,8 @@ export function AreaPageView({
             <EmptyState title="店舗が見つかりません" text="WordPress側のエリア紐付けを確認してください。" />
           )}
         </section>
+
+        <AreaSeoGuide area={area} shops={shops} parentArea={parentArea} />
 
         {column ? (
           <section className="area-column-content hl-section">

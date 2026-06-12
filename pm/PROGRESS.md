@@ -2,6 +2,35 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 SEO強化 Phase 1 エリアSEOガイド基盤
+
+- headless 側にエリアページ共通の SEO ガイド基盤を追加（店舗一覧直後、`area_column_content` 前）
+- `buildAreaSeoModel`: 店舗数・駅キーワード・深夜営業/出張件数・代表店舗リンクを店舗データから生成
+- `AreaSeoGuide`: アクセス/営業時間/比較ポイントの3カード + 代表店舗内部リンク（最大5件）。`dangerouslySetInnerHTML` 不使用
+- 日本橋（`slug=nihonbashi`）は駅名・なんば/谷町九丁目方面・深夜帯などを自然に含む専用コピー
+- metadata description fallback を検索意図（駅近・営業時間・料金・口コミ・予約）入りに改善
+
+#### 変更ファイル
+- `headless/lib/area-seo.ts`（新規）
+- `headless/components/AreaSeoGuide.tsx`（新規）
+- `headless/components/AreaPageView.tsx`
+- `headless/app/globals.css`
+- `headless/app/area/[slug]/page.tsx`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint` → 成功
+- `cd headless && npm run build` → 成功（435 routes）
+- 本番 curl: `/area/nihonbashi/` `/area/osaka/` → 200（デプロイ前のため新ガイドは未反映）
+- ローカル `next start`（3031）でも 200。PPR のため curl 単体では動的本文の取得は限定的
+
+#### 次タスク
+- 店舗詳細の構造化データ（LocalBusiness / FAQ 等）強化
+- エリア本文の ACF 連携・手動コピーとの役割分担整理
+- 内部リンク（関連エリア・関連店舗）の追加強化
+
+---
+
 ### 2026-06-13 Search Console 初期反映
 
 - sitemap.xml を Search Console に送信済み
