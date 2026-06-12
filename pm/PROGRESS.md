@@ -10,6 +10,9 @@
 - 日本橋（`slug=nihonbashi`）は駅名・なんば/谷町九丁目方面・深夜帯などを自然に含む専用コピー
 - metadata description fallback を検索意図（駅近・営業時間・料金・口コミ・予約）入りに改善
 
+#### 本番反映
+- Vercel production deployment `dpl_GGbeRaSyMx5UcXQrHfiUNNjxBNVR` → https://mens-esthe-kuchikomi.com に反映済み
+
 #### 変更ファイル
 - `headless/lib/area-seo.ts`（新規）
 - `headless/components/AreaSeoGuide.tsx`（新規）
@@ -20,9 +23,14 @@
 
 #### 検証
 - `cd headless && npm run lint` → 成功
-- `cd headless && npm run build` → 成功（435 routes）
-- 本番 curl: `/area/nihonbashi/` `/area/osaka/` → 200（デプロイ前のため新ガイドは未反映）
-- ローカル `next start`（3031）でも 200。PPR のため curl 単体では動的本文の取得は限定的
+- `cd headless && npm run build` → 成功
+- Playwright: `/area/nihonbashi/` `/area/osaka/` の desktop/mobile → 横スクロールなし・ガイド表示 OK
+- `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` → 成功
+- `npm run perf:check -- https://mens-esthe-kuchikomi.com` → 成功
+- 本番 `/area/nihonbashi/` HTML に以下を確認:
+  - 「日本橋でメンズエステを探すポイント」
+  - 「日本橋駅・谷町九丁目駅・難波駅」
+  - 「深夜帯の営業時間が確認できる店舗が24件」
 
 #### 次タスク
 - 店舗詳細の構造化データ（LocalBusiness / FAQ 等）強化
