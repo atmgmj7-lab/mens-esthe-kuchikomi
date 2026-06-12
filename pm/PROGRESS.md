@@ -2,6 +2,21 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-12 Headless Vercel CI workflow 修正（env 同期）
+
+#### 失敗原因（run 27400076147）
+- `vercel pull` は `.env.local` ではなく `.vercel/.env.production.local` を生成する（Vercel CLI 54.x）。
+- `contact:check-env` は `.env` / `.env.local` のみ読むため、CI で SMTP 6 件すべて「未設定」で exit 1。
+
+#### 修正
+- `deploy-headless.yml`: `vercel pull` 直後に `.vercel/.env.production.local` → `.env.local` をコピー（`.env.local` は gitignore のまま）。どちらも無く `.env` も無い場合は日本語エラーで停止。
+
+#### 検証
+- ローカル: `npm run lint` / `npm run build` / `npm run contact:check-env`（headless/）
+- GitHub Actions 再実行で green 確認（secrets/variables 登録済み前提）
+
+---
+
 ### 2026-06-12 Headless Vercel CI workflow 修正
 
 #### 内容

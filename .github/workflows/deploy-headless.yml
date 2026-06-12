@@ -89,6 +89,18 @@ jobs:
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
 
+      - name: Sync Vercel env for contact check
+        run: |
+          if [ -f .vercel/.env.production.local ]; then
+            cp .vercel/.env.production.local .env.local
+            echo "Vercel 本番 env を .env.local に同期しました（.gitignore 対象・リポジトリには含めません）。"
+          elif [ -f .env.local ] || [ -f .env ]; then
+            echo "既存の .env.local または .env を contact:check-env で使用します。"
+          else
+            echo "::error::SMTP チェック用の env ファイルがありません。vercel pull 後の .vercel/.env.production.local、または headless/.env / .env.local のいずれかが必要です。Vercel 本番に SMTP 環境変数が登録されているか確認してください。"
+            exit 1
+          fi
+
       - name: Build (CI validation)
         run: npm run build
 
