@@ -118,7 +118,7 @@ jobs:
           # set -e のまま command substitution すると vercel deploy 失敗時に OUTPUT が空のまま step が終了する。
           # 先に exit code を受け、マスク済み stdout/stderr を必ずログへ出してから失敗させる。
           set +e
-          OUTPUT=$(vercel deploy --prebuilt --prod --yes 2>&1)
+          OUTPUT=$(vercel deploy --prebuilt --prod --yes --archive=tgz 2>&1)
           STATUS=$?
           set -e
 
