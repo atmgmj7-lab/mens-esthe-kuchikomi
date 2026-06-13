@@ -2,6 +2,14 @@
 
 ## 対応中
 
+### [BLOCK-006] Headless Vercel CI — `VERCEL_TOKEN` 無効
+- **起票日**: 2026-06-14
+- **影響**: `main` push 後の **Deploy Headless to Vercel** が失敗し、commit `f9a7be4`（日本橋ハブ pagination 統合等）が Vercel 本番に未反映
+- **症状**: GitHub Actions run `27463201049` — `The token provided via --token argument is not valid.`
+- **場所**: GitHub Repository Secret `VERCEL_TOKEN`（**Vercel Project Environment Variables ではない**）
+- **解除手順**: `pm/RUNBOOK.md` **A-6** — Vercel Account Token 再発行 → GitHub Secret 更新 → workflow **Re-run jobs**（人が実施）
+- **補足**: ローカル `vercel deploy` は `api-upload-free` のレート制限（24h）で停止。復旧は GitHub Actions 経由を優先
+
 ### [BLOCK-005] ai-site-monitor 本番運用・品質面の未整備
 - **起票日**: 2026-04-05
 - **影響**: 監視・店舗データ自動更新パイプラインの一部が未整理

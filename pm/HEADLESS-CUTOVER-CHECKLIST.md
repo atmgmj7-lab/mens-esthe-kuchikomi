@@ -43,6 +43,15 @@ WordPress テーマ表示から Next.js headless 表示へ切り替える**前�
 
 従来の Xserver 向け `deploy.yml`（SWELL 子テーマ FTP）は変更せず、引き続き `main` push で WP のみデプロイされます。
 
+**`VERCEL_TOKEN` 失効時の復旧（詳細手順）**
+
+1. Vercel **Account Settings → Tokens** で新トークン発行（例: `github-actions-escomi`）
+2. GitHub **Settings → Secrets and variables → Actions → Repository secrets → `VERCEL_TOKEN`** を更新（**Project Environment Variables ではない**）
+3. Actions → **Deploy Headless to Vercel** → 失敗 Run の **Re-run jobs** または **Run workflow**
+4. 成功後: §8 相当の URL 確認（日本橋ハブ page=1/2/3）
+
+運用の正本: `pm/RUNBOOK.md` **A-6**
+
 ---
 
 ### 1. 環境変数の確認

@@ -238,6 +238,98 @@ curl -sS -X POST "https://mens-esthe-kuchikomi.com/api/revalidate/" \
 
 ---
 
+## A-6. Headless Vercel 本番反映が失敗したとき（`VERCEL_TOKEN` 復旧）
+
+**対象 workflow:** `.github/workflows/deploy-headless.yml`（**Deploy Headless to Vercel**）
+
+**典型エラー:** `The token provided via --token argument is not valid.`
+
+**原因:** GitHub **Repository Secret** の `VERCEL_TOKEN` が失効・削除・誤入力。**Vercel プロジェクトの Environment Variables ではない。**
+
+**ローカル CLI の注意:** `vercel deploy` で `Too many requests - try again in 24 hours`（`api-upload-free`）が出る場合、**24 時間待つか GitHub Actions 経由でデプロイ**する。ローカル CLI は今回の復旧手段にしない。
+
+### フェーズ A — Vercel で新しい Access Token を発行（人・手動）
+
+1. [Vercel](https://vercel.com/) にログイン
+2. **Account Settings** → **Tokens**
+3. **Create Token**（名前例: `github-actions-escomi`）
+4. 表示されたトークンを**その場でコピー**（再表示不可）
+
+### フェーズ B — GitHub Repository Secret を更新（人・手動）
+
+1. 対象リポジトリ（`atmgmj7-lab/mens-esthe-kuchikomi`）を開く
+2. **Settings** → **Secrets and variables** → **Actions**
+3. **Repository secrets** の **`VERCEL_TOKEN`** を **Update secret**
+4. フェーズ A でコピーした新トークンを保存
+
+**更新しないもの（混同注意）**
+
+| 更新する | 更新しない |
+|----------|------------|
+| GitHub Actions の Repository Secret **`VERCEL_TOKEN`** | Vercel ダッシュボードの Project Environment Variables |
+| （失効時のみ人が確認）`VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` | `NEXT_PUBLIC_*` 等のアプリ env（別途 Vercel 側） |
+
+`VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` は Repository **variables**（または secrets）に登録済みであること。workflow は vars を優先し、未設定時のみ secrets を参照する。
+
+### フェーズ C — GitHub Actions を再実行（人・手動）
+
+1. **Actions** タブ → **Deploy Headless to Vercel**
+2. 失敗した Run（例: run `27463201049`）を開く → **Re-run jobs**  
+   または **Run workflow**（`workflow_dispatch`）で `main` から再実行
+
+**エージェントは Re-run / deploy を勝手に実行しない。** 人が Secret 更新後に再実行する。
+
+### フェーズ D — 成功後の確認（エージェント実行可）
+
+**デプロイ URL（Vercel プロジェクト直）**
+
+- https://escomi-headless.vercel.app/area/nihonbashi/
+- https://escomi-headless.vercel.app/area/nihonbashi/?page=2
+- https://escomi-headless.vercel.app/area/nihonbashi/?page=3
+
+**カスタムドメイン（DNS 切替済みの本番）**
+
+- https://mens-esthe-kuchikomi.com/area/nihonbashi/
+- https://mens-esthe-kuchikomi.com/area/nihonbashi/?page=2
+- https://mens-esthe-kuchikomi.com/area/nihonbashi/?page=3
+
+**確認項目**
+
+| 項目 | 期待 |
+|------|------|
+| `?page=2` / `?page=3` | 旧 `AreaPageView` テンプレに戻らない（`hl-area-hub-page` 系の同一ハブ） |
+| title / canonical | ページ別に正しい（2・3 ページ目は `?page=N` の self canonical） |
+| 料金不明 | 単独の **0 円** 表示なし |
+| 口コミ 0 件 | `AggregateRating` 構造化データなし |
+| 編集部スコア | `Review` 構造化データとして扱わない |
+| 出勤表現 | 「本日」「今すぐ」の自動断定なし（安全化済み） |
+
+**自動チェック（headless/）**
+
+```bash
+cd headless
+npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com
+npm run perf:check -- https://mens-esthe-kuchikomi.com
+```
+
+**Search Console:** 反映後に URL 検査（日本橋ハブ・page=2/3）を実施。
+
+### workflow が参照する Secret / Variable（確認用・値は見えない）
+
+| 名前 | 種別 | 用途 |
+|------|------|------|
+| `VERCEL_TOKEN` | Repository **secret**（必須） | `vercel pull` / `vercel build` / `vercel deploy` の `--token` |
+| `VERCEL_ORG_ID` | variable または secret | `.vercel/project.json` の `orgId` |
+| `VERCEL_PROJECT_ID` | variable または secret | `.vercel/project.json` の `projectId` |
+| `HEADLESS_CI_CHECK_URL` | variable（任意） | SEO チェック URL（未設定時はデプロイ出力 URL） |
+| `SMTP_*` / `CONTACT_*` | secrets | `contact:check-env` 用（Vercel env とは別に CI で注入） |
+
+**working-directory:** ジョブ全体 `headless/`（`defaults.run.working-directory`）
+
+**本番デプロイ指定:** `vercel build --prod` → `vercel deploy --prebuilt --prod`
+
+---
+
 ## C. 手動のみ（エージェントは「指示・チェックリスト」まで）
 
 - **WordPress 管理画面:** エリアタームの ACF（導入文・ランキング・コラム・FAQ 等）  

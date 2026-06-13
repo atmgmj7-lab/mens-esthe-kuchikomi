@@ -2,6 +2,69 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-14 Vercel 本番反映ブロック整理・AI 更新機能の優先度明文化
+
+#### 状況
+- commit `f9a7be4`（feat: unify area hub pagination and add safe display components）は **main へ push 済み**
+- GitHub Actions **Deploy Headless to Vercel** run `27463201049` が失敗
+- 失敗理由: `The token provided via --token argument is not valid.` → **Repository Secret `VERCEL_TOKEN` 無効**
+- ローカル Vercel CLI は `Too many requests - try again in 24 hours`（`api-upload-free`）で停止。**復旧は GitHub Actions 経由を最優先**
+
+#### 最優先アクション（人が実施）
+1. Vercel Account Settings → Tokens で新トークン発行（例: `github-actions-escomi`）
+2. GitHub Repository Secret **`VERCEL_TOKEN`** を更新（**Vercel Project Environment Variables ではない**）
+3. Actions → Deploy Headless to Vercel → **Re-run jobs**
+4. 本番 URL 確認 → Search Console URL 検査
+
+詳細手順: `pm/RUNBOOK.md` **A-6** / `pm/BLOCKER.md` **BLOCK-006**
+
+#### 本番反映後の確認 URL
+- https://escomi-headless.vercel.app/area/nihonbashi/
+- https://escomi-headless.vercel.app/area/nihonbashi/?page=2
+- https://escomi-headless.vercel.app/area/nihonbashi/?page=3
+- （カスタムドメイン）https://mens-esthe-kuchikomi.com/area/nihonbashi/ および `?page=2` / `?page=3`
+
+**確認項目:** page2/3 が旧テンプレに戻らない / title・canonical がページ別 / 0円単独なし / AggregateRating なし（口コミ0件） / 編集部を Review 扱いしない / 本日・今すぐ表現の安全化
+
+#### AI 更新機能の判断（今回は実装しない）
+現時点では、AI による店舗情報の**自動更新機能は実装しない**。
+理由: Vercel 本番反映未完了 / WordPress 不足 ACF / Supabase 管理画面・AI ジョブ管理テーブル未整備 / 完全自動更新の誤更新リスク。
+
+**実装優先順位（全体）**
+1. Vercel 本番反映
+2. Search Console / GA4 確認
+3. 日本橋ハブ本番表示確認
+4. 難波・梅田への横展開
+5. WordPress 側不足 ACF 追加
+6. reviews CPT
+7. area_guides CPT
+8. Vercel + Supabase 管理画面 MVP
+9. AI 改善提案機能
+10. AI 公式サイト差分検知 / 更新候補生成
+
+**将来の AI 機能（Phase 1→3、提案・下書き・チェックまで）**
+1. SEO 改善タスク生成 AI
+2. 店舗情報品質チェック AI
+3. 口コミ審査・要約 AI
+4. title / meta description 改善案 AI
+5. 記事テーマ提案 AI
+6. 記事下書き生成 AI
+7. 編集部レビュー下書き AI
+8. 公式サイト差分検知 AI
+
+**実装しない方針:** 口コミ・体験談・評価点の自動生成 / ランキング順位の完全自動変更 / 店舗情報の完全自動上書き / 「本日案内可能」の自動表示 / AI 生成記事の完全自動公開。公開・承認・ランキング反映は**人間が最終判断**。
+
+#### 変更ファイル（ドキュメントのみ）
+- `pm/RUNBOOK.md`（A-6 復旧手順追加）
+- `pm/BLOCKER.md`（BLOCK-006 追加）
+- `pm/HEADLESS-CUTOVER-CHECKLIST.md`（§0 復旧リンク）
+- `pm/PROGRESS.md`
+
+#### 今回やっていないこと
+- AI 更新機能の実装 / Supabase テーブル作成 / WordPress 本番データ変更 / Vercel Token のコード記載 / Secret ログ出力 / deploy・Actions 再実行 / commit・push
+
+---
+
 ### 2026-06-13 Headless 表示基盤 Phase 1/2 前半（共通コンポーネント・メタデータ・安全化）
 
 - 既存未コミット草案（`AreaHubPageTemplate` / `area-hub-content` / `AreaShopCard` 系 / `area-shop-utils`）を削除せず統合・完成度向上
