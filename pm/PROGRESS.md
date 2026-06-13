@@ -2,6 +2,17 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 本番反映: 日本橋SEOハブ実装
+- コミット: 5a16b0b feat: make nihonbashi area seo hub
+- Vercel deployment: dpl_CHMTvYEbT737KZ5WD2K7nzziwsKb
+- Production URL: https://mens-esthe-kuchikomi.com
+- /area/nihonbashi/ 本番確認: 200、title/H1反映、first H2=日本橋メンズエステ店舗一覧、BreadcrumbList + ItemList + FAQPage、AggregateRatingなし、単独0円なし、ページネーションリンクあり
+- /osaka-nihonbashi/ 本番確認: 選び方ガイドとして title/H1 反映、/area/nihonbashi/ 導線あり
+- /area/osaka/ 本番確認: 200、/area/nihonbashi/ 導線あり
+- 店舗詳細代表（うさぎのお部屋）本番確認: title反映、直近の出勤・空き状況、AggregateRatingなし、本日の出勤/TODAYなし、/area/nihonbashi/ 内部リンクあり
+- seo:cutover-check: すべて合格（主要ページ、canonical/noindex、GA4、sitemap 425 URLs、404）
+- perf:check: すべて合格（/area/nihonbashi/ TTFB 52ms、total 1525ms、493.5KB）
+
 ### 2026-06-13 複数拠点住所の日本橋徒歩圏判定を優先するよう改善
 
 - `nihonbashi-shop-utils`: 梅田・本町等のNEARBYワードより、日本橋駅徒歩・近鉄日本橋・黒門・千日前・なんば等のコア指標を優先
