@@ -33,6 +33,13 @@
 - ページネーションリンク（`?page=2` 等）確認済み
 - 空料金の「店舗ページで確認」表示確認済み
 
+#### 本番反映
+- commit `e454673`
+- Vercel production deployment `dpl_9j1AN3TKtz7cc7ey8G5yuHQ3LfJ9` → https://mens-esthe-kuchikomi.com に反映済み
+- 本番確認: `/osaka-nihonbashi/`・`/`・`/area/osaka/`・`/area/nihonbashi/`・`/shops/genie/` の主要確認が全て OK
+- 本番確認: `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` → 成功
+- 本番確認: `npm run perf:check -- https://mens-esthe-kuchikomi.com` → 成功
+
 ### 2026-06-13 修正: エリアページネーション・店舗画像URL正規化
 
 - エリアページのページネーションを `Link` 化し、`searchParams.page` で WP REST の `page` パラメータと連動
