@@ -2,6 +2,106 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 Headless 表示基盤 Phase 1/2 前半（共通コンポーネント・メタデータ・安全化）
+
+- 既存未コミット草案（`AreaHubPageTemplate` / `area-hub-content` / `AreaShopCard` 系 / `area-shop-utils`）を削除せず統合・完成度向上
+- 共通コンポーネント追加: `PriceLabel` / `RatingBadge` / `AreaLatestReviews` / `ShopScheduleSnapshot`
+- 料金表示: `resolvePriceDisplay` + `PriceLabel` で 0円/空/null を禁止（available / 要確認 / 公式サイト確認中 / 店舗ページで確認 / 未掲載）
+- 評価表示: `resolveRatingDisplay` + `RatingBadge`（口コミ件数あり→口コミ評価、review_star のみ→編集部参考スコア、なし→評価集計中）
+- `generateMetadata`: `searchParams.page` 対応。page2/3 は自然な title/description/self canonical（`?page=N`）
+- `AreaHubPageTemplate`: page1 に `AreaLatestReviews`（口コミ CPT 未整備時は「口コミ募集中」CTA）、page2 以降も同一テンプレ（ランキング/FAQ 非表示）
+- `AreaHubRankingSections`: FAQ 後に店舗カード残骸が出ないよう `#reviews` を `AreaLatestReviews` へ分離
+- `areaRelation` 安全化: dispatch / related（梅田・西中島・新大阪・京橋）/ nearby（堺筋本町・本町・心斎橋）/ core・walkable（日本橋・なんば等）/ unknown
+- `ShopDetail`: `RatingBadge` + `ShopScheduleSnapshot`（取得日不明時は「最終取得日: 未確認」、本日/今すぐ非表示）
+- `ShopAreaHubLinks`: 日本橋店舗から `/area/nihonbashi/` へ具体アンカー（#shop-list / #ranking / #price-table / #station / #reviews）
+- 構造化データ: 口コミ0件の AggregateRating 非出力・編集部スコアを Review にしない方針を維持
+
+#### WordPress 編集可否（Headless 表示との役割分担・秘密情報なし）
+
+| 項目 | WP で編集 | Headless 側 | 備考 |
+|------|-----------|-------------|------|
+| 店舗基本情報（名前・住所・電話・営業時間・料金 ACF） | ✅ | 表示のみ | REST `shop` + ACF |
+| 店舗 AI サマリー `shop_ai_summary` | ✅ | 表示のみ | 編集部コメント |
+| 出勤分析 `shop_today_analysis` | ✅（AI更新） | `ShopScheduleSnapshot` で安全表示 | 取得日 ACF が無い場合は「未確認」 |
+| エリア FAQ `area_faq_content` | ✅ | ハブは `buildFaqItems` 静的（日本橋） | 他エリア展開時に WP 連携検討 |
+| エリアランキング `area_ranking_shops` | ✅ | 親エリア設定から子店舗抽出（既存ロジック） | |
+| ユーザー口コミ CPT | ❌ 未整備 | `AreaLatestReviews` は CTA のみ | 将来 `review` CPT + REST 化 |
+| ハブ UI テンプレ・条件チップ・構造化データ | ❌ | Next コンポーネント | `HUB_TEMPLATE_AREAS` で段階展開 |
+| ページネーション title/canonical | ❌ | `generateMetadata` + `resolveAreaHubCanonicalPath` | |
+
+#### 変更ファイル
+- `headless/components/common/PriceLabel.tsx`（新規）
+- `headless/components/common/RatingBadge.tsx`（新規）
+- `headless/components/area/AreaLatestReviews.tsx`（新規）
+- `headless/components/shop/ShopScheduleSnapshot.tsx`（新規）
+- `headless/lib/area-shop-utils.ts`
+- `headless/lib/seo.ts`
+- `headless/components/area/AreaHubPageTemplate.tsx`
+- `headless/components/area/area-hub-content.tsx`
+- `headless/components/common/AreaShopCard.tsx`
+- `headless/components/common/AreaShopMiniCard.tsx`
+- `headless/components/common/AreaShopTable.tsx`
+- `headless/components/common/ShopAreaHubLinks.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/app/area/[slug]/page.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint` — 成功
+- `cd headless && npm run build` — 成功
+- ローカル `127.0.0.1:3456` 確認:
+  - `/area/nihonbashi/`: `hl-area-hub-page`、FAQ 後に店舗カード残骸なし、AggregateRating なし、0円単独なし、`口コミ募集中` CTA あり
+  - `/area/nihonbashi/?page=2`: 同一テンプレ、title「2ページ目」、canonical `?page=2`、ランキング/FAQ なし
+  - `/area/nihonbashi/?page=3`: 同上（3ページ目）
+  - `/shops/genie.../`: `rating-badge`・`最終取得日` 表示、本日/今すぐなし、`/area/nihonbashi/` 内部リンクあり
+
+#### 残課題（Phase 2 後半）
+- `HUB_TEMPLATE_AREAS` を他エリアへ段階展開
+- 口コミ CPT + REST 連携後に `AreaLatestReviews` を実データ表示へ
+- 条件チップの JS 絞り込み（現状アンカーのみ）
+- `shop_schedule_updated_at` 等の取得日 ACF を WP 側で整備すると出勤表示がより正確に
+
+### 2026-06-13 共通エリアハブテンプレート化 Phase 1
+
+- 日本橋専用ハブを `AreaHubPageTemplate` へリファクタ。`/area/nihonbashi/` の page=1・page=2 以降とも同一テンプレート（page=2 以降はランキング/FAQ 非表示、店舗一覧・ページネーション・条件チップは維持）
+- 共通コンポーネント追加: `AreaShopCard` / `AreaShopMiniCard` / `AreaShopTable` / `ShopAreaHubLinks`
+- 表示ロジック共通化: `area-shop-utils.ts`（`TargetAreaRelation`、料金0円禁止、口コミ募集中、駅近は徒歩表記時のみ）。`nihonbashi-shop-utils.ts` は互換 re-export
+- 条件フィルターチップ（深夜営業・駅近・料金掲載あり・公式サイトあり・初心者向け）をハブ上部に追加（アンカーリンク）
+- ランキング/条件別セクションはミニカード・表形式に軽量化（フル RankingCard 繰り返し廃止）
+- `ShopDetail`: エリア戻りリンクを `ShopAreaHubLinks` に共通化、`todayAnalysis` の本日/TODAY 文言を安全化
+- 既存 `NihonbashiAreaHubPage` / `NihonbashiHubCard` / `nihonbashi-content` は薄い re-export に変更
+- CSS: `area-hub-*` / `area-shop-*` / `area-table-*` クラスを `globals.css` に追加
+
+#### 変更ファイル
+- `headless/lib/area-shop-utils.ts`（新規）
+- `headless/lib/nihonbashi-shop-utils.ts`
+- `headless/components/area/AreaHubPageTemplate.tsx`（新規）
+- `headless/components/area/area-hub-content.tsx`（新規）
+- `headless/components/common/AreaShopCard.tsx`（新規）
+- `headless/components/common/AreaShopMiniCard.tsx`（新規）
+- `headless/components/common/AreaShopTable.tsx`（新規）
+- `headless/components/common/ShopAreaHubLinks.tsx`（新規）
+- `headless/app/area/[slug]/page.tsx`
+- `headless/components/NihonbashiAreaHubPage.tsx`
+- `headless/components/NihonbashiHubCard.tsx`
+- `headless/components/nihonbashi-content.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint && npm run build` — 成功
+- ローカル `localhost:3456` 確認:
+  - `/area/nihonbashi/`: H1・`area-shop-card`・ItemList・FAQPage・AggregateRating なし
+  - `/area/nihonbashi/?page=2`: `hl-area-hub-page`（AreaPageView に戻らない）、ランキング/FAQ なし
+  - `/area/osaka/`: 日本橋 59件チップ・`/area/nihonbashi/` 導線あり
+
+#### 残課題（Phase 2）
+- `HUB_TEMPLATE_AREAS` を他エリアへ段階展開（現状 `nihonbashi` のみ）
+- `generateMetadata` の page=2 以降 title/canonical（searchParams 非対応のため page=1 canonical 維持）
+- 条件チップの JS 絞り込み（現状アンカーのみ）
+
 ### 2026-06-13 エリア選択UIの日本橋ラベルを自然な表示へ修正
 
 - `AreaPageView`: 詳細エリアチップの表示名を WordPress エリア名（`child.name`）に統一

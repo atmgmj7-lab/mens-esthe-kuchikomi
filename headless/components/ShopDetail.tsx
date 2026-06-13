@@ -1,22 +1,17 @@
 import Link from "next/link";
 import { AreaQuickLinks } from "@/components/AreaQuickLinks";
+import { RatingBadge } from "@/components/common/RatingBadge";
+import { ShopAreaHubLinks } from "@/components/common/ShopAreaHubLinks";
+import { ShopScheduleSnapshot } from "@/components/shop/ShopScheduleSnapshot";
 import { ShopContactCtaPanel, ShopContactFixedBar } from "@/components/ShopContactCta";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
-import { isNihonbashiShop } from "@/lib/nihonbashi-shop-utils";
+import { isNihonbashiShop } from "@/lib/area-shop-utils";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
 import { phoneHref, shopField } from "@/lib/shop-contact";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 function field(shop: ShopView, key: string, fallback = "") {
   return shopField(shop, key, fallback);
-}
-
-function resolveEditorScore(shop: ShopView): string | null {
-  const raw = field(shop, "review_star");
-  if (!raw || raw === "0") return null;
-  const num = Number(raw);
-  if (!Number.isFinite(num) || num <= 0) return null;
-  return raw;
 }
 
 function resolveShopAreaNav(shop: ShopView, allAreas: AreaView[], parentArea?: AreaView | null) {
@@ -46,11 +41,12 @@ export function ShopDetail({
   const line = field(shop, "shop_line");
   const officialUrl = shop.officialUrl || field(shop, "official_url");
   const summary = field(shop, "shop_ai_summary");
-  const todayAnalysis = field(shop, "shop_today_analysis");
   const recommend = field(shop, "recommend_text");
-  const editorScore = resolveEditorScore(shop);
   const isNihonbashi = isNihonbashiShop(shop);
   const { areaName, areaSlugForNav } = resolveShopAreaNav(shop, allAreas, parentArea);
+  const shopAreaForHub = areaSlugForNav
+    ? allAreas.find((a) => a.slug === areaSlugForNav)
+    : undefined;
 
   const ages = [
     ["18〜19歳", Number(field(shop, "age_18_19") || field(shop, "age_18") || 0)],
@@ -142,13 +138,7 @@ export function ShopDetail({
               />
             </div>
             <div className="shpc-intro-content">
-              {editorScore ? (
-                <div className="shpc-stars">
-                  <span className="shpc-stars__label">編集部参考スコア</span>
-                  <span className="star-icon">★★★★☆</span>
-                  <span className="rate-num">{editorScore}</span>
-                </div>
-              ) : null}
+              <RatingBadge shop={shop} className="shpc-stars" />
               <div className="hl-gold-divider" />
               {field(shop, "shop_catch") ? (
                 <div className="shpc-intro-heading">{field(shop, "shop_catch")}</div>
@@ -199,24 +189,7 @@ export function ShopDetail({
             </section>
           ) : null}
 
-          <section className="shop-info-section hl-section hl-attendance-placeholder">
-            <h2 className="mod-customColor es-sec-title">
-              <span className="es-sec-title__ja">直近の出勤・空き状況</span>
-            </h2>
-            <div className="hl-today-box">
-              <p className="hl-today-label">RECENT AVAILABILITY</p>
-              <p className="hl-today-disclaimer">
-                最新の出勤状況は公式サイトでご確認ください。
-              </p>
-              {todayAnalysis ? (
-                <p>{todayAnalysis}</p>
-              ) : (
-                <p className="hl-today-note">
-                  出勤情報は準備中です。詳細は店舗へ直接お問い合わせください。
-                </p>
-              )}
-            </div>
-          </section>
+          <ShopScheduleSnapshot shop={shop} />
 
           <section className="shop-info-section hl-section">
             <h2 className="mod-customColor es-sec-title">
@@ -387,27 +360,8 @@ export function ShopDetail({
 
           <ShopContactCtaPanel shop={shop} />
 
-          {isNihonbashi ? (
-            <section className="nb-shop-links hl-section">
-              <h2 className="sec-title-simple shop-sec-title">
-                <span className="en">NIHONBASHI</span>
-                <span className="ja">日本橋エリアの関連ページ</span>
-              </h2>
-              <div className="nb-shop-links__box">
-                <Link href="/area/nihonbashi/" className="nb-shop-links__item">
-                  大阪日本橋メンズエステの店舗一覧へ
-                </Link>
-                <Link href="/area/nihonbashi/#ranking" className="nb-shop-links__item">
-                  日本橋メンズエステおすすめランキングへ
-                </Link>
-                <Link href="/area/nihonbashi/#price-table" className="nb-shop-links__item">
-                  近くの日本橋メンズエステを比較する
-                </Link>
-                <Link href="/osaka-nihonbashi/" className="nb-shop-links__item">
-                  日本橋で失敗しない選び方ガイド
-                </Link>
-              </div>
-            </section>
+          {shopAreaForHub ? (
+            <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
           ) : null}
 
           <AreaQuickLinks

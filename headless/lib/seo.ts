@@ -10,21 +10,25 @@ export const SITE_DESCRIPTION =
 
 export function canonicalUrl(path: string): string {
   if (!path || path === "/") return `${SITE_URL}/`;
-  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const [pathname, query = ""] = path.split("?");
+  const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
   const withSlash = normalized.endsWith("/") ? normalized : `${normalized}/`;
-  return `${SITE_URL}${withSlash}`;
+  const base = `${SITE_URL}${withSlash}`;
+  return query ? `${SITE_URL}${normalized}?${query}` : base;
 }
 
 export function pageMetadata({
   title,
   description,
-  path
+  path,
+  canonicalOverride
 }: {
   title: string;
   description: string;
   path: string;
+  canonicalOverride?: string;
 }): Metadata {
-  const canonical = canonicalUrl(path);
+  const canonical = canonicalOverride ?? canonicalUrl(path);
   return {
     title,
     description,

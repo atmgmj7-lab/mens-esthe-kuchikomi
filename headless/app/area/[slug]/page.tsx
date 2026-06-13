@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
 import { AreaPageView } from "@/components/AreaPageView";
-import { NihonbashiAreaHubPage } from "@/components/NihonbashiAreaHubPage";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
 import {
-  NIHONBASHI_HUB_DESCRIPTION,
-  NIHONBASHI_HUB_TITLE
-} from "@/lib/nihonbashi-shop-utils";
+  resolveAreaHubCanonicalPath,
+  resolveAreaHubContext,
+  resolveAreaHubPageDescription,
+  resolveAreaHubPageTitle
+} from "@/lib/area-shop-utils";
 import { getAreaBySlug, getAreaShops, getAreas, getChildAreas, getParentArea, getSiblingAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+
+/** 共通ハブテンプレートを適用するエリア（段階的展開） */
+const HUB_TEMPLATE_AREAS = new Set(["nihonbashi"]);
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -27,16 +32,21 @@ export async function generateStaticParams() {
   return areas.map((area) => ({ slug: area.slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const { page: pageParam } = await searchParams;
+  const currentPage = parsePage(pageParam);
   const area = await getAreaBySlug(slug);
   if (!area) return {};
 
-  if (slug === "nihonbashi") {
+  if (HUB_TEMPLATE_AREAS.has(slug)) {
+    const parentArea = await getParentArea(area);
+    const hubContext = resolveAreaHubContext(area, parentArea);
+    const path = resolveAreaHubCanonicalPath(area.slug, currentPage);
     return pageMetadata({
-      title: NIHONBASHI_HUB_TITLE,
-      description: NIHONBASHI_HUB_DESCRIPTION,
-      path: "/area/nihonbashi/"
+      title: resolveAreaHubPageTitle(hubContext, currentPage),
+      description: resolveAreaHubPageDescription(hubContext, currentPage),
+      path
     });
   }
 
@@ -65,27 +75,34 @@ async function AreaPageContent({ params, searchParams }: Props) {
   const area = await getAreaBySlug(slug);
   if (!area) notFound();
 
-  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult] = await Promise.all([
-    getAreaShops(area.id, currentPage),
-    getChildAreas(area.id),
-    getSiblingAreas(area),
-    getParentArea(area),
-    currentPage > 1 ? getAreaShops(area.id, 1) : Promise.resolve(null)
-  ]);
+  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult, page1ShopsResult] =
+    await Promise.all([
+      getAreaShops(area.id, currentPage),
+      getChildAreas(area.id),
+      getSiblingAreas(area),
+      getParentArea(area),
+      currentPage > 1 ? getAreaShops(area.id, 1) : Promise.resolve(null),
+      HUB_TEMPLATE_AREAS.has(slug) && currentPage > 1
+        ? getAreaShops(area.id, 1)
+        : Promise.resolve(null)
+    ]);
 
   if (currentPage > shopsResult.totalPages) {
     notFound();
   }
 
-  if (slug === "nihonbashi" && currentPage === 1) {
-    const rankingShops = shopsResult.shops;
+  if (HUB_TEMPLATE_AREAS.has(slug)) {
+    const rankingShops =
+      currentPage === 1 ? shopsResult.shops : page1ShopsResult?.shops ?? shopsResult.shops;
+
     return (
-      <NihonbashiAreaHubPage
+      <AreaHubPageTemplate
         area={area}
         shops={shopsResult.shops}
         rankingShops={rankingShops}
         currentPage={currentPage}
         totalPages={shopsResult.totalPages}
+        parentArea={parentArea}
       />
     );
   }
