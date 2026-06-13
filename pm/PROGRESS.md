@@ -22,6 +22,15 @@
 - 本番 `/area/nihonbashi/` で日本語ファイル名アイキャッチの表示確認
 - 料金未設定店舗の compact「店舗ページで確認」・featured_media=0 のデフォルト画像
 
+#### 本番反映
+- commit `a86d7c6`
+- Vercel production deployment `dpl_486KbBp5u9aR67gzJQzTBtzQcs1r` → https://mens-esthe-kuchikomi.com に反映済み
+- 本番確認: `/wp-content/uploads/images/...うさぎのお部屋.jpg` と `...神の領域.jpg` が 200 `image/jpeg`
+- 本番確認: 日本橋ページ2で神の領域 32,500円・俺の家 日本橋店 13,000円確認、0円表示なし
+- 本番確認: ページネーション確認済み
+- 本番確認: `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` → 全合格
+- 本番確認: `npm run perf:check -- https://mens-esthe-kuchikomi.com` → 全合格
+
 ### 2026-06-13 SEO強化: 日本橋親ページLP化 Phase 1
 
 - `/osaka-nihonbashi/` を Next 専用コンポーネント `NihonbashiSeoPage` で表示（WP固定ページより優先）
