@@ -114,8 +114,22 @@ jobs:
         id: deploy
         run: |
           set -euo pipefail
-          OUTPUT=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" 2>&1)
-          echo "$OUTPUT" | sed -E 's/(SMTP_PASS|VERCEL_TOKEN|REVALIDATE_SECRET)=[^[:space:]]+/\1=***/g' || true
+
+          # set -e のまま command substitution すると vercel deploy 失敗時に OUTPUT が空のまま step が終了する。
+          # 先に exit code を受け、マスク済み stdout/stderr を必ずログへ出してから失敗させる。
+          set +e
+          OUTPUT=$(vercel deploy --prebuilt --prod --yes 2>&1)
+          STATUS=$?
+          set -e
+
+          SANITIZED_OUTPUT=$(echo "$OUTPUT" | sed -E 's/(SMTP_PASS|VERCEL_TOKEN|REVALIDATE_SECRET)=[^[:space:]]+/\1=***/g')
+          echo "$SANITIZED_OUTPUT"
+
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::Vercel deploy failed with exit code $STATUS"
+            exit "$STATUS"
+          fi
+
           DEPLOYMENT_URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | tail -1 || true)
           if [ -z "$DEPLOYMENT_URL" ]; then
             echo "::error::Vercel デプロイ URL を取得できませんでした。CLI の出力に https URL が含まれているか確認してください。"
