@@ -109,7 +109,7 @@ export function HomePageContent({
                 <article className="mep-blog-entry">
                   <span className="mep-blog-entry__cat">ガイド</span>
                   <h3 className="mep-blog-entry__title">
-                    <Link href="/osaka-nihonbashi/#how-to-choose">
+                    <Link href="/osaka-nihonbashi/">
                       日本橋メンズエステで失敗しない選び方｜料金・口コミ・営業時間の見方
                     </Link>
                   </h3>

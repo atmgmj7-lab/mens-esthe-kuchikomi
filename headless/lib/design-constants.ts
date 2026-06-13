@@ -48,12 +48,12 @@ export const KANSAI_TILE_IMAGES: Record<string, string> = {
 
 export const AREA_FEATURE = {
   slug: "nihonbashi",
-  href: "/osaka-nihonbashi/",
+  href: "/area/nihonbashi/",
   subtitle: "日本橋エリア特集",
-  title: "大阪日本橋メンズエステおすすめランキング",
+  title: "大阪日本橋メンズエステおすすめ一覧",
   description:
-    "大阪・日本橋エリアのメンズエステを口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
-  btnText: "大阪日本橋メンズエステおすすめランキングを見る",
+    "大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
+  btnText: "大阪日本橋メンズエステおすすめ一覧を見る",
   image: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg"
 };
 

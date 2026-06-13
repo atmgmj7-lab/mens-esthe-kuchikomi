@@ -2,6 +2,67 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 複数拠点住所の日本橋徒歩圏判定を優先するよう改善
+
+- `nihonbashi-shop-utils`: 梅田・本町等のNEARBYワードより、日本橋駅徒歩・近鉄日本橋・黒門・千日前・なんば等のコア指標を優先
+- `classifyNihonbashiLocation` / `resolveNihonbashiRelation` / `shopNearestStation` を同一優先順位で整理
+
+#### 変更ファイル
+- `headless/lib/nihonbashi-shop-utils.ts`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint && npm run build`
+
+### 2026-06-13 ACF画像候補を店舗画像へ反映、/area/nihonbashi/ページネーション操作性を改善
+
+- `normalizeShop`: アイキャッチ最優先 → ACF画像フィールド（shop_image 等）次点 → 空文字（コンポーネント側で DEFAULT_SHOP_IMAGE）
+- ACF画像値は string URL / `{ url }` / `{ source_url }` / `{ sizes }` 形式に対応。数値IDは無視
+- `/wp-content/` パスは `normalizeImageUrl` を通す
+- ページネーションCSSを `.hl-nihonbashi-hub-page` にも適用。a.page-numbers のクリック領域を明確化
+
+#### 変更ファイル
+- `headless/lib/wp/normalize.ts`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint && npm run build`
+
+### 2026-06-13 SEOハブ変更: /area/nihonbashi/ 本命化
+
+- 本命SEOハブを `/area/nihonbashi/`（page=1）へ移行。`NihonbashiAreaHubPage` で店舗一覧→ランキング→比較→FAQの構成を実装
+- `/osaka-nihonbashi/` を選び方ガイド（`NihonbashiGuidePage`）へ役割変更。上位5件の簡易紹介のみ
+- 日本橋ハブ用 `NihonbashiHubCard` 追加（エリア関係・料金・口コミ・編集部コメント短縮版等）
+- 構造化データ: BreadcrumbList + ItemList + FAQPage（Review/AggregateRating なし）
+- 内部リンク: `AREA_FEATURE`・`AreaSeoGuide`・`ShopDetail` を `/area/nihonbashi/` へ集約
+- 店舗詳細: 日本橋店舗のメタタイトル変更、編集部参考スコア（review_star なしは非表示）、出勤表現を「直近の出勤・空き状況」へ
+
+#### 変更ファイル
+- `headless/components/NihonbashiAreaHubPage.tsx`（新規）
+- `headless/components/NihonbashiGuidePage.tsx`（新規）
+- `headless/components/NihonbashiHubCard.tsx`（新規）
+- `headless/components/nihonbashi-content.tsx`（新規）
+- `headless/components/NihonbashiSeoPage.tsx`（削除）
+- `headless/lib/nihonbashi-shop-utils.ts`
+- `headless/lib/seo.ts`
+- `headless/lib/design-constants.ts`
+- `headless/lib/static-pages.ts`
+- `headless/app/area/[slug]/page.tsx`
+- `headless/app/[slug]/page.tsx`
+- `headless/app/shops/[slug]/page.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/components/AreaSeoGuide.tsx`
+- `headless/components/HomePageContent.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証予定
+- `cd headless && npm run lint` / `npm run build`
+- `/area/nihonbashi/` の H1・店舗一覧・ランキング・アンカー・構造化データ
+- `/osaka-nihonbashi/` のガイド内容とハブへのCTA
+- 日本橋店舗詳細の内部リンク・編集部参考スコア表示
+
 ### 2026-06-13 修正: WP画像プロキシ日本語パス対応・料金ACF取得改善
 
 - `/wp-content` プロキシ: origin へ渡すパスをセグメント単位で URL エンコード（既存 `%XX` は decode→encode で二重エンコード回避）

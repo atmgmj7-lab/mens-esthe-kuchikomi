@@ -11,6 +11,14 @@ function field(shop: ShopView, key: string, fallback = "") {
   return shopField(shop, key, fallback);
 }
 
+function resolveEditorScore(shop: ShopView): string | null {
+  const raw = field(shop, "review_star");
+  if (!raw || raw === "0") return null;
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  return raw;
+}
+
 function resolveShopAreaNav(shop: ShopView, allAreas: AreaView[], parentArea?: AreaView | null) {
   const fromCatalog = shop.areaSlug ? allAreas.find((a) => a.slug === shop.areaSlug) : undefined;
   const fromTerms = shop.areaSlug ? shop.terms.find((t) => t.slug === shop.areaSlug) : undefined;
@@ -40,7 +48,8 @@ export function ShopDetail({
   const summary = field(shop, "shop_ai_summary");
   const todayAnalysis = field(shop, "shop_today_analysis");
   const recommend = field(shop, "recommend_text");
-  const rate = field(shop, "review_star", "4.0");
+  const editorScore = resolveEditorScore(shop);
+  const isNihonbashi = isNihonbashiShop(shop);
   const { areaName, areaSlugForNav } = resolveShopAreaNav(shop, allAreas, parentArea);
 
   const ages = [
@@ -96,6 +105,11 @@ export function ShopDetail({
                     <span className="shpc-badge-open">OPEN</span>
                     <h1 className="shpc-shop-name">{shop.title}</h1>
                   </div>
+                  {isNihonbashi ? (
+                    <p className="shpc-area-subtext">
+                      日本橋・近鉄日本橋・なんば周辺で検討しやすいメンズエステ店舗です。料金、営業時間、アクセス、口コミ投稿、編集部コメントを確認できます。
+                    </p>
+                  ) : null}
                   {shop.terms.length > 0 ? (
                     <div className="shpc-cats">
                       {shop.terms.slice(0, 5).map((term) => (
@@ -128,10 +142,13 @@ export function ShopDetail({
               />
             </div>
             <div className="shpc-intro-content">
-              <div className="shpc-stars">
-                <span className="star-icon">★★★★☆</span>
-                <span className="rate-num">{rate}</span>
-              </div>
+              {editorScore ? (
+                <div className="shpc-stars">
+                  <span className="shpc-stars__label">編集部参考スコア</span>
+                  <span className="star-icon">★★★★☆</span>
+                  <span className="rate-num">{editorScore}</span>
+                </div>
+              ) : null}
               <div className="hl-gold-divider" />
               {field(shop, "shop_catch") ? (
                 <div className="shpc-intro-heading">{field(shop, "shop_catch")}</div>
@@ -184,10 +201,13 @@ export function ShopDetail({
 
           <section className="shop-info-section hl-section hl-attendance-placeholder">
             <h2 className="mod-customColor es-sec-title">
-              <span className="es-sec-title__ja">本日の出勤＆空き状況</span>
+              <span className="es-sec-title__ja">直近の出勤・空き状況</span>
             </h2>
             <div className="hl-today-box">
-              <p className="hl-today-label">TODAY&apos;S ANALYSIS</p>
+              <p className="hl-today-label">RECENT AVAILABILITY</p>
+              <p className="hl-today-disclaimer">
+                最新の出勤状況は公式サイトでご確認ください。
+              </p>
               {todayAnalysis ? (
                 <p>{todayAnalysis}</p>
               ) : (
@@ -367,21 +387,24 @@ export function ShopDetail({
 
           <ShopContactCtaPanel shop={shop} />
 
-          {isNihonbashiShop(shop) ? (
+          {isNihonbashi ? (
             <section className="nb-shop-links hl-section">
               <h2 className="sec-title-simple shop-sec-title">
                 <span className="en">NIHONBASHI</span>
                 <span className="ja">日本橋エリアの関連ページ</span>
               </h2>
               <div className="nb-shop-links__box">
-                <Link href="/osaka-nihonbashi/" className="nb-shop-links__item">
-                  大阪日本橋メンズエステおすすめランキングへ戻る
-                </Link>
                 <Link href="/area/nihonbashi/" className="nb-shop-links__item">
-                  日本橋エリアの店舗一覧を見る
+                  大阪日本橋メンズエステの店舗一覧へ
                 </Link>
-                <Link href="/osaka-nihonbashi/#ranking" className="nb-shop-links__item">
-                  近くの店舗を比較する
+                <Link href="/area/nihonbashi/#ranking" className="nb-shop-links__item">
+                  日本橋メンズエステおすすめランキングへ
+                </Link>
+                <Link href="/area/nihonbashi/#price-table" className="nb-shop-links__item">
+                  近くの日本橋メンズエステを比較する
+                </Link>
+                <Link href="/osaka-nihonbashi/" className="nb-shop-links__item">
+                  日本橋で失敗しない選び方ガイド
                 </Link>
               </div>
             </section>

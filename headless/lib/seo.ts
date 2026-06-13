@@ -128,6 +128,26 @@ export function areaBreadcrumbJsonLd(
   };
 }
 
+export function shopItemListJsonLd(
+  shops: ShopView[],
+  listName: string,
+  path: string
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: listName,
+    url: canonicalUrl(path),
+    numberOfItems: shops.length,
+    itemListElement: shops.map((shop, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: canonicalUrl(`/shops/${shop.slug}/`),
+      name: shop.title
+    }))
+  };
+}
+
 export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown> {
   const tel = stripHtml(shop.acf.shop_tel);
   const address = stripHtml(shop.acf.shop_address);

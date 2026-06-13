@@ -876,14 +876,34 @@ img {
 
 /* ── Pagination (area pages) ── */
 .hl-area-page .navigation.pagination .page-numbers,
-.hl-area-page .navigation.pagination a.page-numbers {
+.hl-area-page .navigation.pagination a.page-numbers,
+.hl-nihonbashi-hub-page .navigation.pagination .page-numbers,
+.hl-nihonbashi-hub-page .navigation.pagination a.page-numbers {
   background: #fff;
   border: 1px solid #ddd;
   color: #333;
   text-decoration: none;
 }
 
-.hl-area-page .navigation.pagination .page-numbers.current {
+.hl-area-page .navigation.pagination a.page-numbers,
+.hl-nihonbashi-hub-page .navigation.pagination a.page-numbers {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.hl-area-page .navigation.pagination .page-numbers.current,
+.hl-nihonbashi-hub-page .navigation.pagination .page-numbers.current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
   background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
   border-color: #d4af37;
   color: #1a2332;
@@ -2091,7 +2111,190 @@ img {
   background: rgba(20, 61, 77, 0.04);
 }
 
+/* 日本橋ハブ：店舗カード */
+.nb-hub-header {
+  margin-bottom: 28px;
+}
+
+.nb-anchor-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.nb-anchor-nav__link {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mep-navy);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nb-anchor-nav__link:hover {
+  border-color: var(--mep-navy);
+  background: rgba(20, 61, 77, 0.04);
+}
+
+.nb-hub-shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.nb-hub-shop-group__title {
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--mep-gold, #d4af37);
+  color: var(--mep-navy);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.nb-hub-shop-group__list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.nb-hub-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.nb-hub-card__img-link {
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.nb-hub-card__img-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+}
+
+.nb-hub-card__title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.nb-hub-card__title a {
+  color: var(--mep-navy);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.nb-hub-card__title a:hover {
+  text-decoration: underline;
+}
+
+.nb-hub-card__meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.nb-hub-card__meta > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 34%) 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.nb-hub-card__meta dt {
+  margin: 0;
+  color: #777;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.nb-hub-card__meta dd {
+  margin: 0;
+  color: #333;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.nb-hub-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.nb-hub-card__tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(20, 61, 77, 0.08);
+  color: var(--mep-navy);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.nb-hub-card__editor {
+  margin: 0 0 12px;
+  color: #555;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.nb-hub-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shpc-area-subtext {
+  margin: 8px 0 0;
+  color: #555;
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+.shpc-stars__label {
+  display: block;
+  margin-bottom: 4px;
+  color: #777;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.hl-today-disclaimer {
+  margin: 0 0 8px;
+  color: #888;
+  font-size: 0.82rem;
+}
+
 @media (min-width: 768px) {
+  .nb-hub-card {
+    grid-template-columns: 220px 1fr;
+    align-items: start;
+  }
+
+  .nb-hub-card__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nb-hub-card__meta > div {
+    grid-template-columns: minmax(72px, 38%) 1fr;
+  }
+
   .nb-hero__stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

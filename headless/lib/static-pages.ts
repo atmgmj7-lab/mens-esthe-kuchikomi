@@ -38,9 +38,9 @@ export const STATIC_PAGE_META: Record<StaticPageSlug, StaticPageMeta> = {
       "Escomi（エスコミ）への店舗掲載について。掲載のメリット・お問い合わせ方法をご案内します。"
   },
   "osaka-nihonbashi": {
-    title: "大阪日本橋メンズエステおすすめランキング｜口コミ・料金・営業時間で比較",
+    title: "日本橋メンズエステで失敗しない選び方｜料金相場・口コミの見方を解説",
     description:
-      "大阪日本橋・近鉄日本橋・なんば周辺のメンズエステを口コミ、料金目安、営業時間、アクセス、編集部コメントで比較。日本橋エリアの店舗一覧や深夜営業、初心者向け店舗も探せます。"
+      "大阪日本橋・近鉄日本橋周辺でメンズエステを選ぶときのポイントを解説。料金相場、口コミの見方、営業時間、深夜営業、初心者が注意すべき点を整理し、店舗一覧・ランキングページへの導線も掲載しています。"
   }
 };
 
@@ -82,7 +82,7 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
           <li><a href="/column/">コラム一覧</a></li>
           <li><a href="/area/osaka/">大阪エリア</a></li>
           <li><a href="/area/nihonbashi/">日本橋エリア</a></li>
-          <li><a href="/osaka-nihonbashi/">日本橋メンズエステ完全ガイド</a></li>
+          <li><a href="/osaka-nihonbashi/">日本橋メンズエステ選び方ガイド</a></li>
           <li><a href="/storelisting/">掲載について</a></li>
           <li><a href="/contact/">お問い合わせ</a></li>
           <li><a href="/about/">運営者情報</a></li>

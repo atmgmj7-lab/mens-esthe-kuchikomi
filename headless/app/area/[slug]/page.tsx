@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AreaPageView } from "@/components/AreaPageView";
+import { NihonbashiAreaHubPage } from "@/components/NihonbashiAreaHubPage";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
+import {
+  NIHONBASHI_HUB_DESCRIPTION,
+  NIHONBASHI_HUB_TITLE
+} from "@/lib/nihonbashi-shop-utils";
 import { getAreaBySlug, getAreaShops, getAreas, getChildAreas, getParentArea, getSiblingAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
 
@@ -26,6 +31,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const area = await getAreaBySlug(slug);
   if (!area) return {};
+
+  if (slug === "nihonbashi") {
+    return pageMetadata({
+      title: NIHONBASHI_HUB_TITLE,
+      description: NIHONBASHI_HUB_DESCRIPTION,
+      path: "/area/nihonbashi/"
+    });
+  }
+
   return pageMetadata({
     title: `${area.name}のメンズエステ`,
     description: makeDescription(
@@ -61,6 +75,19 @@ async function AreaPageContent({ params, searchParams }: Props) {
 
   if (currentPage > shopsResult.totalPages) {
     notFound();
+  }
+
+  if (slug === "nihonbashi" && currentPage === 1) {
+    const rankingShops = shopsResult.shops;
+    return (
+      <NihonbashiAreaHubPage
+        area={area}
+        shops={shopsResult.shops}
+        rankingShops={rankingShops}
+        currentPage={currentPage}
+        totalPages={shopsResult.totalPages}
+      />
+    );
   }
 
   return (

@@ -23,6 +23,69 @@ export function normalizeImageUrl(url: string): string {
   return url;
 }
 
+const SHOP_ACF_IMAGE_KEYS = [
+  "shop_image",
+  "shop_main_image",
+  "main_image",
+  "image",
+  "shop_photo",
+  "photo",
+  "gallery_image",
+  "store_image",
+  "thumbnail"
+] as const;
+
+function extractAcfSizeUrl(size: unknown): string {
+  if (typeof size === "string") return size;
+  if (size && typeof size === "object" && "url" in size) {
+    const url = (size as { url?: unknown }).url;
+    if (typeof url === "string") return url;
+  }
+  return "";
+}
+
+function extractAcfImageUrl(value: unknown): string {
+  if (!value || typeof value === "number") return "";
+
+  if (typeof value === "string") {
+    return value ? normalizeImageUrl(value) : "";
+  }
+
+  if (typeof value !== "object") return "";
+
+  const obj = value as Record<string, unknown>;
+
+  if (typeof obj.url === "string" && obj.url) {
+    return normalizeImageUrl(obj.url);
+  }
+
+  if (typeof obj.source_url === "string" && obj.source_url) {
+    return normalizeImageUrl(obj.source_url);
+  }
+
+  const sizes = obj.sizes;
+  if (sizes && typeof sizes === "object") {
+    const sizesObj = sizes as Record<string, unknown>;
+    const raw =
+      extractAcfSizeUrl(sizesObj.large) ||
+      extractAcfSizeUrl(sizesObj.medium_large) ||
+      extractAcfSizeUrl(sizesObj.medium) ||
+      extractAcfSizeUrl(sizesObj.full) ||
+      "";
+    if (raw) return normalizeImageUrl(raw);
+  }
+
+  return "";
+}
+
+function acfShopImage(acf: Record<string, unknown>): string {
+  for (const key of SHOP_ACF_IMAGE_KEYS) {
+    const url = extractAcfImageUrl(acf[key]);
+    if (url) return url;
+  }
+  return "";
+}
+
 export function featuredImage(post: WpPostBase): string {
   if (!post.featured_media) return "";
 
@@ -33,6 +96,12 @@ export function featuredImage(post: WpPostBase): string {
     media?.source_url ||
     "";
   return normalizeImageUrl(raw);
+}
+
+function shopImageUrl(post: WpShop): string {
+  const featured = featuredImage(post);
+  if (featured) return featured;
+  return acfShopImage(post.acf || {});
 }
 
 export function embeddedTerms(post: WpPostBase): WpTerm[] {
@@ -49,7 +118,7 @@ export function normalizeShop(post: WpShop): ShopView {
     title,
     contentHtml: rendered(post.content),
     excerpt: stripHtml(rendered(post.excerpt)),
-    imageUrl: featuredImage(post),
+    imageUrl: shopImageUrl(post),
     terms: embeddedTerms(post),
     acf,
     officialUrl: safeText(post.official_url || acf.official_url),

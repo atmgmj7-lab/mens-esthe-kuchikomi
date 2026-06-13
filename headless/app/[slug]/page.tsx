@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { NihonbashiSeoPage } from "@/components/NihonbashiSeoPage";
+import { NihonbashiGuidePage } from "@/components/NihonbashiGuidePage";
 import { WpStaticPage } from "@/components/WpStaticPage";
+import {
+  NIHONBASHI_GUIDE_DESCRIPTION,
+  NIHONBASHI_GUIDE_TITLE
+} from "@/lib/nihonbashi-shop-utils";
 import {
   isStaticPageSlug,
   STATIC_PAGE_SLUGS,
@@ -24,16 +28,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   if (!isStaticPageSlug(slug)) notFound();
 
-  const meta = getStaticPageMeta(slug);
-
   if (slug === "osaka-nihonbashi") {
     return pageMetadata({
-      title: meta.title,
-      description: meta.description,
+      title: NIHONBASHI_GUIDE_TITLE,
+      description: NIHONBASHI_GUIDE_DESCRIPTION,
       path: "/osaka-nihonbashi/"
     });
   }
 
+  const meta = getStaticPageMeta(slug);
   const page = await getPageBySlug(slug);
   const title = page?.title || meta.title;
   const description = makeDescription(page?.excerpt || page?.contentHtml, meta.description);
@@ -53,7 +56,7 @@ export default async function StaticWpPage({ params }: Props) {
     const area = await getAreaBySlug("nihonbashi");
     if (!area) notFound();
     const { shops } = await getAreaShops(area.id, 1);
-    return <NihonbashiSeoPage area={area} shops={shops} />;
+    return <NihonbashiGuidePage area={area} shops={shops} />;
   }
 
   const page = await getPageBySlug(slug);

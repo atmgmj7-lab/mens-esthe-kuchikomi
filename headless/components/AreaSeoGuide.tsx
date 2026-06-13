@@ -23,8 +23,8 @@ export function AreaSeoGuide({ area, shops, parentArea }: Props) {
         {area.slug === "osaka" ? (
           <p>
             日本橋周辺で探す場合は、
-            <Link href="/osaka-nihonbashi/">大阪日本橋メンズエステおすすめランキング</Link>
-            も参考にしてください。
+            <Link href="/area/nihonbashi/">大阪日本橋メンズエステおすすめ一覧</Link>
+            （日本橋メンズエステの店舗一覧・ランキングで比較）も参考にしてください。
           </p>
         ) : null}
       </div>

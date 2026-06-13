@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ShopDetail } from "@/components/ShopDetail";
 import { getAreaById, getAreas } from "@/lib/wp/areas";
+import { isNihonbashiShop } from "@/lib/nihonbashi-shop-utils";
 import { makeDescription, pageMetadata } from "@/lib/seo";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
@@ -40,8 +41,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const shop = await getShopBySlug(slug);
   if (!shop) return {};
+
+  const title = isNihonbashiShop(shop)
+    ? `${shop.title}｜日本橋メンズエステの口コミ・料金・営業時間`
+    : shop.title;
+
   return pageMetadata({
-    title: shop.title,
+    title,
     description: makeDescription(
       shop.acf.shop_catch || shop.excerpt,
       `${shop.title}の店舗情報、料金、営業時間、口コミ情報。`
