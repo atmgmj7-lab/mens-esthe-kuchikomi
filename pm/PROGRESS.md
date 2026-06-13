@@ -25,6 +25,14 @@
 - ローカル `:3035/area/nihonbashi/?page=3` → 200、Sanando / ゆだねて / DSP の src が `/wp-content/uploads/...`
 - 1ページ目の画像なし店舗は `/shop-default-image.webp` のまま（default 7件 / uploads 18件）
 
+#### 本番反映
+- 本番反映: Vercel deployment `dpl_7zG367YQC53fYP75vQE9LP6KqhCm` / https://mens-esthe-kuchikomi.com に alias 済み
+- 本番確認: `/area/nihonbashi/` で page=2/page=3 のリンク確認
+- 本番確認: `/area/nihonbashi/?page=3` で Sanando / ゆだねて の店舗画像が `/wp-content/uploads/...` で表示されることを確認
+- 本番確認: 画像なし店舗は `/shop-default-image.webp` のまま
+- 本番確認: `npm run seo:cutover-check -- https://mens-esthe-kuchikomi.com` 成功
+- 本番確認: `npm run perf:check -- https://mens-esthe-kuchikomi.com` 成功
+
 ### 2026-06-13 UI微調整: エリア特集カード高さ圧縮
 
 - AREA FEATURE カード: PC は `height: 320px` / `max-height: 340px` で縦サイズを抑制し、画像は `object-fit: cover` でトリミング
