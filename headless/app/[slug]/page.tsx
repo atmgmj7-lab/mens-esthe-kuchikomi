@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { NihonbashiSeoPage } from "@/components/NihonbashiSeoPage";
 import { WpStaticPage } from "@/components/WpStaticPage";
 import {
   isStaticPageSlug,
@@ -8,6 +9,7 @@ import {
   type StaticPageSlug
 } from "@/lib/static-pages";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+import { getAreaBySlug, getAreaShops } from "@/lib/wp/areas";
 import { getPageBySlug } from "@/lib/wp/pages";
 
 type Props = {
@@ -22,8 +24,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   if (!isStaticPageSlug(slug)) notFound();
 
-  const page = await getPageBySlug(slug);
   const meta = getStaticPageMeta(slug);
+
+  if (slug === "osaka-nihonbashi") {
+    return pageMetadata({
+      title: meta.title,
+      description: meta.description,
+      path: "/osaka-nihonbashi/"
+    });
+  }
+
+  const page = await getPageBySlug(slug);
   const title = page?.title || meta.title;
   const description = makeDescription(page?.excerpt || page?.contentHtml, meta.description);
 
@@ -37,6 +48,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function StaticWpPage({ params }: Props) {
   const { slug } = await params;
   if (!isStaticPageSlug(slug)) notFound();
+
+  if (slug === "osaka-nihonbashi") {
+    const area = await getAreaBySlug("nihonbashi");
+    if (!area) notFound();
+    const { shops } = await getAreaShops(area.id, 1);
+    return <NihonbashiSeoPage area={area} shops={shops} />;
+  }
 
   const page = await getPageBySlug(slug);
   return <WpStaticPage slug={slug} page={page} />;

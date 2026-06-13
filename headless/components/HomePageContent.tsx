@@ -16,6 +16,11 @@ export function HomePageContent({
   areas: AreaView[];
   posts: BlogPostView[];
 }) {
+  const displayPosts = posts.filter(
+    (post) => post.title.trim().toLowerCase() !== "hello world!"
+  );
+  const hasColumnPost = displayPosts.length > 0;
+
   return (
     <main id="main_content" className="l-mainContent">
       <div className="mep-homeNightLux">
@@ -78,27 +83,41 @@ export function HomePageContent({
           <div className="mep-container">
             <SectionTitle jp="新着コラム・体験レポート" center />
             <div className="mep-blog-list">
-              {posts.slice(0, 1).map((post) => (
-                <article className="mep-blog-entry" key={post.id}>
-                  <time className="mep-blog-entry__date">
-                    {new Date(post.date).toLocaleDateString("ja-JP", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      weekday: "short"
-                    })}
-                  </time>
-                  {post.terms[0] ? (
-                    <span className="mep-blog-entry__cat">{post.terms[0].name}</span>
-                  ) : (
-                    <span className="mep-blog-entry__cat">未分類</span>
-                  )}
+              {hasColumnPost ? (
+                displayPosts.slice(0, 1).map((post) => (
+                  <article className="mep-blog-entry" key={post.id}>
+                    <time className="mep-blog-entry__date">
+                      {new Date(post.date).toLocaleDateString("ja-JP", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        weekday: "short"
+                      })}
+                    </time>
+                    {post.terms[0] ? (
+                      <span className="mep-blog-entry__cat">{post.terms[0].name}</span>
+                    ) : (
+                      <span className="mep-blog-entry__cat">未分類</span>
+                    )}
+                    <h3 className="mep-blog-entry__title">
+                      <Link href={`/column/${post.slug}/`}>{post.title}</Link>
+                    </h3>
+                    {post.excerpt ? <p className="mep-blog-entry__excerpt">{post.excerpt}</p> : null}
+                  </article>
+                ))
+              ) : (
+                <article className="mep-blog-entry">
+                  <span className="mep-blog-entry__cat">ガイド</span>
                   <h3 className="mep-blog-entry__title">
-                    <Link href={`/column/${post.slug}/`}>{post.title}</Link>
+                    <Link href="/osaka-nihonbashi/#how-to-choose">
+                      日本橋メンズエステで失敗しない選び方｜料金・口コミ・営業時間の見方
+                    </Link>
                   </h3>
-                  {post.excerpt ? <p className="mep-blog-entry__excerpt">{post.excerpt}</p> : null}
+                  <p className="mep-blog-entry__excerpt">
+                    初めて日本橋エリアのメンズエステを利用する方向けに、料金・口コミ・営業時間の確認ポイントをまとめました。
+                  </p>
                 </article>
-              ))}
+              )}
             </div>
             <div className="mep-center">
               <Link href="/column/" className="mep-cta-btn mep-cta-btn--solid">

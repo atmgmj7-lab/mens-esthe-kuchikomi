@@ -3,6 +3,8 @@ import { AREA_FEATURE } from "@/lib/design-constants";
 import { SectionTitle } from "@/components/SectionTitle";
 
 export function AreaFeatureSection() {
+  const featureHref = AREA_FEATURE.href || `/area/${AREA_FEATURE.slug}/`;
+
   return (
     <section className="l-section p-areaFeature hl-fade-in">
       <div className="l-container mep-container">
@@ -12,7 +14,7 @@ export function AreaFeatureSection() {
         <div className="p-areaFeature__list">
           <div className="p-areaFeature__item hl-card-hover">
             <div className="p-areaFeature__img">
-              <Link href={`/area/${AREA_FEATURE.slug}/`} className="c-card__thumb">
+              <Link href={featureHref} className="c-card__thumb">
                 <img
                   src={AREA_FEATURE.image}
                   alt={AREA_FEATURE.title}
@@ -28,7 +30,7 @@ export function AreaFeatureSection() {
               <h3 className="p-areaFeature__title">{AREA_FEATURE.title}</h3>
               <p className="p-areaFeature__desc">{AREA_FEATURE.description}</p>
               <div className="p-areaFeature__btnWrap">
-                <Link href={`/area/${AREA_FEATURE.slug}/`} className="p-areaFeature__richBtn">
+                <Link href={featureHref} className="p-areaFeature__richBtn">
                   <span className="richBtn-text">{AREA_FEATURE.btnText}</span>
                   <i className="icon-chevron-right" aria-hidden="true">
                     ›

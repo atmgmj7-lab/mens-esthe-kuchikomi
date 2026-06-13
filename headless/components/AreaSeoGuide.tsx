@@ -20,6 +20,13 @@ export function AreaSeoGuide({ area, shops, parentArea }: Props) {
         {model.leadParagraphs.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
+        {area.slug === "osaka" ? (
+          <p>
+            日本橋周辺で探す場合は、
+            <Link href="/osaka-nihonbashi/">大阪日本橋メンズエステおすすめランキング</Link>
+            も参考にしてください。
+          </p>
+        ) : null}
       </div>
 
       <div className="hl-area-seo-guide__cards">

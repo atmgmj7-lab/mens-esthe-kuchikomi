@@ -10,6 +10,11 @@ import { safeText } from "@/lib/wp/client";
 import { areaBreadcrumbJsonLd, asFaqRows, faqJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
+function childAreaDisplayName(child: AreaView): string {
+  if (child.slug === "nihonbashi") return "大阪日本橋メンズエステ";
+  return child.name;
+}
+
 export function AreaPageView({
   area,
   shops,
@@ -77,7 +82,7 @@ export function AreaPageView({
             <div className="es-area-grid u-pc-only">
               {childAreas.map((child) => (
                 <Link className="es-area-link-item" key={child.id} href={`/area/${child.slug}/`}>
-                  <span className="es-area-name">{child.name}</span>
+                  <span className="es-area-name">{childAreaDisplayName(child)}</span>
                   <span className="es-area-count">{child.count}件</span>
                 </Link>
               ))}
@@ -88,7 +93,7 @@ export function AreaPageView({
                 <div className="es-area-scroll-list">
                   {childAreas.map((child) => (
                     <Link className="es-area-scroll-item" key={child.id} href={`/area/${child.slug}/`}>
-                      <span className="es-area-name">{child.name}</span>
+                      <span className="es-area-name">{childAreaDisplayName(child)}</span>
                       <span className="es-area-count">{child.count}件</span>
                     </Link>
                   ))}

@@ -10,8 +10,14 @@ function areaLabel(shop: ShopView): string {
 
 function formatPrice(price: string): string {
   const num = Number(price.replace(/[^0-9]/g, ""));
-  if (!num) return "0円";
+  if (!num) return "要確認";
   return `${num.toLocaleString("ja-JP")}円`;
+}
+
+function formatPriceDisplay(price: string): string | null {
+  const num = Number(price.replace(/[^0-9]/g, ""));
+  if (!num) return null;
+  return `¥${num.toLocaleString("ja-JP")}〜`;
 }
 
 export function ShopCard({
@@ -59,7 +65,9 @@ export function ShopCard({
           {hours ? <div className="meta-box hours">{hours}</div> : null}
           <div className="meta-box price-area">
             {basicTime ? <span className="meta-time">{basicTime}分</span> : null}
-            <span className="meta-price">{formatPrice(price || "0")}</span>
+            <span className="meta-price">
+              {price ? formatPrice(price) : "店舗ページで確認"}
+            </span>
           </div>
         </div>
       </article>
@@ -120,7 +128,9 @@ export function ShopCard({
           <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
         </h3>
         {catchText ? <p>{catchText}</p> : null}
-        {price ? <div className="mep-card-price">¥{Number(price).toLocaleString("ja-JP")}〜</div> : null}
+        {formatPriceDisplay(price) ? (
+          <div className="mep-card-price">{formatPriceDisplay(price)}</div>
+        ) : null}
       </div>
     </article>
   );

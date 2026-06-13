@@ -2,6 +2,37 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 SEO強化: 日本橋親ページLP化 Phase 1
+
+- `/osaka-nihonbashi/` を Next 専用コンポーネント `NihonbashiSeoPage` で表示（WP固定ページより優先）
+- ランキング・料金比較表・深夜営業・初心者向け・駅近・口コミ方針・FAQ・選び方ガイドを実装
+- FAQPage / BreadcrumbList 構造化データを追加（Review/AggregateRating は未使用）
+- トップ AREA_FEATURE を `/osaka-nihonbashi/` へリンク、大阪エリア SEO ガイドに内部リンク追加
+- 日本橋店舗詳細に関連ページリンクボックス追加、ShopCard の 0円表示を解消
+- Hello world! コラムを非表示、代替静的ガイドリンクを追加
+
+#### 変更ファイル
+- `headless/components/NihonbashiSeoPage.tsx`（新規）
+- `headless/lib/nihonbashi-shop-utils.ts`（新規）
+- `headless/app/[slug]/page.tsx`
+- `headless/lib/static-pages.ts`
+- `headless/lib/design-constants.ts`
+- `headless/components/AreaFeatureSection.tsx`
+- `headless/components/AreaPageView.tsx`
+- `headless/components/AreaSeoGuide.tsx`
+- `headless/components/ShopCard.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/components/HomePageContent.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint` → 成功
+- `cd headless && npm run build` → 成功
+- ローカル `:3035` で `/osaka-nihonbashi/`・`/`・`/area/osaka/`・`/area/nihonbashi/`・`/shops/genie/` を確認済み
+- ページネーションリンク（`?page=2` 等）確認済み
+- 空料金の「店舗ページで確認」表示確認済み
+
 ### 2026-06-13 修正: エリアページネーション・店舗画像URL正規化
 
 - エリアページのページネーションを `Link` 化し、`searchParams.page` で WP REST の `page` パラメータと連動

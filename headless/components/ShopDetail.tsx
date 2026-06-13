@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AreaQuickLinks } from "@/components/AreaQuickLinks";
 import { ShopContactCtaPanel, ShopContactFixedBar } from "@/components/ShopContactCta";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
+import { isNihonbashiShop } from "@/lib/nihonbashi-shop-utils";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
 import { phoneHref, shopField } from "@/lib/shop-contact";
 import type { AreaView, ShopView } from "@/lib/wp/types";
@@ -365,6 +366,26 @@ export function ShopDetail({
           </section>
 
           <ShopContactCtaPanel shop={shop} />
+
+          {isNihonbashiShop(shop) ? (
+            <section className="nb-shop-links hl-section">
+              <h2 className="sec-title-simple shop-sec-title">
+                <span className="en">NIHONBASHI</span>
+                <span className="ja">日本橋エリアの関連ページ</span>
+              </h2>
+              <div className="nb-shop-links__box">
+                <Link href="/osaka-nihonbashi/" className="nb-shop-links__item">
+                  大阪日本橋メンズエステおすすめランキングへ戻る
+                </Link>
+                <Link href="/area/nihonbashi/" className="nb-shop-links__item">
+                  日本橋エリアの店舗一覧を見る
+                </Link>
+                <Link href="/osaka-nihonbashi/#ranking" className="nb-shop-links__item">
+                  近くの店舗を比較する
+                </Link>
+              </div>
+            </section>
+          ) : null}
 
           <AreaQuickLinks
             areas={allAreas}
