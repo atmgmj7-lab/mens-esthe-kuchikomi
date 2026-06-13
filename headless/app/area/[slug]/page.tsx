@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AreaPageView } from "@/components/AreaPageView";
+import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { getAreaBySlug, getAreaShops, getAreas, getChildAreas, getParentArea, getSiblingAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ page?: string }>;
 };
+
+function parsePage(value: string | undefined): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.floor(parsed);
+}
 
 export async function generateStaticParams() {
   const areas = await getAreas();
@@ -27,22 +36,40 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function AreaPage({ params }: Props) {
+export default function AreaPage({ params, searchParams }: Props) {
+  return (
+    <Suspense fallback={<RoutePageFallback variant="area" />}>
+      <AreaPageContent params={params} searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AreaPageContent({ params, searchParams }: Props) {
   const { slug } = await params;
+  const { page: pageParam } = await searchParams;
+  const currentPage = parsePage(pageParam);
   const area = await getAreaBySlug(slug);
   if (!area) notFound();
 
-  const [shops, childAreas, siblingAreas, parentArea] = await Promise.all([
-    getAreaShops(area.id),
+  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult] = await Promise.all([
+    getAreaShops(area.id, currentPage),
     getChildAreas(area.id),
     getSiblingAreas(area),
-    getParentArea(area)
+    getParentArea(area),
+    currentPage > 1 ? getAreaShops(area.id, 1) : Promise.resolve(null)
   ]);
+
+  if (currentPage > shopsResult.totalPages) {
+    notFound();
+  }
 
   return (
     <AreaPageView
       area={area}
-      shops={shops}
+      shops={shopsResult.shops}
+      currentPage={currentPage}
+      totalPages={shopsResult.totalPages}
+      seoShops={seoShopsResult?.shops}
       childAreas={childAreas}
       siblingAreas={siblingAreas}
       parentArea={parentArea}

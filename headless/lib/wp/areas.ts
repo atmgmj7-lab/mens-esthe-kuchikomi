@@ -1,4 +1,4 @@
-import { wpFetch } from "@/lib/wp/client";
+import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import type { AreaView, ShopView, WpShop, WpTerm } from "@/lib/wp/types";
@@ -67,10 +67,22 @@ export async function getSiblingAreas(area: AreaView): Promise<AreaView[]> {
   return terms.map(normalizeArea);
 }
 
-export async function getAreaShops(areaId: number): Promise<ShopView[]> {
+const SHOPS_PER_PAGE = 24;
+
+export type AreaShopsResult = {
+  shops: ShopView[];
+  totalPages: number;
+};
+
+export async function getAreaShops(areaId: number, page = 1): Promise<AreaShopsResult> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("wp", "shops", `area:shops:${areaId}`);
-  const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?area=${areaId}&per_page=24&_embed=1`);
-  return shops.map(normalizeShop);
+  cacheTag("wp", "shops", `area:shops:${areaId}`, `area:shops:${areaId}:page:${page}`);
+  const { data: shops, pagination } = await wpFetchPaginated<WpShop[]>(
+    `/wp/v2/shop?area=${areaId}&per_page=${SHOPS_PER_PAGE}&page=${page}&_embed=1`
+  );
+  return {
+    shops: shops.map(normalizeShop),
+    totalPages: Math.max(1, pagination.totalPages)
+  };
 }

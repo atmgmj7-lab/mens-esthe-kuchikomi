@@ -10,28 +10,31 @@ import { safeText } from "@/lib/wp/client";
 import { areaBreadcrumbJsonLd, asFaqRows, faqJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
-const SHOPS_PER_PAGE = 20;
-
 export function AreaPageView({
   area,
   shops,
   childAreas,
   siblingAreas,
-  parentArea
+  parentArea,
+  currentPage = 1,
+  totalPages = 1,
+  seoShops
 }: {
   area: AreaView;
   shops: ShopView[];
   childAreas: AreaView[];
   siblingAreas: AreaView[];
   parentArea?: AreaView | null;
+  currentPage?: number;
+  totalPages?: number;
+  seoShops?: ShopView[];
 }) {
+  const guideShops = seoShops ?? shops;
   const isParentArea = area.parent === 0;
   const characteristics = safeText(area.acf.area_characteristics, area.description);
   const column = safeText(area.acf.area_column_content);
   const faqRows = asFaqRows(area.acf.area_faq_content);
   const mapUrl = isParentArea ? resolveMapEmbedUrl(area) : "";
-  const totalPages = Math.max(1, Math.ceil(area.count / SHOPS_PER_PAGE));
-
   return (
     <main id="main_content" className="l-main_content l-article hl-area-page">
       <script
@@ -110,14 +113,18 @@ export function AreaPageView({
                   <ShopCard key={shop.id} shop={shop} compact />
                 ))}
               </div>
-              <Pagination currentPage={1} totalPages={totalPages} />
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                basePath={`/area/${area.slug}/`}
+              />
             </>
           ) : (
             <EmptyState title="店舗が見つかりません" text="WordPress側のエリア紐付けを確認してください。" />
           )}
         </section>
 
-        <AreaSeoGuide area={area} shops={shops} parentArea={parentArea} />
+        <AreaSeoGuide area={area} shops={guideShops} parentArea={parentArea} />
 
         {column ? (
           <section className="area-column-content hl-section">

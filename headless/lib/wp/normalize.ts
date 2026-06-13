@@ -1,14 +1,31 @@
 import { rendered, safeText, stripHtml } from "@/lib/wp/client";
 import type { BlogPostView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
 
+const SITE_WP_CONTENT_PREFIXES = [
+  "http://mens-esthe-kuchikomi.com/wp-content/",
+  "https://mens-esthe-kuchikomi.com/wp-content/"
+] as const;
+
+export function normalizeImageUrl(url: string): string {
+  if (!url) return "";
+
+  for (const prefix of SITE_WP_CONTENT_PREFIXES) {
+    if (url.startsWith(prefix)) {
+      return url.slice(url.indexOf("/wp-content/"));
+    }
+  }
+
+  return url;
+}
+
 export function featuredImage(post: WpPostBase): string {
   const media = post._embedded?.["wp:featuredmedia"]?.[0];
-  return (
+  const raw =
     media?.media_details?.sizes?.large?.source_url ||
     media?.media_details?.sizes?.medium_large?.source_url ||
     media?.source_url ||
-    ""
-  );
+    "";
+  return normalizeImageUrl(raw);
 }
 
 export function embeddedTerms(post: WpPostBase): WpTerm[] {

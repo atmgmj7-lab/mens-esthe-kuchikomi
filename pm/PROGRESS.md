@@ -2,6 +2,29 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 修正: エリアページネーション・店舗画像URL正規化
+
+- エリアページのページネーションを `Link` 化し、`searchParams.page` で WP REST の `page` パラメータと連動
+- `getAreaShops(areaId, page)` が `per_page=24` + 総ページ数を返すよう変更
+- `normalizeImageUrl` で本番ドメインの `http/https` 画像URLを `/wp-content/...` に正規化
+- 2ページ目以降も SEO ガイド用に1ページ目の店舗データを別途取得
+
+#### 変更ファイル
+- `headless/components/Pagination.tsx`
+- `headless/components/AreaPageView.tsx`
+- `headless/app/area/[slug]/page.tsx`
+- `headless/lib/wp/areas.ts`
+- `headless/lib/wp/normalize.ts`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint` → 成功
+- `cd headless && npm run build` → 成功（AreaPage を Suspense 分割して PPR ビルドエラー解消）
+- ローカル `:3035/area/nihonbashi/` → `href="/area/nihonbashi/?page=2"` 等の Link 確認
+- ローカル `:3035/area/nihonbashi/?page=3` → 200、Sanando / ゆだねて / DSP の src が `/wp-content/uploads/...`
+- 1ページ目の画像なし店舗は `/shop-default-image.webp` のまま（default 7件 / uploads 18件）
+
 ### 2026-06-13 UI微調整: エリア特集カード高さ圧縮
 
 - AREA FEATURE カード: PC は `height: 320px` / `max-height: 340px` で縦サイズを抑制し、画像は `object-fit: cover` でトリミング

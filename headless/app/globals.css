@@ -875,10 +875,12 @@ img {
 }
 
 /* ── Pagination (area pages) ── */
-.hl-area-page .navigation.pagination .page-numbers {
+.hl-area-page .navigation.pagination .page-numbers,
+.hl-area-page .navigation.pagination a.page-numbers {
   background: #fff;
   border: 1px solid #ddd;
   color: #333;
+  text-decoration: none;
 }
 
 .hl-area-page .navigation.pagination .page-numbers.current {
