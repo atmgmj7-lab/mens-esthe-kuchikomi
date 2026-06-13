@@ -1,4 +1,5 @@
 import { rendered, safeText, stripHtml } from "@/lib/wp/client";
+import { encodeBrowserWpContentPath } from "@/lib/wp/path-encoding";
 import type { BlogPostView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
 
 const SITE_WP_CONTENT_PREFIXES = [
@@ -11,14 +12,20 @@ export function normalizeImageUrl(url: string): string {
 
   for (const prefix of SITE_WP_CONTENT_PREFIXES) {
     if (url.startsWith(prefix)) {
-      return url.slice(url.indexOf("/wp-content/"));
+      return encodeBrowserWpContentPath(url.slice(url.indexOf("/wp-content/")));
     }
+  }
+
+  if (url.startsWith("/wp-content/")) {
+    return encodeBrowserWpContentPath(url);
   }
 
   return url;
 }
 
 export function featuredImage(post: WpPostBase): string {
+  if (!post.featured_media) return "";
+
   const media = post._embedded?.["wp:featuredmedia"]?.[0];
   const raw =
     media?.media_details?.sizes?.large?.source_url ||

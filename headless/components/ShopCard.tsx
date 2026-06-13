@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
+import { extractShopPriceYen } from "@/lib/nihonbashi-shop-utils";
 import { safeText } from "@/lib/wp/client";
 import type { ShopView } from "@/lib/wp/types";
 
@@ -8,16 +9,12 @@ function areaLabel(shop: ShopView): string {
   return areaTerm?.name || "";
 }
 
-function formatPrice(price: string): string {
-  const num = Number(price.replace(/[^0-9]/g, ""));
-  if (!num) return "要確認";
-  return `${num.toLocaleString("ja-JP")}円`;
+function formatPriceYen(yen: number): string {
+  return `${yen.toLocaleString("ja-JP")}円`;
 }
 
-function formatPriceDisplay(price: string): string | null {
-  const num = Number(price.replace(/[^0-9]/g, ""));
-  if (!num) return null;
-  return `¥${num.toLocaleString("ja-JP")}〜`;
+function formatPriceDisplayYen(yen: number): string {
+  return `¥${yen.toLocaleString("ja-JP")}〜`;
 }
 
 export function ShopCard({
@@ -29,7 +26,7 @@ export function ShopCard({
   compact?: boolean;
   variant?: "default" | "new";
 }) {
-  const price = safeText(shop.acf.basic_price);
+  const priceYen = extractShopPriceYen(shop);
   const hours = safeText(shop.acf.shop_hours);
   const basicTime = safeText(shop.acf.basic_time);
   const catchText = safeText(shop.acf.shop_catch, shop.excerpt);
@@ -66,7 +63,7 @@ export function ShopCard({
           <div className="meta-box price-area">
             {basicTime ? <span className="meta-time">{basicTime}分</span> : null}
             <span className="meta-price">
-              {price ? formatPrice(price) : "店舗ページで確認"}
+              {priceYen > 0 ? formatPriceYen(priceYen) : "店舗ページで確認"}
             </span>
           </div>
         </div>
@@ -128,8 +125,8 @@ export function ShopCard({
           <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
         </h3>
         {catchText ? <p>{catchText}</p> : null}
-        {formatPriceDisplay(price) ? (
-          <div className="mep-card-price">{formatPriceDisplay(price)}</div>
+        {priceYen > 0 ? (
+          <div className="mep-card-price">{formatPriceDisplayYen(priceYen)}</div>
         ) : null}
       </div>
     </article>

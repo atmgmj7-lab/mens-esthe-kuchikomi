@@ -2,6 +2,26 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 修正: WP画像プロキシ日本語パス対応・料金ACF取得改善
+
+- `/wp-content` プロキシ: origin へ渡すパスをセグメント単位で URL エンコード（既存 `%XX` は decode→encode で二重エンコード回避）
+- `normalizeImageUrl`: `/wp-content/...` 正規化後、日本語等は `encodeURI` でブラウザ向けパスに変換
+- `featuredImage`: `featured_media=0` の店舗は空文字 → `DEFAULT_SHOP_IMAGE` を使用
+- `ShopCard`: `extractShopPriceYen` で複数 ACF 料金フィールドから最初の正の金額を表示（0円は非表示）
+
+#### 変更ファイル
+- `headless/lib/wp/path-encoding.ts`（新規）
+- `headless/app/wp-content/[...path]/route.ts`
+- `headless/lib/wp/normalize.ts`
+- `headless/lib/nihonbashi-shop-utils.ts`
+- `headless/components/ShopCard.tsx`
+- `pm/PROGRESS.md`
+
+#### 検証予定
+- `cd headless && npm run lint` / `npm run build`
+- 本番 `/area/nihonbashi/` で日本語ファイル名アイキャッチの表示確認
+- 料金未設定店舗の compact「店舗ページで確認」・featured_media=0 のデフォルト画像
+
 ### 2026-06-13 SEO強化: 日本橋親ページLP化 Phase 1
 
 - `/osaka-nihonbashi/` を Next 専用コンポーネント `NihonbashiSeoPage` で表示（WP固定ページより優先）

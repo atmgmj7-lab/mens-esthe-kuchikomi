@@ -2,13 +2,15 @@ import { safeText } from "@/lib/wp/client";
 import type { ShopView } from "@/lib/wp/types";
 
 const PRICE_KEYS = [
-  "basic_price",
-  "price_60",
   "shop_price_60min",
+  "price_60",
   "price_50",
   "price_70",
   "price_80",
-  "price_90"
+  "price_90",
+  "price_120",
+  "price_150",
+  "basic_price"
 ] as const;
 
 export function isNihonbashiShop(shop: ShopView): boolean {

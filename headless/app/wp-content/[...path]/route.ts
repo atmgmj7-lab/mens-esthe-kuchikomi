@@ -1,3 +1,4 @@
+import { encodeOriginPath } from "@/lib/wp/path-encoding";
 import { requestWpOrigin } from "@/lib/wp/origin-request";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -35,7 +36,7 @@ async function proxyWpContent(request: NextRequest, context: RouteContext, metho
   const { path } = await context.params;
   const targetPath = path.join("/");
   const search = request.nextUrl.search;
-  const pathWithSearch = `/wp-content/${targetPath}${search}`;
+  const pathWithSearch = encodeOriginPath(`/wp-content/${targetPath}${search}`);
 
   const response = await requestWpOrigin(pathWithSearch, { method });
 
