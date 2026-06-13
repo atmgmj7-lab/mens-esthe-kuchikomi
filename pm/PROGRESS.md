@@ -2,6 +2,20 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-13 エリア選択UIの日本橋ラベルを自然な表示へ修正
+
+- `AreaPageView`: 詳細エリアチップの表示名を WordPress エリア名（`child.name`）に統一
+- nihonbashi のみ「大阪日本橋メンズエステ」へ変換していた `childAreaDisplayName` を削除
+- PCグリッド・SP横スクロールとも「日本橋 59件」形式に。リンク先 `/area/nihonbashi/` は変更なし
+- SEO本文（AreaSeoGuide 等）の表記は今回変更なし
+
+#### 変更ファイル
+- `headless/components/AreaPageView.tsx`
+- `pm/PROGRESS.md`
+
+#### 検証
+- `cd headless && npm run lint && npm run build`
+
 ### 2026-06-13 本番反映: 日本橋SEOハブ実装
 - コミット: 5a16b0b feat: make nihonbashi area seo hub
 - Vercel deployment: dpl_CHMTvYEbT737KZ5WD2K7nzziwsKb
