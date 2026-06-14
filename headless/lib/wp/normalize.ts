@@ -1,3 +1,4 @@
+import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { rendered, safeText, stripHtml } from "@/lib/wp/client";
 import { encodeBrowserWpContentPath } from "@/lib/wp/path-encoding";
 import type { BlogPostView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
@@ -122,7 +123,8 @@ export function normalizeShop(post: WpShop): ShopView {
     terms: embeddedTerms(post),
     acf,
     officialUrl: safeText(post.official_url || acf.official_url),
-    areaSlug: safeText(post.area_slug)
+    areaSlug: safeText(post.area_slug),
+    ranking: normalizeShopRanking(acf)
   };
 }
 

@@ -733,6 +733,7 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 
 // 最適化版（編集部厳選3店のみ）。差し替え前は area-seo-hooks.php
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
+require_once get_stylesheet_directory() . '/reviews-cpt.php';
 
 // ====================================================
 // "Missing API key." エラー完全封じ込め v4

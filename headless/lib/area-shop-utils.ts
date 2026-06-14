@@ -1,3 +1,12 @@
+import {
+  fillHubPageToken,
+  getHubTemplateConfig,
+  NIHONBASHI_GUIDE_DESCRIPTION,
+  NIHONBASHI_GUIDE_TITLE,
+  NIHONBASHI_HUB_DESCRIPTION,
+  NIHONBASHI_HUB_TITLE
+} from "@/lib/area-hub-config";
+import type { AreaHubRelationConfig, AreaHubSeoConfig } from "@/lib/area-hub-config";
 import { safeText } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -32,40 +41,42 @@ export type AreaHubContext = {
   coverageLabel: string;
   shopListH2: string;
   shopListIntro: string;
+  displayName: string;
+  breadcrumbLabel: string;
+  rankingTitle: string;
+  priceTableTitle: string;
+  stationIntro: string;
+  faqAreaRef: string;
+  faqFirstAnswer: string;
+  relationCardLabel: string;
+  shopLinks: AreaHubSeoConfig["shopLinks"];
+  primaryGroupTitle: string;
+  secondaryGroupTitle: string;
+  pageTitlePage2Plus: string;
+  pageDescriptionPage2Plus: string;
   guidePath?: string;
   guideTitle?: string;
   guideCtaLabel?: string;
 };
 
-const NIHONBASHI_CORE_PATTERN =
-  /近鉄日本橋|なんば|難波|谷町九丁目|黒門市場|黒門|千日前|日本橋[1-5１-５](?:[-‐−－]?\d)?丁目|日本橋駅|日本橋(?:駅)?(?:より|から)?徒歩(?:圏)?|日本橋徒歩圏|(?<![都道府県市区町村])日本橋(?![駅])/;
-const NIHONBASHI_RELATED_PATTERN = /梅田|西中島|新大阪|京橋/;
-const NIHONBASHI_NEARBY_PATTERN = /堺筋本町|本町|心斎橋|道頓堀|天王寺/;
 const DISPATCH_PATTERN = /出張|デリバリー|派遣/;
 const WALKING_PATTERN =
   /徒歩|駅(?:より|から)?\d|駅周辺|駅前|徒歩圏/;
 
-export const NIHONBASHI_HUB_TITLE =
-  "大阪日本橋メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較";
+export {
+  NIHONBASHI_GUIDE_DESCRIPTION,
+  NIHONBASHI_GUIDE_TITLE,
+  NIHONBASHI_HUB_DESCRIPTION,
+  NIHONBASHI_HUB_TITLE
+};
 
-export const NIHONBASHI_HUB_DESCRIPTION =
-  "大阪日本橋・近鉄日本橋・なんば周辺のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。深夜営業、駅近、初心者向け、料金目安、編集部コメントをもとに日本橋エリアの候補店舗を探せます。";
-
-export const NIHONBASHI_GUIDE_TITLE =
-  "日本橋メンズエステで失敗しない選び方｜料金相場・口コミの見方を解説";
-
-export const NIHONBASHI_GUIDE_DESCRIPTION =
-  "大阪日本橋・近鉄日本橋周辺でメンズエステを選ぶときのポイントを解説。料金相場、口コミの見方、営業時間、深夜営業、初心者が注意すべき点を整理し、店舗一覧・ランキングページへの導線も掲載しています。";
 
 export function resolveAreaHubPageTitle(
   hubContext: AreaHubContext,
   currentPage: number
 ): string {
   if (currentPage <= 1) return hubContext.hubTitle;
-  if (hubContext.slug === "nihonbashi") {
-    return `大阪日本橋メンズエステ店舗一覧 ${currentPage}ページ目｜口コミ・料金・営業時間で比較`;
-  }
-  return `${hubContext.shopListH2}（${currentPage}ページ目）｜口コミ・料金・営業時間で比較`;
+  return fillHubPageToken(hubContext.pageTitlePage2Plus, currentPage);
 }
 
 export function resolveAreaHubPageDescription(
@@ -73,10 +84,7 @@ export function resolveAreaHubPageDescription(
   currentPage: number
 ): string {
   if (currentPage <= 1) return hubContext.hubDescription;
-  if (hubContext.slug === "nihonbashi") {
-    return `大阪日本橋・近鉄日本橋・なんば周辺のメンズエステ店舗一覧（${currentPage}ページ目）。料金・営業時間・口コミ・編集部コメントで比較しながら探せます。`;
-  }
-  return `${hubContext.name}エリアのメンズエステ店舗一覧（${currentPage}ページ目）。料金・営業時間・口コミで比較しながら探せます。`;
+  return fillHubPageToken(hubContext.pageDescriptionPage2Plus, currentPage);
 }
 
 export function resolveAreaHubCanonicalPath(areaSlug: string, currentPage: number): string {
@@ -84,28 +92,10 @@ export function resolveAreaHubCanonicalPath(areaSlug: string, currentPage: numbe
   return `/area/${areaSlug}/?page=${currentPage}`;
 }
 
-export function resolveAreaHubContext(
+function buildGenericHubContext(
   area: AreaView,
   parentArea?: AreaView | null
 ): AreaHubContext {
-  if (area.slug === "nihonbashi") {
-    return {
-      slug: area.slug,
-      name: area.name,
-      parentSlug: parentArea?.slug ?? "osaka",
-      parentName: parentArea?.name ?? "大阪",
-      hubTitle: NIHONBASHI_HUB_TITLE,
-      hubDescription: NIHONBASHI_HUB_DESCRIPTION,
-      coverageLabel: "日本橋・近鉄日本橋・なんば・谷町九丁目・黒門市場周辺",
-      shopListH2: "日本橋メンズエステ店舗一覧",
-      shopListIntro:
-        "大阪日本橋・近鉄日本橋・なんば周辺のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。日本橋ど真ん中の店舗を優先表示し、近隣エリアの関連店舗もあわせて掲載しています。",
-      guidePath: "/osaka-nihonbashi/",
-      guideTitle: "日本橋で失敗しない選び方を詳しく読む",
-      guideCtaLabel: "選び方ガイドを見る"
-    };
-  }
-
   const parentName = parentArea?.name;
   const areaLabel = parentName ? `${parentName}${area.name}` : area.name;
 
@@ -114,11 +104,69 @@ export function resolveAreaHubContext(
     name: area.name,
     parentSlug: parentArea?.slug,
     parentName,
+    displayName: areaLabel,
+    breadcrumbLabel: `${areaLabel}メンズエステ`,
     hubTitle: `${areaLabel}メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較`,
     hubDescription: `${areaLabel}のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。深夜営業、駅近、初心者向け、料金目安、編集部コメントをもとに${area.name}エリアの候補店舗を探せます。`,
     coverageLabel: `${area.name}エリア`,
     shopListH2: `${area.name}メンズエステ店舗一覧`,
-    shopListIntro: `${areaLabel}のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。`
+    shopListIntro: `${areaLabel}のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。`,
+    pageTitlePage2Plus: `${area.name}メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較`,
+    pageDescriptionPage2Plus: `${area.name}エリアのメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・口コミで比較しながら探せます。`,
+    rankingTitle: `${areaLabel}メンズエステおすすめランキング`,
+    priceTableTitle: `${area.name}メンズエステ料金比較表`,
+    stationIntro: "駅名や徒歩表記が掲載情報に含まれる店舗を整理しています。",
+    faqAreaRef: area.name,
+    faqFirstAnswer: `${area.name}エリアの店舗一覧ページから、営業時間・料金・口コミを比較しながら条件に合う店舗を絞り込むのがおすすめです。`,
+    relationCardLabel: "対象エリアとの関係",
+    shopLinks: {
+      listLink: `${areaLabel}メンズエステの店舗一覧へ`,
+      compareLink: `${area.name}の店舗一覧で比較する`,
+      priceLink: `${area.name}の料金比較表へ`,
+      stationLink: `駅近の${area.name}メンズエステ一覧へ`
+    },
+    primaryGroupTitle: `${area.name}エリア`,
+    secondaryGroupTitle: "近隣・関連エリア"
+  };
+}
+
+export function resolveAreaHubContext(
+  area: AreaView,
+  parentArea?: AreaView | null
+): AreaHubContext {
+  const config = getHubTemplateConfig(area.slug);
+  if (!config) {
+    return buildGenericHubContext(area, parentArea);
+  }
+
+  const { seo, relation } = config;
+
+  return {
+    slug: area.slug,
+    name: area.name,
+    parentSlug: parentArea?.slug ?? "osaka",
+    parentName: parentArea?.name ?? "大阪",
+    displayName: seo.displayName,
+    breadcrumbLabel: seo.breadcrumbLabel,
+    hubTitle: seo.hubTitle,
+    hubDescription: seo.hubDescription,
+    coverageLabel: seo.coverageLabel,
+    shopListH2: seo.shopListH2,
+    shopListIntro: seo.shopListIntro,
+    pageTitlePage2Plus: seo.pageTitlePage2Plus,
+    pageDescriptionPage2Plus: seo.pageDescriptionPage2Plus,
+    rankingTitle: seo.rankingTitle,
+    priceTableTitle: seo.priceTableTitle,
+    stationIntro: seo.stationIntro,
+    faqAreaRef: seo.faqAreaRef,
+    faqFirstAnswer: seo.faqFirstAnswer,
+    relationCardLabel: seo.relationCardLabel,
+    shopLinks: seo.shopLinks,
+    primaryGroupTitle: relation?.primaryGroupTitle ?? `${area.name}エリア`,
+    secondaryGroupTitle: relation?.secondaryGroupTitle ?? "近隣・関連エリア",
+    guidePath: seo.guidePath,
+    guideTitle: seo.guideTitle,
+    guideCtaLabel: seo.guideCtaLabel
   };
 }
 
@@ -128,20 +176,61 @@ function buildLocationHaystack(shop: ShopView): string {
   return `${address}${area}`;
 }
 
-function hasNihonbashiCoreIndicator(text: string): boolean {
-  return NIHONBASHI_CORE_PATTERN.test(text);
-}
-
-function hasNihonbashiRelatedIndicator(text: string): boolean {
-  return NIHONBASHI_RELATED_PATTERN.test(text);
-}
-
-function hasNihonbashiNearbyIndicator(text: string): boolean {
-  return NIHONBASHI_NEARBY_PATTERN.test(text);
-}
-
 function isDispatchShop(shop: ShopView): boolean {
   return DISPATCH_PATTERN.test(buildLocationHaystack(shop));
+}
+
+function getRelationConfig(
+  targetArea: Pick<AreaView, "slug" | "name">
+): AreaHubRelationConfig | null {
+  return getHubTemplateConfig(targetArea.slug)?.relation ?? null;
+}
+
+function classifyWithRelationConfig(
+  shop: ShopView,
+  targetArea: Pick<AreaView, "slug" | "name">,
+  relConfig: AreaHubRelationConfig
+): TargetAreaRelation {
+  const haystack = buildLocationHaystack(shop);
+
+  if (relConfig.relatedPattern?.test(haystack)) return "related";
+  if (relConfig.corePattern.test(haystack)) {
+    if (WALKING_PATTERN.test(haystack)) return "walkable";
+    return "core";
+  }
+  if (relConfig.nearbyPattern?.test(haystack)) return "nearby";
+  if (isShopInArea(shop, targetArea.slug)) return "related";
+  return "unknown";
+}
+
+function resolveLabelWithRelationConfig(
+  shop: ShopView,
+  targetArea: Pick<AreaView, "slug" | "name">,
+  relConfig: AreaHubRelationConfig
+): string {
+  const haystack = buildLocationHaystack(shop);
+  const area = shopAreaLabel(shop);
+  const relation = classifyShopRelation(shop, targetArea);
+
+  if (relation === "dispatch") {
+    return relConfig.dispatchLabel;
+  }
+
+  if (relConfig.corePattern.test(haystack)) {
+    for (const rule of relConfig.labelRules) {
+      if (rule.pattern.test(haystack)) return rule.label;
+    }
+  }
+
+  for (const rule of relConfig.nearbyLabelRules ?? []) {
+    if (rule.pattern.test(haystack)) return rule.label;
+  }
+
+  for (const rule of relConfig.relatedLabelRules ?? []) {
+    if (rule.pattern.test(haystack)) return rule.label;
+  }
+
+  return `${area}エリア（${relConfig.fallbackRelatedLabel}）`;
 }
 
 export function shopAreaLabel(shop: ShopView): string {
@@ -158,23 +247,16 @@ export function classifyShopRelation(
   shop: ShopView,
   targetArea: Pick<AreaView, "slug" | "name">
 ): TargetAreaRelation {
-  const haystack = buildLocationHaystack(shop);
-
   if (isDispatchShop(shop)) {
     return "dispatch";
   }
 
-  if (targetArea.slug === "nihonbashi") {
-    if (hasNihonbashiRelatedIndicator(haystack)) return "related";
-    if (hasNihonbashiCoreIndicator(haystack)) {
-      if (WALKING_PATTERN.test(haystack)) return "walkable";
-      return "core";
-    }
-    if (hasNihonbashiNearbyIndicator(haystack)) return "nearby";
-    if (isShopInArea(shop, targetArea.slug)) return "related";
-    return "unknown";
+  const relConfig = getRelationConfig(targetArea);
+  if (relConfig) {
+    return classifyWithRelationConfig(shop, targetArea, relConfig);
   }
 
+  const haystack = buildLocationHaystack(shop);
   if (isShopInArea(shop, targetArea.slug)) {
     if (WALKING_PATTERN.test(haystack)) return "walkable";
     return "core";
@@ -187,46 +269,14 @@ export function resolveShopRelationLabel(
   shop: ShopView,
   targetArea: Pick<AreaView, "slug" | "name">
 ): string {
+  const relConfig = getRelationConfig(targetArea);
+  if (relConfig) {
+    return resolveLabelWithRelationConfig(shop, targetArea, relConfig);
+  }
+
   const haystack = buildLocationHaystack(shop);
   const area = shopAreaLabel(shop);
   const relation = classifyShopRelation(shop, targetArea);
-
-  if (targetArea.slug === "nihonbashi") {
-    if (relation === "dispatch") {
-      return "出張型（日本橋エリアへの派遣対応）";
-    }
-    if (hasNihonbashiCoreIndicator(haystack)) {
-      if (/近鉄日本橋/.test(haystack)) {
-        return "近鉄日本橋駅徒歩圏（日本橋ど真ん中）";
-      }
-      if (/なんば|難波/.test(haystack)) {
-        return "なんば周辺（日本橋エリア徒歩圏）";
-      }
-      if (/谷町九丁目/.test(haystack)) {
-        return "谷町九丁目駅周辺（日本橋エリア徒歩圏）";
-      }
-      if (/黒門/.test(haystack)) {
-        return "黒門市場周辺（日本橋エリア徒歩圏）";
-      }
-      if (/千日前/.test(haystack)) {
-        return "千日前駅周辺（日本橋エリア徒歩圏）";
-      }
-      if (
-        /日本橋駅(?:より|から)?徒歩|日本橋(?:駅)?(?:より|から)?徒歩(?:圏)?|日本橋徒歩圏/.test(
-          haystack
-        )
-      ) {
-        return "日本橋駅徒歩圏";
-      }
-      return "日本橋ど真ん中（徒歩圏）";
-    }
-    if (/堺筋本町/.test(haystack)) return "近隣エリア（堺筋本町・日本橋からアクセス可）";
-    if (/本町/.test(haystack)) return "近隣エリア（本町・日本橋からアクセス可）";
-    if (/梅田/.test(haystack)) return "関連エリア（梅田・大阪駅方面）";
-    if (/西中島|新大阪/.test(haystack)) return "関連エリア（西中島・新大阪方面）";
-    if (/京橋/.test(haystack)) return "関連エリア（京橋方面）";
-    return `${area}エリア（日本橋周辺の関連店舗）`;
-  }
 
   if (relation === "dispatch") return `出張型（${targetArea.name}エリア対応）`;
   if (relation === "walkable") return `${targetArea.name}徒歩圏`;
@@ -269,10 +319,33 @@ export type PriceDisplay = {
   amount?: number;
 };
 
+
+function normalizePriceDigits(raw: string): string {
+  return raw.replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
+}
+
+export function isZeroLikePriceValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  const raw = safeText(String(value));
+  if (!raw) return true;
+  if (/未掲載|非公開|要問合せ|要問い合わせ|要確認/.test(raw)) return true;
+  const digits = normalizePriceDigits(raw);
+  if (!digits) return false;
+  return Number(digits) === 0;
+}
+
+function parsePositivePriceYen(raw: string): number {
+  const digits = normalizePriceDigits(raw);
+  if (!digits) return 0;
+  const num = Number(digits);
+  return num > 0 ? num : 0;
+}
+
 export function extractShopPriceYen(shop: ShopView): number {
   for (const key of PRICE_KEYS) {
     const raw = safeText(shop.acf[key]);
-    const num = Number(raw.replace(/[^0-9]/g, ""));
+    if (!raw || isZeroLikePriceValue(raw)) continue;
+    const num = parsePositivePriceYen(raw);
     if (num > 0) return num;
   }
   return 0;
@@ -283,9 +356,10 @@ function extractRegisteredPriceText(shop: ShopView): string | null {
     const raw = safeText(shop.acf[key]);
     if (!raw) continue;
     if (/未掲載|非公開|要問合せ|要問い合わせ/.test(raw)) return null;
-    const num = Number(raw.replace(/[^0-9]/g, ""));
+    if (isZeroLikePriceValue(raw)) continue;
+    const num = parsePositivePriceYen(raw);
     if (num > 0) continue;
-    if (raw.replace(/[^0-9]/g, "") === "0") continue;
+    if (/0\s*円|¥\s*0|￥\s*0/.test(raw)) continue;
     return raw.trim();
   }
   return null;
@@ -381,15 +455,11 @@ export function isStationNearShop(
   const haystack = buildLocationHaystack(shop);
   if (!WALKING_PATTERN.test(haystack)) return false;
 
-  if (targetArea?.slug === "nihonbashi") {
-    const relation = classifyShopRelation(shop, targetArea);
+  const relConfig = targetArea ? getRelationConfig(targetArea) : null;
+  if (relConfig) {
+    const relation = classifyShopRelation(shop, targetArea!);
     if (relation !== "core" && relation !== "walkable") return false;
-    return (
-      /近鉄日本橋|なんば|難波|谷町九丁目|黒門|千日前/.test(haystack) ||
-      /日本橋駅(?:より|から)?徒歩|日本橋(?:駅)?(?:より|から)?徒歩(?:圏)?|日本橋徒歩圏/.test(
-        haystack
-      )
-    );
+    return relConfig.stationNearPattern.test(haystack);
   }
 
   return /駅/.test(haystack) && WALKING_PATTERN.test(haystack);
@@ -448,13 +518,13 @@ export function resolveRatingDisplay(shop: ShopView): RatingDisplay {
 export function shopReviewCountLabel(shop: ShopView): string {
   const count = shopReviewCount(shop);
   if (count > 0) return `${count}件`;
-  return "口コミ募集中";
+  return "口コミ受付中";
 }
 
 export function aggregateReviewCountLabel(shops: ShopView[]): string {
   const total = shops.reduce((sum, shop) => sum + shopReviewCount(shop), 0);
   if (total > 0) return `${total}件`;
-  return "口コミ募集中";
+  return "口コミ受付中";
 }
 
 export function buildEditorCommentShort(
@@ -464,7 +534,7 @@ export function buildEditorCommentShort(
   const summary = safeText(shop.acf.shop_ai_summary);
   if (summary) {
     const plain = summary.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-    return plain.length > 120 ? `${plain.slice(0, 117)}...` : plain;
+    return plain.length > 90 ? `${plain.slice(0, 87)}...` : plain;
   }
   const relation = targetArea
     ? resolveShopRelationLabel(shop, targetArea)
@@ -482,6 +552,11 @@ export function resolveLastUpdatedLabel(shops: ShopView[]): string {
     .filter(Boolean);
   if (dates.length === 0) return "2026年6月13日";
   return "2026年6月13日";
+}
+
+export function resolveShopLastVerifiedLabel(shop: ShopView): string {
+  const date = safeText(shop.acf.shop_updated_at);
+  return date || "確認中";
 }
 
 export function areaRankingScore(
@@ -508,27 +583,7 @@ export function areaRankingScore(
   return score;
 }
 
-export function sortShopsForRanking(
-  shops: ShopView[],
-  targetArea: Pick<AreaView, "slug" | "name">
-): ShopView[] {
-  const relationOrder: Record<TargetAreaRelation, number> = {
-    core: 0,
-    walkable: 1,
-    nearby: 2,
-    related: 3,
-    dispatch: 4,
-    unknown: 5
-  };
-
-  return [...shops].sort((a, b) => {
-    const relDiff =
-      relationOrder[classifyShopRelation(a, targetArea)] -
-      relationOrder[classifyShopRelation(b, targetArea)];
-    if (relDiff !== 0) return relDiff;
-    return areaRankingScore(b, targetArea) - areaRankingScore(a, targetArea);
-  });
-}
+export { sortShopsForRanking, selectRankingTopShops } from "@/lib/shop-ranking";
 
 export function groupShopsByRelation(
   shops: ShopView[],
@@ -550,13 +605,11 @@ export function groupShopsByRelation(
 }
 
 export function primaryGroupTitle(targetArea: Pick<AreaView, "slug" | "name">): string {
-  if (targetArea.slug === "nihonbashi") return "日本橋ど真ん中・徒歩圏";
-  return `${targetArea.name}エリア`;
+  return getHubTemplateConfig(targetArea.slug)?.relation?.primaryGroupTitle ?? `${targetArea.name}エリア`;
 }
 
 export function secondaryGroupTitle(targetArea: Pick<AreaView, "slug" | "name">): string {
-  if (targetArea.slug === "nihonbashi") return "近隣・関連エリア";
-  return "近隣・関連エリア";
+  return getHubTemplateConfig(targetArea.slug)?.relation?.secondaryGroupTitle ?? "近隣・関連エリア";
 }
 
 export function sanitizeTodayAnalysisText(raw: string): string {

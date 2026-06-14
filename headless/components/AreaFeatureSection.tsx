@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { AREA_FEATURE } from "@/lib/design-constants";
+import { LuxuryRichButton } from "@/components/common/LuxuryRichButton";
 import { SectionTitle } from "@/components/SectionTitle";
+import { AREA_FEATURE } from "@/lib/design-constants";
 
 export function AreaFeatureSection() {
   const featureHref = AREA_FEATURE.href || `/area/${AREA_FEATURE.slug}/`;
@@ -30,12 +31,7 @@ export function AreaFeatureSection() {
               <h3 className="p-areaFeature__title">{AREA_FEATURE.title}</h3>
               <p className="p-areaFeature__desc">{AREA_FEATURE.description}</p>
               <div className="p-areaFeature__btnWrap">
-                <Link href={featureHref} className="p-areaFeature__richBtn">
-                  <span className="richBtn-text">{AREA_FEATURE.btnText}</span>
-                  <i className="icon-chevron-right" aria-hidden="true">
-                    ›
-                  </i>
-                </Link>
+                <LuxuryRichButton href={featureHref}>{AREA_FEATURE.btnText}</LuxuryRichButton>
               </div>
             </div>
           </div>

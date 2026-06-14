@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
 import { PriceLabel } from "@/components/common/PriceLabel";
 import { RatingBadge } from "@/components/common/RatingBadge";
+import { getHubTemplateConfig } from "@/lib/area-hub-config";
 import {
   buildEditorCommentShort,
   groupShopsByRelation,
   primaryGroupTitle,
-  resolveLastUpdatedLabel,
+  resolveShopLastVerifiedLabel,
   resolveShopRelationLabel,
   secondaryGroupTitle,
   shopAreaLabel,
@@ -15,6 +17,7 @@ import {
   shopNearestStation,
   shopReviewCountLabel
 } from "@/lib/area-shop-utils";
+import { buildReviewSubmitUrl } from "@/lib/review-links";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export function AreaShopCard({
@@ -26,11 +29,8 @@ export function AreaShopCard({
 }) {
   const image = shop.imageUrl || DEFAULT_SHOP_IMAGE;
   const tags = shopFeatureTags(shop, targetArea);
-  const contactSubject = encodeURIComponent(`口コミ投稿: ${shop.title}`);
   const relationLabel =
-    targetArea.slug === "nihonbashi"
-      ? `${targetArea.name}との関係`
-      : "対象エリアとの関係";
+    getHubTemplateConfig(targetArea.slug)?.seo.relationCardLabel ?? "対象エリアとの関係";
 
   return (
     <article className="area-shop-card hl-card-hover">
@@ -80,10 +80,6 @@ export function AreaShopCard({
             <dt>公式サイト</dt>
             <dd>{shop.officialUrl ? "あり" : "未掲載"}</dd>
           </div>
-          <div>
-            <dt>最終確認</dt>
-            <dd>{resolveLastUpdatedLabel([shop])}</dd>
-          </div>
         </dl>
 
         <div className="area-shop-card__tags">
@@ -97,6 +93,7 @@ export function AreaShopCard({
         <p className="area-shop-card__editor area-shop-card__editor--clamp">
           {buildEditorCommentShort(shop, targetArea)}
         </p>
+        <p className="area-shop-card__verified">確認 {resolveShopLastVerifiedLabel(shop)}</p>
 
         <div className="area-shop-card__actions">
           <Link href={`/shops/${shop.slug}/`} className="area-hub-btn area-hub-btn--primary">
@@ -113,10 +110,10 @@ export function AreaShopCard({
             </a>
           ) : null}
           <Link
-            href={`/contact/?subject=${contactSubject}`}
+            href={buildReviewSubmitUrl(shop.slug)}
             className="area-hub-btn area-hub-btn--outline"
           >
-            口コミを投稿する
+            口コミを書く
           </Link>
         </div>
       </div>
@@ -140,7 +137,7 @@ export function AreaShopList({
           <h3 className="area-hub-shop-group__title">{primaryGroupTitle(targetArea)}</h3>
           <div className="area-hub-shop-group__list">
             {primary.map((shop) => (
-              <AreaShopCard key={shop.id} shop={shop} targetArea={targetArea} />
+              <ShopCardLuxury key={shop.id} shop={shop} targetArea={targetArea} />
             ))}
           </div>
         </div>
@@ -150,7 +147,7 @@ export function AreaShopList({
           <h3 className="area-hub-shop-group__title">{secondaryGroupTitle(targetArea)}</h3>
           <div className="area-hub-shop-group__list">
             {secondary.map((shop) => (
-              <AreaShopCard key={shop.id} shop={shop} targetArea={targetArea} />
+              <ShopCardLuxury key={shop.id} shop={shop} targetArea={targetArea} />
             ))}
           </div>
         </div>

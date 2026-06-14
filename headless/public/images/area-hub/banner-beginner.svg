@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280" role="img" aria-label="BEGINNER">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#faf7f0"/>
+      <stop offset="100%" stop-color="#f5efe3"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="280" fill="url(#bg)"/>
+  <path d="M0 220 C200 180, 320 260, 520 210 S880 170, 1200 230 L1200 280 L0 280 Z" fill="#c9a962" opacity="0.25"/>
+  <rect x="48" y="48" width="72" height="72" fill="none" stroke="#c9a962" stroke-width="2" opacity="0.6"/>
+  <text x="140" y="118" fill="#143d4d" font-family="Georgia, serif" font-size="34" opacity="0.35">BEGINNER</text>
+  <line x1="140" y1="138" x2="340" y2="138" stroke="#c9a962" stroke-width="2" opacity="0.7"/>
+</svg>

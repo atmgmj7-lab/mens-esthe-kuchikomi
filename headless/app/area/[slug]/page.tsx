@@ -4,17 +4,22 @@ import { Suspense } from "react";
 import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
 import { AreaPageView } from "@/components/AreaPageView";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
+import { isHubTemplateArea } from "@/lib/area-hub-config";
 import {
-  resolveAreaHubCanonicalPath,
   resolveAreaHubContext,
   resolveAreaHubPageDescription,
   resolveAreaHubPageTitle
 } from "@/lib/area-shop-utils";
-import { getAreaBySlug, getAreaShops, getAreas, getChildAreas, getParentArea, getSiblingAreas } from "@/lib/wp/areas";
-import { makeDescription, pageMetadata } from "@/lib/seo";
-
-/** 共通ハブテンプレートを適用するエリア（段階的展開） */
-const HUB_TEMPLATE_AREAS = new Set(["nihonbashi"]);
+import {
+  getAreaBySlug,
+  getAreaRankingShops,
+  getAreaShops,
+  getAreas,
+  getChildAreas,
+  getParentArea,
+  getSiblingAreas
+} from "@/lib/wp/areas";
+import { canonicalUrl, makeDescription, pageMetadata } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -39,14 +44,18 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const area = await getAreaBySlug(slug);
   if (!area) return {};
 
-  if (HUB_TEMPLATE_AREAS.has(slug)) {
+  if (isHubTemplateArea(slug)) {
     const parentArea = await getParentArea(area);
     const hubContext = resolveAreaHubContext(area, parentArea);
-    const path = resolveAreaHubCanonicalPath(area.slug, currentPage);
+    const canonicalPath = `/area/${area.slug}/`;
+    const requestPath =
+      currentPage > 1 ? `/area/${area.slug}/?page=${currentPage}` : canonicalPath;
+
     return pageMetadata({
       title: resolveAreaHubPageTitle(hubContext, currentPage),
       description: resolveAreaHubPageDescription(hubContext, currentPage),
-      path
+      path: requestPath,
+      canonicalOverride: canonicalUrl(requestPath)
     });
   }
 
@@ -75,36 +84,38 @@ async function AreaPageContent({ params, searchParams }: Props) {
   const area = await getAreaBySlug(slug);
   if (!area) notFound();
 
-  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult, page1ShopsResult] =
-    await Promise.all([
-      getAreaShops(area.id, currentPage),
+  const isHub = isHubTemplateArea(slug);
+
+  if (isHub) {
+    const [childAreas, siblingAreas, parentArea, allShops] = await Promise.all([
       getChildAreas(area.id),
       getSiblingAreas(area),
       getParentArea(area),
-      currentPage > 1 ? getAreaShops(area.id, 1) : Promise.resolve(null),
-      HUB_TEMPLATE_AREAS.has(slug) && currentPage > 1
-        ? getAreaShops(area.id, 1)
-        : Promise.resolve(null)
+      getAreaRankingShops(area.id)
     ]);
-
-  if (currentPage > shopsResult.totalPages) {
-    notFound();
-  }
-
-  if (HUB_TEMPLATE_AREAS.has(slug)) {
-    const rankingShops =
-      currentPage === 1 ? shopsResult.shops : page1ShopsResult?.shops ?? shopsResult.shops;
 
     return (
       <AreaHubPageTemplate
         area={area}
-        shops={shopsResult.shops}
-        rankingShops={rankingShops}
-        currentPage={currentPage}
-        totalPages={shopsResult.totalPages}
+        allShops={allShops}
+        legacyPage={currentPage}
         parentArea={parentArea}
+        siblingAreas={siblingAreas}
+        childAreas={childAreas}
       />
     );
+  }
+
+  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult] = await Promise.all([
+    getAreaShops(area.id, currentPage),
+    getChildAreas(area.id),
+    getSiblingAreas(area),
+    getParentArea(area),
+    currentPage > 1 ? getAreaShops(area.id, 1) : Promise.resolve(null)
+  ]);
+
+  if (currentPage > shopsResult.totalPages) {
+    notFound();
   }
 
   return (

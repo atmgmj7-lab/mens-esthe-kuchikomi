@@ -7,6 +7,7 @@ import { ShopContactCtaPanel, ShopContactFixedBar } from "@/components/ShopConta
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
 import { isNihonbashiShop } from "@/lib/area-shop-utils";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
+import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { phoneHref, shopField } from "@/lib/shop-contact";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -73,7 +74,7 @@ export function ShopDetail({
   ] as const;
   const prices = priceFields
     .map(([key, label]) => [label, field(shop, key)] as const)
-    .filter(([, value]) => value);
+    .filter(([, value]) => value && Number(value) > 0);
 
   const feats = shop.terms.filter((t) => t.parent === 0 || shop.terms.length <= 3);
 
@@ -356,6 +357,22 @@ export function ShopDetail({
                 </tr>
               </tbody>
             </table>
+          </section>
+
+          <section className="shop-info-section hl-section hl-review-submit-section">
+            <h2 className="mod-customColor es-sec-title">
+              <span className="es-sec-title__en">USER REVIEW</span>
+              <span className="es-sec-title__ja">口コミ投稿</span>
+            </h2>
+            <p className="hl-review-form__lead">
+              実際に利用した方の口コミを募集しています。投稿内容は運営側で確認後、掲載されます。
+            </p>
+            <Link href={buildReviewSubmitUrl(shop.slug)} className="area-hub-btn area-hub-btn--primary">
+              この店舗の口コミを投稿する
+            </Link>
+            <p className="hl-review-form__notice">
+              個人情報、誹謗中傷、事実確認が難しい内容、過度な表現は掲載できない場合があります。
+            </p>
           </section>
 
           <ShopContactCtaPanel shop={shop} />

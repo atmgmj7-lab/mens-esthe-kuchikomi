@@ -1,7 +1,19 @@
 import Link from "next/link";
-import { EsSectionTitle } from "@/components/SectionTitle";
-import { AreaShopMiniCard } from "@/components/common/AreaShopMiniCard";
-import { AreaShopTable } from "@/components/common/AreaShopTable";
+import type { ReactNode } from "react";
+import { AreaHubFaqAccordion } from "@/components/area/hub/AreaHubFaqAccordion";
+import { ThemeBanner } from "@/components/area/hub/ThemeBanner";
+import {
+  isLayeredBannerEnabled,
+  isLayeredBannerSectionEnabled,
+  resolveThemeBannerCharacter
+} from "@/lib/area-hub-banner-config";
+import { AreaHubThemeBanner } from "@/components/area/hub/AreaHubThemeBanner";
+import { AreaHubSectionHeader } from "@/components/area/hub/AreaHubSectionHeader";
+import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
+import { RankingComparisonTable } from "@/components/area/hub/RankingComparisonTable";
+import { RankingHeroCards } from "@/components/area/hub/RankingHeroCards";
+import { RankingSpecialtyPagedList } from "@/components/area/hub/RankingSpecialtyPagedList";
+import { RankingTabs } from "@/components/area/hub/RankingTabs";
 import {
   type AreaHubContext,
   extractShopPriceYen,
@@ -11,10 +23,19 @@ import {
   isStationNearShop,
   sortShopsForRanking
 } from "@/lib/area-shop-utils";
+import {
+  buildRankingIntro,
+  hasPrShopsInRanking,
+  RANKING_PR_NOTE,
+  selectRankingTopShops
+} from "@/lib/shop-ranking";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const REVIEW_POLICY =
   "当サイトでは、ユーザー投稿口コミ、編集部コメント、実地確認レビューを分けて掲載しています。ユーザー投稿口コミは、実際に利用した方から投稿された内容を運営側で確認したうえで掲載しています。編集部コメントは、公式サイト・公開情報・料金・営業時間・アクセス・予約導線などをもとに、比較しやすいよう整理したものです。実地確認レビューは、実際に問い合わせ・来店・利用などを行った店舗のみ掲載しています。";
+
+export const REVIEW_POLICY_SHORT =
+  "ユーザー投稿・編集部コメント・実地確認レビューを分けて掲載。投稿口コミは運営確認後に公開します。";
 
 export const RANKING_CRITERIA = [
   "公開情報の充実度",
@@ -27,16 +48,30 @@ export const RANKING_CRITERIA = [
   "店舗情報の更新状況"
 ];
 
-export function buildFaqItems(ctx: AreaHubContext) {
-  const areaRef = ctx.slug === "nihonbashi" ? "大阪日本橋" : ctx.name;
+const GUIDE_POINTS = [
+  {
+    title: "営業時間を先に確認",
+    body: "最終受付の有無も店舗ページでチェック。"
+  },
+  {
+    title: "料金は目安として比較",
+    body: "予約前に公式情報で確定させてください。"
+  },
+  {
+    title: "予約導線が分かる店舗から",
+    body: "公式サイト・電話掲載店舗は問い合わせしやすい傾向。"
+  },
+  {
+    title: "口コミと編集部コメントを分けて",
+    body: "体験談と整理コメントは性質が異なります。"
+  }
+] as const;
 
+export function buildFaqItems(ctx: AreaHubContext) {
   return [
     {
-      question: `${areaRef}のメンズエステはどこから探すのがおすすめですか？`,
-      answer:
-        ctx.slug === "nihonbashi"
-          ? "日本橋・近鉄日本橋・なんば周辺の店舗を比較する場合は、日本橋エリアの店舗一覧ページのランキングと料金比較表から条件に合う店舗を絞り込むのがおすすめです。選び方のポイントは別ページのガイドも参考にしてください。"
-          : `${ctx.name}エリアの店舗一覧ページから、営業時間・料金・口コミを比較しながら条件に合う店舗を絞り込むのがおすすめです。`
+      question: `${ctx.faqAreaRef}のメンズエステはどこから探すのがおすすめですか？`,
+      answer: ctx.faqFirstAnswer
     },
     {
       question: "料金はどのくらいが相場ですか？",
@@ -60,22 +95,366 @@ export function buildFaqItems(ctx: AreaHubContext) {
   ];
 }
 
-export function AreaFaqSection({ items }: { items: Array<{ question: string; answer: string }> }) {
+export function AreaFaqSection({
+  items,
+  areaSlug
+}: {
+  items: Array<{ question: string; answer: string }>;
+  areaSlug: string;
+}) {
   return (
-    <section className="area-hub-section" id="faq">
-      <EsSectionTitle en="FAQ" ja="よくある質問" large />
-      <dl className="area-hub-faq">
-        {items.map((item) => (
-          <div key={item.question} className="area-hub-faq__item">
-            <dt>{item.question}</dt>
-            <dd>{item.answer}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
+    <AreaHubSectionShell theme="faq" areaSlug={areaSlug} id="faq">
+      <AreaHubSectionHeader theme="faq" areaSlug={areaSlug} ja="よくある質問" />
+      <p className="area-hub-section__intro area-hub-section__intro--compact area-hub-section__intro--muted">
+        よくある疑問をタップして確認できます。
+      </p>
+      <AreaHubFaqAccordion items={items} />
+    </AreaHubSectionShell>
   );
 }
 
+function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, "slug" | "name">) {
+  const lateNightShops = rankingShops.filter(isLateNightShop);
+  const beginnerShops = rankingShops.filter(isBeginnerFriendlyShop);
+  const stationShops = rankingShops.filter((s) => isStationNearShop(s, targetArea));
+  const pricedShops = rankingShops.filter(hasPublishedPrice);
+  const prices = rankingShops.map(extractShopPriceYen).filter((p) => p > 0);
+  const minPrice = prices.length ? Math.min(...prices) : null;
+  const maxPrice = prices.length ? Math.max(...prices) : null;
+  const sortedRanking = sortShopsForRanking(rankingShops, targetArea);
+  const topFive = selectRankingTopShops(rankingShops, targetArea, 5);
+
+  return {
+    lateNightShops,
+    beginnerShops,
+    stationShops,
+    pricedShops,
+    minPrice,
+    maxPrice,
+    sortedRanking,
+    topFive
+  };
+}
+
+/** ファーストビュー直下：おすすめランキング TOP5 */
+export function AreaHubRankingTop({
+  rankingShops,
+  targetArea,
+  hubContext
+}: {
+  rankingShops: ShopView[];
+  targetArea: Pick<AreaView, "slug" | "name">;
+  hubContext: AreaHubContext;
+}) {
+  const { topFive } = useRankingBuckets(rankingShops, targetArea);
+
+  if (topFive.length === 0) return null;
+
+  const rankingIntro = buildRankingIntro(hubContext);
+  const rankingBannerEnabled = isLayeredBannerSectionEnabled("ranking");
+  const showPrNote = hasPrShopsInRanking(topFive);
+
+  return (
+    <AreaHubSectionShell
+      theme="ranking"
+      areaSlug={targetArea.slug}
+      id="ranking"
+      banner={
+        rankingBannerEnabled ? (
+          <AreaHubThemeBanner
+            hubTheme="ranking"
+            areaSlug={targetArea.slug}
+            message={hubContext.rankingTitle}
+          />
+        ) : undefined
+      }
+    >
+      {!rankingBannerEnabled ? (
+        <>
+          <AreaHubSectionHeader
+            theme="ranking"
+            areaSlug={targetArea.slug}
+            ja={hubContext.rankingTitle}
+            hideIcon
+          />
+          <p className="area-hub-section__intro area-hub-section__intro--compact area-hub-section__intro--ranking">
+            {rankingIntro}
+          </p>
+        </>
+      ) : null}
+      {showPrNote ? (
+        <p className="area-hub-ranking-criteria-note area-hub-ranking-criteria-note--pr">
+          {RANKING_PR_NOTE}
+        </p>
+      ) : null}
+      <RankingHeroCards shops={topFive} targetArea={targetArea} />
+      <p className="area-hub-section__footnote">
+        <a href="#compare-tabs">条件別ランキング</a>
+        でも比較できます。
+      </p>
+    </AreaHubSectionShell>
+  );
+}
+
+const TAB_BANNER_THEME: Partial<
+  Record<"price" | "late-night" | "beginner" | "station", "price" | "lateNight" | "beginner" | "station">
+> = {
+  price: "price",
+  "late-night": "lateNight",
+  beginner: "beginner",
+  station: "station"
+};
+
+function CompareTabPanel({
+  theme,
+  areaSlug,
+  ja,
+  intro,
+  children
+}: {
+  theme: "price" | "late-night" | "beginner" | "station";
+  areaSlug: string;
+  ja: string;
+  intro?: string;
+  children: ReactNode;
+}) {
+  const bannerTheme = TAB_BANNER_THEME[theme];
+  const useLayeredBanner = bannerTheme ? isLayeredBannerEnabled(bannerTheme) : false;
+
+  const banner =
+    useLayeredBanner && bannerTheme ? (
+      <ThemeBanner
+        themeKey={bannerTheme}
+        message={ja}
+        imageSrc={resolveThemeBannerCharacter(areaSlug, bannerTheme)}
+      />
+    ) : undefined;
+
+  return (
+    <AreaHubSectionShell
+      theme={theme}
+      areaSlug={areaSlug}
+      banner={banner}
+      className="area-hub-theme--tab-panel"
+    >
+      {!useLayeredBanner ? (
+        <>
+          <AreaHubSectionHeader theme={theme} areaSlug={areaSlug} ja={ja} />
+          {intro ? (
+            <p className="area-hub-section__intro area-hub-section__intro--compact">{intro}</p>
+          ) : null}
+        </>
+      ) : intro ? (
+        <p className="area-hub-section__intro area-hub-section__intro--compact">{intro}</p>
+      ) : null}
+      {children}
+    </AreaHubSectionShell>
+  );
+}
+
+/** 条件別タブ（料金比較・深夜・初心者・駅近） */
+export function AreaHubCompareTabsSections({
+  rankingShops,
+  targetArea,
+  hubContext
+}: {
+  rankingShops: ShopView[];
+  targetArea: Pick<AreaView, "slug" | "name">;
+  hubContext: AreaHubContext;
+}) {
+  const { lateNightShops, beginnerShops, stationShops, pricedShops, sortedRanking } =
+    useRankingBuckets(rankingShops, targetArea);
+
+  const priceTableTitle = hubContext.priceTableTitle;
+  const specialtyPageSize = 5;
+
+  return (
+    <>
+      <div id="compare-tabs">
+        <RankingTabs
+          tabs={[
+            {
+              id: "price-table",
+              label: "料金比較",
+              content: (
+                <CompareTabPanel theme="price" areaSlug={targetArea.slug} ja={priceTableTitle} intro="掲載店舗の料金目安を一覧で比較できます。">
+                  <RankingComparisonTable
+                    shops={pricedShops.length > 0 ? pricedShops : sortedRanking.slice(0, 15)}
+                  />
+                </CompareTabPanel>
+              )
+            },
+            {
+              id: "late-night",
+              label: "深夜営業",
+              content: (
+                <CompareTabPanel
+                  theme="late-night"
+                  areaSlug={targetArea.slug}
+                  ja={`深夜営業の${hubContext.name}メンズエステ`}
+                >
+                  {lateNightShops.length > 0 ? (
+                    <RankingSpecialtyPagedList
+                      shops={lateNightShops}
+                      targetArea={targetArea}
+                      variant="late-night"
+                      pageSize={specialtyPageSize}
+                      ariaLabel="深夜営業店舗のページ送り"
+                    />
+                  ) : (
+                    <p className="area-hub-section__empty">
+                      深夜営業候補を抽出できませんでした。店舗一覧から営業時間をご確認ください。
+                    </p>
+                  )}
+                </CompareTabPanel>
+              )
+            },
+            {
+              id: "beginner",
+              label: "初心者向け",
+              content: (
+                <CompareTabPanel
+                  theme="beginner"
+                  areaSlug={targetArea.slug}
+                  ja={`初心者におすすめの${hubContext.name}メンズエステ`}
+                >
+                  {beginnerShops.length > 0 ? (
+                    <RankingSpecialtyPagedList
+                      shops={beginnerShops}
+                      targetArea={targetArea}
+                      variant="beginner"
+                      pageSize={specialtyPageSize}
+                      ariaLabel="初心者向け店舗のページ送り"
+                    />
+                  ) : (
+                    <p className="area-hub-section__empty">該当店舗の抽出に十分な情報がありません。</p>
+                  )}
+                </CompareTabPanel>
+              )
+            },
+            {
+              id: "station",
+              label: "駅近",
+              content: (
+                <CompareTabPanel
+                  theme="station"
+                  areaSlug={targetArea.slug}
+                  ja={`駅近の${hubContext.name}メンズエステ`}
+                  intro={hubContext.stationIntro}
+                >
+                  {stationShops.length > 0 ? (
+                    <RankingSpecialtyPagedList
+                      shops={stationShops}
+                      targetArea={targetArea}
+                      variant="station"
+                      pageSize={specialtyPageSize}
+                      ariaLabel="駅近店舗のページ送り"
+                    />
+                  ) : (
+                    <p className="area-hub-section__empty">駅近候補の店舗情報を確認中です。</p>
+                  )}
+                </CompareTabPanel>
+              )
+            }
+          ]}
+        />
+      </div>
+    </>
+  );
+}
+
+/** 料金相場・選び方 */
+export function AreaHubPriceAndGuideSections({
+  rankingShops,
+  hubContext
+}: {
+  rankingShops: ShopView[];
+  hubContext: AreaHubContext;
+}) {
+  const prices = rankingShops.map(extractShopPriceYen).filter((p) => p > 0);
+  const minPrice = prices.length ? Math.min(...prices) : null;
+  const maxPrice = prices.length ? Math.max(...prices) : null;
+
+  return (
+    <>
+      <AreaHubSectionShell theme="market" areaSlug={hubContext.slug} id="price-guide">
+        <AreaHubSectionHeader
+          theme="market"
+          areaSlug={hubContext.slug}
+          ja={`${hubContext.name}メンズエステの料金相場`}
+        />
+        {minPrice && maxPrice ? (
+          <div className="area-hub-market-highlight">
+            <p className="area-hub-market-highlight__label">掲載店舗の料金目安</p>
+            <p className="area-hub-market-highlight__value">
+              {minPrice.toLocaleString("ja-JP")}
+              <span>円〜</span>
+              {maxPrice.toLocaleString("ja-JP")}
+              <span>円</span>
+            </p>
+          </div>
+        ) : (
+          <p className="area-hub-section__intro area-hub-section__intro--compact">
+            料金相場の集計には十分な掲載データがありません。各店舗ページでご確認ください。
+          </p>
+        )}
+      </AreaHubSectionShell>
+
+      {hubContext.guidePath ? (
+        <AreaHubSectionShell theme="guide" areaSlug={hubContext.slug} id="how-to-choose">
+          <AreaHubSectionHeader
+            theme="guide"
+            areaSlug={hubContext.slug}
+            ja={`${hubContext.name}で失敗しない選び方`}
+          />
+          <div className="area-hub-guide-cards area-hub-guide-cards--compact">
+            {GUIDE_POINTS.map((point, index) => (
+              <article key={point.title} className="area-hub-guide-card area-hub-guide-card--compact">
+                <span className="area-hub-guide-card__num">{index + 1}</span>
+                <div>
+                  <h3>{point.title}</h3>
+                  <p>{point.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          <p className="area-hub-section__intro area-hub-section__intro--compact">
+            詳しくは
+            <Link href={hubContext.guidePath}>
+              {hubContext.name}メンズエステで失敗しない選び方ガイド
+            </Link>
+            をご覧ください。
+          </p>
+        </AreaHubSectionShell>
+      ) : null}
+    </>
+  );
+}
+
+/** 条件別タブ〜FAQ（後方互換） */
+export function AreaHubCompareAndGuideSections({
+  rankingShops,
+  targetArea,
+  hubContext
+}: {
+  rankingShops: ShopView[];
+  targetArea: Pick<AreaView, "slug" | "name">;
+  hubContext: AreaHubContext;
+}) {
+  return (
+    <>
+      <AreaHubCompareTabsSections
+        rankingShops={rankingShops}
+        targetArea={targetArea}
+        hubContext={hubContext}
+      />
+      <AreaHubPriceAndGuideSections rankingShops={rankingShops} hubContext={hubContext} />
+      <AreaFaqSection items={buildFaqItems(hubContext)} areaSlug={hubContext.slug} />
+    </>
+  );
+}
+
+/** @deprecated 分割後は AreaHubRankingTop + AreaHubCompareAndGuideSections を使用 */
 export function AreaHubRankingSections({
   rankingShops,
   targetArea,
@@ -85,197 +464,14 @@ export function AreaHubRankingSections({
   targetArea: Pick<AreaView, "slug" | "name">;
   hubContext: AreaHubContext;
 }) {
-  const lateNightShops = rankingShops.filter(isLateNightShop);
-  const beginnerShops = rankingShops.filter(isBeginnerFriendlyShop);
-  const stationShops = rankingShops.filter((s) => isStationNearShop(s, targetArea));
-  const pricedShops = rankingShops.filter(hasPublishedPrice);
-  const prices = rankingShops.map(extractShopPriceYen).filter((p) => p > 0);
-  const minPrice = prices.length ? Math.min(...prices) : null;
-  const maxPrice = prices.length ? Math.max(...prices) : null;
-  const sortedRanking = sortShopsForRanking(rankingShops, targetArea);
-  const topRanking = sortedRanking.slice(0, 10);
-
-  const rankingTitle =
-    targetArea.slug === "nihonbashi"
-      ? "大阪日本橋メンズエステおすすめランキング"
-      : `${hubContext.name}メンズエステおすすめランキング`;
-
-  const priceTableTitle =
-    targetArea.slug === "nihonbashi"
-      ? "日本橋メンズエステ料金比較表"
-      : `${hubContext.name}メンズエステ料金比較表`;
-
   return (
     <>
-      <section className="area-hub-section" id="ranking">
-        <EsSectionTitle en="RANKING" ja={rankingTitle} large />
-        <p className="area-hub-section__intro">
-          公開情報・営業時間・料金掲載状況・公式サイトの有無などをもとに、比較しやすい順で掲載しています。
-          順位は編集部の表示用であり、利用者の満足度や口コミ評価を保証するものではありません。
-        </p>
-        <ul className="area-hub-criteria">
-          {RANKING_CRITERIA.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-        <div className="area-mini-card-list">
-          {topRanking.map((shop, index) => (
-            <AreaShopMiniCard
-              key={shop.id}
-              shop={shop}
-              rank={index + 1}
-              targetArea={targetArea}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="area-hub-section" id="price-table">
-        <EsSectionTitle en="PRICE" ja={priceTableTitle} large />
-        <p className="area-hub-section__intro">
-          掲載店舗の料金目安を一覧で比較できます。未掲載の店舗は「要確認」と表示しています。
-        </p>
-        <AreaShopTable shops={pricedShops.length > 0 ? pricedShops : sortedRanking.slice(0, 15)} />
-      </section>
-
-      <section className="area-hub-section" id="late-night">
-        <EsSectionTitle
-          en="LATE NIGHT"
-          ja={`深夜営業の${hubContext.name}メンズエステ`}
-          large
-        />
-        {lateNightShops.length > 0 ? (
-          <div className="area-mini-card-list">
-            {lateNightShops.slice(0, 8).map((shop, index) => (
-              <AreaShopMiniCard
-                key={shop.id}
-                shop={shop}
-                rank={index + 1}
-                targetArea={targetArea}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="area-hub-section__empty">
-            営業時間の掲載から深夜営業候補を抽出できませんでした。店舗一覧から営業時間をご確認ください。
-          </p>
-        )}
-      </section>
-
-      <section className="area-hub-section" id="beginner">
-        <EsSectionTitle
-          en="BEGINNER"
-          ja={`初心者におすすめの${hubContext.name}メンズエステ`}
-          large
-        />
-        <p className="area-hub-section__intro">
-          営業時間・料金・公式サイト・予約導線・編集部コメントなど、初めての方が比較しやすい情報が揃っている店舗を掲載しています。
-        </p>
-        {beginnerShops.length > 0 ? (
-          <div className="area-mini-card-list">
-            {beginnerShops.slice(0, 8).map((shop, index) => (
-              <AreaShopMiniCard
-                key={shop.id}
-                shop={shop}
-                rank={index + 1}
-                targetArea={targetArea}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="area-hub-section__empty">該当店舗の抽出に十分な情報がありません。</p>
-        )}
-      </section>
-
-      <section className="area-hub-section" id="station">
-        <EsSectionTitle en="ACCESS" ja={`駅近の${hubContext.name}メンズエステ`} large />
-        <p className="area-hub-section__intro">
-          {targetArea.slug === "nihonbashi"
-            ? "日本橋・近鉄日本橋・なんば・谷町九丁目徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。"
-            : "駅名や徒歩表記が掲載情報に含まれる店舗を整理しています。"}
-        </p>
-        {stationShops.length > 0 ? (
-          <div className="area-mini-card-list">
-            {stationShops.slice(0, 8).map((shop, index) => (
-              <AreaShopMiniCard
-                key={shop.id}
-                shop={shop}
-                rank={index + 1}
-                targetArea={targetArea}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="area-hub-section__empty">駅近候補の店舗情報を確認中です。</p>
-        )}
-      </section>
-
-      <section className="area-hub-section" id="official">
-        <EsSectionTitle en="OFFICIAL" ja="公式サイト掲載ありの店舗" large />
-        {rankingShops.filter((s) => s.officialUrl).length > 0 ? (
-          <AreaShopTable shops={rankingShops.filter((s) => s.officialUrl).slice(0, 10)} />
-        ) : (
-          <p className="area-hub-section__empty">公式サイトURLが掲載されている店舗は準備中です。</p>
-        )}
-      </section>
-
-      <section className="area-hub-section" id="price-guide">
-        <EsSectionTitle en="MARKET" ja={`${hubContext.name}メンズエステの料金相場`} large />
-        {minPrice && maxPrice ? (
-          <p className="area-hub-section__intro">
-            掲載店舗の料金目安はおおむね
-            <strong>
-              {minPrice.toLocaleString("ja-JP")}円〜{maxPrice.toLocaleString("ja-JP")}円
-            </strong>
-            の範囲です。コース・時間帯により異なるため、来店前に店舗ページで最新料金をご確認ください。
-          </p>
-        ) : (
-          <p className="area-hub-section__intro">
-            料金相場の集計には十分な掲載データがありません。各店舗ページまたは公式サイトで料金をご確認ください。
-          </p>
-        )}
-      </section>
-
-      {hubContext.guidePath ? (
-        <section className="area-hub-section" id="how-to-choose">
-          <EsSectionTitle en="GUIDE" ja={`${hubContext.name}で失敗しない選び方`} large />
-          <div className="area-hub-guide-cards">
-            <article className="area-hub-guide-card">
-              <h3>① 営業時間と最終受付を先に確認</h3>
-              <p>
-                仕事帰りの利用を想定する場合、営業時間だけでなく最終受付の有無も店舗ページで確認してください。
-              </p>
-            </article>
-            <article className="area-hub-guide-card">
-              <h3>② 料金は「目安」として比較</h3>
-              <p>
-                コースやオプションで料金が変わるため、比較表の金額は参考値として扱い、予約前に公式情報で確定させてください。
-              </p>
-            </article>
-            <article className="area-hub-guide-card">
-              <h3>③ 予約導線が分かる店舗から検討</h3>
-              <p>
-                公式サイトや電話番号が掲載されている店舗は、初めての方でも問い合わせしやすい傾向があります。
-              </p>
-            </article>
-            <article className="area-hub-guide-card">
-              <h3>④ 口コミと編集部コメントを分けて見る</h3>
-              <p>
-                体験談（口コミ）と、公開情報を整理した編集部コメントは性質が異なります。両方を参考に判断してください。
-              </p>
-            </article>
-          </div>
-          <p className="area-hub-section__intro">
-            より詳しい選び方は
-            <Link href={hubContext.guidePath}>
-              {hubContext.name}メンズエステで失敗しない選び方ガイド
-            </Link>
-            もご覧ください。
-          </p>
-        </section>
-      ) : null}
-
-      <AreaFaqSection items={buildFaqItems(hubContext)} />
+      <AreaHubRankingTop rankingShops={rankingShops} targetArea={targetArea} hubContext={hubContext} />
+      <AreaHubCompareAndGuideSections
+        rankingShops={rankingShops}
+        targetArea={targetArea}
+        hubContext={hubContext}
+      />
     </>
   );
 }

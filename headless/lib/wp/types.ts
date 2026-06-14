@@ -37,6 +37,15 @@ export type WpPostBase = {
   };
 };
 
+export type ShopRankingMeta = {
+  manualRank: number | null;
+  rankingPriority: number | null;
+  isRankingEnabled: boolean;
+  rankingReason: string;
+  isPr: boolean;
+  rankingLabel: string;
+};
+
 export type WpShop = WpPostBase & {
   official_url?: string;
   area_slug?: string;
@@ -54,6 +63,7 @@ export type ShopView = {
   acf: Record<string, unknown>;
   officialUrl: string;
   areaSlug: string;
+  ranking: ShopRankingMeta;
 };
 
 export type AreaView = {

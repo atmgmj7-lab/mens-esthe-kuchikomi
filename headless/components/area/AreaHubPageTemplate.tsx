@@ -1,9 +1,20 @@
 import Link from "next/link";
-import { EsSectionTitle } from "@/components/SectionTitle";
 import { AreaLatestReviews } from "@/components/area/AreaLatestReviews";
-import { AreaHubRankingSections, buildFaqItems } from "@/components/area/area-hub-content";
-import { AreaShopList } from "@/components/common/AreaShopCard";
-import { Pagination } from "@/components/Pagination";
+import { AreaTitleBanner } from "@/components/area/hub/AreaTitleBanner";
+import { ThemeBanner } from "@/components/area/hub/ThemeBanner";
+import { AreaHubSectionHeader } from "@/components/area/hub/AreaHubSectionHeader";
+import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
+import {
+  AreaHubCompareTabsSections,
+  AreaHubPriceAndGuideSections,
+  AreaHubRankingTop,
+  AreaFaqSection,
+  buildFaqItems
+} from "@/components/area/area-hub-content";
+import { AreaHubRelatedAreas } from "@/components/area/hub/AreaHubRelatedAreas";
+import { AreaShopList } from "@/components/area/hub/AreaShopList";
+import { resolveAreaHeroBanner } from "@/lib/area-hub-banner-config";
+import { resolveAreaTitleBanner } from "@/lib/area-title-banner-config";
 import {
   aggregateReviewCountLabel,
   resolveAreaHubContext,
@@ -12,23 +23,22 @@ import {
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
-const FILTER_CHIPS = [
-  { href: "#late-night", label: "深夜営業" },
-  { href: "#station", label: "駅近" },
-  { href: "#price-table", label: "料金掲載あり" },
-  { href: "#official", label: "公式サイトあり" },
-  { href: "#beginner", label: "初心者向け" }
-] as const;
-
-const PAGE1_ANCHOR_LINKS = [
-  { href: "#shop-list", label: "店舗一覧" },
-  { href: "#ranking", label: "おすすめランキング" },
+const SECTION_NAV_CHIPS = [
   { href: "#price-table", label: "料金比較" },
   { href: "#late-night", label: "深夜営業" },
   { href: "#beginner", label: "初心者向け" },
   { href: "#station", label: "駅近" },
-  { href: "#reviews", label: "口コミ・編集部レビュー" },
-  { href: "#faq", label: "FAQ" }
+  { href: "?filter=official#shop-list", label: "公式サイトあり" }
+] as const;
+
+const PAGE_ANCHOR_LINKS = [
+  { href: "#ranking", label: "おすすめランキング" },
+  { href: "#shop-list", label: "店舗一覧" },
+  { href: "#compare-tabs", label: "条件別比較" },
+  { href: "#reviews", label: "口コミ" },
+  { href: "#price-guide", label: "料金相場" },
+  { href: "#faq", label: "FAQ" },
+  { href: "#related-areas", label: "関連エリア" }
 ] as const;
 
 function areaHubBreadcrumbJsonLd(
@@ -51,7 +61,7 @@ function areaHubBreadcrumbJsonLd(
   items.push({
     "@type": "ListItem",
     position: items.length + 1,
-    name: hubContext.hubTitle,
+    name: hubContext.breadcrumbLabel,
     item: canonicalUrl(areaPath)
   });
 
@@ -64,34 +74,30 @@ function areaHubBreadcrumbJsonLd(
 
 export function AreaHubPageTemplate({
   area,
-  shops,
-  rankingShops,
-  currentPage,
-  totalPages,
-  parentArea
+  allShops,
+  legacyPage = 1,
+  parentArea,
+  siblingAreas = [],
+  childAreas = []
 }: {
   area: AreaView;
-  shops: ShopView[];
-  rankingShops: ShopView[];
-  currentPage: number;
-  totalPages: number;
+  allShops: ShopView[];
+  legacyPage?: number;
   parentArea?: AreaView | null;
+  siblingAreas?: AreaView[];
+  childAreas?: AreaView[];
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
-  const isFirstPage = currentPage === 1;
   const faqItems = buildFaqItems(hubContext);
-  const lastUpdated = resolveLastUpdatedLabel(rankingShops);
-
-  const pageTitle =
-    currentPage > 1
-      ? `${hubContext.hubTitle}（${currentPage}ページ目）`
-      : hubContext.hubTitle;
+  const lastUpdated = resolveLastUpdatedLabel(allShops);
+  const areaHeroBanner = resolveAreaHeroBanner(area.slug);
+  const areaTitleBanner = resolveAreaTitleBanner(area.slug);
 
   return (
     <main
       id="main_content"
-      className="l-main_content l-article hl-area-hub-page hl-nihonbashi-seo-page hl-nihonbashi-hub-page"
+      className="l-main_content l-article hl-area-hub-page"
     >
       <script
         type="application/ld+json"
@@ -99,22 +105,16 @@ export function AreaHubPageTemplate({
           __html: JSON.stringify(areaHubBreadcrumbJsonLd(hubContext, areaPath))
         }}
       />
-      {isFirstPage ? (
-        <>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(
-                shopItemListJsonLd(shops, hubContext.shopListH2, areaPath)
-              )
-            }}
-          />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }}
-          />
-        </>
-      ) : null}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(shopItemListJsonLd(allShops, hubContext.shopListH2, areaPath))
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }}
+      />
 
       <div className="l-main_content__inner hl-page-inner">
         <nav className="area-hub-breadcrumb" aria-label="パンくず">
@@ -126,13 +126,22 @@ export function AreaHubPageTemplate({
               <span aria-hidden="true"> &gt; </span>
             </>
           ) : null}
-          <span>
-            {area.slug === "nihonbashi" ? "大阪日本橋メンズエステ" : hubContext.hubTitle}
-          </span>
+          <span>{hubContext.breadcrumbLabel}</span>
         </nav>
 
+        {areaTitleBanner ? (
+          <AreaTitleBanner areaSlug={area.slug} config={areaTitleBanner} />
+        ) : (
+          <ThemeBanner
+            themeKey="areaHero"
+            message={areaHeroBanner.message}
+            imageSrc={areaHeroBanner.imageSrc}
+            imageAlt={areaHeroBanner.imageAlt}
+          />
+        )}
+
         <header className="area-hub-header">
-          <h1 className="area-hub-hero__title">{pageTitle}</h1>
+          <h1 className="area-hub-hero__title">{hubContext.hubTitle}</h1>
           <p className="area-hub-hero__lead">{hubContext.hubDescription}</p>
 
           <dl className="area-hub-hero__stats">
@@ -140,80 +149,66 @@ export function AreaHubPageTemplate({
               <dt>掲載店舗数</dt>
               <dd>{area.count}件</dd>
             </div>
-            {isFirstPage ? (
-              <>
-                <div>
-                  <dt>口コミ件数</dt>
-                  <dd>{aggregateReviewCountLabel(rankingShops)}</dd>
-                </div>
-                <div>
-                  <dt>最終更新日</dt>
-                  <dd>{lastUpdated}</dd>
-                </div>
-                <div>
-                  <dt>対応エリア</dt>
-                  <dd>{hubContext.coverageLabel}</dd>
-                </div>
-              </>
-            ) : (
-              <div>
-                <dt>ページ</dt>
-                <dd>
-                  {currentPage} / {totalPages}
-                </dd>
-              </div>
-            )}
+            <div>
+              <dt>口コミ件数</dt>
+              <dd>{aggregateReviewCountLabel(allShops)}</dd>
+            </div>
+            <div>
+              <dt>最終更新日</dt>
+              <dd>{lastUpdated}</dd>
+            </div>
+            <div>
+              <dt>対応エリア</dt>
+              <dd>{hubContext.coverageLabel}</dd>
+            </div>
           </dl>
 
-          <div className="area-hub-filter-chips" aria-label="条件で探す">
+          <div className="area-hub-filter-chips" aria-label="セクションへ移動">
             <span className="area-hub-filter-chips__label">条件で探す</span>
-            {FILTER_CHIPS.map((chip) => (
-              <a
-                key={chip.href}
-                href={isFirstPage ? chip.href : `${areaPath}${chip.href}`}
-                className="area-hub-filter-chips__chip"
-              >
+            {SECTION_NAV_CHIPS.map((chip) => (
+              <a key={chip.href} href={chip.href} className="area-hub-filter-chips__chip">
                 {chip.label}
               </a>
             ))}
           </div>
 
-          {isFirstPage ? (
-            <nav className="area-hub-anchor-nav" aria-label="ページ内ナビゲーション">
-              {PAGE1_ANCHOR_LINKS.map((link) => (
-                <a key={link.href} href={link.href} className="area-hub-anchor-nav__link">
-                  {link.label}
-                </a>
-              ))}
-            </nav>
-          ) : null}
+          <nav className="area-hub-anchor-nav" aria-label="ページ内ナビゲーション">
+            {PAGE_ANCHOR_LINKS.map((link) => (
+              <a key={link.href} href={link.href} className="area-hub-anchor-nav__link">
+                {link.label}
+              </a>
+            ))}
+          </nav>
         </header>
 
-        <section className="area-hub-section area-hub-section--shop-list" id="shop-list">
-          <EsSectionTitle en="SHOP LIST" ja={hubContext.shopListH2} large />
+        <AreaHubRankingTop rankingShops={allShops} targetArea={area} hubContext={hubContext} />
+
+        <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
+          <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
           <p className="area-hub-section__intro">{hubContext.shopListIntro}</p>
-          {shops.length > 0 ? (
-            <>
-              <AreaShopList shops={shops} targetArea={area} />
-              <Pagination currentPage={currentPage} totalPages={totalPages} basePath={areaPath} />
-            </>
+          {allShops.length > 0 ? (
+            <AreaShopList shops={allShops} targetArea={area} legacyPage={legacyPage} />
           ) : (
             <p className="area-hub-section__empty">店舗情報を準備中です。</p>
           )}
-        </section>
+        </AreaHubSectionShell>
 
-        {isFirstPage ? (
-          <>
-            <AreaLatestReviews shops={rankingShops} hubContext={hubContext} />
-            <AreaHubRankingSections
-              rankingShops={rankingShops}
-              targetArea={area}
-              hubContext={hubContext}
-            />
-          </>
-        ) : null}
+        <AreaHubCompareTabsSections
+          rankingShops={allShops}
+          targetArea={area}
+          hubContext={hubContext}
+        />
+        <AreaLatestReviews shops={allShops} hubContext={hubContext} />
+        <AreaHubPriceAndGuideSections rankingShops={allShops} hubContext={hubContext} />
+        <AreaFaqSection items={faqItems} areaSlug={area.slug} />
+        <AreaHubRelatedAreas
+          area={area}
+          parentArea={parentArea}
+          siblingAreas={siblingAreas}
+          childAreas={childAreas}
+        />
 
-        {isFirstPage && hubContext.guidePath ? (
+        {hubContext.guidePath ? (
           <section className="area-hub-section area-hub-section--cta">
             <div className="area-hub-cta-panel">
               <h2>{hubContext.guideTitle}</h2>

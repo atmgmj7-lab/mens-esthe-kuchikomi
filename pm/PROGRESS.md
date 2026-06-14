@@ -2,6 +2,38 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-14 areaHero 最終整理（1メッセージ + 1画像）
+
+#### 実施内容
+- areaHero を **「1メッセージ + 1画像」** に整理済み
+- メッセージ: 「日本橋で自分に合うメンズエステを見つける」（`resolveAreaHeroBanner` / `AREA_HERO_BANNER_OVERRIDES`）
+- 採用画像: `hero-champagne-clean-01.webp`（`transparent_05.png` 由来・黒ドレス透過 WebP、quality 91・縦 1200px）
+- H1・stats・条件チップ・アンカーナビはバナー外（`area-hub-header`）維持
+- `ThemeBanner` 系 props 最小化、`LAYERED_BANNER_TABS` から `beginner` 除外（セクション横バナー OFF 維持）
+- `AreaShopList` hydration mismatch 修正: `useState` 初期値をモバイル固定、マウント後に PC/SP へ同期
+
+#### 確認
+- PC/SP Playwright: メッセージ・H1・条件チップへの画像被りなし
+- 市松模様 / 白四角は見えない状態を確認
+- `npm run lint` 成功
+- `npm run build`: 初回 WP API タイムアウトで失敗 → 再実行で成功
+
+#### 変更ファイル（headless ローカル試作）
+- `headless/public/images/area-hub/characters/hero-champagne-clean-01.webp`（新規）
+- `headless/lib/area-hub-banner-config.ts`
+- `headless/components/area/hub/AreaShopList.tsx`
+- `headless/components/area/AreaHubPageTemplate.tsx`
+- `headless/components/area/hub/ThemeBanner.tsx` / `AreaHubThemeBanner.tsx` / `ThemeBannerCharacter.tsx` / `AreaHubHeroBanner.tsx`
+- `headless/components/area/area-hub-content.tsx` / `AreaLatestReviews.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 触っていないもの
+- commit / push / deploy / 本番データ
+- beginner/ranking/reviews/lateNight バナー展開 / SEO 構造化データ / page=2/3 / `PriceLabel` / `RatingBadge` / `ShopScheduleSnapshot`
+
+---
+
 ### 2026-06-14 Vercel 本番反映ブロック整理・AI 更新機能の優先度明文化
 
 #### 状況

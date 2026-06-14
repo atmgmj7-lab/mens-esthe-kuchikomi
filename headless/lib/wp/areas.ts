@@ -67,22 +67,60 @@ export async function getSiblingAreas(area: AreaView): Promise<AreaView[]> {
   return terms.map(normalizeArea);
 }
 
-const SHOPS_PER_PAGE = 24;
+export const DEFAULT_SHOPS_PER_PAGE = 24;
+/** エリアハブテンプレートの店舗一覧（1ページあたり） */
+export const HUB_SHOPS_PER_PAGE = 12;
 
 export type AreaShopsResult = {
   shops: ShopView[];
   totalPages: number;
 };
 
-export async function getAreaShops(areaId: number, page = 1): Promise<AreaShopsResult> {
+export type GetAreaShopsOptions = {
+  perPage?: number;
+};
+
+export async function getAreaShops(
+  areaId: number,
+  page = 1,
+  options?: GetAreaShopsOptions
+): Promise<AreaShopsResult> {
   "use cache";
+  const perPage = options?.perPage ?? DEFAULT_SHOPS_PER_PAGE;
   cacheLife("minutes");
-  cacheTag("wp", "shops", `area:shops:${areaId}`, `area:shops:${areaId}:page:${page}`);
+  cacheTag(
+    "wp",
+    "shops",
+    `area:shops:${areaId}`,
+    `area:shops:${areaId}:pp:${perPage}`,
+    `area:shops:${areaId}:pp:${perPage}:page:${page}`
+  );
   const { data: shops, pagination } = await wpFetchPaginated<WpShop[]>(
-    `/wp/v2/shop?area=${areaId}&per_page=${SHOPS_PER_PAGE}&page=${page}&_embed=1`
+    `/wp/v2/shop?area=${areaId}&per_page=${perPage}&page=${page}&_embed=1`
   );
   return {
     shops: shops.map(normalizeShop),
     totalPages: Math.max(1, pagination.totalPages)
   };
+}
+
+/** ランキング・条件別抽出用にエリア内店舗をまとめて取得 */
+export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("wp", "shops", `area:shops:${areaId}`, `area:shops:${areaId}:ranking`);
+  const all: ShopView[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const { data, pagination } = await wpFetchPaginated<WpShop[]>(
+      `/wp/v2/shop?area=${areaId}&per_page=100&page=${page}&_embed=1`
+    );
+    all.push(...data.map(normalizeShop));
+    totalPages = Math.max(1, pagination.totalPages);
+    page += 1;
+  } while (page <= totalPages);
+
+  return all;
 }

@@ -362,4 +362,5 @@ npm run perf:check -- https://mens-esthe-kuchikomi.com
 | `pm/PROGRESS.md` | 日付ログ・次タスク |
 | `pm/BLOCKER.md` | ブロッカー |
 | `pm/ARCHITECTURE.md` | 技術構成 |
+| `headless/docs/shop-ranking.md` | **エリアランキング**（WP `area_rank`・将来 Supabase） |
 | `CLAUDE.md` | 作業前に読む順序 |
