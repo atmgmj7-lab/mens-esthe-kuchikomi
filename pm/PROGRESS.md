@@ -2,6 +2,20 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-15 Headless 本番デプロイ（Vercel）
+
+#### 実施内容
+- commit `9fdfe53` を `main` へ push
+- GitHub Actions **Deploy Headless to Vercel** run `27508211807` **成功**（約2m26s）
+- 本番 URL: https://mens-esthe-kuchikomi.com/
+
+#### 本番確認
+- `/` — 中段 `home-feature-banner` **なし**、エリア特集カードあり
+- `/area/nihonbashi/` — `hl-area-hub-page` 反映、HTTP 200
+- SEO cutover check CI **合格**
+
+---
+
 ### 2026-06-14 areaHero 最終整理（1メッセージ + 1画像）
 
 #### 実施内容
