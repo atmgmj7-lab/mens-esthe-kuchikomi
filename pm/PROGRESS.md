@@ -58,6 +58,24 @@
 - reviews CPT の本番反映
 - 主要20店舗の管理画面への直接入力
 
+#### 追加実施（同日）
+- commit `de7de18` を `main` へ push
+- GitHub Actions **Deploy Headless to Vercel** run `27847143310` 成功
+- GitHub Actions **Deploy to Xserver** run `27847227227` 成功
+- 本番確認:
+  - `/area/umeda/` — 共通ハブ表示、H1/title 反映、単独 `0円` なし、`AggregateRating` なし
+  - `/osaka-nihonbashi/` — 日本橋ハブへの本文内アンカーリンク 8件
+  - `/area/nihonbashi/` — 共通ハブ表示維持、単独 `0円` なし、`AggregateRating` なし
+- Search Console:
+  - Chromeで開いたアカウントでは Search Console がプロパティ追加画面になり、既存プロパティが見えない
+  - `/area/nihonbashi/` の再申請は未実行。プロパティ権限付与または正しいGoogleアカウントでのログインが必要
+- 口コミCPT:
+  - Xserver deploy は成功
+  - ただし本番 `wp-json/wp/v2/types` に `reviews` は未表示、`wp-json/wp/v2/reviews` は 404
+  - Actionsログでは `functions.php` / `reviews-cpt.php` はサーバー上と同一扱い
+  - OPcache reset用URLはNext側404に吸われるため直接実行不可
+  - 次の確認: XserverファイルマネージャーまたはFTPで `swell_child/functions.php` と `reviews-cpt.php` の実体確認、WP管理画面の有効テーマ確認、パーマリンク保存
+
 ### 2026-06-15 Headless 本番デプロイ（Vercel）
 
 #### 実施内容
