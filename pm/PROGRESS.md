@@ -2,6 +2,62 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-20 日本橋SEO残タスク整理・梅田ハブ横展開準備
+
+#### 実施内容
+- Cursor連携の参照箇所を確認:
+  - Codex側: `/Users/narikiyo/.codex/AGENTS.md` は「明示指示がある場合のみCursor」となっている
+  - Claude側: `/Users/narikiyo/.claude/CLAUDE.md` と `/Users/narikiyo/.claude/commands/app-development.md` にCursor委譲前提の記述あり
+  - source-command skill: `/Users/narikiyo/.agents/skills/source-command-app-development/SKILL.md` はCursor Agent委譲用
+- `/area/umeda/` を `HUB_TEMPLATE_AREAS` に追加し、共通エリアハブテンプレートへ横展開
+- 梅田用のSEO title / description / H1 / 店舗一覧文言 / FAQ文言 / 関係ラベル判定を追加
+- 梅田・難波の areaHero バナー文言を追加（1メッセージ + 1画像構造）
+- `/osaka-nihonbashi/` の本文中に `/area/nihonbashi/` への内部リンクを追加
+  - `#shop-list`
+  - `#ranking`
+  - `#price-table`
+  - `#late-night`
+- 主要20店舗のWordPress補強用下書き作成:
+  - `pm/NIHONBASHI-TOP20-WP-DATA-DRAFT.md`
+  - 主要20店舗の編集部コメント個別化案
+  - WP管理画面で補強すべきACF項目
+
+#### 本番確認
+- `/area/nihonbashi/` 本番:
+  - HTTP 200
+  - `hl-area-hub-page` あり
+  - H1: `大阪日本橋メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較`
+  - `AggregateRating` なし
+  - `FAQPage` / `ItemList` あり
+  - 単独 `0円` 表示なし（`13,000円` 等への単純一致は除外）
+- `/area/nihonbashi/?page=2` / `?page=3`:
+  - 旧テンプレートへ戻っていない
+  - page別 title / canonical を確認
+- `/area/nanba/`:
+  - すでに共通ハブ表示
+- `/area/umeda/` 本番:
+  - 現時点では旧テンプレート。今回の変更を反映後に共通ハブ化予定
+
+#### 口コミ投稿の確認
+- 本番 `https://mens-esthe-kuchikomi.com/wp-json/wp/v2/types` に `reviews` type は未表示
+- 本番 `https://mens-esthe-kuchikomi.com/wp-json/wp/v2/reviews` は 404
+- フロントの口コミ投稿UI/APIは存在するが、本番運用には `reviews-cpt.php` の本番反映と Application Password 環境変数設定が必要
+
+#### 検証
+- `cd headless && npm run lint` — 成功
+- `cd headless && npm run build` — 成功
+- ローカル `localhost:3460` 確認:
+  - `/area/umeda/`: 共通ハブ表示、H1・title反映
+  - `/area/nanba/`: 共通ハブ表示継続
+  - `/osaka-nihonbashi/`: 日本橋ハブへのアンカーリンク増加
+
+#### 今回やっていないこと
+- 本番WordPressデータ変更
+- Search Console URL検査リクエスト
+- commit / push / deploy
+- reviews CPT の本番反映
+- 主要20店舗の管理画面への直接入力
+
 ### 2026-06-15 Headless 本番デプロイ（Vercel）
 
 #### 実施内容

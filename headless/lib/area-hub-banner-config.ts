@@ -134,7 +134,8 @@ export const THEME_BANNER_CHARACTER_OVERRIDES: Record<
   Partial<Record<ThemeBannerKey, ThemeBannerCharacterPose | null>>
 > = {
   nihonbashi: {},
-  nanba: {}
+  nanba: {},
+  umeda: {}
 };
 
 export type AreaHeroBannerConfig = {
@@ -155,6 +156,16 @@ export const AREA_HERO_BANNER_OVERRIDES: Record<string, Partial<AreaHeroBannerCo
     message: "日本橋で自分に合うメンズエステを見つける",
     imagePose: "hero-champagne-clean-01",
     imageAlt: "日本橋エリアのメンズエステを案内するイメージ"
+  },
+  nanba: {
+    message: "難波で自分に合うメンズエステを見つける",
+    imagePose: "hero-champagne-clean-01",
+    imageAlt: "難波エリアのメンズエステを案内するイメージ"
+  },
+  umeda: {
+    message: "梅田で自分に合うメンズエステを見つける",
+    imagePose: "hero-champagne-clean-01",
+    imageAlt: "梅田エリアのメンズエステを案内するイメージ"
   }
 };
 

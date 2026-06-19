@@ -114,6 +114,35 @@ const NANBA_RELATION: AreaHubRelationConfig = {
   secondaryGroupTitle: "近隣・関連エリア"
 };
 
+const UMEDA_RELATION: AreaHubRelationConfig = {
+  corePattern: /梅田|大阪駅|大阪梅田|東梅田|西梅田|北新地|茶屋町|堂山|中崎町|お初天神|曽根崎/,
+  relatedPattern: /日本橋|近鉄日本橋|西中島|新大阪|京橋|天王寺/,
+  nearbyPattern: /心斎橋|本町|堺筋本町|福島|淀屋橋|北浜|南森町|天満/,
+  dispatchLabel: "出張型（梅田エリアへの派遣対応）",
+  stationNearPattern: /梅田|大阪駅|大阪梅田|東梅田|西梅田|北新地|茶屋町|堂山|中崎町|お初天神|曽根崎/,
+  labelRules: [
+    { pattern: /大阪駅/, label: "大阪駅周辺（梅田エリア徒歩圏）" },
+    { pattern: /大阪梅田|梅田駅|梅田/, label: "梅田駅周辺（梅田エリア中心）" },
+    { pattern: /東梅田/, label: "東梅田駅周辺（梅田エリア徒歩圏）" },
+    { pattern: /西梅田/, label: "西梅田駅周辺（梅田エリア徒歩圏）" },
+    { pattern: /北新地/, label: "北新地駅周辺（梅田エリア徒歩圏）" },
+    { pattern: /茶屋町|堂山|中崎町|お初天神|曽根崎/, label: "梅田周辺（徒歩圏）" }
+  ],
+  nearbyLabelRules: [
+    { pattern: /福島/, label: "近隣エリア（福島・梅田からアクセス可）" },
+    { pattern: /淀屋橋|北浜|南森町|天満/, label: "近隣エリア（梅田周辺から検討しやすい）" },
+    { pattern: /心斎橋|本町|堺筋本町/, label: "近隣エリア（大阪市中心部の候補）" }
+  ],
+  relatedLabelRules: [
+    { pattern: /日本橋|近鉄日本橋/, label: "関連エリア（日本橋方面）" },
+    { pattern: /西中島|新大阪/, label: "関連エリア（西中島・新大阪方面）" },
+    { pattern: /京橋/, label: "関連エリア（京橋方面）" }
+  ],
+  fallbackRelatedLabel: "梅田周辺の関連店舗",
+  primaryGroupTitle: "梅田ど真ん中・徒歩圏",
+  secondaryGroupTitle: "近隣・関連エリア"
+};
+
 /** 共通ハブテンプレート設定（エリア差分はここに集約） */
 export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
   nihonbashi: {
@@ -182,6 +211,38 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       }
     },
     relation: NANBA_RELATION
+  },
+  umeda: {
+    seo: {
+      displayName: "大阪梅田",
+      breadcrumbLabel: "大阪梅田メンズエステ",
+      hubTitle: "大阪梅田メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較",
+      hubDescription:
+        "大阪梅田・大阪駅・東梅田・西梅田・北新地周辺のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。深夜営業、駅近、初心者向け、料金目安、編集部コメントをもとに梅田エリアの候補店舗を探せます。",
+      coverageLabel: "梅田・大阪駅・東梅田・西梅田・北新地周辺",
+      shopListH2: "梅田メンズエステ店舗一覧",
+      shopListIntro:
+        "大阪梅田・大阪駅周辺のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。梅田中心部の店舗を優先表示し、近隣エリアの関連店舗もあわせて掲載しています。",
+      pageTitlePage2Plus:
+        "大阪梅田メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
+      pageDescriptionPage2Plus:
+        "大阪梅田・大阪駅周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・口コミ・編集部コメントで比較しながら探せます。",
+      rankingTitle: "大阪梅田メンズエステおすすめランキング",
+      priceTableTitle: "梅田メンズエステ料金比較表",
+      stationIntro:
+        "梅田・大阪駅・東梅田・西梅田・北新地徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
+      faqAreaRef: "大阪梅田",
+      faqFirstAnswer:
+        "梅田・大阪駅周辺の店舗を比較する場合は、梅田エリアの店舗一覧ページのランキングと料金比較表から条件に合う店舗を絞り込むのがおすすめです。",
+      relationCardLabel: "梅田との関係",
+      shopLinks: {
+        listLink: "大阪梅田メンズエステの店舗一覧へ",
+        compareLink: "梅田メンズエステ店舗一覧（口コミ・料金比較）",
+        priceLink: "梅田メンズエステ料金比較表へ",
+        stationLink: "駅近の梅田メンズエステ一覧へ"
+      }
+    },
+    relation: UMEDA_RELATION
   }
 };
 

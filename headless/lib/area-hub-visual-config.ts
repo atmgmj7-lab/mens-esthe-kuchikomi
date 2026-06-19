@@ -125,7 +125,8 @@ export const AREA_HUB_VISUAL_OVERRIDES: Record<
   Partial<Record<AreaHubThemeKey, Partial<ThemeVisualBase>>>
 > = {
   nihonbashi: {},
-  nanba: {}
+  nanba: {},
+  umeda: {}
 };
 
 export function getAreaHubThemeVisual(

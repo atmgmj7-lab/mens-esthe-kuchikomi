@@ -77,6 +77,13 @@ export function NihonbashiGuidePage({
             日本橋駅・近鉄日本橋駅・なんば駅・谷町九丁目駅からアクセスしやすく、仕事帰りや買い物ついでに立ち寄りやすい立地の店舗が多くあります。
             黒門市場周辺から谷町九丁目方面まで、エリアの広がりに応じて店舗の雰囲気や料金帯も異なるため、まずは店舗一覧で条件を比較するのがおすすめです。
           </p>
+          <p className="nb-section__intro">
+            実際に候補店舗を探す場合は、
+            <Link href="/area/nihonbashi/#shop-list">日本橋メンズエステ店舗一覧</Link>
+            で営業時間や料金目安を確認し、
+            <Link href="/area/nihonbashi/#ranking">大阪日本橋メンズエステおすすめランキング</Link>
+            で公開情報の充実度や予約導線を比較してください。
+          </p>
         </section>
 
         <section className="nb-section" id="price-guide">
@@ -86,12 +93,18 @@ export function NihonbashiGuidePage({
               掲載店舗の料金目安はおおむね
               <strong>
                 {minPrice.toLocaleString("ja-JP")}円〜{maxPrice.toLocaleString("ja-JP")}円
-              </strong>
+            </strong>
               の範囲です（{lastUpdated}時点の公開情報）。コース・オプション・時間帯により変動するため、予約前に各店舗ページまたは公式サイトで最新料金を必ず確認してください。
+              一覧で比較したい場合は
+              <Link href="/area/nihonbashi/#price-table">日本橋メンズエステ料金比較表</Link>
+              も参考にできます。
             </p>
           ) : (
             <p className="nb-section__intro">
               料金は店舗・コースごとに異なります。比較の際は「60分目安」を参考値として扱い、最終的な金額は公式情報で確認してください。
+              掲載店舗の料金目安は
+              <Link href="/area/nihonbashi/#price-table">日本橋メンズエステ料金比較表</Link>
+              で確認できます。
             </p>
           )}
         </section>
@@ -134,6 +147,9 @@ export function NihonbashiGuidePage({
           <p className="nb-section__intro">
             深夜営業の表記は「翌○時」「24時間」など店舗ごとに異なります。最終受付が早い場合もあるため、出発前に電話または公式サイトで空き状況を確認することをおすすめします。
             深夜帯の料金が割増になる店舗もあるため、料金表もあわせて確認してください。
+            夜の時間帯で探す場合は
+            <Link href="/area/nihonbashi/#late-night">深夜営業の日本橋メンズエステ</Link>
+            から候補を絞れます。
           </p>
         </section>
 
