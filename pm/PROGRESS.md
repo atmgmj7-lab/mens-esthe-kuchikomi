@@ -2,6 +2,31 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-06-20 トップページ改善 本番反映
+
+#### 実施内容
+- commit `7d9076f` `feat: improve homepage search and area hub links` を main へ push
+- GitHub Actions **Deploy Headless to Vercel** run `27870005992` **成功**（1回目Xserver接続タイムアウト → 再実行で成功）
+- 本番URL全4件 HTTP 200 確認
+
+#### 本番確認
+- `/` — H1 `関西メンズエステ口コミナビ エスコミ`、検索窓、人気チップ7件、ハブカード3枚（日本橋59件・難波8件・梅田59件）、ミニカード、広告枠、安全表現 ✅
+- `/area/nihonbashi/` — HTTP 200 ✅
+- `/area/nanba/` — HTTP 200 ✅
+- `/area/umeda/` — HTTP 200 ✅
+- AggregateRating なし、単独 `0円` なし、`本日`/`今すぐ` 表現なし ✅
+
+#### 変更ファイル
+- `headless/components/HomePageContent.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 残タスク
+- Search Console で `/` のURL検査（インデックス登録再申請）
+- `/area/nihonbashi/` `/area/nanba/` `/area/umeda/` も併せて再申請推奨
+
+---
+
 ### 2026-06-20 日本橋SEO残タスク整理・梅田ハブ横展開準備
 
 #### 実施内容
