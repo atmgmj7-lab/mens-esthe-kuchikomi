@@ -90,6 +90,28 @@
 
 ---
 
+### 2026-06-20 01:50
+#### 作業
+トップページFV・ハブ導線・広告枠の改善
+
+#### 変更内容
+- `headless/components/HomePageContent.tsx`: FVに検索窓と人気チップを追加し、画像だけだったH1をSEO安全なテキストH1へ変更
+- `headless/components/HomePageContent.tsx`: 日本橋・難波・梅田の注目ハブカードと日本橋注目店舗5件のミニカードを追加
+- `headless/components/HomePageContent.tsx`: 下部説明文を「公開情報・店舗データ・投稿口コミ（承認制）・編集部コメント」に基づく安全な表現へ変更
+- `headless/components/HomePageContent.tsx`: 広告枠をFV右側からFV直下へ移動
+- `headless/app/globals.css`: 検索窓、人気チップ、ハブカード、ミニカード、レスポンシブ広告枠のスタイルを追加
+
+#### 確認
+- `npm run lint` 成功
+- `npm run build` 成功
+- ローカル `http://localhost:3460/` でH1、検索窓、広告枠、ハブカード、ミニカード、安全化説明文の出力を確認
+
+#### 変更ファイル
+headless/components/HomePageContent.tsx
+headless/app/globals.css
+pm/PROGRESS.md
+---
+
 ### 2026-06-14 areaHero 最終整理（1メッセージ + 1画像）
 
 #### 実施内容
