@@ -1,13 +1,6 @@
+import { buildWpAdminProxyResponse } from "@/lib/wp/admin-proxy-response";
 import { requestWpOrigin } from "@/lib/wp/origin-request";
-import { NextRequest, NextResponse } from "next/server";
-
-const FORWARD_RESPONSE_HEADERS = [
-  "content-type",
-  "set-cookie",
-  "location",
-  "refresh",
-  "content-disposition"
-] as const;
+import { NextRequest } from "next/server";
 
 function buildUpstreamHeaders(request: NextRequest, contentType?: string | null): Headers {
   const headers = new Headers();
@@ -22,26 +15,6 @@ function buildUpstreamHeaders(request: NextRequest, contentType?: string | null)
   }
 
   return headers;
-}
-
-function buildProxyResponse(response: Response, method: string) {
-  const headers = new Headers();
-
-  for (const name of FORWARD_RESPONSE_HEADERS) {
-    const value = response.headers.get(name);
-    if (value) {
-      headers.set(name, value);
-    }
-  }
-
-  headers.set("x-robots-tag", "noindex, nofollow");
-  headers.set("cache-control", "no-cache, no-store, must-revalidate");
-
-  return new NextResponse(method === "HEAD" ? null : response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
 }
 
 async function proxyWpLogin(request: NextRequest, method: "GET" | "HEAD" | "POST") {
@@ -60,7 +33,7 @@ async function proxyWpLogin(request: NextRequest, method: "GET" | "HEAD" | "POST
     forwardCookies: true
   });
 
-  return buildProxyResponse(response, method);
+  return buildWpAdminProxyResponse(response, method);
 }
 
 export async function GET(request: NextRequest) {

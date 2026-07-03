@@ -10,6 +10,11 @@
 - `headless/app/wp-login.php/route.ts` 新規: `/wp-login.php` をWordPressオリジンにプロキシ（Cookie転送あり）
 - 管理画面・ログインページともキャッシュ無効・検索インデックス除外
 
+#### 追加修正
+- `headless/lib/wp/admin-proxy-response.ts` 新規: WP上流が返す `http://mens-esthe-kuchikomi.com` / URLエンコード済みHTTP URLをHTTPSへ正規化
+- `/wp-admin/` の末尾スラッシュを上流リクエストで保持し、ログイン画面への302が正しく返るよう修正
+- ローカル確認: `/wp-admin/` → `https://mens-esthe-kuchikomi.com/wp-login.php?...` へ302、`/wp-login.php` 内のHTTP混在0件
+
 #### 確認
 - `npm run lint` 成功
 - `npm run build` 成功（438 routes、`/wp-admin/[[...path]]` `/wp-login.php` が動的ルートとして追加）
