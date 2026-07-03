@@ -2,6 +2,30 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-03 WP管理画面プロキシ追加
+
+#### 実施内容
+- `headless/lib/wp/origin-request.ts`: `forwardCookies` オプション追加（Cookieヘッダーを上流転送可能に）
+- `headless/app/wp-admin/[[...path]]/route.ts` 新規: `/wp-admin/*` をWordPressオリジンにプロキシ（Cookie転送あり）
+- `headless/app/wp-login.php/route.ts` 新規: `/wp-login.php` をWordPressオリジンにプロキシ（Cookie転送あり）
+- 管理画面・ログインページともキャッシュ無効・検索インデックス除外
+
+#### 確認
+- `npm run lint` 成功
+- `npm run build` 成功（438 routes、`/wp-admin/[[...path]]` `/wp-login.php` が動的ルートとして追加）
+- ローカル curl: `/wp-login.php` → 200（ログインフォームHTML返却）、`/wp-admin/` → WPリダイレクト、`/wp-admin/css/login.min.css` → 200
+
+#### 変更ファイル
+- `headless/lib/wp/origin-request.ts`
+- `headless/app/wp-admin/[[...path]]/route.ts`（新規）
+- `headless/app/wp-login.php/route.ts`（新規）
+
+#### 残タスク
+- mainへpush → GitHub ActionsでVercel本番反映
+- 本番 `https://mens-esthe-kuchikomi.com/wp-admin/` でログイン確認
+
+---
+
 ### 2026-06-20 トップページ改善 本番反映
 
 #### 実施内容

@@ -16,6 +16,7 @@ type OriginRequestOptions = {
   method?: string;
   headers?: HeadersInit;
   body?: BodyInit | ArrayBuffer | Uint8Array | null;
+  forwardCookies?: boolean;
 };
 
 async function toBuffer(
@@ -51,7 +52,10 @@ export function requestWpOrigin(
     const incoming = new Headers(options.headers);
     for (const [key, value] of incoming.entries()) {
       const lower = key.toLowerCase();
-      if (lower === "cookie" || lower === "host") {
+      if (lower === "host") {
+        continue;
+      }
+      if (lower === "cookie" && !options?.forwardCookies) {
         continue;
       }
       reqHeaders[key] = value;
