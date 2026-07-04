@@ -42,8 +42,9 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const isDashboardRoute = headers().get("x-dashboard-route") === "1";
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const requestHeaders = await headers();
+  const isDashboardRoute = requestHeaders.get("x-dashboard-route") === "1";
 
   return (
     <html lang="ja">
