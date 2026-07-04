@@ -1,22 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 export default function DashboardPage() {
-  const today = new Date().toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  });
-
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950">
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-white">mens-esthe-kuchikomi</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">{today}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">管理画面</p>
         </div>
         <Link
           href="/dashboard/analytics"
