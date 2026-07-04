@@ -22,21 +22,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className={`${geistSans.variable} ${geistMono.variable} min-h-full`}>
-      <style jsx global>{`
-        body {
-          background: #0a0a0a;
-          color: #ededed;
-          font-family: Arial, Helvetica, sans-serif;
-        }
-        .l-header,
-        .hl-header,
-        .l-footer,
-        .hl-footer,
-        #wpadminbar {
-          display: none !important;
-        }
-      `}</style>
+    <div
+      className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased`}
+    >
       {children}
     </div>
   );

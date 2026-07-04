@@ -1777,3 +1777,12 @@ pm/PROGRESS.md
 
 ## 2026-07-04
 -  が 404 になった原因を切り分け、headless 側の  ルート（）・認証ミドルウェア・連携コンポーネントを本番反映対象としてコミット・Push 準備を実施。
+### 2026-07-04 Dashboard 404 再発防止（build修正）
+
+#### 実施内容
+- `headless/app/dashboard/layout.tsx` で Server Component 向けに `styled-jsx` を利用していたため `styled-jsx cannot be imported from a Server Component module` で Vercel `npm run build` が失敗していた問題を修正。
+- `styled-jsx` を撤去し、Tailwind のクラスを使う純粋コンポーネント構成へ変更。
+
+#### 確認状況
+- 問題箇所のログ: GitHub Actions run `28694561187` の `Vercel build (prebuilt)`。
+- 次ステップ: 変更を反映した再デプロイで `/dashboard` のビルドルートを復元する。
