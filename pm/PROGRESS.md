@@ -16,7 +16,12 @@
 #### 補足
 - 標準デプロイは GitHub Actions **Deploy Headless to Vercel**。
 - `dashboard/` 専用の別Vercel/Cloudflareワークフローは、現時点では標準運用にしない。
-- 次アクション: build確認後、mainへpushしてVercel本番反映。
+- commit `0c1ae84` を `main` へpush。
+- GitHub Actions **Deploy Headless to Vercel** run `28716206568` 成功。
+- Vercel Production Environment Variables に `DASHBOARD_BASIC_AUTH_USER` / `DASHBOARD_BASIC_AUTH_PASSWORD` を登録。
+- 認証情報の控えはローカル `/Users/narikiyo/.config/escomi/dashboard-basic-auth.txt` に保存（リポジトリ外）。
+- 認証反映のため GitHub Actions **Deploy Headless to Vercel** run `28716317642` を再実行し成功。
+- 本番確認: 未認証 `/dashboard/` は `401`、認証付き `/dashboard/` と `/dashboard/analytics/` は `200`。
 
 ### 2026-07-04 Dashboard P2 実装（GA4 + Search Console）
 
