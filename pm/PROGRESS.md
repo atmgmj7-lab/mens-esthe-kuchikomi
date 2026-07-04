@@ -2,6 +2,22 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-04 Dashboard P2 実装（GA4 + Search Console）
+
+#### 実施内容
+- `dashboard/lib/ga.ts` を拡張し、GA4 CTAイベント（`cta`）集計を追加。モックデータも同時拡張。
+- `dashboard/public/api/ga-proxy.php` に `action=cta` を追加し、`eventCount` と `sessions` を受け取って API 連携済みレスポンス整形を追加。
+- `dashboard/public/api/search-console-proxy.php` を新規追加し、`keywords / pages / areas` の3アクションで Search Console データ取得を実装。
+- `dashboard/public/api/search-console-proxy.php` の `focus` 判定ロジックを整理し、重点5エリアのパス判定を安定化。
+- `dashboard/lib/searchConsole.ts` を追加し、Search Console 指標取得・優先エリア定義・改善候補抽出ロジックを実装。
+- `dashboard/components/AnalyticsDashboard.tsx` をSearch Console表示・CTA計測・改善提案・重点5エリア指標を含む構成へ拡張。
+- `dashboard/components/AreaSeoTable.tsx` / `SearchKeywordTable.tsx` / `ContentGapPanel.tsx` を追加し、重点エリア・キーワード・改善提案を可視化。
+- `dashboard/components/WPQuickLinks.tsx` / `dashboard/app/analytics/page.tsx` に Search Console への導線を追加。
+
+#### 補足
+- 現在は WP テーマ配下API経由の実データ取得を前提に実装。認証情報未設定時はモックで表示。
+- 次アクション: WordPress 側で Search Console サービスアカウント / サイトURL定数を設定し、実取得で数値を再確認。
+
 ### 2026-07-04 FileMaker 商材詳細レイアウト作成
 
 #### 実施内容
@@ -1758,3 +1774,6 @@ single-shop.php
 css/single.css
 pm/PROGRESS.md
 ---
+
+## 2026-07-04
+-  が 404 になった原因を切り分け、headless 側の  ルート（）・認証ミドルウェア・連携コンポーネントを本番反映対象としてコミット・Push 準備を実施。
