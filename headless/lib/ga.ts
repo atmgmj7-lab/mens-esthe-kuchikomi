@@ -88,18 +88,26 @@ async function fetchFromSupabase<T>(action: string, days: PeriodDays, fallback: 
       case "totals": {
         const rows = await fetchSupabaseTable<Record<string, unknown>>(GA_TABLES.gaTotals);
         if (rows.length === 0) return fallback;
-        const totals = rows.reduce(
-          (acc, row) => {
-            acc.pageviews += toNumber(row.pageviews || row.views || row.total_pageviews);
-            acc.sessions += toNumber(row.sessions || row.visits || row.total_sessions);
-            acc.bounceRate += toNumber(row.bounceRate || row.bounce_rate || row.bounce);
-            acc.avgDuration += toNumber(row.avgDuration || row.averageSessionDuration || row.avg_duration);
-            acc.ctaClicks += toNumber(row.ctaClicks || row.cta_clicks || row.event_count);
-            return acc;
-          },
-          { pageviews: 0, sessions: 0, bounceRate: 0, avgDuration: 0, ctaClicks: 0, count: 0 }
-        );
-        const count = Math.max(1, rows.length);
+        const totals: Totals & { count: number } = {
+          pageviews: 0,
+          sessions: 0,
+          bounceRate: 0,
+          avgDuration: 0,
+          ctaClicks: 0,
+          count: 0,
+        };
+
+        for (const row of rows) {
+          const safe = row as Record<string, unknown>;
+          totals.pageviews += toNumber(safe.pageviews || safe.views || safe.total_pageviews);
+          totals.sessions += toNumber(safe.sessions || safe.visits || safe.total_sessions);
+          totals.bounceRate += toNumber(safe.bounceRate || safe.bounce_rate || safe.bounce);
+          totals.avgDuration += toNumber(safe.avgDuration || safe.averageSessionDuration || safe.avg_duration);
+          totals.ctaClicks += toNumber(safe.ctaClicks || safe.cta_clicks || safe.event_count);
+          totals.count += 1;
+        }
+
+        const count = Math.max(1, totals.count);
         return {
           pageviews: totals.pageviews,
           sessions: totals.sessions,
