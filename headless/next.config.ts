@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" }
     ]
   },
+  async rewrites() {
+    return [
+      {
+        source: "/wp-login.php",
+        destination: "/api/proxy/wp-login"
+      },
+      {
+        source: "/wp-login.php/",
+        destination: "/api/proxy/wp-login"
+      }
+    ];
+  },
   async redirects() {
     return [
       {
