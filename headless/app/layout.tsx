@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import { Suspense } from "react";
 import "./globals.css";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
@@ -42,25 +41,21 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const requestHeaders = await headers();
-  const isDashboardRoute = requestHeaders.get("x-dashboard-route") === "1";
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <head>
-        {!isDashboardRoute &&
-          WP_THEME_STYLES.map((href) => (
-            <link key={href} rel="stylesheet" href={href} />
-          ))}
+        {WP_THEME_STYLES.map((href) => (
+          <link key={href} rel="stylesheet" href={href} />
+        ))}
       </head>
       <body>
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
-        {!isDashboardRoute ? <SiteHeader /> : null}
+        <SiteHeader />
         {children}
-        {!isDashboardRoute ? <SiteFooter /> : null}
+        <SiteFooter />
       </body>
     </html>
   );

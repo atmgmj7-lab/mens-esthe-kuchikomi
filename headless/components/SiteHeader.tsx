@@ -1,8 +1,16 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const HEADER_LOGO = "/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png";
 
 export function SiteHeader() {
+  const pathname = usePathname() || "";
+  if (pathname.startsWith("/dashboard")) {
+    return null;
+  }
+
   return (
     <header className="l-header hl-header">
       <div className="l-container">

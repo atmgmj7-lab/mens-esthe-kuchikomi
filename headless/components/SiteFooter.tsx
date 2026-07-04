@@ -1,6 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
+  const pathname = usePathname() || "";
+  if (pathname.startsWith("/dashboard")) {
+    return null;
+  }
+
   return (
     <footer className="l-footer hl-footer">
       <div className="hl-footer-divider" />
