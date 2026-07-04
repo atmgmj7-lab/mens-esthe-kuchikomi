@@ -234,15 +234,109 @@ export default function AnalyticsDashboard({
   const isSupabaseMode = dashboardConfig.dataSource === "supabase";
   const isSupabaseConfigured = isSupabaseReady();
   const isSupabase = isSupabaseMode && isSupabaseConfigured;
+  const hasLiveDataSource = isSupabaseMode ? isSupabase : !isGAUnlinked;
+  const liveTotals = hasLiveDataSource && totals && !totals._mock ? totals : null;
+  const liveDaily = hasLiveDataSource ? daily : [];
+  const livePages = hasLiveDataSource ? pages : [];
+  const liveCreatives = hasLiveDataSource ? creatives : [];
+  const liveKeywords = hasLiveDataSource ? scKeywords : [];
+  const liveAreas = hasLiveDataSource ? priorityAreaRows : priorityAreaRows.map((area) => ({
+    ...area,
+    keywordCount: 0,
+    pageCount: 0,
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    avgPosition: 0,
+    top10Count: 0,
+    top20Count: 0,
+    status: "データ不足" as const,
+    keywordSamples: [],
+  }));
+  const liveGaps = hasLiveDataSource ? gaps : [];
+  const liveWeeklyData = hasLiveDataSource ? weeklyData : [];
+  const liveScSummary = hasLiveDataSource
+    ? scSummary
+    : {
+        impressions: 0,
+        clicks: 0,
+        ctr: 0,
+        avgPosition: 0,
+        top10Keywords: 0,
+        areaCount: 0,
+      };
+  const liveCtaSummary = hasLiveDataSource
+    ? ctaSummary
+    : CTA_PATTERNS.map((item) => ({
+        label: item.label,
+        value: 0,
+        valueSecondary: "未連携",
+      }));
+  const searchConsoleConnected = hasLiveDataSource && scAreas.length > 0;
+  const dashboardReadiness = [
+    {
+      label: "本番URL",
+      value: "/dashboard/",
+      state: "Vercel配信",
+    },
+    {
+      label: "データ正本",
+      value: isSupabase ? "Supabase" : "未連携",
+      state: isSupabase ? "実データ優先" : "環境変数待ち",
+    },
+    {
+      label: "認証",
+      value: "Basic Auth",
+      state: "Vercel envで制御",
+    },
+  ];
+  const pdcaActions = [
+    {
+      title: "SEO順位を伸ばす",
+      body: "表示回数が多くCTRが低いページから、title、description、FAQ、内部リンクを直す。",
+    },
+    {
+      title: "掲載ページを強くする",
+      body: "店舗詳細、エリアページ、ランキング導線のPVとCTAを見て、次に補強するページを決める。",
+    },
+    {
+      title: "AIで壁打ちする",
+      body: "Search Consoleの課題をプロンプト化し、Claude Code / Codexに改善案や記事構成を投げる。",
+    },
+  ];
+  const aiPromptSeeds = [
+    "Search Consoleで表示回数が多くCTRが低いページのタイトル案を10個作って",
+    "日本橋・梅田・新大阪のエリアページで足りない見出しとFAQを洗い出して",
+    "今週のGA4とSearch Consoleを見て、次に直すべき3ページを優先順位付きで提案して",
+  ];
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-cockpit space-y-6">
+      <section className="dashboard-hero">
+        <div className="dashboard-hero-copy">
+          <p className="dashboard-eyebrow">Next.js / Supabase / Vercel</p>
+          <h2>ポータル成長の作戦盤</h2>
+          <p>
+            アナリティクス、Search Console、SEO改善、コンテンツ作成、AI壁打ちを同じ画面で回すための管理画面です。
+          </p>
+        </div>
+        <div className="dashboard-readiness">
+          {dashboardReadiness.map((item) => (
+            <div key={item.label} className="dashboard-readiness-item">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <small>{item.state}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <PeriodSelector value={period} onChange={setPeriod} />
         <div className="flex flex-wrap gap-2 text-xs">
           {isGAUnlinked ? (
             <span className="px-2 py-1 rounded-full bg-yellow-900/40 text-yellow-400 border border-yellow-800">
-              GA4未設定（モック）
+              GA4未連携（数値非表示）
             </span>
           ) : (
             <span className="px-2 py-1 rounded-full bg-emerald-900/30 text-emerald-400 border border-emerald-800">
@@ -256,7 +350,7 @@ export default function AnalyticsDashboard({
               </span>
             ) : (
               <span className="px-2 py-1 rounded-full bg-red-900/40 text-red-300 border border-red-800">
-                データ元: Supabase未設定（モック）
+                データ元: Supabase未設定
               </span>
             )
           ) : (
@@ -264,13 +358,13 @@ export default function AnalyticsDashboard({
               データ元: WordPress連携
             </span>
           )}
-          {scAreas.length > 0 ? (
+          {searchConsoleConnected ? (
             <span className="px-2 py-1 rounded-full bg-emerald-900/30 text-emerald-400 border border-emerald-800">
               Search Console接続
             </span>
           ) : (
             <span className="px-2 py-1 rounded-full bg-yellow-900/40 text-yellow-400 border border-yellow-800">
-              Search Console未接続（またはデータ取得待ち）
+              Search Console未接続
             </span>
           )}
         </div>
@@ -289,25 +383,25 @@ export default function AnalyticsDashboard({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             label="ページビュー"
-            value={totals ? formatNumber(totals.pageviews) : undefined}
+            value={liveTotals ? formatNumber(liveTotals.pageviews) : undefined}
             hint={label}
             loading={loading}
           />
           <MetricCard
             label="セッション"
-            value={totals ? formatNumber(totals.sessions) : undefined}
+            value={liveTotals ? formatNumber(liveTotals.sessions) : undefined}
             hint={label}
             loading={loading}
           />
           <MetricCard
             label="直帰率"
-            value={totals ? formatPercent(totals.bounceRate) : undefined}
+            value={liveTotals ? formatPercent(liveTotals.bounceRate) : undefined}
             suffix=""
             loading={loading}
           />
           <MetricCard
             label="平均滞在時間"
-            value={totals ? formatDuration(totals.avgDuration) : undefined}
+            value={liveTotals ? formatDuration(liveTotals.avgDuration) : undefined}
             loading={loading}
           />
         </div>
@@ -318,28 +412,37 @@ export default function AnalyticsDashboard({
           Search Consoleサマリー（{label}）
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <MetricCard label="表示回数" value={formatNumber(scSummary.impressions)} loading={loading} />
-          <MetricCard label="クリック" value={formatNumber(scSummary.clicks)} loading={loading} />
-          <MetricCard label="CTR" value={formatPercent(scSummary.ctr)} suffix="" loading={loading} />
+          <MetricCard label="表示回数" value={formatNumber(liveScSummary.impressions)} loading={loading} />
+          <MetricCard label="クリック" value={formatNumber(liveScSummary.clicks)} loading={loading} />
+          <MetricCard label="CTR" value={formatPercent(liveScSummary.ctr)} suffix="" loading={loading} />
           <MetricCard
             label="平均掲載順位"
-            value={scSummary.avgPosition > 0 ? scSummary.avgPosition.toFixed(2) : "—"}
+            value={liveScSummary.avgPosition > 0 ? liveScSummary.avgPosition.toFixed(2) : "—"}
             loading={loading}
           />
           <MetricCard
             label="10位以内キーワード数"
-            value={scSummary.top10Keywords}
+            value={liveScSummary.top10Keywords}
             suffix="件"
             loading={loading}
           />
         </div>
       </section>
 
+      <section className="dashboard-pdca">
+        {pdcaActions.map((item) => (
+          <article key={item.title}>
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </article>
+        ))}
+      </section>
+
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
           <p className="text-sm font-medium text-zinc-300 mb-4">CTA計測（GA4）</p>
           <div className="space-y-3">
-            {ctaSummary.map((item) => (
+            {liveCtaSummary.map((item) => (
               <div key={item.label} className="flex items-center justify-between text-sm">
                 <span className="text-zinc-300">{item.label}</span>
                 <span className="tabular-nums text-zinc-100">{formatNumber(item.value)} / {item.valueSecondary}</span>
@@ -349,20 +452,37 @@ export default function AnalyticsDashboard({
         </div>
         <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
           <p className="text-sm font-medium text-zinc-300 mb-3">重点5エリア（取得数）</p>
-          <p className="text-3xl font-bold text-white">{scSummary.areaCount} / {PRIORITY_AREAS.length}</p>
+          <p className="text-3xl font-bold text-white">{liveScSummary.areaCount} / {PRIORITY_AREAS.length}</p>
           <p className="text-xs text-zinc-500 mt-2">「重点5エリア」のうち、Search Consoleデータがあるエリア</p>
         </div>
       </section>
 
       <section>
-        <LineChart data={daily} loading={loading} periodLabel={label} />
+        <LineChart data={liveDaily} loading={loading} periodLabel={label} />
       </section>
 
-      {showWeekly && !loading && weeklyData.length > 0 && (
+      <section className="dashboard-ai-panel">
+        <div>
+          <p className="dashboard-eyebrow">AI Workbench</p>
+          <h3>Claude Code / Codex に渡す壁打ちメモ</h3>
+          <p>
+            実データが入ったら、改善候補・順位・CTAをもとに、この欄をそのままAIへの相談内容として使えるようにします。
+          </p>
+        </div>
+        <div className="dashboard-prompt-list">
+          {aiPromptSeeds.map((prompt) => (
+            <button key={prompt} type="button">
+              {prompt}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {showWeekly && !loading && liveWeeklyData.length > 0 && (
         <section>
           <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">週次サマリー</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {weeklyData.map((w, i) => {
+            {liveWeeklyData.map((w, i) => {
               const mm = w.date.slice(4, 6);
               const dd = w.date.slice(6, 8);
               return (
@@ -380,18 +500,18 @@ export default function AnalyticsDashboard({
       )}
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AreaSeoTable items={priorityAreaRows} loading={loading} period={period} />
-        <ContentGapPanel pages={gaps} periodLabel={label} />
+        <AreaSeoTable items={liveAreas} loading={loading} period={period} />
+        <ContentGapPanel pages={liveGaps} periodLabel={label} />
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <SearchKeywordTable items={scKeywords} loading={loading} period={period} />
-        <PageRanking items={pages} loading={loading} period={period} />
+        <SearchKeywordTable items={liveKeywords} loading={loading} period={period} />
+        <PageRanking items={livePages} loading={loading} period={period} />
       </section>
 
       <section className={showQuickLinks ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
         {showQuickLinks && <WPQuickLinks />}
-        <CreativeTable items={creatives} loading={loading} period={period} />
+        <CreativeTable items={liveCreatives} loading={loading} period={period} />
       </section>
     </div>
   );

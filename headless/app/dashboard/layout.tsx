@@ -23,7 +23,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <div
-      className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-zinc-950 text-zinc-100 font-sans antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dashboard-app`}
     >
       {children}
     </div>

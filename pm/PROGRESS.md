@@ -2,7 +2,30 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-05 Dashboard / Vercel統合方針・UI再構築
+
+#### 実施内容
+- `/dashboard/` は独立した静的dashboard配信ではなく、`headless` Next.js アプリのVercel配信に統合する方針へ整理。
+- `middleware.ts` のBasic認証を `DASHBOARD_BASIC_AUTH_USER` / `DASHBOARD_BASIC_AUTH_PASSWORD` 優先に変更し、既存 `BASIC_AUTH_*` も互換維持。
+- `headless/app/dashboard/page.tsx` と `analytics/page.tsx` を管理画面用ヘッダー・フッター構成に変更。
+- `AnalyticsDashboard.tsx` にポータル成長の作戦盤、PDCAアクション、AI壁打ちプロンプト欄を追加。
+- Supabase未設定時にモック数値を本番値のように見せず、未連携として扱う表示ロジックに変更。
+- Tailwind未導入による裸HTML化を解消するため、`globals.css` に `dashboard-app` 配下限定の管理画面CSSを追加。
+- `pm/RUNBOOK.md` にDashboard本番反映、認証、Supabase環境変数の標準手順を追加。
+
+#### 補足
+- 標準デプロイは GitHub Actions **Deploy Headless to Vercel**。
+- `dashboard/` 専用の別Vercel/Cloudflareワークフローは、現時点では標準運用にしない。
+- 次アクション: build確認後、mainへpushしてVercel本番反映。
+
 ### 2026-07-04 Dashboard P2 実装（GA4 + Search Console）
+
+### 2026-07-04 Dashboard / 本番ルーティング整備（P0）
+
+#### 実施内容
+- `headless/app/dashboard/page.tsx` をサーバーコンポーネントへ戻すため `"use client"` を削除。
+- `new Date()` を含む日付表示を Server Component で扱う構成に変更し、Next の新規ランタイムでの Client-side 時刻描画エラーを解消。
+- `https://mens-esthe-kuchikomi.com/dashboard` の 404 調査で、Next 側の最終ビルド阻害要因を潰す変更として `99262e4` を確定。
 
 #### 実施内容
 - `dashboard/lib/ga.ts` を拡張し、GA4 CTAイベント（`cta`）集計を追加。モックデータも同時拡張。

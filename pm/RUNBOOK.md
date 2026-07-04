@@ -4,6 +4,63 @@
 
 ---
 
+## 方針: ダッシュボードは Vercel / Next.js 側に統合
+
+`/dashboard/` は Xserver や WordPress テーマ配下ではなく、`headless` の Next.js アプリとして Vercel から配信する。  
+同じ本番ドメイン `https://mens-esthe-kuchikomi.com/dashboard/` で開くが、実体は Vercel 側なので、管理画面UIの改修は `headless/app/dashboard` と `headless/components/AnalyticsDashboard.tsx` を変更する。
+
+別アプリとして `dashboard/` を Vercel / Cloudflare Pages に分けるのは、ドメイン切替・認証・環境変数・デプロイ経路が増えるため、現時点では標準にしない。独立運用が必要になった場合だけ別ワークフローを有効化する。
+
+### Dashboard 本番反映
+
+```bash
+cd /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi
+git add headless
+git commit -m "feat: improve dashboard cockpit"
+git push origin main
+gh run watch --workflow "Deploy Headless to Vercel" --exit-status
+curl -I -L https://mens-esthe-kuchikomi.com/dashboard/
+```
+
+期待:
+
+- GitHub Actions `Deploy Headless to Vercel` が成功する
+- `https://mens-esthe-kuchikomi.com/dashboard/` が HTTP 200
+- `https://mens-esthe-kuchikomi.com/dashboard/analytics/` が HTTP 200
+
+### Dashboard 認証
+
+Vercel Project の Production Environment Variables に次を登録する。
+
+```text
+DASHBOARD_BASIC_AUTH_USER
+DASHBOARD_BASIC_AUTH_PASSWORD
+```
+
+未設定の場合、ダッシュボードは認証なしで開く。既存互換として `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` も利用できるが、今後は `DASHBOARD_BASIC_AUTH_*` を標準にする。
+
+### Dashboard データ接続
+
+標準は Supabase。Vercel Project の Production Environment Variables に次を登録する。
+
+```text
+NEXT_PUBLIC_DASHBOARD_DATA_SOURCE=supabase
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_SUPABASE_GA_DAILY_TABLE=dashboard_ga_daily
+NEXT_PUBLIC_SUPABASE_GA_TOTALS_TABLE=dashboard_ga_totals
+NEXT_PUBLIC_SUPABASE_GA_PAGES_TABLE=dashboard_ga_pages
+NEXT_PUBLIC_SUPABASE_GA_CREATIVES_TABLE=dashboard_ga_creatives
+NEXT_PUBLIC_SUPABASE_GA_CTA_TABLE=dashboard_ga_cta
+NEXT_PUBLIC_SUPABASE_SC_KEYWORDS_TABLE=dashboard_sc_keywords
+NEXT_PUBLIC_SUPABASE_SC_PAGES_TABLE=dashboard_sc_pages
+NEXT_PUBLIC_SUPABASE_SC_AREAS_TABLE=dashboard_sc_areas
+```
+
+本番UIでは、Supabase未設定時にモック数値を本番値として見せない。未連携として表示し、実データが入った時だけ数値を出す。
+
+---
+
 ## 作業の種類（先に分類する）
 
 | 区分 | 意味 | 誰がやるか |

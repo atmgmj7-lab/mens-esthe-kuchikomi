@@ -16,8 +16,16 @@ function isDashboardStaticAsset(pathname: string): boolean {
   );
 }
 
-function isBasicAuthEnabled(): boolean {
-  return Boolean(process.env.BASIC_AUTH_USER && process.env.BASIC_AUTH_PASSWORD);
+function getDashboardBasicAuthCredentials(): { user: string; password: string } | null {
+  const user = process.env.DASHBOARD_BASIC_AUTH_USER || process.env.BASIC_AUTH_USER || "";
+  const password =
+    process.env.DASHBOARD_BASIC_AUTH_PASSWORD || process.env.BASIC_AUTH_PASSWORD || "";
+
+  if (!user || !password) {
+    return null;
+  }
+
+  return { user, password };
 }
 
 export function middleware(request: NextRequest) {
@@ -51,7 +59,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!isBasicAuthEnabled()) {
+  const credentials = getDashboardBasicAuthCredentials();
+
+  if (!credentials) {
     return NextResponse.next({
       request: { headers: setDashboardRouteHeader(request.headers) },
     });
@@ -74,7 +84,7 @@ export function middleware(request: NextRequest) {
   const user = delimiterIndex >= 0 ? decoded.slice(0, delimiterIndex) : "";
   const password = delimiterIndex >= 0 ? decoded.slice(delimiterIndex + 1) : "";
 
-  if (user !== process.env.BASIC_AUTH_USER || password !== process.env.BASIC_AUTH_PASSWORD) {
+  if (user !== credentials.user || password !== credentials.password) {
     return unauthorizedResponse();
   }
 
