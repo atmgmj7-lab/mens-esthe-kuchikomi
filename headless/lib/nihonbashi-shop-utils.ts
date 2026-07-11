@@ -7,6 +7,7 @@ import type { ShopView } from "@/lib/wp/types";
 import {
   aggregateReviewCountLabel,
   buildEditorCommentShort,
+  extractShopConfirmedPriceYen,
   extractShopPriceYen,
   formatShopPriceLabel,
   groupShopsByRelation,
@@ -38,6 +39,7 @@ export {
   NIHONBASHI_HUB_TITLE,
   aggregateReviewCountLabel,
   buildEditorCommentShort,
+  extractShopConfirmedPriceYen,
   extractShopPriceYen,
   formatShopPriceLabel,
   isBeginnerFriendlyShop,

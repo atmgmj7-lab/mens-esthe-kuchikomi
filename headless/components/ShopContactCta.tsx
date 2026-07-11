@@ -1,15 +1,17 @@
+import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import Link from "next/link";
 import { phoneHref, shopContactLinks } from "@/lib/shop-contact";
 import type { ShopView } from "@/lib/wp/types";
 
 export function ShopContactCtaPanel({ shop }: { shop: ShopView }) {
   const { tel, line, officialUrl, areaName, areaPageUrl, areaShopsUrl } = shopContactLinks(shop);
+  const officialRel = outboundRelForPromotion(shop.ranking.promotion);
   const hasPrimary = Boolean(tel || line || officialUrl);
 
   if (!hasPrimary && !areaPageUrl) return null;
 
   return (
-    <section className="shop-info-section hl-section hl-shop-cta-panel" aria-label="予約・問い合わせ">
+    <section id="shop-contact" className="shop-info-section hl-section hl-shop-cta-panel" aria-label="予約・問い合わせ">
       <h2 className="mod-customColor es-sec-title">
         <span className="es-sec-title__en">CONTACT</span>
         <span className="es-sec-title__ja">予約・問い合わせ</span>
@@ -34,7 +36,7 @@ export function ShopContactCtaPanel({ shop }: { shop: ShopView }) {
               className="mep-cta-btn mep-cta-btn--outline hl-shop-cta-panel__web"
               href={officialUrl}
               target="_blank"
-              rel="noreferrer"
+              rel={officialRel}
             >
               公式サイト
             </a>
@@ -59,7 +61,8 @@ export function ShopContactCtaPanel({ shop }: { shop: ShopView }) {
 
 export function ShopContactFixedBar({ shop }: { shop: ShopView }) {
   const { tel, line, officialUrl } = shopContactLinks(shop);
-  const items: { href: string; label: string; className: string; external?: boolean }[] = [];
+  const officialRel = outboundRelForPromotion(shop.ranking.promotion);
+  const items: { href: string; label: string; className: string; external?: boolean; rel?: string }[] = [];
 
   if (tel) {
     items.push({ href: phoneHref(tel), label: "電話", className: "shpc-btn-tel" });
@@ -77,7 +80,8 @@ export function ShopContactFixedBar({ shop }: { shop: ShopView }) {
       href: officialUrl,
       label: "公式",
       className: "hl-shop-fixed-cta__web",
-      external: true
+      external: true,
+      rel: officialRel
     });
   }
 
@@ -92,7 +96,7 @@ export function ShopContactFixedBar({ shop }: { shop: ShopView }) {
             className={`hl-shop-fixed-cta__btn ${item.className}`}
             href={item.href}
             target="_blank"
-            rel="noreferrer"
+            rel={item.rel ?? "noreferrer"}
           >
             {item.label}
           </a>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { sanitizeAreaText } from "@/lib/area-content-integrity";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
@@ -62,8 +63,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   return pageMetadata({
     title: `${area.name}のメンズエステ`,
     description: makeDescription(
-      area.acf.area_characteristics || area.description,
-      `${area.name}のメンズエステ店舗一覧。駅近、営業時間、料金、口コミ、予約導線を比較しながら探せます。`
+    sanitizeAreaText(area.slug, area.acf.area_characteristics || area.description),
+    `${area.name}のメンズエステ店舗一覧。駅近、営業時間、料金、掲載情報、予約導線を比較しながら探せます。`
     ),
     path: `/area/${area.slug}/`
   });

@@ -1,5 +1,7 @@
 "use client";
 
+import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
+
 import Link from "next/link";
 import { AreaHubThemeIcon } from "@/components/area/hub/AreaHubThemeIcon";
 import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";

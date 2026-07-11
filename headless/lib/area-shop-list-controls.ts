@@ -1,7 +1,7 @@
 import {
   areaRankingScore,
   classifyShopRelation,
-  extractShopPriceYen,
+  extractShopConfirmedPriceYen,
   hasPublishedPrice,
   isBeginnerFriendlyShop,
   isLateNightShop,
@@ -111,11 +111,11 @@ export function sortAreaShops(
       return list.sort((a, b) => shopUpdatedTimestamp(b) - shopUpdatedTimestamp(a));
     case "price-asc":
       return list.sort((a, b) => {
-        const aPrice = extractShopPriceYen(a);
-        const bPrice = extractShopPriceYen(b);
-        if (aPrice === 0 && bPrice === 0) return 0;
-        if (aPrice === 0) return 1;
-        if (bPrice === 0) return -1;
+        const aPrice = extractShopConfirmedPriceYen(a);
+        const bPrice = extractShopConfirmedPriceYen(b);
+        if (aPrice === null && bPrice === null) return 0;
+        if (aPrice === null) return 1;
+        if (bPrice === null) return -1;
         return aPrice - bPrice;
       });
     case "late-night":

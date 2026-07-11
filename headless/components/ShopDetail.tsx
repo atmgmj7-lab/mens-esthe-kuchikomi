@@ -1,3 +1,4 @@
+import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import Link from "next/link";
 import { AreaQuickLinks } from "@/components/AreaQuickLinks";
 import { RatingBadge } from "@/components/common/RatingBadge";
@@ -5,10 +6,15 @@ import { ShopAreaHubLinks } from "@/components/common/ShopAreaHubLinks";
 import { ShopScheduleSnapshot } from "@/components/shop/ShopScheduleSnapshot";
 import { ShopContactCtaPanel, ShopContactFixedBar } from "@/components/ShopContactCta";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
-import { isNihonbashiShop } from "@/lib/area-shop-utils";
+import { extractShopUserReviewItems, isNihonbashiShop } from "@/lib/area-shop-utils";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { phoneHref, shopField } from "@/lib/shop-contact";
+import {
+  formatPriceForDisplay,
+  getMinimumConfirmedPrice,
+  resolveShopCoursePrices
+} from "@/lib/price-normalization";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 function field(shop: ShopView, key: string, fallback = "") {
@@ -41,10 +47,14 @@ export function ShopDetail({
   const tel = field(shop, "shop_tel");
   const line = field(shop, "shop_line");
   const officialUrl = shop.officialUrl || field(shop, "official_url");
+  const officialRel = outboundRelForPromotion(shop.ranking.promotion);
   const summary = field(shop, "shop_ai_summary");
   const recommend = field(shop, "recommend_text");
+  const userReviews = extractShopUserReviewItems(shop);
   const isNihonbashi = isNihonbashiShop(shop);
   const { areaName, areaSlugForNav } = resolveShopAreaNav(shop, allAreas, parentArea);
+  const areaLeadPrefix = areaName === "エリア" ? "掲載エリア" : `${areaName}周辺`;
+  const areaLeadText = `${areaLeadPrefix}で検討しやすいメンズエステ店舗です。料金、営業時間、アクセス、口コミ投稿、編集部コメントを確認できます。`;
   const shopAreaForHub = areaSlugForNav
     ? allAreas.find((a) => a.slug === areaSlugForNav)
     : undefined;
@@ -60,51 +70,53 @@ export function ShopDetail({
   ];
   const maxAge = Math.max(...ages.map(([, count]) => Number(count)), 1);
 
-  const shopPrice60 = Number(field(shop, "shop_price_60min") || field(shop, "price_60") || field(shop, "basic_price") || 0);
-  const areaAvg60 = Number(field(shop, "area_average_60min") || 12000);
+  const shopPrice60 = getMinimumConfirmedPrice(
+    [field(shop, "shop_price_60min"), field(shop, "price_60"), field(shop, "basic_price")],
+    "primary-course"
+  ).amount;
+  const areaAvg60 =
+    getMinimumConfirmedPrice([field(shop, "area_average_60min")], "primary-course").amount ?? 12000;
 
-  const priceFields = [
-    ["price_50", "50分"],
-    ["price_60", "60分"],
-    ["price_70", "70分"],
-    ["price_80", "80分"],
-    ["price_90", "90分"],
-    ["price_120", "120分"],
-    ["price_150", "150分"]
-  ] as const;
-  const prices = priceFields
-    .map(([key, label]) => [label, field(shop, key)] as const)
-    .filter(([, value]) => value && Number(value) > 0);
+  const prices = resolveShopCoursePrices(shop.acf);
+  const primaryPriceLabel =
+    shopPrice60 != null
+      ? `60分 ${shopPrice60.toLocaleString("ja-JP")}円〜`
+      : "料金は店舗へお問い合わせください。";
+  const priceStatusLabel = shopPrice60 != null ? "料金確認済み" : "料金未確認";
+  const reviewCountLabel = userReviews.length > 0 ? `${userReviews.length}件` : "承認済み口コミなし";
+  const officialStatusLabel = officialUrl ? "公式導線あり" : "公式導線未確認";
 
   const feats = shop.terms.filter((t) => t.parent === 0 || shop.terms.length <= 3);
 
   return (
-    <main id="main_content" className="l-mainContent l-article hl-shop-page hl-shop-page--has-fixed-cta">
+    <main id="main_content" className="l-mainContent l-article hl-shop-page hl-shop-page--has-fixed-cta escomi-final-shop-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(shopLocalBusinessJsonLd(shop))
         }}
       />
-      <div className="l-mainContent__inner hl-page-inner">
+      <div className="l-mainContent__inner hl-page-inner escomi-final-shop-shell">
         <div className="shop-breadcrumb area-breadcrumb u-mb-20">
           <Link href="/">ホーム</Link> &gt; <Link href="/shops/">店舗情報</Link> &gt;{" "}
           <span>{shop.title}</span>
         </div>
 
-        <article className="shop-detail-container hl-fade-in">
-          <header className="shpc-header-box">
+        <article className="shop-detail-container hl-fade-in escomi-final-shop-container">
+          <header className="shpc-header-box escomi-final-shop-header">
             <div className="shpc-top-bar" />
             <div className="shpc-header-content">
               <div className="shpc-header-top-row">
                 <div className="shpc-header-left">
+                  <p className="escomi-final-shop-header__eyebrow">SHOP DETAIL</p>
                   <div className="shpc-shop-name-row">
                     <span className="shpc-badge-open">OPEN</span>
                     <h1 className="shpc-shop-name">{shop.title}</h1>
                   </div>
+                  <p className="escomi-final-shop-header__area">{areaLeadText}</p>
                   {isNihonbashi ? (
                     <p className="shpc-area-subtext">
-                      日本橋・近鉄日本橋・なんば周辺で検討しやすいメンズエステ店舗です。料金、営業時間、アクセス、口コミ投稿、編集部コメントを確認できます。
+                      {areaLeadText}
                     </p>
                   ) : null}
                   {shop.terms.length > 0 ? (
@@ -117,16 +129,37 @@ export function ShopDetail({
                 </div>
                 <div className="shpc-header-right">
                   {officialUrl ? (
-                    <a className="shpc-link-btn" href={officialUrl} target="_blank" rel="noreferrer">
+                    <a className="shpc-link-btn" href={officialUrl} target="_blank" rel={officialRel}>
                       WEB
                     </a>
                   ) : null}
                 </div>
               </div>
+              <dl className="escomi-final-shop-header__stats" aria-label="店舗概要">
+                <div>
+                  <dt>料金目安</dt>
+                  <dd>{primaryPriceLabel}</dd>
+                </div>
+                <div>
+                  <dt>料金状態</dt>
+                  <dd>{priceStatusLabel}</dd>
+                </div>
+                <div>
+                  <dt>口コミ</dt>
+                  <dd>{reviewCountLabel}</dd>
+                </div>
+                <div>
+                  <dt>予約導線</dt>
+                  <dd>{officialStatusLabel}</dd>
+                </div>
+              </dl>
+              <p className="escomi-final-shop-header__source-note">
+                ユーザー口コミ、編集部コメント、店舗提供情報、PR情報は分けて掲載しています。最新の料金・空き状況は公式情報で確認してください。
+              </p>
             </div>
           </header>
 
-          <section className="shpc-intro-section">
+          <section className="shpc-intro-section escomi-final-shop-intro">
             <div className="shpc-intro-image">
               <img
                 src={image}
@@ -141,6 +174,12 @@ export function ShopDetail({
             <div className="shpc-intro-content">
               <RatingBadge shop={shop} className="shpc-stars" />
               <div className="hl-gold-divider" />
+              <div className="escomi-final-shop-intro__quick-nav" aria-label="店舗詳細内メニュー">
+                <a href="#shop-price">料金表</a>
+                <a href="#shop-reviews">口コミ</a>
+                <a href="#shop-data">基本情報</a>
+                <a href="#shop-contact">予約・問い合わせ</a>
+              </div>
               {field(shop, "shop_catch") ? (
                 <div className="shpc-intro-heading">{field(shop, "shop_catch")}</div>
               ) : null}
@@ -168,9 +207,9 @@ export function ShopDetail({
                 <div className="ai-intel-header">
                   <span className="ai-intel-badge">
                     <span className="ai-intel-icon" aria-hidden="true">
-                      🖋
+                      NOTE
                     </span>
-                    Escomi編集部 Review
+                    掲載情報コメント
                   </span>
                 </div>
                 <div className="ai-intel-summary">
@@ -184,7 +223,7 @@ export function ShopDetail({
                   />
                 </div>
                 <p className="ai-intel-footer-note">
-                  ※ Escomi編集部が独自の視点で店舗の魅力を分析しています。
+                  ※ 公開情報をもとに整理したコメントです。ユーザー口コミではありません。
                 </p>
               </div>
             </section>
@@ -229,7 +268,7 @@ export function ShopDetail({
               </span>
             </div>
             <div className="es-price-comparison">
-              {shopPrice60 > 0 ? (
+              {shopPrice60 != null ? (
                 <div className="es-comp-group">
                   <h4 className="es-comp-time">60分</h4>
                   <div className="es-comp-bars">
@@ -258,7 +297,7 @@ export function ShopDetail({
           </section>
 
           {prices.length > 0 ? (
-            <section className="shop-price-section hl-section">
+            <section id="shop-price" className="shop-price-section hl-section escomi-final-shop-section">
               <h2 className="sec-title-simple shop-sec-title">
                 <span className="en">PRICE LIST</span>
                 <span className="ja">基本料金詳細</span>
@@ -266,14 +305,13 @@ export function ShopDetail({
               <div className="shop-detail-price-table-wrap">
                 <table className="shop-detail-price-table">
                   <tbody>
-                    {prices.map(([label, value]) => (
-                      <tr key={label}>
+                    {prices.map(({ key, label, price }) => (
+                      <tr key={key}>
                         <td className="cell-course">{label}</td>
                         <td className="cell-price">
                           <span className="course-price">
-                            {Number(value).toLocaleString("ja-JP")}
+                            {formatPriceForDisplay(price)}
                           </span>
-                          <span className="unit">円</span>
                         </td>
                       </tr>
                     ))}
@@ -281,13 +319,21 @@ export function ShopDetail({
                 </table>
               </div>
             </section>
-          ) : null}
+          ) : (
+            <section id="shop-price" className="shop-price-section hl-section escomi-final-shop-section">
+              <h2 className="sec-title-simple shop-sec-title">
+                <span className="en">PRICE LIST</span>
+                <span className="ja">基本料金詳細</span>
+              </h2>
+              <p className="hl-price-empty">料金は店舗へお問い合わせください。</p>
+            </section>
+          )}
 
           {recommend ? (
             <section className="shop-info-section hl-section">
               <h2 className="mod-customColor es-sec-title">
                 <span className="es-sec-title__en">RECOMMEND</span>
-                <span className="es-sec-title__ja">この店舗の推しポイント</span>
+                <span className="es-sec-title__ja">店舗紹介・推しポイント</span>
               </h2>
               <div
                 className="recommend-box"
@@ -296,7 +342,34 @@ export function ShopDetail({
             </section>
           ) : null}
 
-          <section className="shop-info-section hl-section">
+          <section id="shop-reviews" className="shop-info-section hl-section escomi-final-shop-section">
+            <h2 className="mod-customColor es-sec-title">
+              <span className="es-sec-title__en">USER REVIEWS</span>
+              <span className="es-sec-title__ja">ユーザー口コミ</span>
+            </h2>
+            {userReviews.length > 0 ? (
+              <div className="hl-user-review-list">
+                {userReviews.map((review, index) => (
+                  <article className="hl-user-review-card" key={review.id ?? `${shop.id}-review-${index}`}>
+                    <p className="hl-user-review-card__body">{review.body}</p>
+                    <p className="hl-user-review-card__meta">
+                      {review.authorName ?? "匿名"}
+                      {review.submittedAt ? ` / ${review.submittedAt}` : ""}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="hl-review-form__lead">
+                この店舗の承認済みユーザー口コミはまだありません。
+              </p>
+            )}
+            <p className="hl-review-form__notice">
+              掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません。
+            </p>
+          </section>
+
+          <section id="shop-data" className="shop-info-section hl-section escomi-final-shop-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">SHOP INFO</span>
               <span className="es-sec-title__ja">店舗詳細データ</span>
@@ -307,7 +380,7 @@ export function ShopDetail({
                   <tr>
                     <th>公式サイト</th>
                     <td>
-                      <a href={officialUrl} target="_blank" rel="noreferrer">
+                      <a href={officialUrl} target="_blank" rel={officialRel}>
                         公式サイトを見る
                       </a>
                     </td>

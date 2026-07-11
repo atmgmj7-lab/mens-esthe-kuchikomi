@@ -1,7 +1,8 @@
 import { stripHtml } from "@/lib/wp/client";
+import { getAreaStationNames } from "@/lib/area-content-integrity";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
-const STATION_KEYWORDS = [
+const DEFAULT_STATION_KEYWORDS = [
   "近鉄日本橋駅",
   "日本橋駅",
   "谷町九丁目駅",
@@ -65,14 +66,16 @@ function isDispatchShop(shop: ShopView): boolean {
   return shopHaystack(shop).includes("出張");
 }
 
-export function extractStationKeywords(shops: ShopView[], max = 4): string[] {
+export function extractStationKeywords(shops: ShopView[], max = 4, areaSlug?: string): string[] {
+  const configuredStations = getAreaStationNames(areaSlug);
+  const stationKeywords = configuredStations.length > 0 ? configuredStations : DEFAULT_STATION_KEYWORDS;
   const found: string[] = [];
 
   for (const shop of shops) {
     const address = shopAddress(shop);
     if (!address) continue;
 
-    for (const station of STATION_KEYWORDS) {
+    for (const station of stationKeywords) {
       if (address.includes(station) && !found.includes(station)) {
         found.push(station);
       }
@@ -247,7 +250,7 @@ export function buildAreaSeoModel(
   shops: ShopView[],
   parentArea?: AreaView | null
 ): AreaSeoModel {
-  const stationKeywords = extractStationKeywords(shops);
+  const stationKeywords = extractStationKeywords(shops, 4, area.slug);
   const lateNightCount = shops.filter(isLateNightShop).length;
   const dispatchCount = shops.filter(isDispatchShop).length;
   const hasAreaSpecificCopy = area.slug === "nihonbashi";

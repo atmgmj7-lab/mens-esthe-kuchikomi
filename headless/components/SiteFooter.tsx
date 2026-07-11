@@ -10,14 +10,31 @@ export function SiteFooter() {
   }
 
   return (
-    <footer className="l-footer hl-footer">
+    <footer className="l-footer hl-footer escomi-final-site-footer">
       <div className="hl-footer-divider" />
       <div className="mep-container hl-footer-inner">
-        <div className="hl-profile-box">
-          <span>プロフィール</span>
+        <div className="hl-profile-box escomi-final-site-footer__profile">
+          <div>
+            <p className="escomi-final-site-footer__brand">
+              Escomi<span aria-hidden="true">.</span>
+            </p>
+            <p className="escomi-final-site-footer__tagline">関西メンズエステ口コミナビ</p>
+          </div>
+          <p className="escomi-final-site-footer__lead">
+            大阪・京都・兵庫を中心に、店舗情報、料金、営業時間、承認済み口コミを確認しやすく整理しています。
+          </p>
+          <p className="escomi-final-site-footer__policy">
+            ユーザー口コミ、編集部コメント、店舗提供情報、PR情報は分けて掲載します。
+          </p>
         </div>
         <nav className="hl-footer-nav" aria-label="フッターナビ">
           <Link href="/">ホーム</Link>
+          <span className="hl-footer-sep">|</span>
+          <Link href="/shops/">店舗を探す</Link>
+          <span className="hl-footer-sep">|</span>
+          <Link href="/area/osaka/">エリアから探す</Link>
+          <span className="hl-footer-sep">|</span>
+          <Link href="/reviews/submit/">口コミ投稿</Link>
           <span className="hl-footer-sep">|</span>
           <Link href="/contact/">お問い合わせ</Link>
           <span className="hl-footer-sep">|</span>

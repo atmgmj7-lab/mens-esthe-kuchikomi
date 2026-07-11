@@ -35,7 +35,7 @@ export function ShopAreaHubLinks({
           {hubContext.shopLinks.stationLink}
         </Link>
         <Link href={`${areaPath}#reviews`} className="area-shop-links__item">
-          {hubContext.name}の口コミ・編集部レビューへ
+          {hubContext.name}のユーザー口コミへ
         </Link>
         {hubContext.guidePath ? (
           <Link href={hubContext.guidePath} className="area-shop-links__item">

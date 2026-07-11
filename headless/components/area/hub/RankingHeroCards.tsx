@@ -1,3 +1,5 @@
+import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
+import { canReceiveNaturalRankNumber } from "@/lib/shop-ranking";
 import Link from "next/link";
 import { AreaHubThemeIcon } from "@/components/area/hub/AreaHubThemeIcon";
 import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";
@@ -37,7 +39,7 @@ export function RankingHeroCards({
 }) {
   return (
     <div className="ranking-list">
-      {shops.map((shop, index) => {
+      {shops.filter((shop) => canReceiveNaturalRankNumber(shop)).map((shop, index) => {
         const rank = index + 1;
         const tags = shopFeatureTags(shop, targetArea)
           .filter((tag) => !HIDDEN_TAG_LABELS.has(tag))
@@ -70,11 +72,6 @@ export function RankingHeroCards({
 
               {shop.ranking.isPr || shop.ranking.rankingLabel ? (
                 <div className="ranking-card__badges">
-                  {shop.ranking.isPr ? (
-                    <span className="ranking-card__pr" aria-label="PR">
-                      PR
-                    </span>
-                  ) : null}
                   {shop.ranking.rankingLabel ? (
                     <span className="ranking-card__label">{shop.ranking.rankingLabel}</span>
                   ) : null}
@@ -130,7 +127,7 @@ export function RankingHeroCards({
                   href={shop.officialUrl}
                   className="area-hub-btn area-hub-btn--outline area-hub-btn--sm"
                   target="_blank"
-                  rel="noreferrer"
+                  rel={outboundRelForPromotion(shop.ranking.promotion)}
                 >
                   公式
                 </a>

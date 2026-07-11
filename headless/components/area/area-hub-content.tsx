@@ -16,7 +16,7 @@ import { RankingSpecialtyPagedList } from "@/components/area/hub/RankingSpecialt
 import { RankingTabs } from "@/components/area/hub/RankingTabs";
 import {
   type AreaHubContext,
-  extractShopPriceYen,
+  extractShopConfirmedPriceYen,
   hasPublishedPrice,
   isBeginnerFriendlyShop,
   isLateNightShop,
@@ -25,17 +25,15 @@ import {
 } from "@/lib/area-shop-utils";
 import {
   buildRankingIntro,
-  hasPrShopsInRanking,
-  RANKING_PR_NOTE,
   selectRankingTopShops
 } from "@/lib/shop-ranking";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const REVIEW_POLICY =
-  "当サイトでは、ユーザー投稿口コミ、編集部コメント、実地確認レビューを分けて掲載しています。ユーザー投稿口コミは、実際に利用した方から投稿された内容を運営側で確認したうえで掲載しています。編集部コメントは、公式サイト・公開情報・料金・営業時間・アクセス・予約導線などをもとに、比較しやすいよう整理したものです。実地確認レビューは、実際に問い合わせ・来店・利用などを行った店舗のみ掲載しています。";
+  "当サイトでは、ユーザー投稿口コミと掲載情報コメントを分けて扱います。ユーザー口コミは、投稿経路、承認状態、公開状態、店舗との紐付けを確認できるものだけを掲載します。掲載情報コメントは、公式サイト・公開情報・料金・営業時間・アクセス・予約導線などをもとに比較しやすいよう整理したもので、口コミ件数や評価には含めません。";
 
 export const REVIEW_POLICY_SHORT =
-  "ユーザー投稿・編集部コメント・実地確認レビューを分けて掲載。投稿口コミは運営確認後に公開します。";
+  "ユーザー口コミと掲載情報コメントを分けて掲載。投稿口コミは運営確認後に公開します。";
 
 export const RANKING_CRITERIA = [
   "公開情報の充実度",
@@ -62,8 +60,8 @@ const GUIDE_POINTS = [
     body: "公式サイト・電話掲載店舗は問い合わせしやすい傾向。"
   },
   {
-    title: "口コミと編集部コメントを分けて",
-    body: "体験談と整理コメントは性質が異なります。"
+    title: "口コミと掲載情報を分けて",
+    body: "ユーザー投稿と掲載情報コメントは性質が異なります。"
   }
 ] as const;
 
@@ -118,7 +116,7 @@ function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, 
   const beginnerShops = rankingShops.filter(isBeginnerFriendlyShop);
   const stationShops = rankingShops.filter((s) => isStationNearShop(s, targetArea));
   const pricedShops = rankingShops.filter(hasPublishedPrice);
-  const prices = rankingShops.map(extractShopPriceYen).filter((p) => p > 0);
+  const prices = rankingShops.map(extractShopConfirmedPriceYen).filter((p): p is number => p !== null);
   const minPrice = prices.length ? Math.min(...prices) : null;
   const maxPrice = prices.length ? Math.max(...prices) : null;
   const sortedRanking = sortShopsForRanking(rankingShops, targetArea);
@@ -152,7 +150,6 @@ export function AreaHubRankingTop({
 
   const rankingIntro = buildRankingIntro(hubContext);
   const rankingBannerEnabled = isLayeredBannerSectionEnabled("ranking");
-  const showPrNote = hasPrShopsInRanking(topFive);
 
   return (
     <AreaHubSectionShell
@@ -181,11 +178,6 @@ export function AreaHubRankingTop({
             {rankingIntro}
           </p>
         </>
-      ) : null}
-      {showPrNote ? (
-        <p className="area-hub-ranking-criteria-note area-hub-ranking-criteria-note--pr">
-          {RANKING_PR_NOTE}
-        </p>
       ) : null}
       <RankingHeroCards shops={topFive} targetArea={targetArea} />
       <p className="area-hub-section__footnote">
@@ -371,7 +363,7 @@ export function AreaHubPriceAndGuideSections({
   rankingShops: ShopView[];
   hubContext: AreaHubContext;
 }) {
-  const prices = rankingShops.map(extractShopPriceYen).filter((p) => p > 0);
+  const prices = rankingShops.map(extractShopConfirmedPriceYen).filter((p): p is number => p !== null);
   const minPrice = prices.length ? Math.min(...prices) : null;
   const maxPrice = prices.length ? Math.max(...prices) : null;
 

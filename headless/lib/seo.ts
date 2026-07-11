@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { resolveShopAreaTerm } from "@/lib/shop-contact";
+import { formatPriceForDisplay, resolveShopPrimaryPrice, shouldOutputPriceSchema } from "@/lib/price-normalization";
 import { stripHtml } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const SITE_URL = "https://mens-esthe-kuchikomi.com";
 export const SITE_NAME = "Escomi | 関西メンズエステ口コミナビ";
 export const SITE_DESCRIPTION =
-  "関西メンズエステの口コミ・店舗情報ポータル。エリア、料金、営業時間、出勤状況から店舗を探せます。";
+  "関西メンズエステの店舗情報・口コミ投稿ポータル。エリア、料金、営業時間、出勤状況から店舗を探せます。";
 
 export function canonicalUrl(path: string): string {
   if (!path || path === "/") return `${SITE_URL}/`;
@@ -156,6 +157,7 @@ export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown>
   const tel = stripHtml(shop.acf.shop_tel);
   const address = stripHtml(shop.acf.shop_address);
   const areaTerm = resolveShopAreaTerm(shop);
+  const primaryPrice = resolveShopPrimaryPrice(shop.acf);
 
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -172,6 +174,10 @@ export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown>
       addressCountry: "JP"
     };
   }
+  if (shouldOutputPriceSchema(primaryPrice)) {
+    data.priceRange = formatPriceForDisplay(primaryPrice, "〜");
+  }
+
   const areaServed = areaTerm?.name;
   if (areaServed) {
     data.areaServed = {

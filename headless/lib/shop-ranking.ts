@@ -1,3 +1,4 @@
+import { resolvePromotionDisclosure } from "@/lib/promotion-disclosure";
 import {
   areaRankingScore,
   classifyShopRelation,
@@ -23,9 +24,22 @@ export type ShopRankingMeta = {
   isPr: boolean;
   /** 将来 ACF `ranking_label`（例: 編集部おすすめ） */
   rankingLabel: string;
+  promotion: ReturnType<typeof resolvePromotionDisclosure>;
 };
 
-export const RANKING_PR_NOTE = "PR店舗が含まれる場合は、PR表記を行っています。";
+export type RankingBasis =
+  | "user-rating"
+  | "review-count"
+  | "editorial"
+  | "sponsored"
+  | "featured"
+  | "price"
+  | "data-completeness"
+  | "manual"
+  | "unknown";
+
+export const CURRENT_AREA_RANKING_BASIS: RankingBasis[] = ["manual", "data-completeness"];
+
 
 const RELATION_ORDER = {
   core: 0,
@@ -56,21 +70,16 @@ function parseOptionalBool(value: unknown, defaultValue: boolean): boolean {
 
 /** REST ACF → ランキングメタ。`area_rank` は本番 REST で確認済み（key 存在・数値化可）。 */
 export function normalizeShopRanking(acf: Record<string, unknown>): ShopRankingMeta {
-  const manualRank = parseOptionalRank(acf.area_rank);
-  // 将来追加予定: ranking_priority, ranking_enabled, ranking_reason, is_pr, ranking_label
-  const rankingPriority = parseOptionalRank(acf.ranking_priority) ?? manualRank;
-  const isRankingEnabled = parseOptionalBool(acf.ranking_enabled, true);
-  const rankingReason = safeText(acf.ranking_reason);
-  const isPr = parseOptionalBool(acf.is_pr, false);
-  const rankingLabel = safeText(acf.ranking_label);
+  const promotion = resolvePromotionDisclosure(acf);
 
   return {
-    manualRank,
-    rankingPriority,
-    isRankingEnabled,
-    rankingReason,
-    isPr,
-    rankingLabel
+    manualRank: parseOptionalRank(acf.area_rank),
+    rankingPriority: parseOptionalRank(acf.ranking_priority),
+    isRankingEnabled: parseOptionalBool(acf.ranking_enabled, false),
+    rankingReason: safeText(acf.ranking_reason),
+    isPr: promotion.requiresDisclosure,
+    rankingLabel: safeText(acf.ranking_label),
+    promotion
   };
 }
 
@@ -109,6 +118,10 @@ export function compareShopsForRanking(
     return a.ranking.isRankingEnabled ? -1 : 1;
   }
 
+  if (a.ranking.isPr !== b.ranking.isPr) {
+    return a.ranking.isPr ? 1 : -1;
+  }
+
   const aManual = a.ranking.manualRank;
   const bManual = b.ranking.manualRank;
   const aHasManual = aManual !== null;
@@ -137,6 +150,24 @@ export function sortShopsForRanking(
   return [...shops].sort((a, b) => compareShopsForRanking(a, b, targetArea));
 }
 
+export function isEligibleForNaturalRanking(shop: ShopView) {
+  return shop.ranking.isRankingEnabled && !shop.ranking.isPr && shop.ranking.promotion.isEligibleForNaturalRanking;
+}
+
+export function canReceiveNaturalRankNumber(shop: ShopView) {
+  return isEligibleForNaturalRanking(shop) && shop.ranking.promotion.canReceiveNaturalRankNumber;
+}
+
+export function selectPromotionShops(
+  shops: ShopView[],
+  targetArea: Pick<AreaView, "slug" | "name">,
+  limit = 4
+): ShopView[] {
+  return sortShopsForRanking(shops, targetArea)
+    .filter((shop) => shop.ranking.promotion.requiresDisclosure)
+    .slice(0, limit);
+}
+
 /** エリアハブ #ranking 用 TOP N（ランキング無効店舗は除外） */
 export function selectRankingTopShops(
   shops: ShopView[],
@@ -144,7 +175,7 @@ export function selectRankingTopShops(
   limit = 5
 ): ShopView[] {
   return sortShopsForRanking(shops, targetArea)
-    .filter((shop) => shop.ranking.isRankingEnabled)
+    .filter((shop) => isEligibleForNaturalRanking(shop))
     .slice(0, limit);
 }
 
@@ -153,9 +184,6 @@ export function buildRankingIntro(ctx: Pick<AreaHubContext, "name" | "displayNam
   return `${areaRef}周辺で検討しやすい店舗を、料金・営業時間・公式サイト情報・アクセス情報・編集部確認状況をもとに整理しています。掲載順は編集部の確認情報と店舗情報の充実度をもとに調整しています。`;
 }
 
-export function hasPrShopsInRanking(shops: ShopView[]): boolean {
-  return shops.some((shop) => shop.ranking.isPr);
-}
 
 export function truncateRankingReason(reason: string, maxLength = 96): string {
   const plain = reason.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();

@@ -1,3 +1,4 @@
+import { AreaPromotionSection } from "@/components/area/hub/AreaPromotionSection";
 import Link from "next/link";
 import { AreaLatestReviews } from "@/components/area/AreaLatestReviews";
 import { AreaTitleBanner } from "@/components/area/hub/AreaTitleBanner";
@@ -93,11 +94,13 @@ export function AreaHubPageTemplate({
   const lastUpdated = resolveLastUpdatedLabel(allShops);
   const areaHeroBanner = resolveAreaHeroBanner(area.slug);
   const areaTitleBanner = resolveAreaTitleBanner(area.slug);
+  const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
+  const reviewCountLabel = aggregateReviewCountLabel(allShops);
 
   return (
     <main
       id="main_content"
-      className="l-main_content l-article hl-area-hub-page"
+      className="l-main_content l-article hl-area-hub-page escomi-final-area-page"
     >
       <script
         type="application/ld+json"
@@ -108,7 +111,7 @@ export function AreaHubPageTemplate({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(shopItemListJsonLd(allShops, hubContext.shopListH2, areaPath))
+          __html: JSON.stringify(shopItemListJsonLd(allShops.filter((shop) => !shop.ranking.isPr), hubContext.shopListH2, areaPath))
         }}
       />
       <script
@@ -116,7 +119,7 @@ export function AreaHubPageTemplate({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }}
       />
 
-      <div className="l-main_content__inner hl-page-inner">
+      <div className="l-main_content__inner hl-page-inner escomi-final-area-shell">
         <nav className="area-hub-breadcrumb" aria-label="パンくず">
           <Link href="/">ホーム</Link>
           <span aria-hidden="true"> &gt; </span>
@@ -129,59 +132,69 @@ export function AreaHubPageTemplate({
           <span>{hubContext.breadcrumbLabel}</span>
         </nav>
 
-        {areaTitleBanner ? (
-          <AreaTitleBanner areaSlug={area.slug} config={areaTitleBanner} />
-        ) : (
-          <ThemeBanner
-            themeKey="areaHero"
-            message={areaHeroBanner.message}
-            imageSrc={areaHeroBanner.imageSrc}
-            imageAlt={areaHeroBanner.imageAlt}
-          />
-        )}
-
-        <header className="area-hub-header">
-          <h1 className="area-hub-hero__title">{hubContext.hubTitle}</h1>
-          <p className="area-hub-hero__lead">{hubContext.hubDescription}</p>
-
-          <dl className="area-hub-hero__stats">
-            <div>
-              <dt>掲載店舗数</dt>
-              <dd>{area.count}件</dd>
-            </div>
-            <div>
-              <dt>口コミ件数</dt>
-              <dd>{aggregateReviewCountLabel(allShops)}</dd>
-            </div>
-            <div>
-              <dt>最終更新日</dt>
-              <dd>{lastUpdated}</dd>
-            </div>
-            <div>
-              <dt>対応エリア</dt>
-              <dd>{hubContext.coverageLabel}</dd>
-            </div>
-          </dl>
-
-          <div className="area-hub-filter-chips" aria-label="セクションへ移動">
-            <span className="area-hub-filter-chips__label">条件で探す</span>
-            {SECTION_NAV_CHIPS.map((chip) => (
-              <a key={chip.href} href={chip.href} className="area-hub-filter-chips__chip">
-                {chip.label}
-              </a>
-            ))}
+        <section className="escomi-final-area-hero hl-fade-in" aria-labelledby="area-final-title">
+          <div className="escomi-final-area-hero__media" aria-hidden="true">
+            {areaTitleBanner ? (
+              <AreaTitleBanner areaSlug={area.slug} config={areaTitleBanner} />
+            ) : (
+              <ThemeBanner
+                themeKey="areaHero"
+                message={areaHeroBanner.message}
+                imageSrc={areaHeroBanner.imageSrc}
+                imageAlt={areaHeroBanner.imageAlt}
+              />
+            )}
           </div>
 
-          <nav className="area-hub-anchor-nav" aria-label="ページ内ナビゲーション">
-            {PAGE_ANCHOR_LINKS.map((link) => (
-              <a key={link.href} href={link.href} className="area-hub-anchor-nav__link">
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </header>
+          <header className="area-hub-header escomi-final-area-hero__body">
+            <p className="escomi-final-area-hero__eyebrow">AREA GUIDE</p>
+            <h1 id="area-final-title" className="area-hub-hero__title">{hubContext.hubTitle}</h1>
+            <p className="area-hub-hero__lead">{hubContext.hubDescription}</p>
+
+            <dl className="area-hub-hero__stats escomi-final-area-hero__stats">
+              <div>
+                <dt>掲載店舗数</dt>
+                <dd>{shopCountLabel}</dd>
+              </div>
+              <div>
+                <dt>確認済み口コミ</dt>
+                <dd>{reviewCountLabel}</dd>
+              </div>
+              <div>
+                <dt>最終更新日</dt>
+                <dd>{lastUpdated}</dd>
+              </div>
+              <div>
+                <dt>対応エリア</dt>
+                <dd>{hubContext.coverageLabel}</dd>
+              </div>
+            </dl>
+
+            <p className="escomi-final-area-hero__source-note">
+              口コミ・編集部コメント・PR情報は分けて掲載しています。料金や営業時間は予約前に公式情報で確認してください。
+            </p>
+
+            <div className="area-hub-filter-chips escomi-final-area-hero__chips" aria-label="セクションへ移動">
+              <span className="area-hub-filter-chips__label">条件で探す</span>
+              {SECTION_NAV_CHIPS.map((chip) => (
+                <a key={chip.href} href={chip.href} className="area-hub-filter-chips__chip">
+                  {chip.label}
+                </a>
+              ))}
+            </div>
+          </header>
+        </section>
+
+        <nav className="area-hub-anchor-nav escomi-final-area-anchor-nav" aria-label="ページ内ナビゲーション">
+          {PAGE_ANCHOR_LINKS.map((link) => (
+            <a key={link.href} href={link.href} className="area-hub-anchor-nav__link">
+              {link.label}
+            </a>
+          ))}
+        </nav>
 
         <AreaHubRankingTop rankingShops={allShops} targetArea={area} hubContext={hubContext} />
+        <AreaPromotionSection shops={allShops} targetArea={area} />
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
