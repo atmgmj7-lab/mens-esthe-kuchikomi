@@ -1,3 +1,4 @@
+import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import Link from "next/link";
 import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
@@ -104,7 +105,7 @@ export function AreaShopCard({
               href={shop.officialUrl}
               className="area-hub-btn area-hub-btn--outline"
               target="_blank"
-              rel="noreferrer"
+              rel={outboundRelForPromotion(shop.ranking.promotion)}
             >
               公式サイトを見る
             </a>

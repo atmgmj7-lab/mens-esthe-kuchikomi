@@ -3,7 +3,6 @@ import type { ShopView } from "@/lib/wp/types";
 
 const KIND_CLASS = {
   user_reviews: "rating-badge--reviews",
-  editor_score: "rating-badge--editor",
   pending: "rating-badge--pending"
 } as const;
 

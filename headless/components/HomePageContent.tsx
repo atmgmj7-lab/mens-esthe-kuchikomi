@@ -20,7 +20,7 @@ const FEATURED_HUBS = [
     slug: "nihonbashi",
     href: "/area/nihonbashi/",
     title: "大阪日本橋メンズエステ",
-    lead: "口コミ・料金・営業時間で比較",
+    lead: "掲載情報・料金・営業時間で比較",
     badge: "本命ハブ"
   },
   {
@@ -85,14 +85,14 @@ export function HomePageContent({
 
   return (
     <main id="main_content" className="l-mainContent">
-      <div className="mep-homeNightLux">
+      <div className="mep-homeNightLux escomi-final-home">
         <section className="mep-hero-estama mep-hero-nightlux hl-fade-in">
           <div className="mep-container">
             <div className="mep-hero-glass">
               <div className="mep-hero-flex">
                 <div className="mep-hero-left">
-                  <p className="mep-hero-sub">関西メンズエステの口コミ情報サイト【エスコミ】</p>
-                  <h1 className="mep-hero-title">関西メンズエステ口コミナビ エスコミ</h1>
+                  <p className="mep-hero-sub">KANSAI MEN'S ESTHE REVIEW & SEARCH</p>
+                  <h1 className="mep-hero-title">関西のメンズエステを、確認済み情報と口コミで比較する</h1>
                   <div className="mep-hero-logo-mark" aria-hidden="true">
                     <img
                       src="/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png"
@@ -104,7 +104,7 @@ export function HomePageContent({
                     />
                   </div>
                   <p className="mep-hero-lead">
-                    大阪日本橋・難波・梅田を中心に、店舗一覧・料金・営業時間・編集部コメントで比較できます。
+                    大阪・京都・兵庫を中心に、料金・営業時間・口コミを地域別に比較できます。ユーザー口コミ、編集部コメント、店舗提供情報、PRを区別して表示します。
                   </p>
                   <form className="mep-home-search" action="/shops/" method="get" role="search">
                     <label className="sr-only" htmlFor="home-shop-search">
@@ -134,6 +134,9 @@ export function HomePageContent({
                     <span className="number">{shopCount || shops.length}</span>
                     <span className="unit">店</span>
                   </div>
+                  <p className="escomi-final-source-note">
+                    口コミは承認済みのユーザー投稿のみを集計。編集部コメント・店舗提供情報・PRは口コミに含めません。
+                  </p>
                 </div>
               </div>
             </div>
@@ -200,8 +203,8 @@ export function HomePageContent({
           </section>
         ) : null}
 
-        <AreaFeatureSection />
         <KansaiAreaGrid areas={areas} />
+        <AreaFeatureSection areas={areas} />
 
         <section className="mep-white-section hl-fade-in">
           <div className="mep-container">
@@ -269,11 +272,11 @@ export function HomePageContent({
 
         <section className="mep-about-section hl-fade-in">
           <div className="mep-container mep-about-container">
-            <h2 className="mep-about-title">関西メンズエステ口コミ（エスコミ）について</h2>
+            <h2 className="mep-about-title">関西メンズエステ エスコミについて</h2>
             <p className="mep-about-lead">
               当サイトは、大阪・京都・神戸を中心に、関西エリアのメンズエステ情報を厳選して掲載しています。
               <br />
-              公開情報・店舗データ・投稿口コミ（承認制）・編集部コメントを分けて整理し、比較しやすい店舗探しをサポートします。
+              公開情報・店舗データ・ユーザー口コミ（承認制）・掲載情報コメントを分けて整理し、比較しやすい店舗探しをサポートします。
             </p>
             <div className="mep-cta-panel">
               <h3 className="mep-cta-title">店舗オーナー様へ</h3>

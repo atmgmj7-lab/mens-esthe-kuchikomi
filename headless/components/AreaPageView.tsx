@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { filterAreaFaqRows, sanitizeAreaHtml } from "@/lib/area-content-integrity";
 import { AreaBreadcrumb, AreaHero } from "@/components/AreaHero";
 import { AreaSeoGuide } from "@/components/AreaSeoGuide";
 import { EmptyState } from "@/components/EmptyState";
@@ -32,11 +33,15 @@ export function AreaPageView({
   const guideShops = seoShops ?? shops;
   const isParentArea = area.parent === 0;
   const characteristics = safeText(area.acf.area_characteristics, area.description);
-  const column = safeText(area.acf.area_column_content);
-  const faqRows = asFaqRows(area.acf.area_faq_content);
+  const column = sanitizeAreaHtml(area.slug, safeText(area.acf.area_column_content));
+  const faqRows = filterAreaFaqRows(area.slug, asFaqRows(area.acf.area_faq_content));
   const mapUrl = isParentArea ? resolveMapEmbedUrl(area) : "";
+  const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
+  const visibleShopCountLabel = shops.length > 0 ? `${shops.length}件表示中` : "店舗情報を準備中";
+  const areaTypeLabel = isParentArea ? "都道府県ページ" : "詳細エリアページ";
+
   return (
-    <main id="main_content" className="l-main_content l-article hl-area-page">
+    <main id="main_content" className="l-main_content l-article hl-area-page escomi-final-area-page">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -45,8 +50,36 @@ export function AreaPageView({
       />
       <AreaHero area={area} parent={parentArea} />
 
-      <div className="l-main_content__inner hl-page-inner">
+      <div className="l-main_content__inner hl-page-inner escomi-final-area-shell">
         <AreaBreadcrumb area={area} parent={parentArea} />
+
+        <section className="escomi-final-area-summary hl-section hl-fade-in" aria-labelledby="area-summary-title">
+          <div>
+            <p className="escomi-final-area-hero__eyebrow">{areaTypeLabel}</p>
+            <h2 id="area-summary-title">{area.name}の店舗・口コミ・料金情報</h2>
+            <p>
+              {parentArea ? `${parentArea.name}内の${area.name}エリア` : `${area.name}エリア`}の店舗情報を、
+              掲載店舗・詳細エリア・公式情報の確認状況から探せるように整理しています。
+            </p>
+          </div>
+          <dl className="escomi-final-area-summary__stats">
+            <div>
+              <dt>掲載店舗数</dt>
+              <dd>{shopCountLabel}</dd>
+            </div>
+            <div>
+              <dt>このページ</dt>
+              <dd>{visibleShopCountLabel}</dd>
+            </div>
+            <div>
+              <dt>詳細エリア</dt>
+              <dd>{childAreas.length > 0 ? `${childAreas.length}エリア` : "該当なし"}</dd>
+            </div>
+          </dl>
+          <p className="escomi-final-area-hero__source-note">
+            口コミ・編集部コメント・PR情報は分けて掲載しています。料金や営業時間は予約前に公式情報で確認してください。
+          </p>
+        </section>
 
         {isParentArea && mapUrl && childAreas.length > 0 ? (
           <section className="area-map-section hl-section hl-fade-in">

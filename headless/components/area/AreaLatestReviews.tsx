@@ -18,7 +18,7 @@ export function AreaLatestReviews({
 }) {
   const shopsWithReviews = shops.filter((shop) => shopReviewCount(shop) > 0);
 
-  const reviewsTitle = `${hubContext.name}メンズエステの口コミ・編集部レビュー`;
+  const reviewsTitle = `${hubContext.name}メンズエステのユーザー口コミ`;
   const reviewsBannerEnabled = isLayeredBannerSectionEnabled("reviews");
 
   return (
@@ -57,7 +57,7 @@ export function AreaLatestReviews({
                 <Link href={`/shops/${shop.slug}/`} className="area-latest-reviews__shop">
                   {shop.title}
                 </Link>
-                <span className="area-latest-reviews__count">口コミ {shopReviewCount(shop)}件</span>
+                <span className="area-latest-reviews__count">確認済み口コミ {shopReviewCount(shop)}件</span>
                 <Link href={buildReviewSubmitUrl(shop.slug)} className="area-latest-reviews__write">
                   口コミを書く
                 </Link>
@@ -67,9 +67,9 @@ export function AreaLatestReviews({
         </div>
       ) : (
         <div className="area-latest-reviews area-latest-reviews--empty">
-          <p className="area-latest-reviews__cta-title">口コミ受付中</p>
+          <p className="area-latest-reviews__cta-title">口コミ募集中</p>
           <p className="area-hub-section__intro area-hub-section__intro--compact">
-            短い体験談でも構いません。投稿内容は運営確認後に掲載します。
+            承認済みのユーザー口コミだけを掲載します。編集部コメントや店舗紹介文は口コミ件数に含めません。
           </p>
           <div className="area-latest-reviews__actions">
             <Link href={`/area/${hubContext.slug}/#shop-list`} className="area-hub-btn area-hub-btn--primary">

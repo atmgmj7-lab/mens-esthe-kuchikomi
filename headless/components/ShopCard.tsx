@@ -1,20 +1,12 @@
 import Link from "next/link";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
-import { extractShopPriceYen } from "@/lib/nihonbashi-shop-utils";
+import { resolvePriceDisplay } from "@/lib/area-shop-utils";
 import { safeText } from "@/lib/wp/client";
 import type { ShopView } from "@/lib/wp/types";
 
 function areaLabel(shop: ShopView): string {
   const areaTerm = shop.terms.find((t) => t.parent !== 0) || shop.terms[0];
   return areaTerm?.name || "";
-}
-
-function formatPriceYen(yen: number): string {
-  return `${yen.toLocaleString("ja-JP")}円`;
-}
-
-function formatPriceDisplayYen(yen: number): string {
-  return `¥${yen.toLocaleString("ja-JP")}〜`;
 }
 
 export function ShopCard({
@@ -26,7 +18,7 @@ export function ShopCard({
   compact?: boolean;
   variant?: "default" | "new";
 }) {
-  const priceYen = extractShopPriceYen(shop);
+  const priceDisplay = resolvePriceDisplay(shop);
   const hours = safeText(shop.acf.shop_hours);
   const basicTime = safeText(shop.acf.basic_time);
   const catchText = safeText(shop.acf.shop_catch, shop.excerpt);
@@ -63,7 +55,7 @@ export function ShopCard({
           <div className="meta-box price-area">
             {basicTime ? <span className="meta-time">{basicTime}分</span> : null}
             <span className="meta-price">
-              {priceYen > 0 ? formatPriceYen(priceYen) : "店舗ページで確認"}
+              {priceDisplay.label}
             </span>
           </div>
         </div>
@@ -125,8 +117,8 @@ export function ShopCard({
           <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
         </h3>
         {catchText ? <p>{catchText}</p> : null}
-        {priceYen > 0 ? (
-          <div className="mep-card-price">{formatPriceDisplayYen(priceYen)}</div>
+        {priceDisplay.status === "available" ? (
+          <div className="mep-card-price">{priceDisplay.label}</div>
         ) : null}
       </div>
     </article>

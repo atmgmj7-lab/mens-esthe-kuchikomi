@@ -2,6 +2,170 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-11 Q-00計画修正（公開中ヘッドレスNext.js基準）
+
+#### 実行したTask ID
+- `Q-00`: 公開中ヘッドレスサイト品質監査の再定義。
+
+#### 調査結果
+- Next.js version: `16.2.6`。
+- Router: App Router。
+- 公開ルート: `headless/app` 配下。
+- WordPress連携: `headless/lib/wp/*` と `headless/app/wp-json/[[...path]]/route.ts`。
+- ACF参照: `headless/lib/area-shop-utils.ts`, `headless/lib/shop-ranking.ts`, 各表示コンポーネント。
+- metadata/canonical/schema: `headless/lib/seo.ts`, `headless/app/*/page.tsx`, `headless/components/area/AreaHubPageTemplate.tsx`, `headless/components/ShopDetail.tsx`。
+- Supabase: `headless/lib/dashboard-config.ts`, `headless/lib/dashboard-supabase.ts`, `dashboard/supabase-dashboard-schema.sql` に参照あり。ただし本体DBとしての実接続は未確認。
+
+#### 変更したファイル
+- `docs/seo-audits/q-00-quality-audit-2026-07-10.md`
+- `pm/CODEX_TASKS.md`
+- `pm/DAILY_PLAN.md`
+- `pm/NEXT_ACTIONS.md`
+- `pm/BLOCKERS.md`
+- `pm/ACCEPTANCE.md`
+- `pm/RISKS.md`
+- `pm/DECISIONS.md`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- WordPressテーマ改善前提を削除。
+- 公開画面の正本をNext.js App Routerとして明記。
+- WordPressを一時的なデータ供給元として位置付け。
+- P0を `Q-01`〜`Q-07` に再編。
+- `Q-10` を廃止し、星評価は `Q-03`、schema条件は `Q-07` へ統合。
+- `S-10`〜`S-14`, `S-40` を現行Next.js改善タスクとして再定義。
+- 完全移行工程を `MIG-00` から `WP-OFF-01` まで整理。
+
+#### テスト結果
+- コード変更はしていないため、lint/typecheck/buildは未実行。
+- 実行した確認: `headless/package.json` 確認、`headless/app` route一覧確認、`rg` によるWordPress/Supabase/metadata/schema依存確認。
+- 本番DB操作、本番WordPress操作、Supabase操作、Secret表示、デプロイは未実施。
+
+#### 次にやること
+- `Q-01`: 地名流用ミス修正。
+
+
+### 2026-07-11 Q-00 全ページ品質監査（現行WordPress基準）
+
+#### 実行したTask ID
+- `Q-00`: 全ページ品質棚卸し。
+
+#### 前提整理
+- 現行本番の正は WordPress + SWELL子テーマ。
+- `headless/` は将来のWebアプリ化移行先として扱う。
+- 今後は「ヘッドレス化」ではなく「Webアプリ化」と表現する。
+
+#### 変更したファイル
+- `docs/seo-audits/q-00-quality-audit-2026-07-10.md`
+- `pm/CODEX_TASKS.md`
+- `pm/ACCEPTANCE.md`
+- `pm/NEXT_ACTIONS.md`
+- `pm/BLOCKERS.md`
+- `pm/RISKS.md`
+- `pm/DECISIONS.md`
+- `pm/DAILY_PLAN.md`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- 重点5地域と現行WordPressテンプレートを対象に、地名、0円、口コミ/schema、ランキング、PR、title/meta、内部リンク、CTAのリスクを棚卸し。
+- P0/P1/P2/P3で優先度分類。
+- `Q-01`, `Q-02`, `Q-03`, `Q-10`, `S-10` 以降へタスク分解。
+- Webアプリ化タスクを `WEBAPP-*` として現行WordPress修正から分離。
+
+#### 監査結果サマリー
+- P0: 5件。0円表示、根拠なし星評価、ランキング根拠/PR分離不足、地名流用候補、CTA計測なし。
+- P1: 12件。サブページ未実装、schema不足、title/canonical確認不足、コンテンツ薄さ、内部リンク不足。
+- P2: 10件。FAQ/料金/初心者導線、店舗詳細確認日、口コミ募集中表示。
+- P3: 6件。週次運用、ダッシュボード、Webアプリ化整備。
+
+#### テスト結果
+- コード変更はしていないため、TypeScript/lint/buildは未実行。
+- 本番DB操作、本番WordPress操作、Supabase操作、デプロイは未実施。
+
+#### ブロッカー
+- WordPress ACF本文の実値確認が必要。
+- ランキング根拠、PR表記、口コミ承認基準は人間確認が必要。
+- GA4/GSC/SupabaseのSecret・本番設定は未確定。
+
+#### 次にやること
+- `Q-01`: 地名流用ミス修正案。
+- `Q-02`: 0円・料金未確認表示修正。
+- `Q-03`: 根拠なし星評価/ランキング表現修正。
+- `Q-10`: schema条件テスト。
+
+### 2026-07-10 Fable final v6 統合 / Week 1 Day 1 SERP snapshot
+
+#### 読み込んだ設計書
+- `docs/fable-final/00-master-index-and-integration-policy.md`
+- `docs/fable-final/65-codex-task-queue-and-blocker-rules.md`
+- `docs/fable-final/64-codex-continuous-execution-system.md`
+- `docs/fable-final/73-one-month-seo-sprint-plan.md`
+- `docs/fable-final/74-seo-codex-task-backlog.md`
+- `docs/fable-final/90-amendments-to-core-docs.md`
+- `docs/fable-final/99-final-report-and-next-actions.md`
+- SEO補助: `69`, `70`, `71`, `72`, `75`, `76`, `66`
+
+#### 実行したTask ID
+- `SETUP-01`: Fable v6成果物を `docs/fable-final/` に展開。
+- `S-01`〜`S-05`: 5地域SERP snapshotをread-onlyで作成。
+- `TQ-01`: Markdown版 Codex Task Queue MVP を作成。
+
+#### 変更したファイル
+- `docs/fable-final/69-five-area-top10-seo-execution-plan.md` ほか v6正本ファイル一式（ZIP展開）
+- `docs/fable-final/71-serp-snapshot-2026-07-10.md`
+- `docs/escomi-rebuild-integrated-plan-v6.md`
+- `pm/CODEX_TASKS.md`
+- `pm/DAILY_PLAN.md`
+- `pm/BLOCKERS.md`
+- `pm/NEXT_ACTIONS.md`
+- `pm/ACCEPTANCE.md`
+- `pm/DECISIONS.md`
+- `pm/RISKS.md`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- `files (2).zip` を `docs/escomi-fable-final-v6-integrated/` に保管展開。
+- 内包ZIPを `docs/fable-final/` に上書き展開し、v6正本として 00, 51〜76, 90, 99 が揃っていることを確認。
+- 初回スコープの `S-01`〜`S-05` として、堺筋本町、日本橋、新大阪、堺/堺東、梅田のSERP snapshot草案を作成。
+- 競合本文・口コミ本文・画像は転載せず、検索結果と公開ページのメタ/構造シグナルのみ記録。
+- v6指定の管理ファイルを作成。
+
+#### テスト結果
+- アプリコードは変更していないため、TypeScript/lint/buildは未実行。
+- read-only検索とドキュメント整備のみ。
+
+#### ブロッカー
+- GA4/GSC/SupabaseのSecret・本番設定は未確定。
+- ランキング根拠、PR表記、口コミ承認ガイドラインは人間確認が必要。
+- 競合サイトの詳細クロールやrobots判断が必要な取得は実施していない。
+
+#### 人間確認が必要なこと
+- 日本橋slugを `nihonbashi` のまま扱うか、v6設計通り `nihonbashi-osaka` 相当に分けるか。
+- 堺と堺東HubのURL分離方針。
+- 自然ランキングの算出根拠。
+- PR枠の表記文言。
+- エスコミ専用Supabaseプロジェクトの作成方針。
+
+#### 次にやること
+- `Q-00`: 全ページ品質棚卸し。
+- 欠陥項目: 地名流用、0円表示、title/meta重複、canonical、noindex、schema条件、口コミschema、PR表記条件。
+
+#### KPIへの影響
+- 直接の順位改善ではなく、Week 1の判断材料を整備。
+- 次タスク `Q-00` / `S-10` の優先順位付けに使用。
+
+### 2026-07-10 Fable final v5 設計ファイル統合
+
+#### 実施内容
+- `/Users/narikiyo/Downloads/files (1).zip` を `docs/escomi-fable-final-v5-integrated/` に展開。
+- 内包されていた `escomi-fable-final-v5-integrated.zip` も展開し、保管用として `docs/escomi-fable-final-v5-integrated/fable-final/` に保存。
+- 設計文書内の正本ルールに合わせ、実装時に参照する正本として `docs/fable-final/` に同じ最終設計ファイルを展開。
+- `docs/escomi-rebuild-integrated-plan-v5.md` を追加し、既存の現行資産棚卸しと Fable final v5 設計を統合。
+
+#### 補足
+- 今回は設計ファイルの展開と統合のみ。アプリコード、Supabase、本番環境、Secrets、デプロイは変更していない。
+- 次の実装候補は `docs/fable-final/00-master-index-and-integration-policy.md` → `65` → `64` → `62` → `90` を読んだ上で、Week 1 の Supabase基盤を additive migration として開始すること。
+
 ### 2026-07-05 Dashboard / Vercel統合方針・UI再構築
 
 #### 実施内容
@@ -1814,3 +1978,148 @@ pm/PROGRESS.md
 #### 確認状況
 - 問題箇所のログ: GitHub Actions run `28694561187` の `Vercel build (prebuilt)`。
 - 次ステップ: 変更を反映した再デプロイで `/dashboard` のビルドルートを復元する。
+
+## 2026-07-11 Q-01 地名流用ミス修正
+- `headless/lib/area-content-integrity.ts` を追加し、エリア別の禁止地名・許可地名・駅名・代替文を集約。
+- `headless/lib/area-seo.ts` の駅名抽出を対象エリアslugベースに変更。
+- `headless/app/area/[slug]/page.tsx` と `headless/components/AreaPageView.tsx` で、本文・FAQ・メタdescriptionの地名安全化を追加。
+- `headless/components/ShopDetail.tsx` と `headless/app/shops/[slug]/page.tsx` の日本橋固定文言を廃止。
+- `headless/scripts/check-area-content-integrity.mjs` と `npm run test:area-integrity` を追加。
+
+### Q-01 検証結果（2026-07-11）
+- `npm run lint`: 成功
+- `npm run typecheck`: 成功
+- `npm test`: 成功（area integrity check passed）
+- `npm run build`: 成功（440 static pages generated）
+
+## 2026-07-11 Q-02 0円・料金未確認表示修正
+- `headless/lib/price-normalization.ts` を追加し、料金正規化を共通化。
+- 代表料金・コース料金では 0 / 0円 / 無料 / 空文字 / 未確認 / 不正値を確認済み価格として扱わないよう変更。
+- 一覧、ランキング、Hub料金表、店舗詳細、JSON-LDの価格条件を共通化。
+- 店舗詳細の `Number()` 直変換を廃止し、確認済み価格のみ表示。
+- `headless/scripts/check-price-normalization.mjs` を追加し、再発防止テストを `npm test` に組み込み。
+
+### Q-02 検証結果（2026-07-11）
+- `npm run lint`: 成功
+- `npm run typecheck`: 成功
+- `npm test`: 成功（area integrity / price normalization）
+- `npm run build`: 成功（440 static pages generated）
+- 生成結果検索: `0円〜` / `¥0` / `￥0` / `最安0円` / `price: 0` / `lowPrice: 0` / `highPrice: 0` / `priceRange: 0` は限定検索でヒットなし
+- 備考: build時の middleware 非推奨警告は TECH-01 に登録済み
+
+## 2026-07-11 Q-03 ランキング表現・星評価修正
+- `headless/lib/review-rating.ts` を追加し、評価値正規化・実口コミ判定・AggregateRating条件を共通化。
+- `review_star` を公開評価表示から除外し、口コミ0件・1〜2件では総合評価を表示しないよう変更。
+- 店舗カード・店舗詳細・Hubの `RatingBadge` は件数表示または `口コミ募集中` に統一。
+- PR店舗を自然順位TOPから除外し、ランキングカード側でもPRに自然順位番号を付けない防御を追加。
+- `headless/scripts/check-review-rating.mjs` を追加し、再発防止テストを `npm test` に組み込み。
+
+### Q-03 検証結果（2026-07-11）
+- `npm run lint`: 成功
+- `npm run typecheck`: 成功
+- `npm test`: 成功（area integrity / price normalization / review rating）
+- `npm run build`: 成功（440 static pages generated）
+- 公開生成物検索: 口コミ0件+4.0、reviewCount 0、ratingCount 0、aggregateRating、人気No.1、口コミ評価4.0 はヒットなし
+- 公開ソース検索: `review_star` / `editor_score` は公開表示経路から除去済み。`AggregateRating` 系のヒットは判定関数名のみで、schema出力ではない
+- 備考: build時の middleware 非推奨警告は TECH-01 登録済み
+
+## 2026-07-11 Q-04 口コミと編集部コメントの区別整理
+
+- `headless/lib/content-provenance.ts` を追加し、user-review / editorial-comment / shop-provided / shop-description / ai-generated / promotion / unknown を共通分類。
+- `headless/lib/review-rating.ts` を共通出自判定へ接続し、Q-03評価対象を明示的な承認済み公開ユーザー口コミだけに限定。
+- ACF `review_count` / `shop_review_count` は実口コミ件数ではなく `referenceCount` として扱う方針へ変更。
+- `AreaLatestReviews` は確認済みユーザー口コミだけを表示し、なければ空状態に変更。
+- `ShopDetail` は掲載情報コメント、店舗紹介、ユーザー口コミを分離。
+- `headless/scripts/check-content-provenance.mjs` を追加し、再発防止テストを `npm test` に組み込み。
+- WordPress、Supabase、DB、本番環境、Secrets、デプロイは変更していない。
+
+### Q-04 検証結果（2026-07-11）
+
+- `npm run lint`: 成功
+- `npm run typecheck`: 成功
+- `npm test`: 成功（area integrity / price normalization / content provenance / review rating）
+- `npm run build`: 成功（440 static pages generated）
+- 公開生成物検索: `口コミ・編集部` / `編集部レビュー` / `editor_score` / `review_star` / `AggregateRating` / `aggregateRating` / `お客様の声` / `実際の利用者` / `口コミで人気` / `AI生成` はヒットなし。
+- 公開生成物PR検索: 単独 `PR` / `sponsored` / `promotion` はヒットなし。
+- 公開経路ソース検索: `content-provenance` のpromotion型、`shop-ranking` のsponsored型、`RankingHeroCards` のPRラベルのみ。PR最終表記はQ-05へ引き継ぎ。
+- 備考: build時の middleware 非推奨警告は TECH-01 登録済み。
+
+## Q-05 PR・広告枠表記整理
+
+- PR/広告判定を headless/lib/promotion-disclosure.ts に集約
+- 自然ランキングからPR/広告を除外
+- PR/広告はエリアページで別枠表示
+- PR/広告の公式外部リンクだけ sponsored nofollow noreferrer を付与
+- ItemList schema からPR店舗を除外
+- 残課題: PR文言・広告掲載基準・契約終了後ルールは人間確認
+
+## 2026-07-12 完成形UI Phase 1/2
+
+- 添付ZIPを安全名で展開し、1a〜1d、状態バリエーション、DB注記、画像資料、店舗詳細PDFを確認。
+- docs/design/escomi-final-design-implementation-map.md を作成し、公開4ページの対応表と段階実装順を整理。
+- トップページの写真アコーディオンを削除せず、hover/focus展開・mobile画像カード・reduced motion対応の完成形UIへ更新。
+- 日本橋画像付き重点エリアを AREA_FEATURES ベースに変更し、将来の重点エリア追加に備えた。
+- ダッシュボード完成デザイン不足を DASH-DESIGN-00 としてBLOCKER登録。
+- WordPress、Supabase、DB、本番、Secret、デプロイは変更していない。
+
+## 2026-07-12 完成形UI Phase 2
+
+- `AreaHubPageTemplate` に完成形のエリア詳細ヒーローを追加。
+- `AreaPageView` に通常エリアページ用の完成形サマリーを追加。
+- 口コミ・編集部コメント・PR情報の分離注記をエリアページ上部にも表示。
+- 店舗数はWordPress由来の実データを使用し、0件時は `掲載準備中` と表示。
+- 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
+
+## 2026-07-12 完成形UI Phase 3
+
+- `ShopDetail` に完成形の店舗詳細ファーストビューを追加。
+- 画像、店舗名、料金目安、料金状態、口コミ件数、予約導線を上部で確認できる構成へ変更。
+- 店舗詳細内メニューとして `料金表`、`口コミ`、`基本情報`、`予約・問い合わせ` のアンカーを追加。
+- 料金は既存の正規化ロジックを使用し、未確認時は `料金は店舗へお問い合わせください。` を表示。
+- ユーザー口コミ、編集部コメント、店舗提供情報、PR情報の分離注記を店舗詳細上部にも表示。
+- 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
+
+## 2026-07-12 完成形UI Phase 4
+
+- `SiteHeader` を完成形デザインの共通ヘッダーへ寄せた。
+- `SiteFooter` を完成形デザインの共通フッターへ寄せた。
+- 共通ヘッダーに `店舗を探す`、`エリアから探す`、`口コミについて`、`掲載について`、`検索` を追加。
+- 共通フッターに運営説明と、ユーザー口コミ/編集部コメント/店舗提供情報/PR情報の分離ポリシーを追加。
+- ダッシュボード配下は既存どおりヘッダー/フッター非表示のまま維持。
+- 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
+
+## 2026-07-12 完成形UI Phase 5
+
+- 最終横断確認を実行。
+- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` が成功。
+- Playwrightで `/`, `/area/osaka/`, `/area/nihonbashi/`, 店舗詳細を 1440/1024/390/360px で確認。
+- `/dashboard` では公開サイト用ヘッダー/フッターが表示されないことを確認。
+- 公開画面に `DB:` 注記が出ていないことを確認。
+- 主要幅で横スクロールがないことを確認。
+- 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
+
+## 2026-07-12 UI-FINAL-06 本番反映判断
+
+- 現在の未コミット差分を確認。
+- UI-FINAL Phase 1-5 はローカル検証済みだが、ダッシュボード、GitHub Actions、Fable資料、SEO品質修正が混在しているため、現状態の一括本番反映は非推奨と判断。
+- `docs/design/escomi-final-ui-deploy-readiness-2026-07-12.md` に本番反映判断メモを作成。
+- 推奨は、UI-FINALだけを反映単位として分離し、再検証後に本番反映すること。
+- 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
+
+## 2026-07-12 UI-FINAL-07 isolated deploy unit
+
+- Created isolated worktree: .
+- Created branch: .
+- Copied only public UI-FINAL changes and required public quality guardrails.
+- Excluded dashboard implementation, dashboard deploy workflows, Fable bulk docs, and production GitHub Actions workflow changes.
+- Isolated validation passed: lint, typecheck, test, build, Playwright crosscheck.
+- Status: .
+
+## 2026-07-12 UI-FINAL-07 isolated deploy unit corrected
+
+- Created isolated worktree: /tmp/escomi-ui-final-worktree-041607.
+- Created branch: codex/ui-final-ready-20260712-041607.
+- Copied only public UI-FINAL changes and required public quality guardrails.
+- Excluded dashboard implementation, dashboard deploy workflows, Fable bulk docs, and production GitHub Actions workflow changes.
+- Isolated validation passed: lint, typecheck, test, build, Playwright crosscheck.
+- Status: ISOLATED_UI_FINAL_READY.

@@ -1,3 +1,4 @@
+import type { PromotionDisclosure } from "@/lib/promotion-disclosure";
 export type WpRendered = {
   rendered?: string;
 };
@@ -44,6 +45,7 @@ export type ShopRankingMeta = {
   rankingReason: string;
   isPr: boolean;
   rankingLabel: string;
+  promotion: PromotionDisclosure;
 };
 
 export type WpShop = WpPostBase & {

@@ -26,7 +26,7 @@ export const STATIC_PAGE_META: Record<StaticPageSlug, StaticPageMeta> = {
   about: {
     title: "運営者情報",
     description:
-      "関西メンズエステ口コミナビ「Escomi（エスコミ）」の運営方針・サイト概要・免責事項について。"
+      "関西メンズエステ情報サイト「Escomi（エスコミ）」の運営方針・サイト概要・免責事項について。"
   },
   sitemap: {
     title: "サイトマップ",
@@ -64,8 +64,8 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
       `;
     case "about":
       return `
-        <p>Escomi（エスコミ）は、関西エリアのメンズエステ情報を厳選して掲載する口コミ・店舗情報ポータルです。</p>
-        <p>大阪・京都・神戸を中心に、エリア別の店舗一覧、料金、営業時間、口コミ情報をわかりやすく整理し、来店前の比較検討をサポートします。</p>
+        <p>Escomi（エスコミ）は、関西エリアのメンズエステ情報を厳選して掲載する店舗情報ポータルです。</p>
+        <p>大阪・京都・神戸を中心に、エリア別の店舗一覧、料金、営業時間、投稿口コミを分けて整理し、来店前の比較検討をサポートします。</p>
         <h2>運営方針</h2>
         <ul>
           <li>公開情報をもとに、利用者が判断しやすい形で店舗情報を整理します。</li>

@@ -8,19 +8,15 @@ import {
 } from "@/lib/area-hub-config";
 import type { AreaHubRelationConfig, AreaHubSeoConfig } from "@/lib/area-hub-config";
 import { safeText } from "@/lib/wp/client";
+import {
+  formatPriceForDisplay,
+  normalizePrice,
+  PRIMARY_PRICE_FIELD_KEYS,
+  resolveShopPrimaryPrice
+} from "@/lib/price-normalization";
+import { normalizeContentItems, type NormalizedContentItem } from "@/lib/content-provenance";
+import { resolveShopReviewSummary, shouldDisplayAggregateRating } from "@/lib/review-rating";
 import type { AreaView, ShopView } from "@/lib/wp/types";
-
-const PRICE_KEYS = [
-  "shop_price_60min",
-  "price_60",
-  "price_50",
-  "price_70",
-  "price_80",
-  "price_90",
-  "price_120",
-  "price_150",
-  "basic_price"
-] as const;
 
 /** 対象エリアとの位置関係 */
 export type TargetAreaRelation =
@@ -106,18 +102,18 @@ function buildGenericHubContext(
     parentName,
     displayName: areaLabel,
     breadcrumbLabel: `${areaLabel}メンズエステ`,
-    hubTitle: `${areaLabel}メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較`,
-    hubDescription: `${areaLabel}のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。深夜営業、駅近、初心者向け、料金目安、編集部コメントをもとに${area.name}エリアの候補店舗を探せます。`,
+    hubTitle: `${areaLabel}メンズエステおすすめ一覧｜掲載情報・料金・営業時間で比較`,
+    hubDescription: `${areaLabel}のメンズエステを店舗一覧、料金、営業時間、アクセス、掲載情報コメントで比較。深夜営業、駅近、初心者向け、料金目安をもとに${area.name}エリアの候補店舗を探せます。`,
     coverageLabel: `${area.name}エリア`,
     shopListH2: `${area.name}メンズエステ店舗一覧`,
-    shopListIntro: `${areaLabel}のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。`,
-    pageTitlePage2Plus: `${area.name}メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較`,
-    pageDescriptionPage2Plus: `${area.name}エリアのメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・口コミで比較しながら探せます。`,
+    shopListIntro: `${areaLabel}のメンズエステを、料金目安・営業時間・アクセス・掲載情報コメントで比較できます。`,
+    pageTitlePage2Plus: `${area.name}メンズエステ店舗一覧 {page}ページ目｜掲載情報・料金・営業時間で比較`,
+    pageDescriptionPage2Plus: `${area.name}エリアのメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報で比較しながら探せます。`,
     rankingTitle: `${areaLabel}メンズエステおすすめランキング`,
     priceTableTitle: `${area.name}メンズエステ料金比較表`,
     stationIntro: "駅名や徒歩表記が掲載情報に含まれる店舗を整理しています。",
     faqAreaRef: area.name,
-    faqFirstAnswer: `${area.name}エリアの店舗一覧ページから、営業時間・料金・口コミを比較しながら条件に合う店舗を絞り込むのがおすすめです。`,
+    faqFirstAnswer: `${area.name}エリアの店舗一覧ページから、営業時間・料金・掲載情報を比較しながら条件に合う店舗を絞り込むのがおすすめです。`,
     relationCardLabel: "対象エリアとの関係",
     shopLinks: {
       listLink: `${areaLabel}メンズエステの店舗一覧へ`,
@@ -320,90 +316,57 @@ export type PriceDisplay = {
 };
 
 
-function normalizePriceDigits(raw: string): string {
-  return raw.replace(/[０-９]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0xfee0)).replace(/[^0-9]/g, "");
-}
-
 export function isZeroLikePriceValue(value: unknown): boolean {
-  if (value === null || value === undefined) return true;
-  const raw = safeText(String(value));
-  if (!raw) return true;
-  if (/未掲載|非公開|要問合せ|要問い合わせ|要確認/.test(raw)) return true;
-  const digits = normalizePriceDigits(raw);
-  if (!digits) return false;
-  return Number(digits) === 0;
+  const normalized = normalizePrice(value, "primary-course");
+  return normalized.status !== "confirmed";
 }
 
-function parsePositivePriceYen(raw: string): number {
-  const digits = normalizePriceDigits(raw);
-  if (!digits) return 0;
-  const num = Number(digits);
-  return num > 0 ? num : 0;
+export function extractShopConfirmedPriceYen(shop: ShopView): number | null {
+  const price = resolveShopPrimaryPrice(shop.acf);
+  return price.status === "confirmed" ? price.amount : null;
 }
 
 export function extractShopPriceYen(shop: ShopView): number {
-  for (const key of PRICE_KEYS) {
-    const raw = safeText(shop.acf[key]);
-    if (!raw || isZeroLikePriceValue(raw)) continue;
-    const num = parsePositivePriceYen(raw);
-    if (num > 0) return num;
-  }
-  return 0;
-}
-
-function extractRegisteredPriceText(shop: ShopView): string | null {
-  for (const key of PRICE_KEYS) {
-    const raw = safeText(shop.acf[key]);
-    if (!raw) continue;
-    if (/未掲載|非公開|要問合せ|要問い合わせ/.test(raw)) return null;
-    if (isZeroLikePriceValue(raw)) continue;
-    const num = parsePositivePriceYen(raw);
-    if (num > 0) continue;
-    if (/0\s*円|¥\s*0|￥\s*0/.test(raw)) continue;
-    return raw.trim();
-  }
-  return null;
+  return extractShopConfirmedPriceYen(shop) ?? 0;
 }
 
 export function resolvePriceDisplay(shop: ShopView): PriceDisplay {
-  const yen = extractShopPriceYen(shop);
-  if (yen > 0) {
+  const price = resolveShopPrimaryPrice(shop.acf);
+  const label = formatPriceForDisplay(price, "〜");
+
+  if (price.status === "confirmed" && label) {
     return {
       status: "available",
-      label: `${yen.toLocaleString("ja-JP")}円〜`,
-      amount: yen
+      label,
+      amount: price.amount ?? undefined
     };
   }
 
-  const registeredText = extractRegisteredPriceText(shop);
-  if (registeredText) {
-    return { status: "available", label: registeredText };
-  }
-
-  const hasEmptyPriceFields = PRICE_KEYS.some((key) => {
+  const hasExplicitNotListed = PRIMARY_PRICE_FIELD_KEYS.some((key) => {
     const raw = safeText(shop.acf[key]);
-    return raw && /未掲載|非公開/.test(raw);
+    return /未掲載|非公開/.test(raw);
   });
-  if (hasEmptyPriceFields) {
-    return { status: "not_listed", label: "未掲載" };
+
+  if (hasExplicitNotListed) {
+    return { status: "not_listed", label: "料金未確認" };
   }
 
   if (shop.officialUrl) {
-    return { status: "official_checking", label: "公式サイト確認中" };
+    return { status: "official_checking", label: "料金未確認" };
   }
 
   if (shop.slug) {
-    return { status: "shop_page_check", label: "店舗ページで確認" };
+    return { status: "shop_page_check", label: "料金未確認" };
   }
 
-  return { status: "unknown", label: "要確認" };
+  return { status: "unknown", label: "料金未確認" };
 }
 
 export function formatShopPriceLabel(shop: ShopView): string {
   return resolvePriceDisplay(shop).label;
 }
 
-export type RatingDisplayKind = "user_reviews" | "editor_score" | "pending";
+export type RatingDisplayKind = "user_reviews" | "pending";
 
 export type RatingDisplay = {
   kind: RatingDisplayKind;
@@ -431,7 +394,7 @@ export function isBeginnerFriendlyShop(shop: ShopView): boolean {
   const booking = safeText(shop.acf.shop_booking);
   const editor = safeText(shop.acf.shop_ai_summary);
   const hasOfficial = Boolean(shop.officialUrl);
-  const hasPrice = extractShopPriceYen(shop) > 0;
+  const hasPrice = extractShopConfirmedPriceYen(shop) !== null;
 
   let score = 0;
   if (hours) score += 1;
@@ -444,7 +407,7 @@ export function isBeginnerFriendlyShop(shop: ShopView): boolean {
 }
 
 export function hasPublishedPrice(shop: ShopView): boolean {
-  return extractShopPriceYen(shop) > 0;
+  return extractShopConfirmedPriceYen(shop) !== null;
 }
 
 /** 駅名または徒歩表記がある場合のみ駅近とする（自動付与しない） */
@@ -481,50 +444,62 @@ export function shopFeatureTags(
   return tags.slice(0, 5);
 }
 
+export function extractShopUserReviewItems(shop: ShopView): NormalizedContentItem[] {
+  const sourceField = Array.isArray(shop.acf.user_reviews)
+    ? "user_reviews"
+    : Array.isArray(shop.acf.reviews)
+      ? "reviews"
+      : "";
+  const rawItems = sourceField === "user_reviews" ? shop.acf.user_reviews : sourceField === "reviews" ? shop.acf.reviews : [];
+
+  return normalizeContentItems(rawItems, {
+    shopId: shop.id,
+    sourcePostType: "reviews",
+    sourceField
+  }).filter((item) => item.canDisplayAsUserReview);
+}
+
 export function shopReviewCount(shop: ShopView): number {
-  const raw = safeText(shop.acf.review_count) || safeText(shop.acf.shop_review_count);
-  const num = Number(raw.replace(/[^0-9]/g, ""));
-  return num > 0 ? num : 0;
+  return resolveShopReviewSummary(shop.acf, { shopId: shop.id }).reviewCount;
 }
 
 export function resolveRatingDisplay(shop: ShopView): RatingDisplay {
-  const reviewCount = shopReviewCount(shop);
-  if (reviewCount > 0) {
+  const summary = resolveShopReviewSummary(shop.acf, { shopId: shop.id });
+  const aggregate = summary.aggregate;
+
+  if (shouldDisplayAggregateRating(aggregate)) {
     return {
       kind: "user_reviews",
       label: "口コミ評価",
-      count: reviewCount
+      value: aggregate.ratingValue?.toFixed(1),
+      count: aggregate.reviewCount
     };
   }
 
-  const raw = safeText(shop.acf.review_star);
-  if (raw && raw !== "0") {
-    const num = Number(raw);
-    if (Number.isFinite(num) && num > 0) {
-      return {
-        kind: "editor_score",
-        label: "編集部参考スコア",
-        value: raw
-      };
-    }
+  if (summary.reviewCount > 0) {
+    return {
+      kind: "user_reviews",
+      label: "口コミ",
+      count: summary.reviewCount
+    };
   }
 
   return {
     kind: "pending",
-    label: "評価集計中"
+    label: "口コミ募集中"
   };
 }
 
 export function shopReviewCountLabel(shop: ShopView): string {
   const count = shopReviewCount(shop);
   if (count > 0) return `${count}件`;
-  return "口コミ受付中";
+  return "口コミ募集中";
 }
 
 export function aggregateReviewCountLabel(shops: ShopView[]): string {
   const total = shops.reduce((sum, shop) => sum + shopReviewCount(shop), 0);
   if (total > 0) return `${total}件`;
-  return "口コミ受付中";
+  return "口コミ募集中";
 }
 
 export function buildEditorCommentShort(
@@ -574,7 +549,7 @@ export function areaRankingScore(
   };
 
   let score = relationScore[relation];
-  if (extractShopPriceYen(shop) > 0) score += 2;
+  if (extractShopConfirmedPriceYen(shop) !== null) score += 2;
   if (safeText(shop.acf.shop_hours)) score += 2;
   if (shop.officialUrl) score += 2;
   if (safeText(shop.acf.shop_ai_summary)) score += 2;

@@ -46,16 +46,21 @@ export const KANSAI_TILE_IMAGES: Record<string, string> = {
   wakayama: "/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg"
 };
 
-export const AREA_FEATURE = {
-  slug: "nihonbashi",
-  href: "/area/nihonbashi/",
-  subtitle: "日本橋エリア特集",
-  title: "大阪日本橋メンズエステおすすめ一覧",
-  description:
-    "大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
-  btnText: "大阪日本橋メンズエステおすすめ一覧を見る",
-  image: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg"
-};
+export const AREA_FEATURES = [
+  {
+    slug: "nihonbashi",
+    href: "/area/nihonbashi/",
+    subtitle: "日本橋エリア特集",
+    title: "大阪日本橋メンズエステおすすめ一覧",
+    description:
+      "大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
+    btnText: "大阪日本橋メンズエステおすすめ一覧を見る",
+    image: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",
+    imageAlt: "大阪日本橋エリアの街並み"
+  }
+] as const;
+
+export const AREA_FEATURE = AREA_FEATURES[0];
 
 export function resolveAreaHeroImage(area: AreaView, parent?: AreaView | null): string {
   return (

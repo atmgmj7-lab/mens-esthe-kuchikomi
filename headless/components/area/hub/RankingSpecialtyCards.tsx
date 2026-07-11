@@ -1,5 +1,7 @@
 "use client";
 
+import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
+
 import Link from "next/link";
 import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";
 import { PriceLabel } from "@/components/common/PriceLabel";
@@ -96,7 +98,7 @@ export function RankingSpecialtyCards({
                     href={shop.officialUrl}
                     className="area-hub-btn area-hub-btn--outline area-hub-btn--sm"
                     target="_blank"
-                    rel="noreferrer"
+                    rel={outboundRelForPromotion(shop.ranking.promotion)}
                   >
                     公式
                   </a>

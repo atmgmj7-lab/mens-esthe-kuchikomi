@@ -159,7 +159,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       pageTitlePage2Plus:
         "大阪日本橋メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
-        "大阪日本橋・近鉄日本橋・なんば周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・口コミ・編集部コメントで比較しながら探せます。",
+        "大阪日本橋・近鉄日本橋・なんば周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報コメントで比較しながら探せます。",
       rankingTitle: "大阪日本橋メンズエステおすすめランキング",
       priceTableTitle: "日本橋メンズエステ料金比較表",
       stationIntro:
@@ -194,7 +194,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       pageTitlePage2Plus:
         "大阪難波メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
-        "大阪難波・なんば周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・口コミ・編集部コメントで比較しながら探せます。",
+        "大阪難波・なんば周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報コメントで比較しながら探せます。",
       rankingTitle: "大阪難波メンズエステおすすめランキング",
       priceTableTitle: "難波メンズエステ料金比較表",
       stationIntro:
@@ -226,7 +226,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       pageTitlePage2Plus:
         "大阪梅田メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
-        "大阪梅田・大阪駅周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・口コミ・編集部コメントで比較しながら探せます。",
+        "大阪梅田・大阪駅周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報コメントで比較しながら探せます。",
       rankingTitle: "大阪梅田メンズエステおすすめランキング",
       priceTableTitle: "梅田メンズエステ料金比較表",
       stationIntro:

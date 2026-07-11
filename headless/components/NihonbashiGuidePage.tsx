@@ -2,7 +2,7 @@ import Link from "next/link";
 import { EsSectionTitle } from "@/components/SectionTitle";
 import { RankingCard } from "@/components/nihonbashi-content";
 import {
-  extractShopPriceYen,
+  extractShopConfirmedPriceYen,
   NIHONBASHI_GUIDE_DESCRIPTION,
   NIHONBASHI_GUIDE_TITLE,
   resolveLastUpdatedLabel,
@@ -36,7 +36,7 @@ export function NihonbashiGuidePage({
   shops: ShopView[];
 }) {
   const topShops = sortNihonbashiShopsForRanking(shops).slice(0, 5);
-  const prices = shops.map(extractShopPriceYen).filter((p) => p > 0);
+  const prices = shops.map(extractShopConfirmedPriceYen).filter((p): p is number => p !== null);
   const minPrice = prices.length ? Math.min(...prices) : null;
   const maxPrice = prices.length ? Math.max(...prices) : null;
   const lastUpdated = resolveLastUpdatedLabel(shops);

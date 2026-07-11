@@ -37,7 +37,7 @@ Headless（Next.js）エリアハブ `#ranking` の掲載順制御方針。
 ## 表示文言（エリア共通）
 
 - 導入文: `buildRankingIntro(hubContext)` — `displayName` + 「周辺で検討しやすい…」
-- PR 注記: TOP5 に `isPr` 店舗がある場合のみ `RANKING_PR_NOTE` を表示
+- PR/広告: Q-05で自然ランキングから分離し、PR・広告掲載枠として別セクション表示
 - 選定理由: `rankingReason` がある場合、ランキングカードに最大2行
 
 ---
@@ -100,3 +100,10 @@ ranking_overrides (
 | `components/area/area-hub-content.tsx` | `#ranking` セクション |
 | `components/area/hub/RankingHeroCards.tsx` | ランキングカード UI |
 | `lib/area-shop-list-controls.ts` | 店舗一覧「おすすめ順」も同一ソート |
+
+## Q-03 追記（2026-07-11）
+
+- 現在のランキング根拠は `manual` と `data-completeness`。ユーザー口コミ評価順ではない。
+- `is_pr=true` の店舗は自然順位のTOP抽出から除外する。
+- PR店舗へ自然順位番号を付けない。Q-05で `AreaPromotionSection` による別枠表示を実装済み。
+- 口コミ評価を順位計算の主根拠には使用しない。実口コミ3件以上の信頼補正設計は、人間判断が必要な別タスクとする。
