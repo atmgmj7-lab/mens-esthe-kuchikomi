@@ -7246,7 +7246,7 @@ img {
 }
 
 .escomi-final-feature-slider {
-  width: min(100%, 960px);
+  width: min(100%, 1120px);
   margin-inline: auto;
   position: relative;
 }
@@ -7259,7 +7259,7 @@ img {
   align-items: center;
   justify-content: space-between;
   pointer-events: none;
-  padding: 0 0.35rem 2.15rem;
+  padding: 0 1rem 2.15rem;
 }
 
 .escomi-final-feature-slider__arrow {
@@ -7296,8 +7296,8 @@ img {
   gap: 1.25rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 0.35rem clamp(42px, 6vw, 70px) 1.6rem;
-  scroll-padding-inline: clamp(42px, 6vw, 70px);
+  padding: 0.35rem 0 1.6rem;
+  scroll-padding-inline: 0;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -7309,14 +7309,14 @@ img {
 
 .escomi-final-feature-card {
   display: flex;
-  flex: 0 0 min(760px, 86%);
+  flex: 0 0 100%;
   flex-direction: row;
   align-items: stretch;
   gap: 0;
   position: relative;
   isolation: isolate;
-  min-width: min(760px, 86%);
-  max-width: min(760px, 86%);
+  min-width: 100%;
+  max-width: 100%;
   overflow: hidden;
   min-height: 430px;
   padding: 0 !important;
@@ -7330,12 +7330,13 @@ img {
   background-size: cover;
   box-shadow: 0 22px 58px rgba(176, 141, 62, 0.12);
   color: #fff;
-  scroll-snap-align: center;
+  scroll-snap-align: start;
 }
 
 .p-areaFeature .escomi-final-feature-grid > .escomi-final-feature-card {
-  flex: 0 0 min(760px, 86%) !important;
-  max-width: min(760px, 86%) !important;
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
   margin: 0 !important;
   border-radius: 22px !important;
   background-color: #172833 !important;
@@ -7531,26 +7532,26 @@ img {
 
   .escomi-final-feature-card,
   .p-areaFeature .escomi-final-feature-grid > .escomi-final-feature-card {
-    flex-basis: 84% !important;
-    min-width: 84%;
-    max-width: 84% !important;
+    flex-basis: 100% !important;
+    min-width: 100%;
+    max-width: 100% !important;
   }
 }
 
 @media (max-width: 700px) {
   .escomi-final-feature-grid {
-    padding-inline: 30px;
-    scroll-padding-inline: 30px;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
   }
 
   .p-areaFeature .escomi-final-feature-grid > .escomi-final-feature-card {
-    flex-basis: 86vw !important;
-    min-width: 86vw;
-    max-width: 86vw !important;
+    flex-basis: 100% !important;
+    min-width: 100%;
+    max-width: 100% !important;
   }
 
   .escomi-final-feature-slider__controls {
-    padding-inline: 0;
+    padding-inline: 0.55rem;
   }
 
   .escomi-final-feature-slider__arrow {

@@ -44,6 +44,8 @@ export function AreaFeatureSlider({
   features: AreaFeatureItem[];
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const programmaticTargetRef = useRef<number | null>(null);
+  const programmaticTimerRef = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const visibleFeatures = useMemo(
@@ -55,8 +57,29 @@ export function AreaFeatureSlider({
     const track = trackRef.current;
     if (!track) return;
 
+    const programmaticTarget = programmaticTargetRef.current;
+    if (programmaticTarget !== null) {
+      const targetLeft = scrollLeftForIndex(track, programmaticTarget);
+      if (Math.abs(track.scrollLeft - targetLeft) > 6) {
+        setActiveIndex(programmaticTarget);
+        return;
+      }
+      programmaticTargetRef.current = null;
+    }
+
     setActiveIndex(currentSlideIndex(track, visibleFeatures.length));
   }, [visibleFeatures.length]);
+
+  const markProgrammaticTarget = useCallback((targetIndex: number) => {
+    programmaticTargetRef.current = targetIndex;
+    if (programmaticTimerRef.current !== null) {
+      window.clearTimeout(programmaticTimerRef.current);
+    }
+    programmaticTimerRef.current = window.setTimeout(() => {
+      programmaticTargetRef.current = null;
+      updateState();
+    }, 700);
+  }, [updateState]);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -69,6 +92,9 @@ export function AreaFeatureSlider({
     return () => {
       track.removeEventListener("scroll", updateState);
       window.removeEventListener("resize", updateState);
+      if (programmaticTimerRef.current !== null) {
+        window.clearTimeout(programmaticTimerRef.current);
+      }
     };
   }, [updateState]);
 
@@ -77,24 +103,26 @@ export function AreaFeatureSlider({
     const total = visibleFeatures.length;
     if (!track || total <= 1) return;
 
-    const currentIndex = currentSlideIndex(track, total);
+    const currentIndex = loopIndex(activeIndex, total);
     const targetIndex = loopIndex(currentIndex + direction, total);
     const wraps = (direction === -1 && currentIndex === 0) || (direction === 1 && currentIndex === total - 1);
 
+    markProgrammaticTarget(targetIndex);
     track.scrollTo({
       left: scrollLeftForIndex(track, targetIndex),
       behavior: wraps ? "auto" : "smooth"
     });
     setActiveIndex(targetIndex);
-  }, [visibleFeatures.length]);
+  }, [activeIndex, markProgrammaticTarget, visibleFeatures.length]);
 
   const scrollToIndex = useCallback((index: number) => {
     const track = trackRef.current;
     const targetIndex = loopIndex(index, visibleFeatures.length);
     if (!track || visibleFeatures.length <= 0) return;
+    markProgrammaticTarget(targetIndex);
     track.scrollTo({ left: scrollLeftForIndex(track, targetIndex), behavior: "smooth" });
     setActiveIndex(targetIndex);
-  }, [visibleFeatures.length]);
+  }, [markProgrammaticTarget, visibleFeatures.length]);
 
   const hasMultipleFeatures = visibleFeatures.length > 1;
 
