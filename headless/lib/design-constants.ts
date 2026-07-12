@@ -1,4 +1,5 @@
 import type { AreaView } from "@/lib/wp/types";
+import { OSAKA_CITY_IMAGES } from "@/lib/osaka-city-images";
 
 export const COLORS = {
   navy: "#143d4d",
@@ -66,8 +67,8 @@ export const AREA_FEATURES = [
     description:
       "堺筋本町・本町・北浜周辺で探しやすい店舗を、料金・営業時間・アクセス・口コミの見方で比較できます。",
     btnText: "堺筋本町の店舗を見る",
-    image: "/images/home/hero-pc.webp",
-    imageAlt: "堺筋本町周辺の都市イメージ"
+    image: OSAKA_CITY_IMAGES.cityscape,
+    imageAlt: "大阪中心部の街並み"
   },
   {
     slug: "shinosaka",
@@ -77,8 +78,8 @@ export const AREA_FEATURES = [
     description:
       "新大阪・東三国・西中島南方周辺の候補を、出張前後や夜の利用もしやすい条件で比較できます。",
     btnText: "新大阪の店舗を見る",
-    image: "/images/area-hub/banners/98ad9973-f78c-40a5-b539-be08b889c1a6.png",
-    imageAlt: "新大阪周辺のエリアイメージ"
+    image: OSAKA_CITY_IMAGES.shinsaibashiStreet,
+    imageAlt: "大阪の通り沿いの街並み"
   },
   {
     slug: "nihonbashi",
@@ -88,8 +89,8 @@ export const AREA_FEATURES = [
     description:
       "大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
     btnText: "日本橋の店舗を見る",
-    image: "/images/home/feature-nihonbashi-pc.webp",
-    imageAlt: "大阪日本橋エリアの街並み"
+    image: OSAKA_CITY_IMAGES.nambaStreet,
+    imageAlt: "大阪日本橋周辺の夜の街並み"
   },
   {
     slug: "umeda",
@@ -99,8 +100,8 @@ export const AREA_FEATURES = [
     description:
       "梅田・大阪駅・東梅田・西梅田周辺の店舗を、駅近・深夜営業・料金目安で比較できます。",
     btnText: "梅田の店舗を見る",
-    image: "/images/area-hub/banners/nihonbashi-hero-pc.webp",
-    imageAlt: "大阪梅田エリアの都市イメージ"
+    image: OSAKA_CITY_IMAGES.dotonboriNight,
+    imageAlt: "大阪の夜の繁華街"
   },
   {
     slug: "sakai",
@@ -110,8 +111,8 @@ export const AREA_FEATURES = [
     description:
       "堺・堺東・三国ヶ丘周辺で探す方向けに、料金・営業時間・アクセスを見比べやすく整理しています。",
     btnText: "堺の店舗を見る",
-    image: "/images/area-hub/banners/334dcc47-8ce8-4d20-ab6b-058e0ac0efbc.png",
-    imageAlt: "堺エリアのイメージ"
+    image: OSAKA_CITY_IMAGES.alley,
+    imageAlt: "大阪の路地の街並み"
   }
 ] as const satisfies readonly AreaFeatureItem[];
 

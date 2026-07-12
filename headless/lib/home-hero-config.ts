@@ -1,3 +1,5 @@
+import { OSAKA_CITY_IMAGES } from "@/lib/osaka-city-images";
+
 export type HomeHeroCta = {
   label: string;
   href: string;
@@ -16,14 +18,12 @@ export type HomeHeroConfig = {
   ctas: HomeHeroCta[];
 };
 
-const HOME_HERO_BASE = "/images/home";
-
 export const HOME_HERO_CONFIG: HomeHeroConfig = {
   eyebrow: "ESCOMI GUIDE",
   title: "関西メンズエステを\n口コミ・料金・エリアで探す",
   lead: "大阪・日本橋・難波・梅田など、目的に合う店舗を比較できます。",
-  pcImage: `${HOME_HERO_BASE}/hero-pc.webp`,
-  spImage: `${HOME_HERO_BASE}/hero-sp.webp`,
+  pcImage: OSAKA_CITY_IMAGES.cityscape,
+  spImage: OSAKA_CITY_IMAGES.nambaStreet,
   ctas: [
     { label: "大阪エリアを見る", href: "/area/osaka/", variant: "primary" },
     { label: "日本橋特集を見る", href: "/area/nihonbashi/", variant: "outline" },

@@ -7259,6 +7259,8 @@ img {
   flex-direction: row;
   align-items: stretch;
   gap: 0;
+  position: relative;
+  isolation: isolate;
   min-width: min(760px, 86%);
   max-width: min(760px, 86%);
   overflow: hidden;
@@ -7266,8 +7268,14 @@ img {
   padding: 0 !important;
   border: 1px solid rgba(176, 141, 62, 0.55);
   border-radius: 22px;
-  background: #fffdf6;
+  background-color: #172833;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    var(--area-feature-image);
+  background-position: center;
+  background-size: cover;
   box-shadow: 0 22px 58px rgba(176, 141, 62, 0.12);
+  color: #fff;
   scroll-snap-align: center;
 }
 
@@ -7276,15 +7284,33 @@ img {
   max-width: min(760px, 86%) !important;
   margin: 0 !important;
   border-radius: 22px !important;
+  background-color: #172833 !important;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+    var(--area-feature-image) !important;
+  background-position: center !important;
+  background-size: cover !important;
 }
 
 .escomi-final-feature-card__media {
   display: block;
-  flex: 0 0 42%;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   overflow: hidden;
   margin: 0;
-  border-radius: 22px 0 0 22px;
-  background: #f4efe2;
+  border-radius: inherit;
+  background: #172833;
+  opacity: 0;
+}
+
+.escomi-final-feature-card__media::after {
+  content: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
 }
 
 .escomi-final-feature-card__media img {
@@ -7294,6 +7320,7 @@ img {
   display: block;
   object-fit: cover;
   object-position: center;
+  filter: brightness(1.45) saturate(1.08) contrast(1.02);
   transition: transform 0.35s ease;
 }
 
@@ -7305,7 +7332,7 @@ img {
   display: grid;
   min-height: 430px;
   place-items: center;
-  color: var(--es-final-gold);
+  color: #fff;
   font-weight: 800;
 }
 
@@ -7315,11 +7342,14 @@ img {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  position: relative;
+  z-index: 2;
+  min-height: 430px;
   padding: clamp(1.35rem, 3vw, 2.1rem) clamp(1.35rem, 3vw, 2rem) !important;
 }
 
 .escomi-final-feature-card .p-areaFeature__sub {
-  color: var(--es-final-gold);
+  color: #e5c45d;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -7327,13 +7357,14 @@ img {
 
 .escomi-final-feature-card .p-areaFeature__title {
   margin: 0.75rem 0 0;
+  color: #fff;
   font-size: clamp(1.45rem, 2.7vw, 2rem);
   line-height: 1.45;
   min-height: 0;
 }
 
 .escomi-final-feature-card .p-areaFeature__desc {
-  color: var(--es-final-muted);
+  color: rgba(255, 255, 255, 0.9);
   display: -webkit-box;
   margin: 0.9rem 0 0;
   font-size: 0.9rem;
@@ -7352,21 +7383,22 @@ img {
 }
 
 .escomi-final-feature-card__stats div {
-  border: 1px solid var(--es-final-border);
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 10px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
   padding: 0.55rem;
 }
 
 .escomi-final-feature-card__stats dt {
-  color: var(--es-final-muted);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 0.68rem;
   font-weight: 700;
 }
 
 .escomi-final-feature-card__stats dd {
   margin: 0.15rem 0 0;
-  color: var(--es-final-ink);
+  color: #fff;
   font-size: 0.72rem;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -7383,9 +7415,10 @@ img {
   min-height: 44px;
   align-items: center;
   justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.42);
   border-radius: 999px;
-  background: var(--es-final-ink);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--es-final-ink);
   padding: 0.72rem 1.05rem;
   font-size: 0.86rem;
   font-weight: 800;
@@ -7478,19 +7511,19 @@ img {
   }
 
   .escomi-final-feature-card__media {
-    flex-basis: auto;
-    border-radius: 22px 22px 0 0;
+    border-radius: inherit;
   }
 
   .escomi-final-feature-card__media img,
   .escomi-final-feature-card__mediaFallback {
-    height: 180px;
-    min-height: 180px;
-    max-height: 180px;
+    height: 100%;
+    min-height: 100%;
+    max-height: none;
     aspect-ratio: auto;
   }
 
   .p-areaFeature .escomi-final-feature-card__body {
+    min-height: 560px;
     padding: 1.35rem 1.25rem 1.45rem !important;
   }
 
@@ -8378,24 +8411,25 @@ img {
 
 .escomi-home-search-v2 {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) clamp(86px, 16vw, 116px);
   border: 3px solid #0f8995;
-  border-radius: 10px;
+  border-radius: 14px;
   background: #fff;
   box-shadow: 0 18px 42px rgba(15, 137, 149, 0.08);
-  max-width: 680px;
-  min-height: 66px;
+  max-width: 720px;
+  min-height: 60px;
   margin-top: clamp(28px, 4vw, 46px);
   overflow: hidden;
 }
 
 .escomi-home-search-v2__input {
+  width: 100%;
   border: 0;
   color: #26333b;
   font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
-  font-size: 1rem;
+  font-size: clamp(0.86rem, 1.8vw, 1rem);
   font-weight: 800;
-  padding: 0 1.45rem;
+  padding: 0 clamp(0.9rem, 2.8vw, 1.45rem);
   min-width: 0;
 }
 
@@ -8407,11 +8441,12 @@ img {
   border: 0;
   background: #0f8995;
   color: #fff;
+  cursor: pointer;
   font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 2.2vw, 1.04rem);
   font-weight: 900;
-  min-width: 104px;
-  padding: 0 1.8rem;
+  min-width: 0;
+  padding: 0 clamp(0.8rem, 2.6vw, 1.15rem);
 }
 
 .escomi-home-popular-v2 {
@@ -9097,7 +9132,20 @@ img {
   }
 
   .escomi-home-search-v2 {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 86px;
+    min-height: 56px;
+    border-width: 2px;
+    border-radius: 12px;
+  }
+
+  .escomi-home-search-v2__input {
+    font-size: 0.82rem;
+    padding-inline: 0.85rem;
+  }
+
+  .escomi-home-search-v2__button {
+    min-height: 0;
+    padding-inline: 0.5rem;
   }
 
   .escomi-home-hero-v2__title {
@@ -9112,10 +9160,6 @@ img {
 
   .escomi-home-hero-v2__lead {
     line-height: 1.85;
-  }
-
-  .escomi-home-search-v2__button {
-    min-height: 54px;
   }
 
   .escomi-prefecture-grid-v2,

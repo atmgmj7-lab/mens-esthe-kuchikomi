@@ -1,3 +1,5 @@
+import { OSAKA_CITY_IMAGES } from "@/lib/osaka-city-images";
+
 export type HomeFeatureBannerConfig = {
   eyebrow: string;
   title: string;
@@ -14,6 +16,6 @@ export const HOME_NIHONBASHI_FEATURE_BANNER: HomeFeatureBannerConfig = {
   lead: "口コミ・料金・営業時間で比較できる日本橋エリアの店舗一覧。",
   ctaLabel: "日本橋特集を見る",
   ctaHref: "/area/nihonbashi/",
-  pcImage: "/images/home/feature-nihonbashi-banner-pc.webp",
-  spImage: "/images/home/feature-nihonbashi-banner-sp.webp"
+  pcImage: OSAKA_CITY_IMAGES.nambaStreet,
+  spImage: OSAKA_CITY_IMAGES.neonStreet
 };

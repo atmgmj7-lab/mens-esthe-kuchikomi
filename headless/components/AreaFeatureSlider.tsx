@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AreaFeatureItem } from "@/lib/design-constants";
 import type { AreaView } from "@/lib/wp/types";
@@ -105,8 +106,17 @@ export function AreaFeatureSlider({
       >
         {visibleFeatures.map((feature) => {
           const count = areaCount(areas, feature.slug);
+          const cardStyle = feature.image
+            ? ({ ["--area-feature-image" as string]: `url("${feature.image}")` } as CSSProperties)
+            : undefined;
+
           return (
-            <article className="p-areaFeature__item escomi-final-feature-card hl-card-hover" key={feature.slug} role="listitem">
+            <article
+              className="p-areaFeature__item escomi-final-feature-card hl-card-hover"
+              key={feature.slug}
+              role="listitem"
+              style={cardStyle}
+            >
               <Link className="escomi-final-feature-card__media" href={feature.href} aria-label={`${feature.title}を見る`}>
                 {feature.image ? (
                   <img

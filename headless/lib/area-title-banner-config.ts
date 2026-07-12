@@ -1,3 +1,5 @@
+import { OSAKA_CITY_IMAGES } from "@/lib/osaka-city-images";
+
 /**
  * エリアトップ用タイトルバナー（PC/SP別背景画像 + HTMLテキスト）。
  * 対象エリアのみ設定を追加して展開する。
@@ -12,15 +14,13 @@ export type AreaTitleBannerConfig = {
   spImage: string;
 };
 
-const BANNER_BASE = "/images/area-hub/banners";
-
 export const AREA_TITLE_BANNERS: Record<string, AreaTitleBannerConfig> = {
   nihonbashi: {
     eyebrow: "AREA FEATURE",
     title: "日本橋で、自分に合う\nメンズエステを見つける",
     lead: "口コミ・料金・営業時間で比較",
-    pcImage: `${BANNER_BASE}/nihonbashi-hero2-pc.png`,
-    spImage: `${BANNER_BASE}/nihonbashi-hero-sp.webp`
+    pcImage: OSAKA_CITY_IMAGES.nambaStreet,
+    spImage: OSAKA_CITY_IMAGES.neonStreet
   }
 };
 

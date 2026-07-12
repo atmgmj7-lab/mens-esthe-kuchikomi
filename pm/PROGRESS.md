@@ -2,6 +2,38 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-12 トップ検索欄・大阪特集エリア背景画像修正
+
+#### 実行したTask ID
+- 緊急UI修正: トップページ検索欄の幅配分改善、女性イラストバナー素材の撤去、街並み写真背景への差し替え。
+
+#### 変更したファイル
+- `functions.php`
+- `headless/components/AreaFeatureSlider.tsx`
+- `headless/app/globals.css`
+- `headless/lib/design-constants.ts`
+- `headless/lib/osaka-city-images.ts`
+- `headless/lib/home-hero-config.ts`
+- `headless/lib/home-feature-banner-config.ts`
+- `headless/lib/area-title-banner-config.ts`
+- `headless/lib/area-hub-banner-config.ts`
+- `headless/public/images/home/*`
+- `headless/public/images/area-hub/banners/*`
+- `headless/public/images/area-hub/characters/*`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- トップページ検索フォームをスマホでも横並びに保ち、入力欄を広く、検索ボタンを86px前後へ抑制。
+- 大阪の特集エリアスライダーを、街並み写真をカード全面背景に敷く形式へ変更。
+- 黒50%オーバーレイをカード背景側に設定し、文字の可読性を確保。
+- 女性イラスト系のローカルバナー画像と参照設定を削除。
+- WordPress側のトップ特集エリア初期画像も街並み写真URLへ差し替え。
+
+#### テスト結果
+- `php -l functions.php` 成功。
+- `npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、`git diff --check` 成功。
+- Playwrightでトップページを確認。スマホ検索欄は入力264px・ボタン86px、旧ローカル画像参照0件、特集カード背景は街並み写真 + 黒50%を確認。
+
 ### 2026-07-12 大阪の特集エリア画像付きスライダー・管理画面化
 
 #### 実行したTask ID
