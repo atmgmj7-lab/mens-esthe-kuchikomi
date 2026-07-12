@@ -48,15 +48,59 @@ export const KANSAI_TILE_IMAGES: Record<string, string> = {
 
 export const AREA_FEATURES = [
   {
+    slug: "sakaisuji-hommachi",
+    href: "/area/sakaisuji-hommachi/",
+    subtitle: "堺筋本町エリア特集",
+    title: "堺筋本町メンズエステおすすめ一覧",
+    description:
+      "堺筋本町・本町・北浜周辺で探しやすい店舗を、料金・営業時間・アクセス・口コミの見方で比較できます。",
+    btnText: "堺筋本町の店舗を見る",
+    image: "/images/home/hero-pc.webp",
+    imageAlt: "堺筋本町周辺の都市イメージ"
+  },
+  {
+    slug: "shinosaka",
+    href: "/area/shinosaka/",
+    subtitle: "新大阪エリア特集",
+    title: "新大阪メンズエステおすすめ一覧",
+    description:
+      "新大阪・東三国・西中島南方周辺の候補を、出張前後や夜の利用もしやすい条件で比較できます。",
+    btnText: "新大阪の店舗を見る",
+    image: "/images/area-hub/banners/98ad9973-f78c-40a5-b539-be08b889c1a6.png",
+    imageAlt: "新大阪周辺のエリアイメージ"
+  },
+  {
     slug: "nihonbashi",
     href: "/area/nihonbashi/",
     subtitle: "日本橋エリア特集",
     title: "大阪日本橋メンズエステおすすめ一覧",
     description:
       "大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
-    btnText: "大阪日本橋メンズエステおすすめ一覧を見る",
-    image: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",
+    btnText: "日本橋の店舗を見る",
+    image: "/images/home/feature-nihonbashi-pc.webp",
     imageAlt: "大阪日本橋エリアの街並み"
+  },
+  {
+    slug: "umeda",
+    href: "/area/umeda/",
+    subtitle: "梅田エリア特集",
+    title: "大阪梅田メンズエステおすすめ一覧",
+    description:
+      "梅田・大阪駅・東梅田・西梅田周辺の店舗を、駅近・深夜営業・料金目安で比較できます。",
+    btnText: "梅田の店舗を見る",
+    image: "/images/area-hub/banners/nihonbashi-hero-pc.webp",
+    imageAlt: "大阪梅田エリアの都市イメージ"
+  },
+  {
+    slug: "sakai",
+    href: "/area/sakai/",
+    subtitle: "堺エリア特集",
+    title: "堺メンズエステおすすめ一覧",
+    description:
+      "堺・堺東・三国ヶ丘周辺で探す方向けに、料金・営業時間・アクセスを見比べやすく整理しています。",
+    btnText: "堺の店舗を見る",
+    image: "/images/area-hub/banners/334dcc47-8ce8-4d20-ab6b-058e0ac0efbc.png",
+    imageAlt: "堺エリアのイメージ"
   }
 ] as const;
 

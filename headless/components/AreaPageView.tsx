@@ -153,7 +153,7 @@ export function AreaPageView({
               />
             </>
           ) : (
-            <EmptyState title="店舗が見つかりません" text="WordPress側のエリア紐付けを確認してください。" />
+            <EmptyState title="店舗が見つかりません" text="このエリアの店舗情報は現在準備中です。近隣エリアもあわせてご確認ください。" />
           )}
         </section>
 

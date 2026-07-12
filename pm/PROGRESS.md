@@ -2,6 +2,31 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-12 大阪の特集エリア本番表示修正
+
+#### 実行したTask ID
+- 緊急UI修正: トップページ「大阪の特集エリア」表示。
+
+#### 変更したファイル
+- `headless/components/AreaFeatureSection.tsx`
+- `headless/lib/design-constants.ts`
+- `headless/app/globals.css`
+- `headless/components/AreaPageView.tsx`
+- `headless/components/AnalyticsDashboard.tsx`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- お客様に見えるトップページ文言から `WordPress` 表記を削除。
+- 「重点エリア特集」を「大阪の特集エリア」に変更。
+- 堺筋本町、新大阪、日本橋、梅田、堺の5エリアを指定順で表示。
+- 特集エリアを横スクロール可能な5枚カード構成に変更。
+- WordPress子テーマCSSの既存指定に負けないよう、該当セクションだけカード幅を上書き。
+
+#### テスト結果
+- ローカルHTML確認: `WordPress` 表記0件、5エリア表示・順番OK。
+- Playwrightスクリーンショット確認: PCは5枚横並び、スマホは横スクロール表示。
+- `npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、`git diff --check` は成功。
+
 ### 2026-07-11 Q-00計画修正（公開中ヘッドレスNext.js基準）
 
 #### 実行したTask ID

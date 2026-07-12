@@ -9,20 +9,20 @@ function areaCount(areas: AreaView[], slug: string): number | null {
 }
 
 export function AreaFeatureSection({ areas = [] }: { areas?: AreaView[] }) {
-  const features = AREA_FEATURES.slice(0, 2);
+  const features = AREA_FEATURES;
 
   return (
     <section className="l-section p-areaFeature escomi-final-feature-section hl-fade-in">
       <div className="l-container mep-container">
         <div className="p-areaFeature__header">
-          <SectionTitle en="FEATURED AREAS" jp="重点エリア特集" center />
+          <SectionTitle en="OSAKA FEATURED AREAS" jp="大阪の特集エリア" center />
           <p className="escomi-final-feature-section__lead">
-            画像付きで比較しやすい重点エリアだけを表示します。件数はWordPressのエリア集計を使用します。
+            大阪で探されやすい主要エリアを、店舗数・料金・口コミの確認導線とあわせてまとめています。
           </p>
         </div>
-        <div className="p-areaFeature__list escomi-final-feature-grid">
+        <div className="p-areaFeature__list escomi-final-feature-grid" aria-label="大阪の特集エリア">
           {features.map((feature) => {
-            const featureHref = feature.href || `/area/${feature.slug}/`;
+            const featureHref = feature.href;
             const count = areaCount(areas, feature.slug);
             return (
               <article className="p-areaFeature__item escomi-final-feature-card hl-card-hover" key={feature.slug}>
@@ -30,7 +30,7 @@ export function AreaFeatureSection({ areas = [] }: { areas?: AreaView[] }) {
                   <Link href={featureHref} className="c-card__thumb" aria-label={`${feature.title}を見る`}>
                     <img
                       src={feature.image}
-                      alt={feature.imageAlt || feature.title}
+                      alt={feature.imageAlt}
                       width={800}
                       height={450}
                       loading="lazy"

@@ -355,7 +355,7 @@ export default function AnalyticsDashboard({
             )
           ) : (
             <span className="px-2 py-1 rounded-full bg-zinc-900/60 text-zinc-300 border border-zinc-700">
-              データ元: WordPress連携
+              データ元: 連携データ
             </span>
           )}
           {searchConsoleConnected ? (
