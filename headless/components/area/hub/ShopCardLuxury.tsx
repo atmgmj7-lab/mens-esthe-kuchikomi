@@ -21,10 +21,12 @@ import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export function ShopCardLuxury({
   shop,
-  targetArea
+  targetArea,
+  rank = null
 }: {
   shop: ShopView;
   targetArea: Pick<AreaView, "slug" | "name">;
+  rank?: number | null;
 }) {
   const tags = shopFeatureTags(shop, targetArea);
   const editorComment = buildEditorCommentShort(shop, targetArea);
@@ -32,6 +34,12 @@ export function ShopCardLuxury({
 
   return (
     <article className="shop-card-luxury hl-card-hover">
+      {rank ? (
+        <div className="shop-card-luxury__rank" aria-label={`おすすめランキング${rank}位`}>
+          <span className="shop-card-luxury__rank-num">{rank}</span>
+          <span className="shop-card-luxury__rank-label">位</span>
+        </div>
+      ) : null}
       <Link href={`/shops/${shop.slug}/`} className="shop-card-luxury__media">
         <ShopImageThumb src={shop.imageUrl} alt={shop.title} size="card" />
       </Link>

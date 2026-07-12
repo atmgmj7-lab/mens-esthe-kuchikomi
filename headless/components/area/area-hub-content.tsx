@@ -15,6 +15,10 @@ import { RankingHeroCards } from "@/components/area/hub/RankingHeroCards";
 import { RankingSpecialtyPagedList } from "@/components/area/hub/RankingSpecialtyPagedList";
 import { RankingTabs } from "@/components/area/hub/RankingTabs";
 import {
+  orderShopsForAreaRanking,
+  type AreaShopRankingEntry
+} from "@/lib/area-shop-ranking";
+import {
   type AreaHubContext,
   extractShopConfirmedPriceYen,
   hasPublishedPrice,
@@ -24,8 +28,7 @@ import {
   sortShopsForRanking
 } from "@/lib/area-shop-utils";
 import {
-  buildRankingIntro,
-  selectRankingTopShops
+  buildRankingIntro
 } from "@/lib/shop-ranking";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -120,7 +123,6 @@ function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, 
   const minPrice = prices.length ? Math.min(...prices) : null;
   const maxPrice = prices.length ? Math.max(...prices) : null;
   const sortedRanking = sortShopsForRanking(rankingShops, targetArea);
-  const topFive = selectRankingTopShops(rankingShops, targetArea, 5);
 
   return {
     lateNightShops,
@@ -129,8 +131,7 @@ function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, 
     pricedShops,
     minPrice,
     maxPrice,
-    sortedRanking,
-    topFive
+    sortedRanking
   };
 }
 
@@ -138,13 +139,15 @@ function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, 
 export function AreaHubRankingTop({
   rankingShops,
   targetArea,
-  hubContext
+  hubContext,
+  rankingEntries = []
 }: {
   rankingShops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   hubContext: AreaHubContext;
+  rankingEntries?: AreaShopRankingEntry[];
 }) {
-  const { topFive } = useRankingBuckets(rankingShops, targetArea);
+  const topFive = orderShopsForAreaRanking(rankingShops, targetArea, rankingEntries).slice(0, 5);
 
   if (topFive.length === 0) return null;
 

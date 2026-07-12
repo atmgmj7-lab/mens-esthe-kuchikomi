@@ -2,6 +2,40 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-12 エリア別おすすめランキング管理・表示
+
+#### 実行したTask ID
+- エリアページの店舗一覧におすすめランキング1〜5位を表示し、WordPress管理画面からエリア別に順位を指定できるようにする。
+
+#### 変更したファイル
+- `functions.php`
+- `headless/app/area/[slug]/page.tsx`
+- `headless/app/globals.css`
+- `headless/components/AreaPageView.tsx`
+- `headless/components/ShopCard.tsx`
+- `headless/components/area/AreaHubPageTemplate.tsx`
+- `headless/components/area/area-hub-content.tsx`
+- `headless/components/area/hub/AreaShopList.tsx`
+- `headless/components/area/hub/RankingHeroCards.tsx`
+- `headless/components/area/hub/ShopCardLuxury.tsx`
+- `headless/lib/area-shop-list-controls.ts`
+- `headless/lib/area-shop-ranking.ts`
+- `headless/lib/wp/area-shop-rankings.ts`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- WordPress管理画面「設定 → エリア別ランキング」を追加。
+- 管理画面で各エリアslugごとに、1〜5位の店舗slugを入力できるようにした。
+- REST `GET /wp-json/escomi/v1/area-shop-rankings` を追加。
+- 手動順位が未設定のエリアでも、おすすめ順の上位5件に1位〜5位バッジを表示。
+- ハブテンプレートと通常エリアページの両方で、同じランキングロジックを使うようにした。
+- PR店舗には自然ランキング番号を付けない既存方針を維持。
+
+#### テスト結果
+- `php -l functions.php` 成功。
+- `npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、`git diff --check` 成功。
+- Playwrightでローカル確認。`/area/nihonbashi/` と `/area/osaka/` の店舗一覧に1位〜5位バッジが出ることを確認。
+
 ### 2026-07-12 大阪特集エリアスライダー無限ループ化
 
 #### 実行したTask ID

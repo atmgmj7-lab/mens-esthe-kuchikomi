@@ -12,11 +12,13 @@ function areaLabel(shop: ShopView): string {
 export function ShopCard({
   shop,
   compact = false,
-  variant = "default"
+  variant = "default",
+  rank = null
 }: {
   shop: ShopView;
   compact?: boolean;
   variant?: "default" | "new";
+  rank?: number | null;
 }) {
   const priceDisplay = resolvePriceDisplay(shop);
   const hours = safeText(shop.acf.shop_hours);
@@ -28,6 +30,11 @@ export function ShopCard({
   if (compact) {
     return (
       <article className="shop-list-row hl-card-hover">
+        {rank ? (
+          <span className="shop-list-row__rank" aria-label={`おすすめランキング${rank}位`}>
+            {rank}位
+          </span>
+        ) : null}
         <Link className="shop-row-img" href={`/shops/${shop.slug}/`}>
           <img
             className="shop-thumb"

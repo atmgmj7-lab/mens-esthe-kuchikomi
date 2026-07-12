@@ -7,6 +7,11 @@ import { Pagination } from "@/components/Pagination";
 import { EsSectionTitle } from "@/components/SectionTitle";
 import { ShopCard } from "@/components/ShopCard";
 import { resolveMapEmbedUrl } from "@/lib/design-constants";
+import {
+  areaRankForShop,
+  orderShopsForAreaRanking,
+  type AreaShopRankingEntry
+} from "@/lib/area-shop-ranking";
 import { safeText } from "@/lib/wp/client";
 import { areaBreadcrumbJsonLd, asFaqRows, faqJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
@@ -19,7 +24,8 @@ export function AreaPageView({
   parentArea,
   currentPage = 1,
   totalPages = 1,
-  seoShops
+  seoShops,
+  rankingEntries = []
 }: {
   area: AreaView;
   shops: ShopView[];
@@ -29,8 +35,10 @@ export function AreaPageView({
   currentPage?: number;
   totalPages?: number;
   seoShops?: ShopView[];
+  rankingEntries?: AreaShopRankingEntry[];
 }) {
   const guideShops = seoShops ?? shops;
+  const rankedShops = orderShopsForAreaRanking(shops, area, rankingEntries);
   const isParentArea = area.parent === 0;
   const characteristics = safeText(area.acf.area_characteristics, area.description);
   const column = sanitizeAreaHtml(area.slug, safeText(area.acf.area_column_content));
@@ -142,8 +150,13 @@ export function AreaPageView({
           {shops.length > 0 ? (
             <>
               <div className="wolfman-list-container">
-                {shops.map((shop) => (
-                  <ShopCard key={shop.id} shop={shop} compact />
+                {rankedShops.map((shop) => (
+                  <ShopCard
+                    key={shop.id}
+                    shop={shop}
+                    compact
+                    rank={currentPage === 1 ? areaRankForShop(shop, rankedShops) : null}
+                  />
                 ))}
               </div>
               <Pagination

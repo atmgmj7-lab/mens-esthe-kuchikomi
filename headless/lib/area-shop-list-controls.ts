@@ -9,6 +9,7 @@ import {
   shopReviewCount,
   sortShopsForRanking
 } from "@/lib/area-shop-utils";
+import { orderShopsForAreaRanking, type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import { safeText } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -100,13 +101,14 @@ export function filterAreaShops(
 export function sortAreaShops(
   shops: ShopView[],
   sortId: ShopListSortId,
-  targetArea: Pick<AreaView, "slug" | "name">
+  targetArea: Pick<AreaView, "slug" | "name">,
+  rankingEntries: AreaShopRankingEntry[] = []
 ): ShopView[] {
   const list = [...shops];
 
   switch (sortId) {
     case "recommended":
-      return sortShopsForRanking(list, targetArea);
+      return orderShopsForAreaRanking(list, targetArea, rankingEntries);
     case "updated":
       return list.sort((a, b) => shopUpdatedTimestamp(b) - shopUpdatedTimestamp(a));
     case "price-asc":
@@ -139,7 +141,8 @@ export function prepareAreaShopListView(
   shops: ShopView[],
   filters: ShopListFilterId[],
   sortId: ShopListSortId,
-  targetArea: Pick<AreaView, "slug" | "name">
+  targetArea: Pick<AreaView, "slug" | "name">,
+  rankingEntries: AreaShopRankingEntry[] = []
 ): ShopView[] {
-  return sortAreaShops(filterAreaShops(shops, filters, targetArea), sortId, targetArea);
+  return sortAreaShops(filterAreaShops(shops, filters, targetArea), sortId, targetArea, rankingEntries);
 }

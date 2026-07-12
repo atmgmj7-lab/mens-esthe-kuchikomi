@@ -17,6 +17,7 @@ import {
   resolveAreaHubContext,
   resolveLastUpdatedLabel
 } from "@/lib/area-shop-utils";
+import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -75,7 +76,8 @@ export function AreaHubPageTemplate({
   legacyPage = 1,
   parentArea,
   siblingAreas = [],
-  childAreas = []
+  childAreas = [],
+  rankingEntries = []
 }: {
   area: AreaView;
   allShops: ShopView[];
@@ -83,6 +85,7 @@ export function AreaHubPageTemplate({
   parentArea?: AreaView | null;
   siblingAreas?: AreaView[];
   childAreas?: AreaView[];
+  rankingEntries?: AreaShopRankingEntry[];
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
@@ -177,14 +180,24 @@ export function AreaHubPageTemplate({
           ))}
         </nav>
 
-        <AreaHubRankingTop rankingShops={allShops} targetArea={area} hubContext={hubContext} />
+        <AreaHubRankingTop
+          rankingShops={allShops}
+          targetArea={area}
+          hubContext={hubContext}
+          rankingEntries={rankingEntries}
+        />
         <AreaPromotionSection shops={allShops} targetArea={area} />
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
           <p className="area-hub-section__intro">{hubContext.shopListIntro}</p>
           {allShops.length > 0 ? (
-            <AreaShopList shops={allShops} targetArea={area} legacyPage={legacyPage} />
+            <AreaShopList
+              shops={allShops}
+              targetArea={area}
+              legacyPage={legacyPage}
+              rankingEntries={rankingEntries}
+            />
           ) : (
             <p className="area-hub-section__empty">店舗情報を準備中です。</p>
           )}

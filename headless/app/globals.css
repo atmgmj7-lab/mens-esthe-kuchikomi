@@ -1495,6 +1495,29 @@ img {
   gap: 8px;
 }
 
+.shop-list-row {
+  position: relative;
+}
+
+.shop-list-row__rank {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f5df8c, #b88a2a);
+  color: #1f2f36;
+  font-size: 0.86rem;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(85, 61, 16, 0.22);
+}
+
 .shop-row-img {
   width: 100px;
 }
@@ -3953,6 +3976,7 @@ img {
 }
 
 .shop-card-luxury {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr;
   gap: 14px;
@@ -3960,6 +3984,36 @@ img {
   border-radius: var(--radius-card);
   background: var(--color-luxury-card);
   box-shadow: var(--shadow-luxury-card);
+}
+
+.shop-card-luxury__rank {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  min-width: 58px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f8e49a 0%, #d6b957 48%, #af8424 100%);
+  color: #1f2f36;
+  box-shadow: 0 14px 32px rgba(94, 68, 18, 0.22);
+}
+
+.shop-card-luxury__rank-num {
+  font-family: var(--hl-serif);
+  font-size: 1.28rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.shop-card-luxury__rank-label {
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .shop-card-luxury__media {

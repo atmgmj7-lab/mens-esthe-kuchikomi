@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
 import { AreaFilterChips } from "@/components/area/hub/AreaFilterChips";
 import { AreaSortTabs } from "@/components/area/hub/AreaSortTabs";
+import { areaRankForShop, type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
   prepareAreaShopListView,
   SHOP_LIST_FILTER_OPTIONS,
@@ -40,11 +41,13 @@ function useShopListPageSize() {
 export function AreaShopList({
   shops,
   targetArea,
-  legacyPage = 1
+  legacyPage = 1,
+  rankingEntries = []
 }: {
   shops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   legacyPage?: number;
+  rankingEntries?: AreaShopRankingEntry[];
 }) {
   const pageSize = useShopListPageSize();
   const [activeFilters, setActiveFilters] = useState<ShopListFilterId[]>([]);
@@ -52,8 +55,8 @@ export function AreaShopList({
   const [visibleCount, setVisibleCount] = useState(pageSize.initial);
 
   const orderedShops = useMemo(
-    () => prepareAreaShopListView(shops, activeFilters, activeSort, targetArea),
-    [shops, activeFilters, activeSort, targetArea]
+    () => prepareAreaShopListView(shops, activeFilters, activeSort, targetArea, rankingEntries),
+    [shops, activeFilters, activeSort, targetArea, rankingEntries]
   );
 
   useEffect(() => {
@@ -120,13 +123,14 @@ export function AreaShopList({
           <div className="area-hub-shop-group__list">
             {orderedShops.map((shop) => {
               const visible = visibleShops.some((item) => item.id === shop.id);
+              const rank = activeSort === "recommended" ? areaRankForShop(shop, orderedShops) : null;
               return (
                 <div
                   key={shop.id}
                   className={`area-shop-list-interactive__item${visible ? "" : " is-collapsed"}`}
                   hidden={!visible}
                 >
-                  <ShopCardLuxury shop={shop} targetArea={targetArea} />
+                  <ShopCardLuxury shop={shop} targetArea={targetArea} rank={rank} />
                 </div>
               );
             })}

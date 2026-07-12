@@ -438,6 +438,215 @@ add_action( 'rest_api_init', function () {
     ) );
 }, PHP_INT_MAX );
 
+/* 1.7 エリア別おすすめランキング管理設定 + REST公開 */
+function escomi_default_area_shop_ranking_slugs() {
+    return array( 'osaka', 'sakaisuji-hommachi', 'shinosaka', 'nihonbashi', 'umeda', 'sakai' );
+}
+
+function escomi_area_shop_ranking_split_slugs( $value ) {
+    if ( is_array( $value ) ) {
+        $parts = $value;
+    } else {
+        $parts = preg_split( '/[\r\n,、]+/', (string) $value );
+    }
+
+    $slugs = array();
+    foreach ( $parts as $part ) {
+        $slug = sanitize_title( trim( (string) $part ) );
+        if ( $slug === '' || in_array( $slug, $slugs, true ) ) {
+            continue;
+        }
+        $slugs[] = $slug;
+        if ( count( $slugs ) >= 5 ) {
+            break;
+        }
+    }
+
+    return $slugs;
+}
+
+function escomi_sanitize_area_shop_rankings( $items ) {
+    $items = is_array( $items ) ? $items : array();
+    $normalized = array();
+
+    foreach ( $items as $area_slug => $item ) {
+        $area_slug = sanitize_title( (string) $area_slug );
+        if ( $area_slug === '' ) {
+            continue;
+        }
+
+        $item = is_array( $item ) ? $item : array();
+        $shop_slugs = escomi_area_shop_ranking_split_slugs( $item['shopSlugs'] ?? ( $item['shop_slugs'] ?? array() ) );
+
+        $normalized[ $area_slug ] = array(
+            'enabled'   => ! empty( $item['enabled'] ),
+            'shopSlugs' => $shop_slugs,
+        );
+    }
+
+    return $normalized;
+}
+
+function escomi_get_area_shop_ranking_rows() {
+    $stored = get_option( 'escomi_area_shop_rankings', array() );
+    $stored = is_array( $stored ) ? escomi_sanitize_area_shop_rankings( $stored ) : array();
+    $slugs = escomi_default_area_shop_ranking_slugs();
+
+    $terms = get_terms( array(
+        'taxonomy'   => 'area',
+        'hide_empty' => false,
+    ) );
+
+    if ( ! is_wp_error( $terms ) ) {
+        foreach ( $terms as $term ) {
+            if ( ! empty( $term->slug ) && ! in_array( $term->slug, $slugs, true ) ) {
+                $slugs[] = $term->slug;
+            }
+        }
+    }
+
+    foreach ( array_keys( $stored ) as $slug ) {
+        if ( ! in_array( $slug, $slugs, true ) ) {
+            $slugs[] = $slug;
+        }
+    }
+
+    $rows = array();
+    foreach ( $slugs as $slug ) {
+        $term = get_term_by( 'slug', $slug, 'area' );
+        $rows[] = array(
+            'slug'  => $slug,
+            'name'  => $term && ! is_wp_error( $term ) ? $term->name : $slug,
+            'value' => $stored[ $slug ] ?? array(
+                'enabled'   => true,
+                'shopSlugs' => array(),
+            ),
+        );
+    }
+
+    return $rows;
+}
+
+function escomi_get_area_shop_rankings() {
+    $stored = get_option( 'escomi_area_shop_rankings', array() );
+    $stored = is_array( $stored ) ? escomi_sanitize_area_shop_rankings( $stored ) : array();
+    $rankings = array();
+
+    foreach ( $stored as $area_slug => $item ) {
+        if ( empty( $item['enabled'] ) || empty( $item['shopSlugs'] ) ) {
+            continue;
+        }
+
+        $rankings[ $area_slug ] = array();
+        foreach ( array_values( $item['shopSlugs'] ) as $index => $shop_slug ) {
+            $rankings[ $area_slug ][] = array(
+                'rank'     => $index + 1,
+                'shopSlug' => $shop_slug,
+            );
+        }
+    }
+
+    return $rankings;
+}
+
+add_action( 'admin_init', function () {
+    register_setting(
+        'escomi_area_shop_rankings_group',
+        'escomi_area_shop_rankings',
+        array(
+            'type'              => 'array',
+            'sanitize_callback' => 'escomi_sanitize_area_shop_rankings',
+            'default'           => array(),
+        )
+    );
+} );
+
+add_action( 'admin_menu', function () {
+    add_options_page(
+        'エリア別ランキング',
+        'エリア別ランキング',
+        'manage_options',
+        'escomi-area-shop-rankings',
+        'escomi_render_area_shop_rankings_admin'
+    );
+} );
+
+function escomi_render_area_shop_rankings_admin() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    $rows = escomi_get_area_shop_ranking_rows();
+    ?>
+    <div class="wrap">
+        <h1>エリア別ランキング</h1>
+        <p>各エリアページのおすすめランキング1〜5位を店舗slugで指定します。未入力のエリアは、公開情報・料金・営業時間・アクセス情報をもとにしたおすすめ順の上位5件を自動表示します。</p>
+        <form method="post" action="options.php">
+            <?php settings_fields( 'escomi_area_shop_rankings_group' ); ?>
+            <table class="widefat striped" style="max-width: 1120px;">
+                <thead>
+                    <tr>
+                        <th style="width:90px;">手動指定</th>
+                        <th style="width:220px;">エリア</th>
+                        <th>1〜5位の店舗slug</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $rows as $row ) : ?>
+                        <?php
+                        $slug = $row['slug'];
+                        $value = is_array( $row['value'] ) ? $row['value'] : array();
+                        $enabled = array_key_exists( 'enabled', $value ) ? ! empty( $value['enabled'] ) : true;
+                        $shop_slugs = implode( "\n", $value['shopSlugs'] ?? array() );
+                        ?>
+                        <tr>
+                            <td>
+                                <label>
+                                    <input type="checkbox" name="escomi_area_shop_rankings[<?php echo esc_attr( $slug ); ?>][enabled]" value="1" <?php checked( $enabled ); ?>>
+                                    使う
+                                </label>
+                            </td>
+                            <td>
+                                <strong><?php echo esc_html( $row['name'] ); ?></strong>
+                                <p class="description">slug: <code><?php echo esc_html( $slug ); ?></code></p>
+                            </td>
+                            <td>
+                                <textarea
+                                    class="large-text code"
+                                    rows="5"
+                                    name="escomi_area_shop_rankings[<?php echo esc_attr( $slug ); ?>][shopSlugs]"
+                                    placeholder="1行目: 1位の店舗slug&#10;2行目: 2位の店舗slug&#10;最大5件"
+                                ><?php echo esc_textarea( $shop_slugs ); ?></textarea>
+                                <p class="description">店舗詳細URLの末尾にあるslugを、1位から順に1行ずつ入力します。カンマ区切りでも保存できます。</p>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php submit_button( 'ランキングを保存する' ); ?>
+        </form>
+    </div>
+    <?php
+}
+
+add_action( 'update_option_escomi_area_shop_rankings', function () {
+    if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
+        escomi_headless_queue_revalidate( 'area_shop_rankings_update' );
+    }
+}, 10, 0 );
+
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'escomi/v1', '/area-shop-rankings', array(
+        'methods'             => array( 'GET' ),
+        'callback'            => function () {
+            return rest_ensure_response( array(
+                'rankings' => escomi_get_area_shop_rankings(),
+            ) );
+        },
+        'permission_callback' => '__return_true',
+    ) );
+}, PHP_INT_MAX );
+
 // escomi/v1/update フォールバック登録（PHP_INT_MAX = ai-update-log.php より後に実行 → mu-plugin 上書きに勝つ）
 add_action( 'rest_api_init', function () {
     if ( function_exists( 'handle_ai_shop_update_final' ) ) {

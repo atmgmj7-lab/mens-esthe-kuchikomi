@@ -1,10 +1,11 @@
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
-import { canReceiveNaturalRankNumber } from "@/lib/shop-ranking";
 import Link from "next/link";
 import { AreaHubThemeIcon } from "@/components/area/hub/AreaHubThemeIcon";
 import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";
 import { ShopInfoChips } from "@/components/area/hub/ShopInfoChips";
 import { PriceLabel } from "@/components/common/PriceLabel";
+import { canDisplayAreaShopRank } from "@/lib/area-shop-ranking";
+import { canReceiveNaturalRankNumber } from "@/lib/shop-ranking";
 import {
   resolveShopLastVerifiedLabel,
   shopFeatureTags,
@@ -39,7 +40,7 @@ export function RankingHeroCards({
 }) {
   return (
     <div className="ranking-list">
-      {shops.filter((shop) => canReceiveNaturalRankNumber(shop)).map((shop, index) => {
+      {shops.filter((shop) => canReceiveNaturalRankNumber(shop) || canDisplayAreaShopRank(shop)).map((shop, index) => {
         const rank = index + 1;
         const tags = shopFeatureTags(shop, targetArea)
           .filter((tag) => !HIDDEN_TAG_LABELS.has(tag))

@@ -11,6 +11,7 @@ import {
   resolveAreaHubPageDescription,
   resolveAreaHubPageTitle
 } from "@/lib/area-shop-utils";
+import { resolveAreaRankingEntries } from "@/lib/area-shop-ranking";
 import {
   getAreaBySlug,
   getAreaRankingShops,
@@ -20,6 +21,7 @@ import {
   getParentArea,
   getSiblingAreas
 } from "@/lib/wp/areas";
+import { getAreaShopRankings } from "@/lib/wp/area-shop-rankings";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { canonicalUrl, makeDescription, pageMetadata } from "@/lib/seo";
 
@@ -93,12 +95,14 @@ async function AreaPageContent({ params, searchParams }: Props) {
   const isHub = isHubTemplateArea(slug);
 
   if (isHub) {
-    const [childAreas, siblingAreas, parentArea, allShops] = await Promise.all([
+    const [childAreas, siblingAreas, parentArea, allShops, rankingMap] = await Promise.all([
       withWpBuildFallback(`area hub children ${area.slug}`, () => getChildAreas(area.id), []),
       withWpBuildFallback(`area hub siblings ${area.slug}`, () => getSiblingAreas(area), []),
       withWpBuildFallback(`area hub parent ${area.slug}`, () => getParentArea(area), null),
-      withWpBuildFallback(`area hub shops ${area.slug}`, () => getAreaRankingShops(area.id), [])
+      withWpBuildFallback(`area hub shops ${area.slug}`, () => getAreaRankingShops(area.id), []),
+      withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
     ]);
+    const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
 
     return (
       <AreaHubPageTemplate
@@ -108,20 +112,23 @@ async function AreaPageContent({ params, searchParams }: Props) {
         parentArea={parentArea}
         siblingAreas={siblingAreas}
         childAreas={childAreas}
+        rankingEntries={rankingEntries}
       />
     );
   }
 
   const emptyShopsResult = { shops: [], totalPages: 1 };
-  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult] = await Promise.all([
+  const [shopsResult, childAreas, siblingAreas, parentArea, seoShopsResult, rankingMap] = await Promise.all([
     withWpBuildFallback(`area shops ${area.slug}`, () => getAreaShops(area.id, currentPage), emptyShopsResult),
     withWpBuildFallback(`area children ${area.slug}`, () => getChildAreas(area.id), []),
     withWpBuildFallback(`area siblings ${area.slug}`, () => getSiblingAreas(area), []),
     withWpBuildFallback(`area parent ${area.slug}`, () => getParentArea(area), null),
     currentPage > 1
       ? withWpBuildFallback(`area seo shops ${area.slug}`, () => getAreaShops(area.id, 1), null)
-      : Promise.resolve(null)
+      : Promise.resolve(null),
+    withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
   ]);
+  const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
 
   if (currentPage > shopsResult.totalPages) {
     notFound();
@@ -137,6 +144,7 @@ async function AreaPageContent({ params, searchParams }: Props) {
       childAreas={childAreas}
       siblingAreas={siblingAreas}
       parentArea={parentArea}
+      rankingEntries={rankingEntries}
     />
   );
 }
