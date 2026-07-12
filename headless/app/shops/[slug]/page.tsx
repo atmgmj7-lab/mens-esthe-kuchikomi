@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ShopDetail } from "@/components/ShopDetail";
 import { getAreaById, getAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
 
@@ -11,18 +12,24 @@ type Props = {
 };
 
 export async function generateStaticParams() {
-  const shops = await getShopsForSitemap();
-  return shops.map((shop) => ({ slug: shop.slug }));
+  return getStaticParamsOrFallback(
+    "shop static params",
+    getShopsForSitemap,
+    (shop) => ({
+      slug: shop.slug
+    }),
+    [{ slug: "c-r-e-a-m%ef%bc%88%e3%82%af%e3%83%aa%e3%83%bc%e3%83%a0%ef%bc%89" }]
+  );
 }
 
 async function resolveShopParentArea(shop: ShopView) {
-  const allAreas = await getAreas();
+  const allAreas = await withWpBuildFallback(`shop parent area list ${shop.slug}`, getAreas, []);
 
   if (shop.areaSlug) {
     const matched = allAreas.find((a) => a.slug === shop.areaSlug);
     if (matched) {
       if (matched.parent) {
-        return getAreaById(matched.parent);
+        return withWpBuildFallback(`shop parent area ${shop.slug}`, () => getAreaById(matched.parent), null);
       }
       return matched;
     }
@@ -30,15 +37,17 @@ async function resolveShopParentArea(shop: ShopView) {
 
   const childArea = shop.terms.find((t) => t.parent !== 0);
   if (childArea?.parent) {
-    return getAreaById(childArea.parent);
+    return withWpBuildFallback(`shop child parent area ${shop.slug}`, () => getAreaById(childArea.parent), null);
   }
   const parentArea = shop.terms.find((t) => t.parent === 0);
-  return parentArea ? getAreaById(parentArea.id) : null;
+  return parentArea
+    ? withWpBuildFallback(`shop fallback parent area ${shop.slug}`, () => getAreaById(parentArea.id), null)
+    : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const shop = await getShopBySlug(slug);
+  const shop = await withWpBuildFallback(`shop metadata ${slug}`, () => getShopBySlug(slug), null);
   if (!shop) return {};
 
   const primaryAreaName =
@@ -59,11 +68,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ShopPage({ params }: Props) {
   const { slug } = await params;
-  const shop = await getShopBySlug(slug);
+  const shop = await withWpBuildFallback(`shop page ${slug}`, () => getShopBySlug(slug), null);
   if (!shop) notFound();
 
   const parentArea = await resolveShopParentArea(shop);
-  const allAreas = await getAreas();
+  const allAreas = await withWpBuildFallback(`shop area list ${shop.slug}`, getAreas, []);
 
   return <ShopDetail shop={shop} parentArea={parentArea} allAreas={allAreas} />;
 }

@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
+import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import type { ShopView, WpShop } from "@/lib/wp/types";
 
 function safeDecodeURIComponent(value: string): string {
@@ -88,8 +89,13 @@ export async function getLatestShops(limit = 6): Promise<ShopView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", `shops:list:${limit}`);
-  const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?per_page=${limit}&_embed=1`);
-  return shops.map(normalizeShop);
+  try {
+    const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?per_page=${limit}&_embed=1`);
+    return shops.map(normalizeShop);
+  } catch (error) {
+    logWpBuildFallback(`latest shops ${limit}`, error);
+    return [];
+  }
 }
 
 export async function getShopBySlug(slug: string): Promise<ShopView | null> {
@@ -97,20 +103,25 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
   cacheLife("hours");
   cacheTag("wp", "shops", shopSlugCacheTag(slug));
 
-  for (const variant of getSlugQueryVariants(slug)) {
-    const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?slug=${variant}&_embed=1`);
-    if (shops[0]) {
-      return normalizeShop(shops[0]);
+  try {
+    for (const variant of getSlugQueryVariants(slug)) {
+      const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?slug=${variant}&_embed=1`);
+      if (shops[0]) {
+        return normalizeShop(shops[0]);
+      }
     }
-  }
 
-  const match = await findShopViaSearchOrListing(slug);
-  if (!match) {
+    const match = await findShopViaSearchOrListing(slug);
+    if (!match) {
+      return null;
+    }
+
+    cacheTag("wp", "shops", shopSlugCacheTag(match.slug));
+    return normalizeShop(match);
+  } catch (error) {
+    logWpBuildFallback(`shop ${slug}`, error);
     return null;
   }
-
-  cacheTag("wp", "shops", shopSlugCacheTag(match.slug));
-  return normalizeShop(match);
 }
 
 export type SitemapEntry = {
@@ -128,13 +139,17 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   let page = 1;
   let totalPages = 1;
 
-  while (page <= totalPages) {
-    const { data, pagination } = await wpFetchPaginated<WpShop[]>(
-      `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_fields=slug,modified`
-    );
-    entries.push(...data.map((shop) => ({ slug: shop.slug, modified: shop.modified })));
-    totalPages = pagination.totalPages;
-    page += 1;
+  try {
+    while (page <= totalPages) {
+      const { data, pagination } = await wpFetchPaginated<WpShop[]>(
+        `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_fields=slug,modified`
+      );
+      entries.push(...data.map((shop) => ({ slug: shop.slug, modified: shop.modified })));
+      totalPages = pagination.totalPages;
+      page += 1;
+    }
+  } catch (error) {
+    logWpBuildFallback("shops sitemap", error);
   }
 
   return entries;
@@ -150,13 +165,17 @@ export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]>
   let page = 1;
   let totalPages = 1;
 
-  while (page <= totalPages && shops.length < maxShops) {
-    const { data, pagination } = await wpFetchPaginated<WpShop[]>(
-      `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_embed=1`
-    );
-    shops.push(...data.map(normalizeShop));
-    totalPages = pagination.totalPages;
-    page += 1;
+  try {
+    while (page <= totalPages && shops.length < maxShops) {
+      const { data, pagination } = await wpFetchPaginated<WpShop[]>(
+        `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_embed=1`
+      );
+      shops.push(...data.map(normalizeShop));
+      totalPages = pagination.totalPages;
+      page += 1;
+    }
+  } catch (error) {
+    logWpBuildFallback(`shops listing ${maxShops}`, error);
   }
 
   return shops.slice(0, maxShops);
@@ -169,7 +188,8 @@ export async function getShopCount(): Promise<number> {
   try {
     const { pagination } = await wpFetchPaginated<WpShop[]>("/wp/v2/shop?per_page=1");
     return pagination.total;
-  } catch {
+  } catch (error) {
+    logWpBuildFallback("shop count", error);
     return 0;
   }
 }

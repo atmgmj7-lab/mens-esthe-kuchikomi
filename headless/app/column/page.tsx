@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { pageMetadata } from "@/lib/seo";
+import { withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getLatestPosts } from "@/lib/wp/posts";
 
 export const metadata: Metadata = pageMetadata({
@@ -10,7 +11,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function ColumnIndexPage() {
-  const posts = await getLatestPosts(24);
+  const posts = await withWpBuildFallback("column index posts", () => getLatestPosts(24), []);
 
   return (
     <main className="es-page">

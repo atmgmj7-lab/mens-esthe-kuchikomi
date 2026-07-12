@@ -8,6 +8,7 @@ import { ShopCard } from "@/components/ShopCard";
 import { ShopsSearchForm } from "@/components/ShopsSearchForm";
 import { pageMetadata } from "@/lib/seo";
 import { getAreas } from "@/lib/wp/areas";
+import { withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { filterShops, hasActiveShopFilters, type ShopFilterParams } from "@/lib/wp/shop-filter";
 import { getAllShopsForListing } from "@/lib/wp/shops";
 
@@ -42,7 +43,10 @@ export default function ShopsPage({ searchParams }: Props) {
 
 async function ShopsPageContent({ searchParams }: Props) {
   const params = await searchParams;
-  const [allShops, areas] = await Promise.all([getAllShopsForListing(500), getAreas()]);
+  const [allShops, areas] = await Promise.all([
+    withWpBuildFallback("shops listing data", () => getAllShopsForListing(500), []),
+    withWpBuildFallback("shops area filters", getAreas, [])
+  ]);
   const filtered = filterShops(allShops, params);
   const active = hasActiveShopFilters(params);
   const filterLabel = describeFilters(params, areas);

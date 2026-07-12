@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogArticle } from "@/components/BlogArticle";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getPostBySlug, getPostsForSitemap } from "@/lib/wp/posts";
 
 type Props = {
@@ -9,13 +10,19 @@ type Props = {
 };
 
 export async function generateStaticParams() {
-  const posts = await getPostsForSitemap();
-  return posts.map((post) => ({ slug: post.slug }));
+  return getStaticParamsOrFallback(
+    "column static params",
+    getPostsForSitemap,
+    (post) => ({
+      slug: post.slug
+    }),
+    [{ slug: "hello-world" }]
+  );
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  const post = await withWpBuildFallback(`column metadata ${slug}`, () => getPostBySlug(slug), null);
   if (!post) return {};
   return pageMetadata({
     title: post.title,
@@ -26,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ColumnPage({ params }: Props) {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  const post = await withWpBuildFallback(`column page ${slug}`, () => getPostBySlug(slug), null);
   if (!post) notFound();
   return <BlogArticle post={post} />;
 }

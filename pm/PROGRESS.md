@@ -2286,3 +2286,13 @@ pm/PROGRESS.md
 - Playwrightで `http://localhost:3013/` を 1440/768/390/360px で確認。H1正式名、横スクロールなし、DBメモ非表示、初心者向け説明の縦潰れなしを確認。
 - スクリーンショット: `/tmp/escomi-home-desktop.png`, `/tmp/escomi-home-mobile390.png`。
 - 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
+
+
+## 2026-07-12 トップページ修正 本番デプロイ再試行
+- トップページ文字サイズ・モバイル崩れ修正を `origin/main` へ反映するため、隔離作業ディレクトリからGitHub Actionsデプロイを実行。
+- 初回ActionsはVercel build中のWordPress API接続タイムアウトで失敗。
+- `lib/wp/origin-request.ts` にWP origin接続タイムアウトを追加し、長時間待機でビルドが止まる問題を防止。
+- `area`, `column`, `shops`, 固定ページのWP取得失敗時に、静的生成・一覧表示・固定本文フォールバックへ逃がす処理を追加。
+- Cache Componentsでは `generateStaticParams` が空配列を返せないため、WP取得失敗時は既知パス1件を返すよう調整。
+- 再発防止として `scripts/check-wp-build-resilience.mjs` と `npm run test:wp-build-resilience` を追加。
+- 検証結果: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `WP_ORIGIN_TIMEOUT_MS=1 npm run build` 成功。

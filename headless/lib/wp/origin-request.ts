@@ -17,7 +17,18 @@ type OriginRequestOptions = {
   headers?: HeadersInit;
   body?: BodyInit | ArrayBuffer | Uint8Array | null;
   forwardCookies?: boolean;
+  timeoutMs?: number;
 };
+
+const DEFAULT_WP_ORIGIN_TIMEOUT_MS = 10_000;
+
+function resolveTimeoutMs(timeoutMs?: number): number {
+  const candidate = timeoutMs ?? Number(process.env.WP_ORIGIN_TIMEOUT_MS);
+  if (Number.isFinite(candidate) && candidate > 0) {
+    return candidate;
+  }
+  return DEFAULT_WP_ORIGIN_TIMEOUT_MS;
+}
 
 async function toBuffer(
   body: BodyInit | ArrayBuffer | Uint8Array
@@ -43,6 +54,7 @@ export function requestWpOrigin(
 ): Promise<Response> {
   const method = (options?.method || "GET").toUpperCase();
   const path = pathWithSearch.startsWith("/") ? pathWithSearch : `/${pathWithSearch}`;
+  const timeoutMs = resolveTimeoutMs(options?.timeoutMs);
 
   const reqHeaders: Record<string, string> = {
     Host: wpOriginHost
@@ -110,6 +122,10 @@ export function requestWpOrigin(
           });
         }
       );
+
+      req.setTimeout(timeoutMs, () => {
+        req.destroy(new Error(`WordPress origin request timed out after ${timeoutMs}ms: ${method} ${path}`));
+      });
 
       req.on("error", reject);
       if (bodyBuffer) {
