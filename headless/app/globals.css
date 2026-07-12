@@ -7474,7 +7474,7 @@ img {
 
   .escomi-final-feature-card {
     flex-direction: column;
-    min-height: 520px;
+    min-height: 0;
   }
 
   .escomi-final-feature-card__media {
@@ -7484,8 +7484,22 @@ img {
 
   .escomi-final-feature-card__media img,
   .escomi-final-feature-card__mediaFallback {
-    min-height: 210px;
-    aspect-ratio: 16 / 9;
+    height: 180px;
+    min-height: 180px;
+    max-height: 180px;
+    aspect-ratio: auto;
+  }
+
+  .p-areaFeature .escomi-final-feature-card__body {
+    padding: 1.35rem 1.25rem 1.45rem !important;
+  }
+
+  .escomi-final-feature-card .p-areaFeature__title {
+    font-size: clamp(1.45rem, 7vw, 2rem);
+  }
+
+  .escomi-final-feature-card .p-areaFeature__desc {
+    min-height: 0;
   }
 }
 

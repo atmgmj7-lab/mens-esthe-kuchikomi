@@ -1,8 +1,6 @@
 import { AreaPromotionSection } from "@/components/area/hub/AreaPromotionSection";
 import Link from "next/link";
 import { AreaLatestReviews } from "@/components/area/AreaLatestReviews";
-import { AreaTitleBanner } from "@/components/area/hub/AreaTitleBanner";
-import { ThemeBanner } from "@/components/area/hub/ThemeBanner";
 import { AreaHubSectionHeader } from "@/components/area/hub/AreaHubSectionHeader";
 import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
 import {
@@ -14,8 +12,6 @@ import {
 } from "@/components/area/area-hub-content";
 import { AreaHubRelatedAreas } from "@/components/area/hub/AreaHubRelatedAreas";
 import { AreaShopList } from "@/components/area/hub/AreaShopList";
-import { resolveAreaHeroBanner } from "@/lib/area-hub-banner-config";
-import { resolveAreaTitleBanner } from "@/lib/area-title-banner-config";
 import {
   aggregateReviewCountLabel,
   resolveAreaHubContext,
@@ -92,9 +88,6 @@ export function AreaHubPageTemplate({
   const areaPath = `/area/${area.slug}/`;
   const faqItems = buildFaqItems(hubContext);
   const lastUpdated = resolveLastUpdatedLabel(allShops);
-  const areaHeroBanner = resolveAreaHeroBanner(area.slug);
-  const areaTitleBanner = resolveAreaTitleBanner(area.slug);
-  const shouldShowHeroMedia = area.slug !== "nihonbashi";
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
 
@@ -134,24 +127,9 @@ export function AreaHubPageTemplate({
         </nav>
 
         <section
-          className={`escomi-final-area-hero hl-fade-in${shouldShowHeroMedia ? "" : " escomi-final-area-hero--text-only"}`}
+          className="escomi-final-area-hero escomi-final-area-hero--text-only hl-fade-in"
           aria-labelledby="area-final-title"
         >
-          {shouldShowHeroMedia ? (
-            <div className="escomi-final-area-hero__media" aria-hidden="true">
-              {areaTitleBanner ? (
-                <AreaTitleBanner areaSlug={area.slug} config={areaTitleBanner} />
-              ) : (
-                <ThemeBanner
-                  themeKey="areaHero"
-                  message={areaHeroBanner.message}
-                  imageSrc={areaHeroBanner.imageSrc}
-                  imageAlt={areaHeroBanner.imageAlt}
-                />
-              )}
-            </div>
-          ) : null}
-
           <header className="area-hub-header escomi-final-area-hero__body">
             <p className="escomi-final-area-hero__eyebrow">AREA GUIDE</p>
             <h1 id="area-final-title" className="area-hub-hero__title">{hubContext.hubTitle}</h1>

@@ -2372,3 +2372,11 @@ pm/PROGRESS.md
 - Cache Componentsでは `generateStaticParams` が空配列を返せないため、WP取得失敗時は既知パス1件を返すよう調整。
 - 再発防止として `scripts/check-wp-build-resilience.mjs` と `npm run test:wp-build-resilience` を追加。
 - 検証結果: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `WP_ORIGIN_TIMEOUT_MS=1 npm run build` 成功。
+
+
+## 2026-07-12 エリア詳細イラスト枠・トップスライダー修正
+- エリア詳細ページのヒーローから、画像なしでも残っていた大型イラスト/バナー枠を削除。
+- トップ「大阪の特集エリア」スライダーのスマホ画像を180pxサムネイル化し、カード下部が切れにくい形へ調整。
+- 変更ファイル: `headless/components/area/AreaHubPageTemplate.tsx`, `headless/app/globals.css`。
+- 検証結果: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `git diff --check` 成功。
+- Playwrightで `http://localhost:3025/area/umeda/` のヒーロー画像枠0件、`http://localhost:3025/` のスマホスライダー画像5枚・矢印2つ・ドット5つを確認。
