@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LuxuryRichButton } from "@/components/common/LuxuryRichButton";
 import { SectionTitle } from "@/components/SectionTitle";
 import { AREA_FEATURES } from "@/lib/design-constants";
 import type { AreaView } from "@/lib/wp/types";
@@ -26,18 +25,6 @@ export function AreaFeatureSection({ areas = [] }: { areas?: AreaView[] }) {
             const count = areaCount(areas, feature.slug);
             return (
               <article className="p-areaFeature__item escomi-final-feature-card hl-card-hover" key={feature.slug}>
-                <div className="p-areaFeature__img escomi-final-feature-card__image">
-                  <Link href={featureHref} className="c-card__thumb" aria-label={`${feature.title}を見る`}>
-                    <img
-                      src={feature.image}
-                      alt={feature.imageAlt}
-                      width={800}
-                      height={450}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </Link>
-                </div>
                 <div className="p-areaFeature__body escomi-final-feature-card__body">
                   <span className="p-areaFeature__sub">{feature.subtitle}</span>
                   <h3 className="p-areaFeature__title">{feature.title}</h3>
@@ -57,7 +44,9 @@ export function AreaFeatureSection({ areas = [] }: { areas?: AreaView[] }) {
                     </div>
                   </dl>
                   <div className="p-areaFeature__btnWrap">
-                    <LuxuryRichButton href={featureHref}>{feature.btnText}</LuxuryRichButton>
+                    <Link className="escomi-final-feature-card__cta" href={featureHref}>
+                      {feature.btnText}
+                    </Link>
                   </div>
                 </div>
               </article>

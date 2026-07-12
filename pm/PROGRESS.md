@@ -2,6 +2,27 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-12 大阪の特集エリアカード崩れ緊急修正
+
+#### 実行したTask ID
+- 緊急UI修正: トップページ「大阪の特集エリア」カード表示崩れの修正。
+
+#### 変更したファイル
+- `headless/components/AreaFeatureSection.tsx`
+- `headless/app/globals.css`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- 特集エリアカード内の画像バナーをDOMから削除。
+- 5分割で細長く崩れていたカード幅を、読みやすい横スライダー用カード幅へ修正。
+- ボタンが丸く潰れないよう、通常の横長リンクへ変更。
+- PC・スマホとも横スクロールできる構造を維持。
+
+#### テスト結果
+- ローカルHTML確認: `WordPress` 表記0件、5エリア表示・順番OK。
+- Playwright確認: 特集カード内の画像0件、横スクロール有効、カード幅360px。
+- `npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、`git diff --check` は成功。
+
 ### 2026-07-12 大阪の特集エリア本番表示修正
 
 #### 実行したTask ID
