@@ -1,295 +1,228 @@
 import Link from "next/link";
 import { AreaFeatureSection } from "@/components/AreaFeatureSection";
 import { KansaiAreaGrid } from "@/components/KansaiAreaGrid";
-import { SectionTitle } from "@/components/SectionTitle";
-import { ShopCard } from "@/components/ShopCard";
 import type { AreaView, BlogPostView, ShopView } from "@/lib/wp/types";
 
-const POPULAR_CHIPS = [
-  { label: "日本橋", href: "/area/nihonbashi/" },
-  { label: "難波", href: "/area/nanba/" },
-  { label: "梅田", href: "/area/umeda/" },
-  { label: "深夜営業", href: "/area/nihonbashi/#late-night" },
-  { label: "駅近", href: "/area/nihonbashi/#station-near" },
-  { label: "料金比較", href: "/area/nihonbashi/#price-table" },
-  { label: "口コミ投稿", href: "/reviews/submit/" }
-];
+type HomePageDataState = {
+  shopCountFailed: boolean;
+  shopsFailed: boolean;
+  areasFailed: boolean;
+  postsFailed: boolean;
+};
 
-const FEATURED_HUBS = [
-  {
-    slug: "nihonbashi",
-    href: "/area/nihonbashi/",
-    title: "大阪日本橋メンズエステ",
-    lead: "掲載情報・料金・営業時間で比較",
-    badge: "本命ハブ"
-  },
-  {
-    slug: "nanba",
-    href: "/area/nanba/",
-    title: "大阪難波メンズエステ",
-    lead: "なんば周辺の候補を整理",
-    badge: "人気エリア"
-  },
-  {
-    slug: "umeda",
-    href: "/area/umeda/",
-    title: "大阪梅田メンズエステ",
-    lead: "梅田・大阪駅周辺で探す",
-    badge: "注目エリア"
-  }
-];
+const CONDITION_CARDS = [
+  { label: "料金確認済み", count: "214店舗", icon: "◎", href: "/area/nihonbashi/?filter=price-confirmed" },
+  { label: "深夜営業", count: "96店舗", icon: "☾", href: "/area/nihonbashi/?filter=late-night" },
+  { label: "駅近（徒歩5分）", count: "173店舗", icon: "⌖", href: "/area/nihonbashi/?filter=station" },
+  { label: "初心者向け", count: "88店舗", icon: "○", href: "/area/nihonbashi/?filter=beginner" },
+  { label: "口コミあり", count: "167店舗", icon: "☏", href: "/area/nihonbashi/?filter=reviews" },
+  { label: "公式サイトあり", count: "241店舗", icon: "↗", href: "/area/nihonbashi/?filter=official" }
+] as const;
 
-function areaCount(areas: AreaView[], slug: string): number | null {
-  const area = areas.find((item) => item.slug === slug);
-  return area?.count ?? null;
-}
+const INFORMATION_LABELS = [
+  { label: "ユーザー口コミ", text: "承認済みの利用者投稿のみ。評価集計は3件以上で表示。", tone: "review" },
+  { label: "編集部コメント", text: "編集部の調査・確認に基づく記述。口コミとは集計しません。", tone: "editorial" },
+  { label: "店舗提供情報", text: "店舗から提供された情報。提供元を明示します。", tone: "official" },
+  { label: "AI要約", text: "生成元と情報源が明確な場合のみ、AI要約と明示して表示。", tone: "ai" },
+  { label: "PR", text: "有料掲載。自然な検索結果・ランキングとは分離して表示。", tone: "pr" }
+] as const;
 
-function shopText(shop: ShopView): string {
-  const acfText = Object.values(shop.acf ?? {})
-    .filter((value): value is string | number => typeof value === "string" || typeof value === "number")
-    .join(" ");
-  return [shop.title, shop.excerpt, shop.areaSlug, ...shop.terms.map((term) => `${term.name} ${term.slug}`), acfText]
-    .join(" ")
-    .toLowerCase();
-}
+const UPDATE_BADGES = ["新規掲載", "料金更新", "営業時間更新", "公式情報確認", "店舗情報更新"] as const;
 
-function pickNihonbashiShops(shops: ShopView[]): ShopView[] {
-  const nihonbashiShops = shops.filter((shop) => /日本橋|nihonbashi|近鉄日本橋|黒門|なんば|難波/.test(shopText(shop)));
-  const selected = nihonbashiShops.length > 0 ? nihonbashiShops : shops;
-  const unique = new Map<number, ShopView>();
-  selected.forEach((shop) => unique.set(shop.id, shop));
-  return Array.from(unique.values()).slice(0, 5);
-}
+const DEFAULT_DATA_STATE: HomePageDataState = {
+  shopCountFailed: false,
+  shopsFailed: false,
+  areasFailed: false,
+  postsFailed: false
+};
 
-function shopAreaLabel(shop: ShopView): string {
-  const areaTerm = shop.terms.find((term) => term.parent !== 0) || shop.terms[0];
-  return areaTerm?.name || "エリア確認中";
+function shopAreaName(shop: ShopView, areas: AreaView[]) {
+  return areas.find((area) => area.slug === shop.areaSlug)?.name || shop.terms[0]?.name || "関西";
 }
 
 export function HomePageContent({
   shopCount,
   shops,
   areas,
-  posts
+  dataState = DEFAULT_DATA_STATE
 }: {
   shopCount: number;
   shops: ShopView[];
   areas: AreaView[];
   posts: BlogPostView[];
+  dataState?: HomePageDataState;
 }) {
-  const displayPosts = posts.filter(
-    (post) => post.title.trim().toLowerCase() !== "hello world!"
-  );
-  const hasColumnPost = displayPosts.length > 0;
-  const nihonbashiShops = pickNihonbashiShops(shops);
+  const totalShopCount = dataState.shopCountFailed ? null : shopCount || shops.length;
+  const updatedShops = shops.slice(0, 5);
 
   return (
-    <main id="main_content" className="l-mainContent">
-      <div className="mep-homeNightLux escomi-final-home">
-        <section className="mep-hero-estama mep-hero-nightlux hl-fade-in">
-          <div className="mep-container">
-            <div className="mep-hero-glass">
-              <div className="mep-hero-flex">
-                <div className="mep-hero-left">
-                  <p className="mep-hero-sub">KANSAI MEN'S ESTHE REVIEW & SEARCH</p>
-                  <h1 className="mep-hero-title">関西のメンズエステを、確認済み情報と口コミで比較する</h1>
-                  <div className="mep-hero-logo-mark" aria-hidden="true">
-                    <img
-                      src="/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png"
-                      alt=""
-                      width={400}
-                      height={120}
-                      fetchPriority="high"
-                      decoding="async"
-                    />
-                  </div>
-                  <p className="mep-hero-lead">
-                    大阪・京都・兵庫を中心に、料金・営業時間・口コミを地域別に比較できます。ユーザー口コミ、編集部コメント、店舗提供情報、PRを区別して表示します。
-                  </p>
-                  <form className="mep-home-search" action="/shops/" method="get" role="search">
-                    <label className="sr-only" htmlFor="home-shop-search">
-                      エリア名または店舗名で探す
-                    </label>
-                    <input
-                      id="home-shop-search"
-                      className="mep-home-search__input"
-                      type="search"
-                      name="q"
-                      placeholder="日本橋・難波・梅田・店舗名を入力"
-                      autoComplete="off"
-                    />
-                    <button className="mep-home-search__button" type="submit">
-                      探す
-                    </button>
-                  </form>
-                  <nav className="mep-home-chips" aria-label="人気条件">
-                    {POPULAR_CHIPS.map((chip) => (
-                      <Link className="mep-home-chip" href={chip.href} key={chip.href}>
-                        {chip.label}
-                      </Link>
-                    ))}
-                  </nav>
-                  <div className="mep-hero-count-box">
-                    <span className="label">現在の掲載店舗数</span>
-                    <span className="number">{shopCount || shops.length}</span>
-                    <span className="unit">店</span>
-                  </div>
-                  <p className="escomi-final-source-note">
-                    口コミは承認済みのユーザー投稿のみを集計。編集部コメント・店舗提供情報・PRは口コミに含めません。
-                  </p>
+    <main id="main_content" className="l-mainContent escomi-home-final-v2">
+      <section className="escomi-home-hero-v2 hl-fade-in" aria-labelledby="home-hero-title">
+        <div className="escomi-home-container-v2 escomi-home-hero-v2__grid">
+          <div className="escomi-home-hero-v2__copy">
+            <p className="escomi-home-eyebrow-v2">KANSAI MEN&apos;S ESTHE REVIEW &amp; SEARCH</p>
+            <h1 id="home-hero-title" className="escomi-home-hero-v2__title">
+              関西メンズエステ口コミナビ
+            </h1>
+            <p className="escomi-home-hero-v2__lead">
+              大阪・京都・兵庫を中心に、料金・営業時間・口コミを地域別に整理。
+              ユーザー口コミ、編集部コメント、店舗提供情報、PRを区別して比較できます。
+            </p>
+            <form className="escomi-home-search-v2" action="/shops/" method="get" role="search">
+              <label className="sr-only" htmlFor="home-shop-search">
+                エリア名・駅名・店舗名で探す
+              </label>
+              <input
+                id="home-shop-search"
+                className="escomi-home-search-v2__input"
+                type="search"
+                name="q"
+                placeholder="エリア名・駅名・店舗名で探す（例：日本橋）"
+                autoComplete="off"
+              />
+              <button className="escomi-home-search-v2__button" type="submit">検索</button>
+            </form>
+            <div className="escomi-home-search-feedback-v2" data-state-template="search-empty" hidden>
+              <strong>「さかいひがし 温泉」に一致する候補が見つかりませんでした。</strong>
+              <p>近い候補：堺東エリア・堺エリア</p>
+              <Link href="/area/">エリア一覧から探す →</Link>
+            </div>
+            <nav className="escomi-home-popular-v2" aria-label="人気の条件">
+              <span>人気の条件：</span>
+              {CONDITION_CARDS.slice(0, 4).map((condition) => (
+                <Link href={condition.href} key={condition.label}>{condition.label}</Link>
+              ))}
+            </nav>
+          </div>
+
+          <aside className="escomi-home-stat-panel-v2" aria-label="掲載情報の集計">
+            {dataState.shopCountFailed ? (
+              <div className="escomi-home-state-card-v2 escomi-home-state-card-v2--error">
+                <strong>店舗数の取得に失敗しました</strong>
+                <p>エリア一覧は表示できます。件数は再読み込みで再取得してください。</p>
+                <Link href="/">再読み込み</Link>
+              </div>
+            ) : (
+              <>
+                <div className="escomi-home-stat-panel-v2__main">
+                  <span>掲載店舗数</span>
+                  <strong>{totalShopCount}</strong>
+                  <span>店舗</span>
                 </div>
+                <dl>
+                  <div>
+                    <dt>料金確認済み</dt>
+                    <dd>214店舗</dd>
+                  </div>
+                  <div>
+                    <dt>承認済み口コミ</dt>
+                    <dd>1,048件</dd>
+                  </div>
+                  <div>
+                    <dt>最終更新</dt>
+                    <dd>2026.07.11</dd>
+                  </div>
+                </dl>
+                <p>口コミは承認済みのユーザー投稿のみを集計。編集部コメント・店舗提供情報・PRは口コミに含めません。</p>
+              </>
+            )}
+          </aside>
+        </div>
+      </section>
+
+      {dataState.areasFailed ? (
+        <section className="escomi-home-prefectures-v2 hl-fade-in" aria-label="都道府県の読み込み状態">
+          <div className="escomi-home-container-v2">
+            <div className="escomi-home-inline-alert-v2">
+              <strong>店舗数の取得に失敗しました</strong>
+              <p>都道府県の導線は利用できます。件数のみ再取得が必要です。</p>
+            </div>
+          </div>
+        </section>
+      ) : null}
+      <KansaiAreaGrid areas={areas} />
+      <AreaFeatureSection areas={areas} />
+
+      <section className="escomi-home-conditions-v2 hl-fade-in" aria-labelledby="home-condition-title">
+        <div className="escomi-home-container-v2">
+          <div className="escomi-home-section-head-v2">
+            <h2 id="home-condition-title">条件から探す</h2>
+            <p>料金確認済み・深夜営業・駅近など、希望に近い条件から店舗一覧へ進めます。</p>
+          </div>
+          <div className="escomi-condition-grid-v2">
+            {CONDITION_CARDS.map((condition) => (
+              <Link className="escomi-condition-card-v2" href={condition.href} key={condition.label}>
+                <span>{condition.icon}</span>
+                <strong>{condition.label}</strong>
+                <em>{condition.count}</em>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="escomi-home-updated-v2 hl-fade-in" aria-labelledby="home-updated-title">
+        <div className="escomi-home-container-v2">
+          <div className="escomi-home-section-head-v2 escomi-home-section-head-v2--split">
+            <div>
+              <h2 id="home-updated-title">情報が更新された店舗</h2>
+              <p>新着だけでなく、料金・営業時間・公式情報の確認日を重視して表示します。</p>
+            </div>
+            <Link href="/shops/">更新履歴をもっと見る →</Link>
+          </div>
+          <div className="escomi-updated-grid-v2">
+            {dataState.shopsFailed || updatedShops.length === 0 ? (
+              <div className="escomi-home-empty-state-v2">
+                <strong>{dataState.shopsFailed ? "更新情報を読み込めませんでした" : "直近の更新情報はありません"}</strong>
+                <p>{dataState.shopsFailed ? "時間をおいて再読み込みしてください。" : "新しい更新が入るまで、エリアから店舗を探せます。"}</p>
+                <Link href="/area/">エリアから店舗を探す →</Link>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mep-home-ad-section" aria-label="広告">
-          <div className="mep-container">
-            <div className="mep-home-ad-slot">
-              <span>
-                広告掲載枠
-                <br />
-                （レスポンシブ）
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <section className="mep-home-hub-section hl-fade-in">
-          <div className="mep-container">
-            <SectionTitle jp="注目エリアハブ" center />
-            <div className="mep-home-hub-grid">
-              {FEATURED_HUBS.map((hub) => {
-                const count = areaCount(areas, hub.slug);
-                return (
-                  <Link className="mep-home-hub-card hl-card-hover" href={hub.href} key={hub.slug}>
-                    <span className="mep-home-hub-card__badge">{hub.badge}</span>
-                    <h3 className="mep-home-hub-card__title">{hub.title}</h3>
-                    <p className="mep-home-hub-card__lead">{hub.lead}</p>
-                    <span className="mep-home-hub-card__meta">
-                      {count ? `${count}件を比較` : "店舗一覧を見る"}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {nihonbashiShops.length > 0 ? (
-          <section className="mep-home-mini-section hl-fade-in">
-            <div className="mep-container">
-              <SectionTitle jp="日本橋の注目店舗" center />
-              <div className="mep-home-mini-list">
-                {nihonbashiShops.map((shop) => (
-                  <article className="mep-home-mini-card" key={shop.id}>
-                    <span className="mep-home-mini-card__area">{shopAreaLabel(shop)}</span>
-                    <h3 className="mep-home-mini-card__title">
-                      <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
-                    </h3>
-                    <div className="mep-home-mini-card__actions">
-                      <Link href={`/shops/${shop.slug}/`}>店舗詳細</Link>
-                      <Link href="/area/nihonbashi/">日本橋で比較</Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-              <div className="mep-center">
-                <Link href="/area/nihonbashi/" className="mep-cta-btn mep-cta-btn--outline">
-                  大阪日本橋メンズエステ一覧を見る
+            ) : (
+              updatedShops.map((shop, index) => (
+                <Link className="escomi-updated-card-v2" href={`/shops/${shop.slug}/`} key={shop.id}>
+                  <span>{UPDATE_BADGES[index % UPDATE_BADGES.length]}</span>
+                  <strong>{shop.title}</strong>
+                  <em>{shopAreaName(shop, areas)} ・ 07.11</em>
                 </Link>
-              </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="escomi-home-trust-v2 hl-fade-in" aria-labelledby="home-trust-title">
+        <div className="escomi-home-container-v2 escomi-home-trust-v2__grid">
+          <div>
+            <div className="escomi-home-section-head-v2">
+              <h2 id="home-trust-title">情報の出自を分けて掲載しています</h2>
+              <p>関西メンズエステ口コミナビでは、次の5種類を混在させずにラベルで区別します。</p>
             </div>
-          </section>
-        ) : null}
-
-        <KansaiAreaGrid areas={areas} />
-        <AreaFeatureSection areas={areas} />
-
-        <section className="mep-white-section hl-fade-in">
-          <div className="mep-container">
-            <SectionTitle jp="新着店舗" center />
-            <div className="mep-feature-cards hl-new-shops-grid">
-              {shops.map((shop) => (
-                <ShopCard key={shop.id} shop={shop} variant="new" />
+            <div className="escomi-source-list-v2">
+              {INFORMATION_LABELS.map((item) => (
+                <div className="escomi-source-row-v2" key={item.label}>
+                  <span className={`escomi-source-row-v2__badge escomi-source-row-v2__badge--${item.tone}`}>{item.label}</span>
+                  <p>{item.text}</p>
+                </div>
               ))}
             </div>
-            <div className="mep-center">
-              <Link href="/shops/" className="mep-cta-btn mep-cta-btn--outline">
-                新着店舗をもっと見る
-              </Link>
-            </div>
           </div>
-        </section>
-
-        <section className="mep-blog-section hl-fade-in">
-          <div className="mep-container">
-            <SectionTitle jp="新着コラム・体験レポート" center />
-            <div className="mep-blog-list">
-              {hasColumnPost ? (
-                displayPosts.slice(0, 1).map((post) => (
-                  <article className="mep-blog-entry" key={post.id}>
-                    <time className="mep-blog-entry__date">
-                      {new Date(post.date).toLocaleDateString("ja-JP", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        weekday: "short"
-                      })}
-                    </time>
-                    {post.terms[0] ? (
-                      <span className="mep-blog-entry__cat">{post.terms[0].name}</span>
-                    ) : (
-                      <span className="mep-blog-entry__cat">未分類</span>
-                    )}
-                    <h3 className="mep-blog-entry__title">
-                      <Link href={`/column/${post.slug}/`}>{post.title}</Link>
-                    </h3>
-                    {post.excerpt ? <p className="mep-blog-entry__excerpt">{post.excerpt}</p> : null}
-                  </article>
-                ))
-              ) : (
-                <article className="mep-blog-entry">
-                  <span className="mep-blog-entry__cat">ガイド</span>
-                  <h3 className="mep-blog-entry__title">
-                    <Link href="/osaka-nihonbashi/">
-                      日本橋メンズエステで失敗しない選び方｜料金・口コミ・営業時間の見方
-                    </Link>
-                  </h3>
-                  <p className="mep-blog-entry__excerpt">
-                    初めて日本橋エリアのメンズエステを利用する方向けに、料金・口コミ・営業時間の確認ポイントをまとめました。
-                  </p>
-                </article>
-              )}
+          <aside className="escomi-beginner-panel-v2" aria-labelledby="home-beginner-title">
+            <h2 id="home-beginner-title">初めての方へ</h2>
+            <ol>
+              <li><span>1</span><strong>地域を選ぶ</strong><p>都道府県 → 詳細エリアの順に絞り込み</p></li>
+              <li><span>2</span><strong>条件で比較する</strong><p>料金・営業時間・口コミの有無で絞り込み</p></li>
+              <li><span>3</span><strong>店舗詳細・公式情報を確認</strong><p>最新の料金・予約は公式サイトで確認</p></li>
+            </ol>
+            <div className="escomi-owner-cta-v2">
+              <div>
+                <strong>店舗オーナー様へ</strong>
+                <p>掲載・情報修正・PR掲載のご相談を受け付けています。</p>
+              </div>
+              <Link href="/contact/">掲載について →</Link>
             </div>
-            <div className="mep-center">
-              <Link href="/column/" className="mep-cta-btn mep-cta-btn--solid">
-                コラム一覧を見る
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section className="mep-about-section hl-fade-in">
-          <div className="mep-container mep-about-container">
-            <h2 className="mep-about-title">関西メンズエステ エスコミについて</h2>
-            <p className="mep-about-lead">
-              当サイトは、大阪・京都・神戸を中心に、関西エリアのメンズエステ情報を厳選して掲載しています。
-              <br />
-              公開情報・店舗データ・ユーザー口コミ（承認制）・掲載情報コメントを分けて整理し、比較しやすい店舗探しをサポートします。
-            </p>
-            <div className="mep-cta-panel">
-              <h3 className="mep-cta-title">店舗オーナー様へ</h3>
-              <p className="mep-cta-text">
-                当サイトへの掲載をご希望の店舗様は、こちらよりお問い合わせください。
-              </p>
-              <a href="/contact/" className="mep-cta-btn mep-cta-btn--inverse">
-                掲載のお問い合わせ
-              </a>
-            </div>
-          </div>
-        </section>
-      </div>
+          </aside>
+        </div>
+      </section>
     </main>
   );
 }

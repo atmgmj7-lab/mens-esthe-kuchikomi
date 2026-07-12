@@ -12,13 +12,27 @@ export const metadata: Metadata = pageMetadata({
   path: "/"
 });
 
+function settledValue<T>(result: PromiseSettledResult<T>, fallback: T): T {
+  return result.status === "fulfilled" ? result.value : fallback;
+}
+
 export default async function HomePage() {
-  const [shopCount, shops, areas, posts] = await Promise.all([
+  const [shopCountResult, shopsResult, areasResult, postsResult] = await Promise.allSettled([
     getShopCount(),
     getLatestShops(6),
     getAreas(),
     getLatestPosts(6)
   ]);
+  const shopCount = settledValue(shopCountResult, 0);
+  const shops = settledValue(shopsResult, []);
+  const areas = settledValue(areasResult, []);
+  const posts = settledValue(postsResult, []);
+  const dataState = {
+    shopCountFailed: shopCountResult.status === "rejected",
+    shopsFailed: shopsResult.status === "rejected",
+    areasFailed: areasResult.status === "rejected",
+    postsFailed: postsResult.status === "rejected"
+  };
 
   return (
     <>
@@ -30,7 +44,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
       />
-      <HomePageContent shopCount={shopCount} shops={shops} areas={areas} posts={posts} />
+      <HomePageContent shopCount={shopCount} shops={shops} areas={areas} posts={posts} dataState={dataState} />
     </>
   );
 }

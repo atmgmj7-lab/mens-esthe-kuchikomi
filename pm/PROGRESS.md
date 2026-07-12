@@ -2106,20 +2106,183 @@ pm/PROGRESS.md
 - 推奨は、UI-FINALだけを反映単位として分離し、再検証後に本番反映すること。
 - 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
 
-## 2026-07-12 UI-FINAL-07 isolated deploy unit
+## 2026-07-12 UI-FINAL-07 isolated branch and draft PR
 
-- Created isolated worktree: .
-- Created branch: .
+- Created isolated worktree: `/tmp/escomi-ui-final-worktree-041607`.
+- Created branch: `codex/ui-final-ready-20260712-041607`.
 - Copied only public UI-FINAL changes and required public quality guardrails.
 - Excluded dashboard implementation, dashboard deploy workflows, Fable bulk docs, and production GitHub Actions workflow changes.
 - Isolated validation passed: lint, typecheck, test, build, Playwright crosscheck.
-- Status: .
+- Created commit: `e361779 feat: isolate escomi final public UI`.
+- Pushed branch to GitHub.
+- Created draft PR: https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/pull/2
+- PR checks at creation: no status checks reported yet.
+- Status: `ISOLATED_UI_FINAL_READY`.
 
-## 2026-07-12 UI-FINAL-07 isolated deploy unit corrected
+## 2026-07-12 UI-FINAL isolated preview deploy result
+- Isolated branch: `codex/ui-final-ready-20260712-041607`
+- Draft PR: https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/pull/2
+- Vercel preview: https://escomi-headless-ks9qz97jb-narikiyos-projects.vercel.app
+- Vercel deployment ID: `dpl_Gv3ZBUhMDcEnPgVMqdyAo2jVujTC`
+- Remote Vercel build: READY / build completed successfully / 440 pages generated
+- Local isolated checks: lint, typecheck, test, build, Playwright route crosscheck passed
+- Remaining blocker: preview URL is protected by Vercel Authentication, so normal browser-based visual verification redirects to Vercel login.
 
-- Created isolated worktree: /tmp/escomi-ui-final-worktree-041607.
-- Created branch: codex/ui-final-ready-20260712-041607.
-- Copied only public UI-FINAL changes and required public quality guardrails.
-- Excluded dashboard implementation, dashboard deploy workflows, Fable bulk docs, and production GitHub Actions workflow changes.
-- Isolated validation passed: lint, typecheck, test, build, Playwright crosscheck.
-- Status: ISOLATED_UI_FINAL_READY.
+
+## 2026-07-12 UI-FINAL protected preview browser verification
+- Vercel protected preview access was resolved by issuing a temporary share URL.
+- Verified routes with Playwright against the Vercel preview:
+  - `/` title: `Escomi | 関西メンズエステ口コミナビ`
+  - `/area/osaka/` h1: `大阪のメンズエステ`
+  - `/area/nihonbashi/` h1: `大阪日本橋メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較`
+  - concrete shop detail: `/shops/c-r-e-a-m%ef%bc%88%e3%82%af%e3%83%aa%e3%83%bc%e3%83%a0%ef%bc%89/` h1: `C.r.e.a.m（クリーム）`
+- Screenshots saved under `/tmp/escomi-ui-final-vercel-share-crosscheck-20260712`.
+- Production gate: preview build and browser verification are now complete. Final production reflection still requires explicit production approval.
+
+
+## 2026-07-12 UI-FINAL production reflection completed
+- PR #2 was marked ready and merged into `main`.
+- Main commit after merge: `48b8d0ae5acfceacb3d74cc4ee42f343f3c68041`.
+- Remote UI work branch was deleted after merge.
+- Vercel production deployment: `dpl_G6hqGYQoQPg8sctg95QAgGEY1VQk`.
+- Production deployment URL: `https://escomi-headless-6rvvf0sz1-narikiyos-projects.vercel.app`.
+- Production aliases confirmed:
+  - `https://mens-esthe-kuchikomi.com`
+  - `https://www.mens-esthe-kuchikomi.com`
+  - `https://escomi-headless.vercel.app`
+- Production status: READY.
+- Production browser verification passed:
+  - `/` title: `Escomi | 関西メンズエステ口コミナビ`
+  - `/area/osaka/` h1: `大阪のメンズエステ`
+  - `/area/nihonbashi/` h1: `大阪日本橋メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較`
+  - `/shops/c-r-e-a-m%ef%bc%88%e3%82%af%e3%83%aa%e3%83%bc%e3%83%a0%ef%bc%89/` h1: `C.r.e.a.m（クリーム）`
+- Production screenshots: `/tmp/escomi-ui-final-production-crosscheck-20260712`.
+- Vercel error log check: no error logs found in the last 1 hour.
+
+
+## 2026-07-12 TECH-02 useSearchParams CSR bailout原因調査
+- 本番相当のclean worktree `/tmp/escomi-tech02-use-search-params` を `origin/main` (`48b8d0a`) から作成して調査。
+- 通常ワークツリーは未コミット差分が大量にあるため、本番相当判定には使わなかった。
+- buildでは `useSearchParams` / `bailout` / `client-side rendering` 警告は再現なし。
+- `next start` production runtimeで `BAILOUT_TO_CLIENT_SIDE_RENDERING` を再現。
+- 原因は `headless/components/GoogleAnalytics.tsx` の `useSearchParams()`。
+- `headless/app/layout.tsx` の `Suspense fallback={null}` により影響はGA subtree限定。
+- `/`, `/area/[slug]`, `/shops`, `/shops/[slug]`, `/reviews/submit`, `/dashboard`, `/dashboard/analytics` のStatic/PPR状態を確認。
+- JS無効時HTMLシェル、GA初回/page/query/back/clickイベントをPlaywrightで確認。
+- `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` 成功。
+- コード変更、本番反映、WordPress、Supabase、DB、Secret変更なし。
+- 証跡: `docs/technical/use-search-params-bailout-audit-2026-07-12.md`。
+
+
+## 2026-07-12 Q-06 title / meta / canonical / noindex確認
+- `origin/main` 相当のclean worktreeでmetadata生成経路を確認。
+- `/reviews/submit/` は `noindex,nofollow` だがcanonicalがRoot Layout由来でトップへ継承されていたため、自己canonicalへ修正。
+- `/dashboard/` と `/dashboard/analytics/` は管理画面にもかかわらず `index,follow` かつcanonicalがトップへ継承されていたため、noindex化と自己canonical化を実装。
+- 変更ファイル: `headless/app/reviews/submit/page.tsx`, `headless/app/dashboard/layout.tsx`, `headless/app/dashboard/page.tsx`, `headless/app/dashboard/analytics/page.tsx`。
+- 証跡: `docs/technical/q06-title-meta-canonical-noindex-audit-2026-07-12.md`。
+- 検証コマンドは未実行。次にbuildで生成HTML確認が必要。
+
+
+### Q-06 検証結果（2026-07-12）
+- clean worktree `/tmp/escomi-tech02-use-search-params` で `npm run build` 成功。
+- 440/440 pages generated。
+- `/reviews/submit/`: `robots=noindex,nofollow`, canonical=`https://mens-esthe-kuchikomi.com/reviews/submit/` を確認。
+- `/dashboard/`: `robots=noindex,nofollow`, `googlebot=noindex,nofollow`, canonical=`https://mens-esthe-kuchikomi.com/dashboard/` を確認。
+- `/dashboard/analytics/`: `robots=noindex,nofollow`, `googlebot=noindex,nofollow`, canonical=`https://mens-esthe-kuchikomi.com/dashboard/analytics/` を確認。
+- build時の `middleware` deprecation warning はTECH-01へ分離。
+
+
+## 2026-07-12 トップページ構成修正
+- スクリーンショット指摘に合わせ、トップページの `日本橋の注目店舗` セクションを削除。
+- `注目エリアハブ` に `堺筋本町` と `堺・堺東` を追加し、PCでは5カード表示へ変更。
+- トップビジュアルをスクリーンショットに近い大きな白いカード構成へ調整。
+- タブレットは3列、スマホは1列に落ちるようレスポンシブを追加。
+- 変更ファイル: `headless/components/HomePageContent.tsx`, `headless/app/globals.css`。
+- 検証コマンドは未実行。次にブラウザ確認またはbuild確認が必要。
+
+
+## 2026-07-12 日本橋エリア専用バナー削除
+- スクリーンショット指摘に合わせ、日本橋エリアページの旧 `AREA FEATURE` 画像バナーを非表示化。
+- 日本橋だけヒーロー画像枠を出さず、通常のエリア説明カードとして表示する条件を追加。
+- 他エリアは既存のタイトルバナーまたは汎用テーマバナーを継続表示。
+- 変更ファイル: `headless/components/area/AreaHubPageTemplate.tsx`, `headless/app/globals.css`。
+- 検証コマンドは未実行。次にブラウザ確認またはbuild確認が必要。
+
+
+## 2026-07-12 トップページ・日本橋バナー修正 本番デプロイ
+- `origin/main` から隔離作業ディレクトリを作成し、今回対象の3ファイルだけを載せてVercel本番へ直接デプロイ。
+- 対象: `headless/components/HomePageContent.tsx`, `headless/app/globals.css`, `headless/components/area/AreaHubPageTemplate.tsx`。
+- Vercel buildでコンパイル、TypeScript、440ページ生成が成功。
+- 本番alias `https://mens-esthe-kuchikomi.com` に反映済み。
+- Deployment ID: `dpl_7QZgFJeySoPum37JwYnJ3q7PC9xo`。
+- 注意: この本番デプロイはGitHubの `origin/main` へは未反映。後続で差分をPR/mergeしてソースと本番を同期する必要あり。
+
+
+## 2026-07-12 トップページ完成形デザイン再構成
+- スクリーンショット指摘に合わせ、トップページを完成形デザインへ再構成。
+- ヒーローを左テキスト・検索・条件チップ、右統計カードの構成へ変更。
+- 都道府県セクションは大阪・京都など地名カードに画像付きアコーディオンを追加。
+- 重点エリア、条件検索、更新店舗、情報出自ラベル、初心者導線、店舗オーナー導線をデザイン枠として設置。
+- 将来の口コミ・絞り込み・更新履歴機能に接続しやすいよう、リンクとDBメモを残した構成に整理。
+- 変更ファイル: `headless/components/HomePageContent.tsx`, `headless/app/globals.css`。
+- 検証コマンドは未実行。次にブラウザ確認またはbuild確認が必要。
+
+
+## 2026-07-12 Escomi完成形デザインPDFの正本化
+- 添付 `Escomi完成形デザイン.pdf` を確認。
+- PDFはトップ、都道府県、地域詳細、店舗詳細、運用/分析ダッシュボード、デザインシステム、状態バリエーションを含む1ページ縦長カンプ。
+- 正本PDFを `docs/design/escomi-final-design-source.pdf` に保存。
+- 確認用PNGを `docs/design/escomi-final-design-source.png` に保存。
+- 機能別の再現ルールと優先順位を `docs/design/escomi-final-design-implementation-map.md` に整理。
+- 今後は機能単位でこのPDFの該当画面・状態を再現する方針に変更。
+
+
+## 2026-07-12 P0 トップページ PDF 1a 追従
+- PDF 1aの状態バリエーションに合わせ、トップページのデータ取得を `Promise.allSettled` 化。
+- 店舗数取得失敗時もページ全体を落とさず、エリア導線と再読み込み導線を表示する設計へ変更。
+- 都道府県件数の取得失敗時はカード導線を維持し、件数のみ「件数再取得」として表示。
+- 更新店舗0件または店舗取得失敗時の空状態UIを追加。
+- 検索候補なし状態に接続するための検索フィードバックUIテンプレートを追加。
+- 変更ファイル: `headless/app/page.tsx`, `headless/components/HomePageContent.tsx`, `headless/app/globals.css`。
+- 検証コマンドは未実行。次にブラウザ確認またはbuild確認が必要。
+
+
+## 2026-07-12 P0 トップページ PDF 1a 追従 本番デプロイ
+- `origin/main` から隔離作業ディレクトリを作成し、トップページ対象の3ファイルだけを載せてVercel本番へ直接デプロイ。
+- 対象: `headless/app/page.tsx`, `headless/components/HomePageContent.tsx`, `headless/app/globals.css`。
+- Vercel buildでコンパイル、TypeScript、440ページ生成が成功。
+- 本番alias `https://mens-esthe-kuchikomi.com` に反映済み。
+- Deployment ID: `dpl_5418toHQfLrWU4c3SDCJjZy289jw`。
+- 注意: この本番デプロイはGitHubの `origin/main` へは未反映。後続で差分をPR/mergeしてソースと本番を同期する必要あり。
+
+
+## 2026-07-12 P0 地域詳細ページ PDF 1c 追従
+- 地域詳細ページの店舗一覧に、モバイル用の下部シート風フィルター導線を追加。
+- フィルター結果0件時に、外す条件候補と増加件数を提示する空状態UIを追加。
+- ランキング対象が10件未満の場合、順位番号ではなくピックアップ表示へ降格する制御を追加。
+- PR枠は自然ランキングとは別枠であることが視覚的にも分かるよう、PR枠ラベルを強化。
+- 口コミ0件時のCTA文言をPDF 1cの口コミ募集文脈に寄せて修正。
+- 変更ファイル: `headless/components/area/area-hub-content.tsx`, `headless/components/area/hub/RankingHeroCards.tsx`, `headless/components/area/hub/AreaShopList.tsx`, `headless/components/area/AreaLatestReviews.tsx`, `headless/app/globals.css`。
+- 検証コマンドは未実行。次にブラウザ確認またはbuild確認が必要。
+
+
+## 2026-07-12 トップページ細部レイアウト調整
+- ヒーロー見出しを `関西メンズエステ口コミナビ` に変更。
+- 手動改行を削除し、見出し・説明文の文字サイズと行間を調整。
+- 改行崩れを抑えるため、見出しに `text-wrap: balance` と最大幅を追加。
+- 都道府県パネルをサムネイル型から画像背景型に戻し、開閉時に詳細が広がるアコーディオン風UIへ調整。
+- 変更ファイル: `headless/components/HomePageContent.tsx`, `headless/app/globals.css`。
+- 検証コマンドは未実行。開発サーバー上で目視確認が必要。
+
+
+## 2026-07-12 トップページ文字サイズ・モバイル崩れ修正
+- ヒーロー見出しを正式名 `関西メンズエステ口コミナビ` のまま維持し、PC/スマホで大きすぎない最大サイズへ調整。
+- 公開画面に出ていた内部向けDBメモ表示をトップページから削除。
+- 都道府県・重点エリアは既存の完成形部品 `KansaiAreaGrid` / `AreaFeatureSection` に戻し、画像アコーディオン保持テストと整合。
+- 初心者向け手順の説明文が番号列に入って縦に潰れる問題をCSSグリッド指定で修正。
+- 条件カード、更新店舗カード、統計カードの横はみ出しを抑える `min-width: 0` とレスポンシブ指定を追加。
+- 変更ファイル: `headless/components/HomePageContent.tsx`, `headless/app/globals.css`, `pm/PROGRESS.md`。
+- 検証結果: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` 成功。
+- Playwrightで `http://localhost:3013/` を 1440/768/390/360px で確認。H1正式名、横スクロールなし、DBメモ非表示、初心者向け説明の縦潰れなしを確認。
+- スクリーンショット: `/tmp/escomi-home-desktop.png`, `/tmp/escomi-home-mobile390.png`。
+- 本番、WordPress、Supabase、DB、Secret、デプロイは変更なし。
