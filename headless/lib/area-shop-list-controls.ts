@@ -146,3 +146,43 @@ export function prepareAreaShopListView(
 ): ShopView[] {
   return sortAreaShops(filterAreaShops(shops, filters, targetArea), sortId, targetArea, rankingEntries);
 }
+
+export function getFilterRelaxationSuggestions(
+  shops: ShopView[],
+  filters: ShopListFilterId[],
+  targetArea: Pick<AreaView, "slug" | "name">,
+  limit = 3
+): Array<{ id: ShopListFilterId; label: string; count: number; filters: ShopListFilterId[] }> {
+  if (filters.length === 0) return [];
+
+  const activeIds = new Set(filters);
+  const activeOptions = SHOP_LIST_FILTER_OPTIONS.filter((option) => activeIds.has(option.id));
+  const removeOneSuggestions = activeOptions
+    .map((option) => {
+      const nextFilters = filters.filter((filter) => filter !== option.id);
+      return {
+        id: option.id,
+        label: `${option.label}を外す`,
+        count: filterAreaShops(shops, nextFilters, targetArea).length,
+        filters: nextFilters
+      };
+    })
+    .filter((suggestion) => suggestion.count > 0);
+
+  if (removeOneSuggestions.length > 0) {
+    return removeOneSuggestions
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
+
+  return activeOptions
+    .map((option) => ({
+      id: option.id,
+      label: `${option.label}だけにする`,
+      count: filterAreaShops(shops, [option.id], targetArea).length,
+      filters: [option.id]
+    }))
+    .filter((suggestion) => suggestion.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}

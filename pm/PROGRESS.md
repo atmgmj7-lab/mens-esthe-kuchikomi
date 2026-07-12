@@ -2525,3 +2525,11 @@ pm/PROGRESS.md
 - 夜景背景の黒オーバーレイを全体的に約1段階薄くし、文字の視認性を保ったまま街並みが少し見えるよう調整。
 - モバイル表示で `382 店舗` の単位が下段へ回り込まないよう、集計カードの先頭行を横並びで固定。
 - 変更ファイル: `headless/app/globals.css`, `pm/PROGRESS.md`。
+
+
+## 2026-07-13 地域詳細 店舗一覧フィルターURL同期・ゼロ件復帰導線
+- トップページのデザインは変更せず、地域詳細ページの店舗一覧だけを対象に要件定義の `1c 地域詳細` を前進。
+- 店舗一覧の絞り込み・並び替えをURLへ同期し、`filters=` / `sort=` 付きURLで再表示・共有できるようにした。
+- モバイルでは既存CSSの折りたたみフィルターUIを実際に使用し、一覧上部の表示密度を抑えた。
+- 条件0件時に、外すと候補が戻る条件と件数を提示する復帰導線を追加。
+- 変更ファイル: `headless/components/area/hub/AreaShopList.tsx`, `headless/components/area/hub/AreaFilterChips.tsx`, `headless/lib/area-shop-list-controls.ts`, `headless/scripts/check-final-design-preservation.mjs`, `pm/PROGRESS.md`。

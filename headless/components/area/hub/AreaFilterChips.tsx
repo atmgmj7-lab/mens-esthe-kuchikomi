@@ -6,16 +6,18 @@ import { SHOP_LIST_FILTER_OPTIONS } from "@/lib/area-shop-list-controls";
 export function AreaFilterChips({
   activeFilters,
   onToggle,
-  onClear
+  onClear,
+  id
 }: {
   activeFilters: ShopListFilterId[];
   onToggle: (id: ShopListFilterId) => void;
   onClear: () => void;
+  id?: string;
 }) {
   const hasFilters = activeFilters.length > 0;
 
   return (
-    <div className="area-shop-list-controls__filters" id="shop-list-filters">
+    <div className="area-shop-list-controls__filters" id={id}>
       <div className="area-shop-list-controls__filters-head">
         <span className="area-shop-list-controls__label">条件で絞り込む</span>
         {hasFilters ? (

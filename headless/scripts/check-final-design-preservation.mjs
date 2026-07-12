@@ -60,6 +60,16 @@ assert.ok(css.includes("Q-DESIGN final area pages"), "final area page CSS block 
 assert.ok(css.includes("escomi-final-area-hero"), "area hero styles must exist");
 assert.ok(css.includes("escomi-final-area-summary"), "standard area summary styles must exist");
 
+const areaShopList = read("components/area/hub/AreaShopList.tsx");
+assert.ok(areaShopList.includes("parseShopListFiltersFromUrl"), "area shop list filters must be readable from the URL");
+assert.ok(areaShopList.includes("parseShopListSortFromUrl"), "area shop list sort state must be readable from the URL");
+assert.ok(areaShopList.includes("window.history.replaceState"), "area shop list controls must keep the URL in sync");
+assert.ok(areaShopList.includes("area-shop-list-mobile-drawer"), "area shop list must expose mobile drawer controls");
+assert.ok(areaShopList.includes("area-shop-list-zero-state__suggestions"), "area shop list zero state must show relaxation suggestions");
+
+const areaShopListControls = read("lib/area-shop-list-controls.ts");
+assert.ok(areaShopListControls.includes("getFilterRelaxationSuggestions"), "area shop list controls must calculate zero-result recovery suggestions");
+
 const shopDetail = read("components/ShopDetail.tsx");
 assert.ok(shopDetail.includes("escomi-final-shop-page"), "shop detail page must use final shop page shell");
 assert.ok(shopDetail.includes("escomi-final-shop-header"), "shop detail page must use final shop hero header");
