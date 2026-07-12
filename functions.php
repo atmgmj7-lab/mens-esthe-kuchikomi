@@ -436,7 +436,7 @@ add_action( 'rest_api_init', function () {
         },
         'permission_callback' => '__return_true',
     ) );
-} );
+}, PHP_INT_MAX );
 
 // escomi/v1/update フォールバック登録（PHP_INT_MAX = ai-update-log.php より後に実行 → mu-plugin 上書きに勝つ）
 add_action( 'rest_api_init', function () {
@@ -1019,7 +1019,7 @@ add_action( 'rest_api_init', function () {
                 $opcache_reset = opcache_reset();
             }
             return array(
-                'deployed'          => 'v5',
+                'deployed'          => 'v6-home-featured-areas',
                 'opcache_reset'     => $opcache_reset,
                 'mu_proxy_exists'   => $mu_dir ? file_exists( $mu_dir . 'proxy-app-passwords.php' ) : 'unknown',
                 'mu_plugins'        => $mu_dir && is_dir( $mu_dir ) ? array_values( array_diff( scandir( $mu_dir ), array( '.', '..' ) ) ) : array(),
