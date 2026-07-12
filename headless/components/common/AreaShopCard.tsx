@@ -4,6 +4,7 @@ import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
 import { PriceLabel } from "@/components/common/PriceLabel";
 import { RatingBadge } from "@/components/common/RatingBadge";
+import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
 import { getHubTemplateConfig } from "@/lib/area-hub-config";
 import {
   buildEditorCommentShort,
@@ -83,13 +84,13 @@ export function AreaShopCard({
           </div>
         </dl>
 
-        <div className="area-shop-card__tags">
+        <ResponsiveTagList className="area-shop-card__tags" ariaLabel={`${shop.title}の特徴`}>
           {tags.map((tag) => (
-            <span className="area-shop-card__tag" key={tag}>
+            <ResponsiveTag className="area-shop-card__tag" key={tag} tone="teal">
               {tag}
-            </span>
+            </ResponsiveTag>
           ))}
-        </div>
+        </ResponsiveTagList>
 
         <p className="area-shop-card__editor area-shop-card__editor--clamp">
           {buildEditorCommentShort(shop, targetArea)}

@@ -12,12 +12,48 @@ type HomePageDataState = {
 };
 
 const CONDITION_CARDS = [
-  { label: "料金確認済み", count: "214店舗", icon: "◎", href: "/area/nihonbashi/?filter=price-confirmed" },
-  { label: "深夜営業", count: "96店舗", icon: "☾", href: "/area/nihonbashi/?filter=late-night" },
-  { label: "駅近（徒歩5分）", count: "173店舗", icon: "⌖", href: "/area/nihonbashi/?filter=station" },
-  { label: "初心者向け", count: "88店舗", icon: "○", href: "/area/nihonbashi/?filter=beginner" },
-  { label: "口コミあり", count: "167店舗", icon: "☏", href: "/area/nihonbashi/?filter=reviews" },
-  { label: "公式サイトあり", count: "241店舗", icon: "↗", href: "/area/nihonbashi/?filter=official" }
+  {
+    label: "料金確認済み",
+    count: "214店舗",
+    tone: "price",
+    description: "料金目安を確認済み",
+    href: "/area/nihonbashi/?filter=price-confirmed"
+  },
+  {
+    label: "深夜営業",
+    count: "96店舗",
+    tone: "night",
+    description: "夜の利用候補",
+    href: "/area/nihonbashi/?filter=late-night"
+  },
+  {
+    label: "駅近（徒歩5分）",
+    count: "173店舗",
+    tone: "station",
+    description: "移動しやすい店舗",
+    href: "/area/nihonbashi/?filter=station"
+  },
+  {
+    label: "初心者向け",
+    count: "88店舗",
+    tone: "beginner",
+    description: "初回でも選びやすい",
+    href: "/area/nihonbashi/?filter=beginner"
+  },
+  {
+    label: "口コミあり",
+    count: "167店舗",
+    tone: "reviews",
+    description: "利用者投稿を確認",
+    href: "/area/nihonbashi/?filter=reviews"
+  },
+  {
+    label: "公式サイトあり",
+    count: "241店舗",
+    tone: "official",
+    description: "公式情報へ移動可能",
+    href: "/area/nihonbashi/?filter=official"
+  }
 ] as const;
 
 const INFORMATION_LABELS = [
@@ -29,6 +65,29 @@ const INFORMATION_LABELS = [
 ] as const;
 
 const UPDATE_BADGES = ["新規掲載", "料金更新", "営業時間更新", "公式情報確認", "店舗情報更新"] as const;
+
+const HERO_BACKGROUND_SLIDES = [
+  {
+    src: "/images/home-hero/osaka-night-alley-lanterns.jpg",
+    alt: "大阪の夜の路地に提灯と飲食店の灯りが並ぶ街並み"
+  },
+  {
+    src: "/images/home-hero/kansai-night-station-street.jpg",
+    alt: "関西の駅前通りにネオンと人通りが広がる夜景"
+  },
+  {
+    src: "/images/home-hero/kansai-night-food-street.webp",
+    alt: "関西の夜の商店街に飲食店の明かりが続く街並み"
+  },
+  {
+    src: "/images/home-hero/osaka-night-sign-street.jpg",
+    alt: "大阪の夜の繁華街に看板が並ぶ街並み"
+  },
+  {
+    src: "/images/home-hero/osaka-senba-night-road.jpg",
+    alt: "大阪船場周辺の高架と街明かりの夜景"
+  }
+] as const;
 
 const DEFAULT_DATA_STATE: HomePageDataState = {
   shopCountFailed: false,
@@ -61,6 +120,17 @@ export function HomePageContent({
   return (
     <main id="main_content" className="l-mainContent escomi-home-final-v2">
       <section className="escomi-home-hero-v2 hl-fade-in" aria-labelledby="home-hero-title">
+        <div className="escomi-home-hero-v2__slideshow" aria-hidden="true">
+          {HERO_BACKGROUND_SLIDES.map((slide) => (
+            <span
+              className="escomi-home-hero-v2__slide"
+              key={slide.src}
+              role="img"
+              aria-label={slide.alt}
+              style={{ backgroundImage: `url(${slide.src})` }}
+            />
+          ))}
+        </div>
         <div className="escomi-home-container-v2 escomi-home-hero-v2__grid">
           <div className="escomi-home-hero-v2__copy">
             <p className="escomi-home-eyebrow-v2">KANSAI MEN&apos;S ESTHE REVIEW &amp; SEARCH</p>
@@ -154,10 +224,17 @@ export function HomePageContent({
           </div>
           <div className="escomi-condition-grid-v2">
             {CONDITION_CARDS.map((condition) => (
-              <Link className="escomi-condition-card-v2" href={condition.href} key={condition.label}>
-                <span>{condition.icon}</span>
-                <strong>{condition.label}</strong>
-                <em>{condition.count}</em>
+              <Link
+                className={`escomi-condition-card-v2 escomi-condition-card-v2--${condition.tone}`}
+                href={condition.href}
+                key={condition.label}
+              >
+                <span className="escomi-condition-card-v2__visual" aria-hidden="true" />
+                <span className="escomi-condition-card-v2__body">
+                  <strong>{condition.label}</strong>
+                  <small>{condition.description}</small>
+                  <em>{condition.count}</em>
+                </span>
               </Link>
             ))}
           </div>
@@ -189,7 +266,7 @@ export function HomePageContent({
                     alt={shop.title}
                     width={360}
                     height={210}
-                    loading="lazy"
+                    loading="eager"
                     decoding="async"
                   />
                   <span>{UPDATE_BADGES[index % UPDATE_BADGES.length]}</span>

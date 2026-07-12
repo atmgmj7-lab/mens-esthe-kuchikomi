@@ -2484,3 +2484,31 @@ pm/PROGRESS.md
 - 変更ファイル: `headless/components/area/AreaHubPageTemplate.tsx`, `headless/app/globals.css`。
 - 検証結果: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `git diff --check` 成功。
 - Playwrightで `http://localhost:3025/area/umeda/` のヒーロー画像枠0件、`http://localhost:3025/` のスマホスライダー画像5枚・矢印2つ・ドット5つを確認。
+
+
+## 2026-07-13 共通タイポグラフィ・エリア写真バナー化
+- トップで整えた見出し階層、本文サイズ、タグ表示を共通CSSと `ResponsiveTag` 部品へ整理し、店舗カード・エリアカード・ランキング周辺へ適用。
+- エリアページのトップバナー背景を、トップ「大阪の特集エリア」で使う街並み画像と同じ解決ロジックに変更。WordPressの `home-featured-areas` が入れば管理側の画像を優先し、未設定時は静的フォールバックを使う。
+- エリア詳細のヒーローは写真背景＋暗めのオーバーレイにし、モバイルでも長い見出し・説明文・タグが右にはみ出さないよう調整。
+- Supabase接続は新しい `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` を優先し、既存互換で `NEXT_PUBLIC_SUPABASE_ANON_KEY` も読めるようにした。
+- 変更ファイル: `headless/app/area/[slug]/page.tsx`, `headless/components/AreaHero.tsx`, `headless/components/AreaPageView.tsx`, `headless/components/area/AreaHubPageTemplate.tsx`, `headless/components/common/ResponsiveTag.tsx`, `headless/lib/design-constants.ts`, `headless/lib/dashboard-config.ts`, `headless/app/globals.css`, `headless/.env.example`, `pm/RUNBOOK.md` ほか。
+- 検証結果: `git diff --check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` 成功。
+- Playwright CLIで `http://localhost:3015/` 390px、`/area/umeda/` 390px、`/area/nihonbashi/` 1440px を確認。トップは大きな構成変更なし、エリアページは街並み写真背景として表示。
+- 注意: build時点では WordPress `home-featured-areas` API が404のため、現状は静的フォールバック画像で表示。本番デプロイ・Gitコミット・pushは未実行。
+
+
+## 2026-07-13 トップビジュアル夜景スライド化
+- トップヒーロー背景を大阪・関西の夜景写真5枚のCSSスライドショーへ変更。
+- 写真は約5秒間隔でフェードし、黒フィルターと白ベースの文字に切り替えて、検索欄と集計パネルは既存構成を維持。
+- 画像の表示位置は中央より少し上寄りにし、PC/スマホともに夜の街並みが背景として見えるよう調整。
+- 追加画像: `headless/public/images/home-hero/osaka-night-alley-lanterns.jpg`, `kansai-night-station-street.jpg`, `kansai-night-food-street.webp`, `osaka-night-sign-street.jpg`, `osaka-senba-night-road.jpg`。
+- 変更ファイル: `headless/components/HomePageContent.tsx`, `headless/app/globals.css`, `pm/PROGRESS.md`。
+- 検証結果: `git diff --check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` 成功。
+- Playwright CLIで `http://localhost:3016/` をPC 1440pxの1.2秒後/6.2秒後、スマホ390pxで確認。背景の切り替わり、白文字、検索欄、集計パネルの視認性を確認。
+- 本番デプロイ・Gitコミット・pushは未実行。
+
+
+## 2026-07-13 エリア特集カード黒背景の白文字化
+- トップ「大阪の特集エリア」カードで、黒フィルター上の地域名・説明文・ステータス文字が黒系に戻っていた問題を修正。
+- 共通見出しルールは維持しつつ、写真背景カード内だけ白文字と黒影に上書きし、地域名・本文・掲載店舗数が読みやすい状態に調整。
+- 変更ファイル: `headless/app/globals.css`, `pm/PROGRESS.md`。

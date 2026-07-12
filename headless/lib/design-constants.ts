@@ -118,8 +118,47 @@ export const AREA_FEATURES = [
 
 export const AREA_FEATURE = AREA_FEATURES[0];
 
-export function resolveAreaHeroImage(area: AreaView, parent?: AreaView | null): string {
+function areaFeatureCandidates(features: readonly AreaFeatureItem[] = []): AreaFeatureItem[] {
+  const seen = new Set<string>();
+  return [...features, ...AREA_FEATURES]
+    .filter((feature) => feature.slug && feature.image)
+    .filter((feature) => {
+      if (seen.has(feature.slug)) return false;
+      seen.add(feature.slug);
+      return true;
+    });
+}
+
+export function resolveAreaFeatureVisual(
+  areaSlug: string,
+  parentSlug?: string | null,
+  features: readonly AreaFeatureItem[] = []
+): { image: string; imageAlt: string } {
+  const candidates = areaFeatureCandidates(features);
+  const feature = candidates.find((item) => item.slug === areaSlug);
+  if (feature) {
+    return { image: feature.image, imageAlt: feature.imageAlt };
+  }
+
+  const parentFeature = parentSlug ? candidates.find((item) => item.slug === parentSlug) : null;
+  if (parentFeature) {
+    return { image: parentFeature.image, imageAlt: parentFeature.imageAlt };
+  }
+
+  return {
+    image: AREA_HERO_IMAGES[areaSlug] || (parentSlug ? AREA_HERO_IMAGES[parentSlug] : "") || AREA_HERO_IMAGES.osaka,
+    imageAlt: `${areaSlug}エリアの街並み`
+  };
+}
+
+export function resolveAreaHeroImage(
+  area: AreaView,
+  parent?: AreaView | null,
+  features: readonly AreaFeatureItem[] = []
+): string {
+  const featureVisual = resolveAreaFeatureVisual(area.slug, parent?.slug, features);
   return (
+    featureVisual.image ||
     AREA_HERO_IMAGES[area.slug] ||
     (parent ? AREA_HERO_IMAGES[parent.slug] : "") ||
     AREA_HERO_IMAGES.osaka

@@ -1,3 +1,5 @@
+import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
+
 type Props = {
   tags: string[];
   className?: string;
@@ -8,12 +10,12 @@ export function ShopInfoChips({ tags, className = "", max = 5 }: Props) {
   if (tags.length === 0) return null;
 
   return (
-    <ul className={`shop-info-chips ${className}`.trim()} aria-label="店舗の特徴">
+    <ResponsiveTagList as="ul" className={`shop-info-chips ${className}`.trim()} ariaLabel="店舗の特徴">
       {tags.slice(0, max).map((tag) => (
-        <li key={tag} className="shop-info-chips__item">
+        <ResponsiveTag as="li" key={tag} className="shop-info-chips__item" tone="teal">
           {tag}
-        </li>
+        </ResponsiveTag>
       ))}
-    </ul>
+    </ResponsiveTagList>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
 import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
 import { resolvePriceDisplay } from "@/lib/area-shop-utils";
 import { safeText } from "@/lib/wp/client";
@@ -113,13 +114,13 @@ export function ShopCard({
         </div>
       </Link>
       <div className="mep-card-body">
-        <div className="shop-row-tags">
+        <ResponsiveTagList className="shop-row-tags" ariaLabel={`${shop.title}のエリア`}>
           {shop.terms.slice(0, 2).map((term) => (
-            <span className="list-tag tag-gray" key={`${shop.id}-${term.id}`}>
+            <ResponsiveTag className="list-tag tag-gray" key={`${shop.id}-${term.id}`} tone="muted">
               {term.name}
-            </span>
+            </ResponsiveTag>
           ))}
-        </div>
+        </ResponsiveTagList>
         <h3 className="mep-card-title">
           <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
         </h3>

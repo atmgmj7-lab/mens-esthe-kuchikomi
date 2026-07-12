@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { resolveAreaHeroImage } from "@/lib/design-constants";
+import { resolveAreaHeroImage, type AreaFeatureItem } from "@/lib/design-constants";
 import type { AreaView } from "@/lib/wp/types";
 
 export function AreaHero({
   area,
-  parent
+  parent,
+  areaFeatures = []
 }: {
   area: AreaView;
   parent?: AreaView | null;
+  areaFeatures?: readonly AreaFeatureItem[];
 }) {
-  const bgUrl = resolveAreaHeroImage(area, parent);
+  const bgUrl = resolveAreaHeroImage(area, parent, areaFeatures);
 
   return (
     <header

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PriceLabel } from "@/components/common/PriceLabel";
+import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
 import {
   shopAreaLabel,
   shopFeatureTags,
@@ -38,13 +39,13 @@ export function AreaShopMiniCard({
         <span>口コミ: {shopReviewCountLabel(shop)}</span>
       </div>
       {tags.length > 0 ? (
-        <div className="area-mini-card__tags">
+        <ResponsiveTagList className="area-mini-card__tags" ariaLabel={`${shop.title}の特徴`}>
           {tags.map((tag) => (
-            <span className="area-mini-card__tag" key={tag}>
+            <ResponsiveTag className="area-mini-card__tag" key={tag} tone="teal">
               {tag}
-            </span>
+            </ResponsiveTag>
           ))}
-        </div>
+        </ResponsiveTagList>
       ) : null}
       <div className="area-mini-card__actions">
         <Link href={`/shops/${shop.slug}/`} className="area-hub-btn area-hub-btn--primary area-hub-btn--sm">

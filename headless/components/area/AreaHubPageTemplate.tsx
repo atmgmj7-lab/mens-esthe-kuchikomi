@@ -18,7 +18,9 @@ import {
   resolveLastUpdatedLabel
 } from "@/lib/area-shop-utils";
 import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
+import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-constants";
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
+import type { CSSProperties } from "react";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 const SECTION_NAV_CHIPS = [
@@ -77,7 +79,8 @@ export function AreaHubPageTemplate({
   parentArea,
   siblingAreas = [],
   childAreas = [],
-  rankingEntries = []
+  rankingEntries = [],
+  areaFeatures = []
 }: {
   area: AreaView;
   allShops: ShopView[];
@@ -86,6 +89,7 @@ export function AreaHubPageTemplate({
   siblingAreas?: AreaView[];
   childAreas?: AreaView[];
   rankingEntries?: AreaShopRankingEntry[];
+  areaFeatures?: readonly AreaFeatureItem[];
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
@@ -93,6 +97,10 @@ export function AreaHubPageTemplate({
   const lastUpdated = resolveLastUpdatedLabel(allShops);
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
+  const heroVisual = resolveAreaFeatureVisual(area.slug, parentArea?.slug, areaFeatures);
+  const heroStyle = heroVisual.image
+    ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
+    : undefined;
 
   return (
     <main
@@ -130,8 +138,10 @@ export function AreaHubPageTemplate({
         </nav>
 
         <section
-          className="escomi-final-area-hero escomi-final-area-hero--text-only hl-fade-in"
+          className="escomi-final-area-hero escomi-final-area-hero--photo hl-fade-in"
           aria-labelledby="area-final-title"
+          aria-label={heroVisual.imageAlt}
+          style={heroStyle}
         >
           <header className="area-hub-header escomi-final-area-hero__body">
             <p className="escomi-final-area-hero__eyebrow">AREA GUIDE</p>

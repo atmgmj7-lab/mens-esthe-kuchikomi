@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { EsSectionTitle } from "@/components/SectionTitle";
 import { ShopCard } from "@/components/ShopCard";
-import { resolveMapEmbedUrl } from "@/lib/design-constants";
+import { resolveMapEmbedUrl, type AreaFeatureItem } from "@/lib/design-constants";
 import {
   areaRankForShop,
   orderShopsForAreaRanking,
@@ -25,7 +25,8 @@ export function AreaPageView({
   currentPage = 1,
   totalPages = 1,
   seoShops,
-  rankingEntries = []
+  rankingEntries = [],
+  areaFeatures = []
 }: {
   area: AreaView;
   shops: ShopView[];
@@ -36,6 +37,7 @@ export function AreaPageView({
   totalPages?: number;
   seoShops?: ShopView[];
   rankingEntries?: AreaShopRankingEntry[];
+  areaFeatures?: readonly AreaFeatureItem[];
 }) {
   const guideShops = seoShops ?? shops;
   const rankedShops = orderShopsForAreaRanking(shops, area, rankingEntries);
@@ -56,7 +58,7 @@ export function AreaPageView({
           __html: JSON.stringify(areaBreadcrumbJsonLd(area, parentArea))
         }}
       />
-      <AreaHero area={area} parent={parentArea} />
+      <AreaHero area={area} parent={parentArea} areaFeatures={areaFeatures} />
 
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell">
         <AreaBreadcrumb area={area} parent={parentArea} />

@@ -16,7 +16,10 @@ export const dashboardConfig = {
   ),
   supabase: {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+    anonKey:
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "",
     tables: {
       gaDaily: process.env.NEXT_PUBLIC_SUPABASE_GA_DAILY_TABLE || "dashboard_ga_daily",
       gaTotals: process.env.NEXT_PUBLIC_SUPABASE_GA_TOTALS_TABLE || "dashboard_ga_totals",
