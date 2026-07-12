@@ -8468,17 +8468,17 @@ img {
 
 .escomi-home-hero-v2::before {
   background:
-    linear-gradient(100deg, rgba(5, 9, 12, 0.82) 0%, rgba(5, 9, 12, 0.68) 42%, rgba(5, 9, 12, 0.5) 100%),
+    linear-gradient(100deg, rgba(5, 9, 12, 0.72) 0%, rgba(5, 9, 12, 0.58) 42%, rgba(5, 9, 12, 0.4) 100%),
     radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.18), transparent 24rem),
     radial-gradient(circle at 88% 12%, rgba(176, 141, 62, 0.2), transparent 24rem);
 }
 
 .escomi-home-hero-v2::after {
   background:
-    linear-gradient(180deg, rgba(5, 9, 12, 0.28) 0%, rgba(5, 9, 12, 0.04) 36%, rgba(5, 9, 12, 0.52) 100%),
+    linear-gradient(180deg, rgba(5, 9, 12, 0.22) 0%, rgba(5, 9, 12, 0.02) 36%, rgba(5, 9, 12, 0.42) 100%),
     linear-gradient(90deg, rgba(176, 141, 62, 0.18), transparent 35%, rgba(15, 137, 149, 0.16));
   mix-blend-mode: screen;
-  opacity: 0.72;
+  opacity: 0.66;
 }
 
 .escomi-home-hero-v2__slideshow {
@@ -8685,11 +8685,11 @@ img {
 }
 
 .escomi-home-stat-panel-v2 {
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.88);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.24);
-  backdrop-filter: blur(18px);
+  background: #fffdf8;
+  box-shadow: 0 28px 74px rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
   padding: clamp(24px, 3vw, 36px);
 }
 
