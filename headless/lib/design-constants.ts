@@ -46,6 +46,17 @@ export const KANSAI_TILE_IMAGES: Record<string, string> = {
   wakayama: "/wp-content/uploads/2026/01/34686f38a688c6f79b72935d06ea6593_t.jpeg"
 };
 
+export type AreaFeatureItem = {
+  slug: string;
+  href: string;
+  subtitle: string;
+  title: string;
+  description: string;
+  btnText: string;
+  image: string;
+  imageAlt: string;
+};
+
 export const AREA_FEATURES = [
   {
     slug: "sakaisuji-hommachi",
@@ -102,7 +113,7 @@ export const AREA_FEATURES = [
     image: "/images/area-hub/banners/334dcc47-8ce8-4d20-ab6b-058e0ac0efbc.png",
     imageAlt: "堺エリアのイメージ"
   }
-] as const;
+] as const satisfies readonly AreaFeatureItem[];
 
 export const AREA_FEATURE = AREA_FEATURES[0];
 

@@ -23,11 +23,19 @@ assert.ok(constants.includes("AREA_FEATURES"), "featured area section must be re
 const feature = read("components/AreaFeatureSection.tsx");
 assert.ok(feature.includes("AREA_FEATURES"), "feature section must render from reusable AREA_FEATURES");
 assert.ok(feature.includes("areas?: AreaView[]"), "feature section must accept data from WordPress area view");
+assert.ok(feature.includes("AreaFeatureSlider"), "feature section must use the interactive featured area slider");
 assert.ok(!feature.includes("DB:"), "feature section must not render DB notes");
+
+const featureSlider = read("components/AreaFeatureSlider.tsx");
+assert.ok(featureSlider.startsWith('"use client";'), "featured area slider interactivity must stay localized");
+assert.ok(featureSlider.includes("<img"), "featured area slider must keep card images");
+assert.ok(featureSlider.includes("scrollBy"), "featured area slider must provide slide controls");
+assert.ok(featureSlider.includes("escomi-final-feature-slider__dots"), "featured area slider must expose slide dots");
+assert.ok(!featureSlider.includes("DB:"), "featured area slider must not render DB notes");
 
 const home = read("components/HomePageContent.tsx");
 assert.ok(home.includes("<KansaiAreaGrid areas={areas} />"), "top page must keep image accordion");
-assert.ok(home.includes("<AreaFeatureSection areas={areas} />"), "top page must keep image-based featured area section");
+assert.ok(home.includes("<AreaFeatureSection areas={areas} features={areaFeatures} />"), "top page must keep configurable image-based featured area section");
 assert.ok(home.includes("編集部コメント・店舗提供情報・PRは口コミに含めません"), "top page must explain source separation");
 
 const css = read("app/globals.css");

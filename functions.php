@@ -203,6 +203,241 @@ add_action('rest_api_init', function() {
 
 });
 
+/* 1.6 トップページ「大阪の特集エリア」管理設定 + REST公開 */
+function escomi_default_home_featured_areas() {
+    return array(
+        array(
+            'enabled'     => true,
+            'slug'        => 'sakaisuji-hommachi',
+            'href'        => '/area/sakaisuji-hommachi/',
+            'subtitle'    => '堺筋本町エリア特集',
+            'title'       => '堺筋本町メンズエステおすすめ一覧',
+            'description' => '堺筋本町・本町・北浜周辺で探しやすい店舗を、料金・営業時間・アクセス・口コミの見方で比較できます。',
+            'btnText'     => '堺筋本町の店舗を見る',
+            'image'       => '/images/home/hero-pc.webp',
+            'imageAlt'    => '堺筋本町周辺の都市イメージ',
+        ),
+        array(
+            'enabled'     => true,
+            'slug'        => 'shinosaka',
+            'href'        => '/area/shinosaka/',
+            'subtitle'    => '新大阪エリア特集',
+            'title'       => '新大阪メンズエステおすすめ一覧',
+            'description' => '新大阪・東三国・西中島南方周辺の候補を、出張前後や夜の利用もしやすい条件で比較できます。',
+            'btnText'     => '新大阪の店舗を見る',
+            'image'       => '/images/area-hub/banners/98ad9973-f78c-40a5-b539-be08b889c1a6.png',
+            'imageAlt'    => '新大阪周辺のエリアイメージ',
+        ),
+        array(
+            'enabled'     => true,
+            'slug'        => 'nihonbashi',
+            'href'        => '/area/nihonbashi/',
+            'subtitle'    => '日本橋エリア特集',
+            'title'       => '大阪日本橋メンズエステおすすめ一覧',
+            'description' => '大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較できます。',
+            'btnText'     => '日本橋の店舗を見る',
+            'image'       => '/images/home/feature-nihonbashi-pc.webp',
+            'imageAlt'    => '大阪日本橋エリアの街並み',
+        ),
+        array(
+            'enabled'     => true,
+            'slug'        => 'umeda',
+            'href'        => '/area/umeda/',
+            'subtitle'    => '梅田エリア特集',
+            'title'       => '大阪梅田メンズエステおすすめ一覧',
+            'description' => '梅田・大阪駅・東梅田・西梅田周辺の店舗を、駅近・深夜営業・料金目安で比較できます。',
+            'btnText'     => '梅田の店舗を見る',
+            'image'       => '/images/area-hub/banners/nihonbashi-hero-pc.webp',
+            'imageAlt'    => '大阪梅田エリアの都市イメージ',
+        ),
+        array(
+            'enabled'     => true,
+            'slug'        => 'sakai',
+            'href'        => '/area/sakai/',
+            'subtitle'    => '堺エリア特集',
+            'title'       => '堺メンズエステおすすめ一覧',
+            'description' => '堺・堺東・三国ヶ丘周辺で探す方向けに、料金・営業時間・アクセスを見比べやすく整理しています。',
+            'btnText'     => '堺の店舗を見る',
+            'image'       => '/images/area-hub/banners/334dcc47-8ce8-4d20-ab6b-058e0ac0efbc.png',
+            'imageAlt'    => '堺エリアのイメージ',
+        ),
+    );
+}
+
+function escomi_normalize_home_featured_area( $item, $fallback = array() ) {
+    $item = is_array( $item ) ? $item : array();
+    $fallback = is_array( $fallback ) ? $fallback : array();
+
+    $slug = sanitize_title( $item['slug'] ?? ( $fallback['slug'] ?? '' ) );
+    $href = trim( (string) ( $item['href'] ?? ( $fallback['href'] ?? '' ) ) );
+    if ( $href === '' && $slug !== '' ) {
+        $href = '/area/' . $slug . '/';
+    }
+
+    return array(
+        'enabled'     => ! empty( $item['enabled'] ),
+        'slug'        => $slug,
+        'href'        => esc_url_raw( $href ),
+        'subtitle'    => sanitize_text_field( $item['subtitle'] ?? ( $fallback['subtitle'] ?? '' ) ),
+        'title'       => sanitize_text_field( $item['title'] ?? ( $fallback['title'] ?? '' ) ),
+        'description' => sanitize_textarea_field( $item['description'] ?? ( $fallback['description'] ?? '' ) ),
+        'btnText'     => sanitize_text_field( $item['btnText'] ?? ( $fallback['btnText'] ?? '' ) ),
+        'image'       => esc_url_raw( $item['image'] ?? ( $fallback['image'] ?? '' ) ),
+        'imageAlt'    => sanitize_text_field( $item['imageAlt'] ?? ( $fallback['imageAlt'] ?? '' ) ),
+    );
+}
+
+function escomi_sanitize_home_featured_areas( $items ) {
+    $defaults = escomi_default_home_featured_areas();
+    $items = is_array( $items ) ? array_values( $items ) : array();
+    $normalized = array();
+    $count = max( count( $defaults ), count( $items ) );
+
+    for ( $i = 0; $i < $count; $i++ ) {
+        $normalized[] = escomi_normalize_home_featured_area( $items[ $i ] ?? array(), $defaults[ $i ] ?? array() );
+    }
+
+    return $normalized;
+}
+
+function escomi_get_home_featured_areas() {
+    $stored = get_option( 'escomi_home_featured_areas', array() );
+    $items = ! empty( $stored ) && is_array( $stored )
+        ? escomi_sanitize_home_featured_areas( $stored )
+        : escomi_default_home_featured_areas();
+
+    $items = array_values( array_filter( $items, function ( $item ) {
+        return ! empty( $item['enabled'] ) && ! empty( $item['slug'] ) && ! empty( $item['title'] );
+    } ) );
+
+    return ! empty( $items ) ? $items : escomi_default_home_featured_areas();
+}
+
+add_action( 'admin_init', function () {
+    register_setting(
+        'escomi_home_featured_areas_group',
+        'escomi_home_featured_areas',
+        array(
+            'type'              => 'array',
+            'sanitize_callback' => 'escomi_sanitize_home_featured_areas',
+            'default'           => escomi_default_home_featured_areas(),
+        )
+    );
+} );
+
+add_action( 'admin_menu', function () {
+    add_options_page(
+        'トップ特集エリア',
+        'トップ特集エリア',
+        'manage_options',
+        'escomi-home-featured-areas',
+        'escomi_render_home_featured_areas_admin'
+    );
+} );
+
+add_action( 'admin_enqueue_scripts', function ( $hook ) {
+    if ( $hook !== 'settings_page_escomi-home-featured-areas' ) {
+        return;
+    }
+
+    wp_enqueue_media();
+    wp_enqueue_script( 'jquery' );
+    wp_add_inline_script(
+        'jquery',
+        <<<'JS'
+jQuery(function($){
+  $('.escomi-media-picker').on('click', function(e){
+    e.preventDefault();
+    var target = $($(this).data('target'));
+    var frame = wp.media({
+      title: '画像を選択',
+      button: { text: 'この画像を使う' },
+      multiple: false
+    });
+    frame.on('select', function(){
+      var attachment = frame.state().get('selection').first().toJSON();
+      target.val(attachment.url).trigger('change');
+    });
+    frame.open();
+  });
+});
+JS
+    );
+} );
+
+function escomi_render_home_featured_areas_admin() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    $items = get_option( 'escomi_home_featured_areas', array() );
+    $items = ! empty( $items ) && is_array( $items ) ? escomi_sanitize_home_featured_areas( $items ) : escomi_default_home_featured_areas();
+    ?>
+    <div class="wrap">
+        <h1>トップ特集エリア</h1>
+        <p>トップページ「大阪の特集エリア」スライダーに表示する地域・画像・文言を設定します。</p>
+        <form method="post" action="options.php">
+            <?php settings_fields( 'escomi_home_featured_areas_group' ); ?>
+            <table class="widefat striped" style="max-width: 1280px;">
+                <thead>
+                    <tr>
+                        <th style="width:70px;">表示</th>
+                        <th style="width:150px;">エリアslug</th>
+                        <th>タイトル・説明</th>
+                        <th style="width:280px;">画像URL</th>
+                        <th style="width:160px;">リンク</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $items as $index => $item ) : ?>
+                    <tr>
+                        <td>
+                            <label>
+                                <input type="checkbox" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( ! empty( $item['enabled'] ) ); ?>>
+                                表示
+                            </label>
+                        </td>
+                        <td>
+                            <input type="text" class="regular-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][slug]" value="<?php echo esc_attr( $item['slug'] ); ?>" placeholder="nihonbashi">
+                            <p class="description">例: nihonbashi</p>
+                        </td>
+                        <td>
+                            <input type="text" class="large-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][subtitle]" value="<?php echo esc_attr( $item['subtitle'] ); ?>" placeholder="日本橋エリア特集">
+                            <input type="text" class="large-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][title]" value="<?php echo esc_attr( $item['title'] ); ?>" placeholder="大阪日本橋メンズエステおすすめ一覧" style="margin-top:6px;">
+                            <textarea class="large-text" rows="3" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][description]" style="margin-top:6px;"><?php echo esc_textarea( $item['description'] ); ?></textarea>
+                            <input type="text" class="large-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][btnText]" value="<?php echo esc_attr( $item['btnText'] ); ?>" placeholder="日本橋の店舗を見る" style="margin-top:6px;">
+                            <input type="text" class="large-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][imageAlt]" value="<?php echo esc_attr( $item['imageAlt'] ); ?>" placeholder="画像の説明" style="margin-top:6px;">
+                        </td>
+                        <td>
+                            <?php $image_id = 'escomi_featured_image_' . $index; ?>
+                            <input id="<?php echo esc_attr( $image_id ); ?>" type="url" class="large-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][image]" value="<?php echo esc_url( $item['image'] ); ?>">
+                            <button type="button" class="button escomi-media-picker" data-target="#<?php echo esc_attr( $image_id ); ?>" style="margin-top:6px;">画像を選択</button>
+                        </td>
+                        <td>
+                            <input type="text" class="regular-text" name="escomi_home_featured_areas[<?php echo esc_attr( $index ); ?>][href]" value="<?php echo esc_attr( $item['href'] ); ?>" placeholder="/area/nihonbashi/">
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php submit_button( '保存する' ); ?>
+        </form>
+    </div>
+    <?php
+}
+
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'escomi/v1', '/home-featured-areas', array(
+        'methods'             => array( 'GET' ),
+        'callback'            => function () {
+            return rest_ensure_response( array(
+                'items' => escomi_get_home_featured_areas(),
+            ) );
+        },
+        'permission_callback' => '__return_true',
+    ) );
+} );
+
 // escomi/v1/update フォールバック登録（PHP_INT_MAX = ai-update-log.php より後に実行 → mu-plugin 上書きに勝つ）
 add_action( 'rest_api_init', function () {
     if ( function_exists( 'handle_ai_shop_update_final' ) ) {
@@ -1374,4 +1609,3 @@ add_action('deleted_post', 'escomi_headless_on_deleted_post', 20, 2);
 add_action('edited_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
 add_action('created_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
 add_action('delete_area', 'escomi_headless_on_area_taxonomy_delete', 20, 4);
-

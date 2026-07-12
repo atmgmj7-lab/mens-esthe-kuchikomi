@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { HomePageContent } from "@/components/HomePageContent";
 import { organizationJsonLd, pageMetadata, websiteJsonLd } from "@/lib/seo";
 import { getAreas } from "@/lib/wp/areas";
+import { getHomeFeaturedAreas } from "@/lib/wp/home-featured-areas";
 import { getLatestPosts } from "@/lib/wp/posts";
 import { getLatestShops, getShopCount } from "@/lib/wp/shops";
 
@@ -17,16 +18,18 @@ function settledValue<T>(result: PromiseSettledResult<T>, fallback: T): T {
 }
 
 export default async function HomePage() {
-  const [shopCountResult, shopsResult, areasResult, postsResult] = await Promise.allSettled([
+  const [shopCountResult, shopsResult, areasResult, postsResult, areaFeaturesResult] = await Promise.allSettled([
     getShopCount(),
     getLatestShops(6),
     getAreas(),
-    getLatestPosts(6)
+    getLatestPosts(6),
+    getHomeFeaturedAreas()
   ]);
   const shopCount = settledValue(shopCountResult, 0);
   const shops = settledValue(shopsResult, []);
   const areas = settledValue(areasResult, []);
   const posts = settledValue(postsResult, []);
+  const areaFeatures = settledValue(areaFeaturesResult, []);
   const dataState = {
     shopCountFailed: shopCountResult.status === "rejected",
     shopsFailed: shopsResult.status === "rejected",
@@ -44,7 +47,14 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
       />
-      <HomePageContent shopCount={shopCount} shops={shops} areas={areas} posts={posts} dataState={dataState} />
+      <HomePageContent
+        shopCount={shopCount}
+        shops={shops}
+        areas={areas}
+        areaFeatures={areaFeatures}
+        posts={posts}
+        dataState={dataState}
+      />
     </>
   );
 }

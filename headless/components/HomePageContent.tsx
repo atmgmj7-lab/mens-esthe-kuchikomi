@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AreaFeatureSection } from "@/components/AreaFeatureSection";
 import { KansaiAreaGrid } from "@/components/KansaiAreaGrid";
+import type { AreaFeatureItem } from "@/lib/design-constants";
 import type { AreaView, BlogPostView, ShopView } from "@/lib/wp/types";
 
 type HomePageDataState = {
@@ -44,11 +45,13 @@ export function HomePageContent({
   shopCount,
   shops,
   areas,
+  areaFeatures,
   dataState = DEFAULT_DATA_STATE
 }: {
   shopCount: number;
   shops: ShopView[];
   areas: AreaView[];
+  areaFeatures: AreaFeatureItem[];
   posts: BlogPostView[];
   dataState?: HomePageDataState;
 }) {
@@ -141,7 +144,7 @@ export function HomePageContent({
         </section>
       ) : null}
       <KansaiAreaGrid areas={areas} />
-      <AreaFeatureSection areas={areas} />
+      <AreaFeatureSection areas={areas} features={areaFeatures} />
 
       <section className="escomi-home-conditions-v2 hl-fade-in" aria-labelledby="home-condition-title">
         <div className="escomi-home-container-v2">

@@ -1,14 +1,16 @@
-import Link from "next/link";
+import { AreaFeatureSlider } from "@/components/AreaFeatureSlider";
 import { SectionTitle } from "@/components/SectionTitle";
-import { AREA_FEATURES } from "@/lib/design-constants";
+import { AREA_FEATURES, type AreaFeatureItem } from "@/lib/design-constants";
 import type { AreaView } from "@/lib/wp/types";
 
-function areaCount(areas: AreaView[], slug: string): number | null {
-  return areas.find((area) => area.slug === slug)?.count ?? null;
-}
-
-export function AreaFeatureSection({ areas = [] }: { areas?: AreaView[] }) {
-  const features = AREA_FEATURES;
+export function AreaFeatureSection({
+  areas = [],
+  features = AREA_FEATURES.map((feature) => ({ ...feature }))
+}: {
+  areas?: AreaView[];
+  features?: AreaFeatureItem[];
+}) {
+  const visibleFeatures = features.length > 0 ? features : AREA_FEATURES.map((feature) => ({ ...feature }));
 
   return (
     <section className="l-section p-areaFeature escomi-final-feature-section hl-fade-in">
@@ -19,40 +21,7 @@ export function AreaFeatureSection({ areas = [] }: { areas?: AreaView[] }) {
             大阪で探されやすい主要エリアを、店舗数・料金・口コミの確認導線とあわせてまとめています。
           </p>
         </div>
-        <div className="p-areaFeature__list escomi-final-feature-grid" aria-label="大阪の特集エリア">
-          {features.map((feature) => {
-            const featureHref = feature.href;
-            const count = areaCount(areas, feature.slug);
-            return (
-              <article className="p-areaFeature__item escomi-final-feature-card hl-card-hover" key={feature.slug}>
-                <div className="p-areaFeature__body escomi-final-feature-card__body">
-                  <span className="p-areaFeature__sub">{feature.subtitle}</span>
-                  <h3 className="p-areaFeature__title">{feature.title}</h3>
-                  <p className="p-areaFeature__desc">{feature.description}</p>
-                  <dl className="escomi-final-feature-card__stats" aria-label={`${feature.title}の掲載状況`}>
-                    <div>
-                      <dt>掲載店舗</dt>
-                      <dd>{count != null && count > 0 ? `${count}件` : "集計準備中"}</dd>
-                    </div>
-                    <div>
-                      <dt>料金</dt>
-                      <dd>各店舗詳細で確認</dd>
-                    </div>
-                    <div>
-                      <dt>口コミ</dt>
-                      <dd>承認制で掲載</dd>
-                    </div>
-                  </dl>
-                  <div className="p-areaFeature__btnWrap">
-                    <Link className="escomi-final-feature-card__cta" href={featureHref}>
-                      {feature.btnText}
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        <AreaFeatureSlider areas={areas} features={visibleFeatures} />
       </div>
     </section>
   );

@@ -2,6 +2,36 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-12 大阪の特集エリア画像付きスライダー・管理画面化
+
+#### 実行したTask ID
+- 緊急UI改善: トップページ「大阪の特集エリア」を画像付きスライダー化し、WordPress管理画面から編集可能にする。
+
+#### 変更したファイル
+- `functions.php`
+- `headless/app/page.tsx`
+- `headless/components/HomePageContent.tsx`
+- `headless/components/AreaFeatureSection.tsx`
+- `headless/components/AreaFeatureSlider.tsx`
+- `headless/lib/design-constants.ts`
+- `headless/lib/wp/home-featured-areas.ts`
+- `headless/app/globals.css`
+- `headless/scripts/check-final-design-preservation.mjs`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- WordPress管理画面「設定 → トップ特集エリア」を追加。
+- 管理画面から表示ON/OFF、エリアslug、リンク、画像URL、見出し、説明、ボタン文言を編集できるようにした。
+- REST `GET /wp-json/escomi/v1/home-featured-areas` を追加。
+- Next.jsトップページがRESTから特集エリア設定を取得し、未設定・未反映時は固定5エリアへフォールバックするようにした。
+- 「大阪の特集エリア」を画像付きカードスライダーへ変更し、左右矢印・ドット・横スクロール操作を追加。
+
+#### テスト結果
+- PHP構文確認: `php -l ../functions.php` 成功。
+- ローカルHTML確認: `WordPress` 表記0件、特集画像5件、5エリア表示・順番OK。
+- Playwright確認: 画像5件、矢印2個、ドット5個、クリック後にスクロール位置が変化。
+- `npm run lint`、`npm run typecheck`、`npm test`、`npm run build`、`git diff --check` は成功。
+
 ### 2026-07-12 大阪の特集エリアカード崩れ緊急修正
 
 #### 実行したTask ID
