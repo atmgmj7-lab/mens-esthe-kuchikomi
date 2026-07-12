@@ -60,7 +60,6 @@ const INFORMATION_LABELS = [
   { label: "ユーザー口コミ", text: "承認済みの利用者投稿のみ。評価集計は3件以上で表示。", tone: "review" },
   { label: "編集部コメント", text: "編集部の調査・確認に基づく記述。口コミとは集計しません。", tone: "editorial" },
   { label: "店舗提供情報", text: "店舗から提供された情報。提供元を明示します。", tone: "official" },
-  { label: "AI要約", text: "生成元と情報源が明確な場合のみ、AI要約と明示して表示。", tone: "ai" },
   { label: "PR", text: "有料掲載。自然な検索結果・ランキングとは分離して表示。", tone: "pr" }
 ] as const;
 
@@ -284,7 +283,7 @@ export function HomePageContent({
           <div>
             <div className="escomi-home-section-head-v2">
               <h2 id="home-trust-title">情報の出自を分けて掲載しています</h2>
-              <p>関西メンズエステ口コミナビでは、次の5種類を混在させずにラベルで区別します。</p>
+              <p>関西メンズエステ口コミナビでは、次の4種類を混在させずにラベルで区別します。</p>
             </div>
             <div className="escomi-source-list-v2">
               {INFORMATION_LABELS.map((item) => (
