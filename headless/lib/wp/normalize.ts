@@ -25,6 +25,14 @@ export function normalizeImageUrl(url: string): string {
 }
 
 const SHOP_ACF_IMAGE_KEYS = [
+  "shop_header_image",
+  "header_image",
+  "shop_top_image",
+  "top_image",
+  "shop_hero_image",
+  "hero_image",
+  "shop_main_visual",
+  "main_visual",
   "shop_image",
   "shop_main_image",
   "main_image",

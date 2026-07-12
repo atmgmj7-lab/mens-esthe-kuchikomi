@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AreaFeatureSection } from "@/components/AreaFeatureSection";
 import { KansaiAreaGrid } from "@/components/KansaiAreaGrid";
-import type { AreaFeatureItem } from "@/lib/design-constants";
+import { DEFAULT_SHOP_IMAGE, type AreaFeatureItem } from "@/lib/design-constants";
 import type { AreaView, BlogPostView, ShopView } from "@/lib/wp/types";
 
 type HomePageDataState = {
@@ -183,6 +183,15 @@ export function HomePageContent({
             ) : (
               updatedShops.map((shop, index) => (
                 <Link className="escomi-updated-card-v2" href={`/shops/${shop.slug}/`} key={shop.id}>
+                  <img
+                    className="escomi-updated-card-v2__image"
+                    src={shop.imageUrl || DEFAULT_SHOP_IMAGE}
+                    alt={shop.title}
+                    width={360}
+                    height={210}
+                    loading="lazy"
+                    decoding="async"
+                  />
                   <span>{UPDATE_BADGES[index % UPDATE_BADGES.length]}</span>
                   <strong>{shop.title}</strong>
                   <em>{shopAreaName(shop, areas)} ・ 07.11</em>

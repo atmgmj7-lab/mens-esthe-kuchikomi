@@ -214,8 +214,8 @@ function escomi_default_home_featured_areas() {
             'title'       => '堺筋本町メンズエステおすすめ一覧',
             'description' => '堺筋本町・本町・北浜周辺で探しやすい店舗を、料金・営業時間・アクセス・口コミの見方で比較できます。',
             'btnText'     => '堺筋本町の店舗を見る',
-            'image'       => 'https://images.unsplash.com/photo-1590559899731-a382839e5549?auto=format&fit=crop&w=1400&q=80',
-            'imageAlt'    => '大阪中心部の街並み',
+            'image'       => '/images/area-feature/sakaisuji-hommachi-senba.jpg',
+            'imageAlt'    => '堺筋本町・船場センタービル周辺の夜景',
         ),
         array(
             'enabled'     => true,
@@ -236,8 +236,8 @@ function escomi_default_home_featured_areas() {
             'title'       => '大阪日本橋メンズエステおすすめ一覧',
             'description' => '大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較できます。',
             'btnText'     => '日本橋の店舗を見る',
-            'image'       => 'https://images.unsplash.com/photo-1698822740223-f6467a6bb608?auto=format&fit=crop&w=1400&q=80',
-            'imageAlt'    => '大阪日本橋周辺の夜の街並み',
+            'image'       => 'https://images.unsplash.com/photo-1593327478947-d530033a86ff?auto=format&fit=crop&w=1400&q=80',
+            'imageAlt'    => '大阪日本橋周辺の夜の繁華街',
         ),
         array(
             'enabled'     => true,
@@ -247,8 +247,8 @@ function escomi_default_home_featured_areas() {
             'title'       => '大阪梅田メンズエステおすすめ一覧',
             'description' => '梅田・大阪駅・東梅田・西梅田周辺の店舗を、駅近・深夜営業・料金目安で比較できます。',
             'btnText'     => '梅田の店舗を見る',
-            'image'       => 'https://images.unsplash.com/photo-1593327478947-d530033a86ff?auto=format&fit=crop&w=1400&q=80',
-            'imageAlt'    => '大阪の夜の繁華街',
+            'image'       => '/images/area-feature/umeda-street-night.jpg',
+            'imageAlt'    => '大阪梅田の夜の飲食街',
         ),
         array(
             'enabled'     => true,

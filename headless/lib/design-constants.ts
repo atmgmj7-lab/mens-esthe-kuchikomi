@@ -67,8 +67,8 @@ export const AREA_FEATURES = [
     description:
       "堺筋本町・本町・北浜周辺で探しやすい店舗を、料金・営業時間・アクセス・口コミの見方で比較できます。",
     btnText: "堺筋本町の店舗を見る",
-    image: OSAKA_CITY_IMAGES.cityscape,
-    imageAlt: "大阪中心部の街並み"
+    image: OSAKA_CITY_IMAGES.sakaisujiHommachiSenba,
+    imageAlt: "堺筋本町・船場センタービル周辺の夜景"
   },
   {
     slug: "shinosaka",
@@ -89,8 +89,8 @@ export const AREA_FEATURES = [
     description:
       "大阪・日本橋エリアのメンズエステを店舗一覧・口コミ・料金・営業時間・駅近・深夜営業で比較。初めての方にも選びやすいよう、編集部コメントと店舗情報をまとめています。",
     btnText: "日本橋の店舗を見る",
-    image: OSAKA_CITY_IMAGES.nambaStreet,
-    imageAlt: "大阪日本橋周辺の夜の街並み"
+    image: OSAKA_CITY_IMAGES.dotonboriNight,
+    imageAlt: "大阪日本橋周辺の夜の繁華街"
   },
   {
     slug: "umeda",
@@ -100,8 +100,8 @@ export const AREA_FEATURES = [
     description:
       "梅田・大阪駅・東梅田・西梅田周辺の店舗を、駅近・深夜営業・料金目安で比較できます。",
     btnText: "梅田の店舗を見る",
-    image: OSAKA_CITY_IMAGES.dotonboriNight,
-    imageAlt: "大阪の夜の繁華街"
+    image: OSAKA_CITY_IMAGES.umedaStreetNight,
+    imageAlt: "大阪梅田の夜の飲食街"
   },
   {
     slug: "sakai",

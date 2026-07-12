@@ -9006,8 +9006,20 @@ img {
 }
 
 .escomi-updated-card-v2 {
-  min-height: 122px;
-  padding: 1.2rem;
+  min-height: 238px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.escomi-updated-card-v2__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  max-height: 128px;
+  object-fit: cover;
+  background: #f4f0e8;
+  border-bottom: 1px solid #ede5d8;
 }
 
 .escomi-updated-card-v2 span {
@@ -9016,6 +9028,7 @@ img {
   color: #23936f;
   display: inline-block;
   font-size: 0.8rem;
+  margin: 1rem 1rem 0;
   padding: 0.38rem 0.58rem;
 }
 
@@ -9027,14 +9040,14 @@ img {
 .escomi-updated-card-v2 strong {
   color: #26333b;
   font-size: 1.05rem;
-  margin-top: 0.9rem;
+  margin: 0.85rem 1rem 0;
   overflow-wrap: anywhere;
 }
 
 .escomi-updated-card-v2 em {
   color: #9aa8ae;
   font-style: normal;
-  margin-top: 0.55rem;
+  margin: 0.55rem 1rem 1rem;
 }
 
 .escomi-home-trust-v2__grid {
@@ -9173,6 +9186,10 @@ img {
   .escomi-featured-card-v2--compact {
     grid-column: span 1;
   }
+
+  .escomi-updated-card-v2__image {
+    max-height: 170px;
+  }
 }
 
 @media (max-width: 700px) {
@@ -9231,6 +9248,10 @@ img {
 
   .escomi-featured-card-v2__bottom {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .escomi-updated-card-v2__image {
+    max-height: 220px;
   }
 
   .escomi-beginner-panel-v2 li {
