@@ -94,6 +94,7 @@ export function AreaHubPageTemplate({
   const lastUpdated = resolveLastUpdatedLabel(allShops);
   const areaHeroBanner = resolveAreaHeroBanner(area.slug);
   const areaTitleBanner = resolveAreaTitleBanner(area.slug);
+  const shouldShowHeroMedia = area.slug !== "nihonbashi";
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
 
@@ -132,19 +133,24 @@ export function AreaHubPageTemplate({
           <span>{hubContext.breadcrumbLabel}</span>
         </nav>
 
-        <section className="escomi-final-area-hero hl-fade-in" aria-labelledby="area-final-title">
-          <div className="escomi-final-area-hero__media" aria-hidden="true">
-            {areaTitleBanner ? (
-              <AreaTitleBanner areaSlug={area.slug} config={areaTitleBanner} />
-            ) : (
-              <ThemeBanner
-                themeKey="areaHero"
-                message={areaHeroBanner.message}
-                imageSrc={areaHeroBanner.imageSrc}
-                imageAlt={areaHeroBanner.imageAlt}
-              />
-            )}
-          </div>
+        <section
+          className={`escomi-final-area-hero hl-fade-in${shouldShowHeroMedia ? "" : " escomi-final-area-hero--text-only"}`}
+          aria-labelledby="area-final-title"
+        >
+          {shouldShowHeroMedia ? (
+            <div className="escomi-final-area-hero__media" aria-hidden="true">
+              {areaTitleBanner ? (
+                <AreaTitleBanner areaSlug={area.slug} config={areaTitleBanner} />
+              ) : (
+                <ThemeBanner
+                  themeKey="areaHero"
+                  message={areaHeroBanner.message}
+                  imageSrc={areaHeroBanner.imageSrc}
+                  imageAlt={areaHeroBanner.imageAlt}
+                />
+              )}
+            </div>
+          ) : null}
 
           <header className="area-hub-header escomi-final-area-hero__body">
             <p className="escomi-final-area-hero__eyebrow">AREA GUIDE</p>
