@@ -18,6 +18,24 @@ function cardStep(track: HTMLDivElement): number {
   return card.offsetWidth + gap;
 }
 
+function loopIndex(index: number, total: number): number {
+  if (total <= 0) return 0;
+  return ((index % total) + total) % total;
+}
+
+function scrollLeftForIndex(track: HTMLDivElement, index: number): number {
+  const step = Math.max(1, cardStep(track));
+  const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+  return Math.min(maxScroll, step * index);
+}
+
+function currentSlideIndex(track: HTMLDivElement, total: number): number {
+  const step = Math.max(1, cardStep(track));
+  const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+  if (track.scrollLeft >= maxScroll - 8) return Math.max(0, total - 1);
+  return Math.min(Math.max(0, total - 1), Math.max(0, Math.round(track.scrollLeft / step)));
+}
+
 export function AreaFeatureSlider({
   areas,
   features
@@ -27,8 +45,6 @@ export function AreaFeatureSlider({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(features.length > 1);
 
   const visibleFeatures = useMemo(
     () => features.filter((feature) => feature.slug && feature.title),
@@ -39,14 +55,7 @@ export function AreaFeatureSlider({
     const track = trackRef.current;
     if (!track) return;
 
-    const step = Math.max(1, cardStep(track));
-    const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
-    const maxIndex = Math.max(0, visibleFeatures.length - 1);
-    const index = Math.min(maxIndex, Math.max(0, Math.round(track.scrollLeft / step)));
-
-    setActiveIndex(index);
-    setCanPrev(track.scrollLeft > 8);
-    setCanNext(track.scrollLeft < maxScroll - 8);
+    setActiveIndex(currentSlideIndex(track, visibleFeatures.length));
   }, [visibleFeatures.length]);
 
   useEffect(() => {
@@ -65,15 +74,29 @@ export function AreaFeatureSlider({
 
   const scrollByDirection = useCallback((direction: -1 | 1) => {
     const track = trackRef.current;
-    if (!track) return;
-    track.scrollBy({ left: cardStep(track) * direction, behavior: "smooth" });
-  }, []);
+    const total = visibleFeatures.length;
+    if (!track || total <= 1) return;
+
+    const currentIndex = currentSlideIndex(track, total);
+    const targetIndex = loopIndex(currentIndex + direction, total);
+    const wraps = (direction === -1 && currentIndex === 0) || (direction === 1 && currentIndex === total - 1);
+
+    track.scrollTo({
+      left: scrollLeftForIndex(track, targetIndex),
+      behavior: wraps ? "auto" : "smooth"
+    });
+    setActiveIndex(targetIndex);
+  }, [visibleFeatures.length]);
 
   const scrollToIndex = useCallback((index: number) => {
     const track = trackRef.current;
-    if (!track) return;
-    track.scrollTo({ left: cardStep(track) * index, behavior: "smooth" });
-  }, []);
+    const targetIndex = loopIndex(index, visibleFeatures.length);
+    if (!track || visibleFeatures.length <= 0) return;
+    track.scrollTo({ left: scrollLeftForIndex(track, targetIndex), behavior: "smooth" });
+    setActiveIndex(targetIndex);
+  }, [visibleFeatures.length]);
+
+  const hasMultipleFeatures = visibleFeatures.length > 1;
 
   return (
     <div className="escomi-final-feature-slider">
@@ -82,7 +105,7 @@ export function AreaFeatureSlider({
           type="button"
           className="escomi-final-feature-slider__arrow"
           onClick={() => scrollByDirection(-1)}
-          disabled={!canPrev}
+          disabled={!hasMultipleFeatures}
           aria-label="前のエリアを見る"
         >
           ‹
@@ -91,7 +114,7 @@ export function AreaFeatureSlider({
           type="button"
           className="escomi-final-feature-slider__arrow"
           onClick={() => scrollByDirection(1)}
-          disabled={!canNext}
+          disabled={!hasMultipleFeatures}
           aria-label="次のエリアを見る"
         >
           ›
