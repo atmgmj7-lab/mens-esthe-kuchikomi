@@ -138,3 +138,29 @@ production側は独立した複製ではないため、元フォルダをFinder�
 
 - Task 5は未実施。元フォルダの整理、`main` のfast-forward、production作業ツリー削除は行っていない。
 - `git push` と本番デプロイは行っていない。
+
+## Q-07 HTML空白文字参照の追加修正
+
+### 修正内容
+
+- FAQ専用の表示可能テキスト判定を追加し、`&nbsp;` の大文字小文字差、`&#160;`、`&#xA0;`、Unicode NBSPを通常空白へ正規化した。
+- 質問と回答、`asFaqRows` と `faqJsonLd` の両方で同じ判定を使い、実質空のFAQ行とFAQPage schemaを除外した。
+- `asFaqRows` が返す回答の表示用HTMLは変更せず維持した。
+
+### RED / GREEN
+
+- RED: 回帰テスト追加後の `npm run test:schema-output` は終了コード1。`answer: "&nbsp;"` の行が残り、期待する空配列との差で失敗した。
+- GREEN: 共通判定の実装後、`npm run test:schema-output` は終了コード0で `schema output condition checks passed`。
+
+### 最終検証
+
+- `git diff --check`: 終了コード0。
+- `headless/` の `npm run lint`: 終了コード0。
+- `headless/` の `npm run typecheck`: 終了コード0。
+- `headless/` の `npm test`: 終了コード0、11検査成功。
+- `headless/` の `npm run build`: 終了コード0、440ページ生成成功。
+- buildでは既存の `middleware` 非推奨警告、WordPress APIの404・タイムアウトによる代替データ使用通知、`useSearchParams()` のクライアント描画切替ログを確認した。
+
+### 未実施
+
+- Task 5、元フォルダの変更、`git push`、本番デプロイは実施していない。

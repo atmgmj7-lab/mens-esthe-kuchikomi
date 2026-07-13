@@ -59,15 +59,23 @@ export function makeDescription(value: unknown, fallback: string): string {
   return source.length > 120 ? `${source.slice(0, 117)}...` : source;
 }
 
+function faqDisplayText(value: unknown): string {
+  return stripHtml(value)
+    .replace(/&nbsp;|&#160;|&#xa0;/gi, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function asFaqRows(value: unknown): Array<{ question: string; answer: string }> {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) => {
       if (!item || typeof item !== "object") return null;
       const record = item as Record<string, unknown>;
-      const question = stripHtml(record.question);
+      const question = faqDisplayText(record.question);
       const answer = typeof record.answer === "string" ? record.answer : stripHtml(record.answer);
-      if (!question || !stripHtml(answer)) return null;
+      if (!question || !faqDisplayText(answer)) return null;
       return { question, answer };
     })
     .filter((row): row is { question: string; answer: string } => Boolean(row));
@@ -76,8 +84,8 @@ export function asFaqRows(value: unknown): Array<{ question: string; answer: str
 export function faqJsonLd(rows: Array<{ question: string; answer: string }>): Record<string, unknown> | null {
   const mainEntity = rows
     .map((row) => {
-      const question = stripHtml(row.question);
-      const answer = stripHtml(row.answer);
+      const question = faqDisplayText(row.question);
+      const answer = faqDisplayText(row.answer);
       if (!question || !answer) return null;
 
       return {

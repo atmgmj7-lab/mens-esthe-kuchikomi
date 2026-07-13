@@ -63,6 +63,25 @@ assert.equal(
   "Visible FAQ rows and FAQPage schema must use the same valid row set"
 );
 
+const emptyEntityFaqCases = [
+  { label: "answer &nbsp;", row: { question: "有効な質問", answer: "&nbsp;" } },
+  { label: "answer &#160;", row: { question: "有効な質問", answer: "&#160;" } },
+  { label: "question &nbsp;", row: { question: "&nbsp;", answer: "有効な回答" } },
+  { label: "question &#160;", row: { question: "&#160;", answer: "有効な回答" } },
+  { label: "answer &NBSP;", row: { question: "有効な質問", answer: "&NBSP;" } },
+  { label: "question &#xA0;", row: { question: "&#xA0;", answer: "有効な回答" } },
+  { label: "answer Unicode NBSP", row: { question: "有効な質問", answer: "\u00a0" } }
+];
+
+for (const { label, row } of emptyEntityFaqCases) {
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(asFaqRows([row]))),
+    [],
+    `Visible FAQ rows must exclude ${label}`
+  );
+  assert.equal(faqJsonLd([row]), null, `FAQPage schema must exclude ${label}`);
+}
+
 assert.equal(faqJsonLd([]), null, "FAQPage schema must not be emitted when there are no visible FAQ rows");
 assert.equal(
   faqJsonLd([{ question: "", answer: "回答だけ" }]),

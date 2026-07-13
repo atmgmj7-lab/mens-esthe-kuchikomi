@@ -60,6 +60,29 @@
 #### 未実施
 - Task 5、元フォルダの変更、push、本番デプロイは未実施。
 
+### 2026-07-14 Q-07 HTML空白文字参照の追加修正
+
+#### 修正内容
+- FAQ専用の表示可能テキスト判定を追加し、`&nbsp;` の大文字小文字差、`&#160;`、`&#xA0;`、Unicode NBSPを通常空白へ正規化した。
+- 質問と回答、`asFaqRows` と `faqJsonLd` の両方で同じ判定を使い、文字参照だけのFAQ行とFAQPage schemaを除外した。
+- `asFaqRows` が返す回答の表示用HTMLは維持した。
+- 必須4入力に加え、大文字の `&NBSP;`、16進参照 `&#xA0;`、Unicode NBSPを回帰テストで固定した。
+
+#### RED / GREEN
+- RED: 回帰テスト追加後の `npm run test:schema-output` は終了コード1。`answer: "&nbsp;"` が表示行に残り、期待する空配列との差で失敗した。
+- GREEN: 共通判定の実装後、`npm run test:schema-output` は終了コード0で `schema output condition checks passed`。
+
+#### 最終検証
+- `git diff --check`: 成功。
+- `headless/` の `npm run lint`: 成功。
+- `headless/` の `npm run typecheck`: 成功。
+- `headless/` の `npm test`: 11検査すべて成功。
+- `headless/` の `npm run build`: 成功、440ページ生成。
+- build警告・通知: 既存の `middleware` 非推奨、WordPress APIの404・タイムアウトによる代替データ使用、`useSearchParams()` のクライアント描画切替ログを確認した。
+
+#### 未実施
+- Task 5、元フォルダの変更、push、本番デプロイは未実施。
+
 ### 2026-07-14 Task 2 履歴未保存の公開UI差分5件の採否判定
 
 #### 判定結果
