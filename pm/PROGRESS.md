@@ -25,6 +25,9 @@
 - `backup/original-dirty-20260714` を一時indexから作成した。
 - 一時indexとバックアップrefのtree一致を `git diff --cached --exit-code` で確認した。
 - 元フォルダの通常index、実ファイル、`main` は変更していない。
+- 追加確認で `dashboard/.env.example` が `dashboard/.gitignore` の `.env*` により初回バックアップ対象外だったことを検出した。
+- 一時indexへ同ファイルだけを `git add -f` し、`backup/original-dirty-20260714` を親コミット付きで更新した。
+- 更新後、同ファイルのblob一致、一時indexとバックアップrefのtree一致、元フォルダHEAD・通常index・実ファイルの不変を確認した。
 - 履歴未保存のダッシュボード・配信設定10ファイルは `backup/original-dirty-20260714` に保存した。
 - `DASH-DESIGN-00`、`BLK-SECRET`、`BLK-SUPA-00` が残るため、今回の作業ツリー統合では公開コードへ適用しない。
 

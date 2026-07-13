@@ -61,6 +61,8 @@ production側は独立した複製ではないため、元フォルダをFinder�
 9. `headless/app/dashboard/layout.tsx`
 10. `headless/app/dashboard/page.tsx`
 
+`dashboard/.env.example` は `dashboard/.gitignore` の `.env*` によりignoredとなるため、通常の `git add -A` では一時indexに入らない。バックアップ作成時は同ファイルを明示的に `git add -f` する必要がある。
+
 これらは公開画面へ即時統合しない。ダッシュボード完成デザイン不足とSecret未確認の既存Blockerがあるため、バックアップ参照へ保存した後、ダッシュボード単独タスクで採否を決める。
 
 ### 口コミ・エリア表示の試作

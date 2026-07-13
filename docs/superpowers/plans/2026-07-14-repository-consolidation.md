@@ -50,6 +50,7 @@ Run:
 rm -f /private/tmp/escomi-original-dirty-20260714.index
 GIT_INDEX_FILE=/private/tmp/escomi-original-dirty-20260714.index git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi read-tree main
 GIT_INDEX_FILE=/private/tmp/escomi-original-dirty-20260714.index git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi add -A
+GIT_INDEX_FILE=/private/tmp/escomi-original-dirty-20260714.index git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi add -f dashboard/.env.example
 ```
 
 Expected: 終了コード0。元フォルダの通常 `git status` は変化しない。
