@@ -50,6 +50,9 @@ assert.ok(areaHub.includes("shopCountLabel"), "area hub hero must use real area 
 assert.ok(areaHub.includes("口コミ・編集部コメント・PR情報は分けて掲載"), "area hub hero must explain source separation");
 assert.ok(!areaHub.includes("DB:"), "area hub page must not render implementation DB notes");
 
+const areaHubContent = read("components/area/area-hub-content.tsx");
+assert.ok(areaHubContent.includes("area-hub-ranking-context"), "area hub ranking must expose visible ranking basis copy");
+
 const areaPage = read("components/AreaPageView.tsx");
 assert.ok(areaPage.includes("escomi-final-area-summary"), "standard area pages must keep final summary block");
 assert.ok(areaPage.includes("掲載準備中"), "standard area pages must handle zero-count states safely");
@@ -70,12 +73,23 @@ assert.ok(areaShopList.includes("area-shop-list-zero-state__suggestions"), "area
 const areaShopListControls = read("lib/area-shop-list-controls.ts");
 assert.ok(areaShopListControls.includes("getFilterRelaxationSuggestions"), "area shop list controls must calculate zero-result recovery suggestions");
 
+const areaHubConfig = read("lib/area-hub-config.ts");
+for (const slug of ["sakaisujihonmachi", "shinosaka", "nihonbashi", "umeda", "sakai"]) {
+  assert.ok(areaHubConfig.includes(`${slug}:`), `${slug} must use the shared area hub template`);
+}
+for (const label of ["堺筋本町メンズエステ", "新大阪メンズエステ", "大阪日本橋メンズエステ", "大阪梅田メンズエステ", "堺・堺東メンズエステ"]) {
+  assert.ok(areaHubConfig.includes(label), `${label} area hub copy must exist`);
+}
+
 const shopDetail = read("components/ShopDetail.tsx");
 assert.ok(shopDetail.includes("escomi-final-shop-page"), "shop detail page must use final shop page shell");
 assert.ok(shopDetail.includes("escomi-final-shop-header"), "shop detail page must use final shop hero header");
 assert.ok(shopDetail.includes("primaryPriceLabel"), "shop detail hero must use normalized primary price display");
 assert.ok(shopDetail.includes("料金は店舗へお問い合わせください。"), "shop detail hero must keep safe unknown-price copy");
 assert.ok(shopDetail.includes("ユーザー口コミ、編集部コメント、店舗提供情報、PR情報は分けて掲載"), "shop detail hero must explain source separation");
+assert.ok(shopDetail.includes("escomi-final-shop-visual-deck"), "shop detail page must expose a visual deck for storefront images");
+assert.ok(shopDetail.includes("escomi-final-shop-trust-rail"), "shop detail page must expose a trust rail for price/review/contact facts");
+assert.ok(shopDetail.includes("escomi-final-shop-sections-grid"), "shop detail page must group price, review, data, and contact sections consistently");
 assert.ok(shopDetail.includes('id="shop-price"'), "shop detail page must expose price anchor");
 assert.ok(shopDetail.includes('id="shop-reviews"'), "shop detail page must expose reviews anchor");
 assert.ok(shopDetail.includes('id="shop-data"'), "shop detail page must expose data anchor");

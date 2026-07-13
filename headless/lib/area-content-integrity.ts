@@ -16,7 +16,7 @@ const COMMON_OSAKA_TERMS = ["大阪", "大阪府", "関西"];
 
 export const AREA_CONTENT_CONFIGS: AreaContentConfig[] = [
   {
-    slug: "sakaisuji-hommachi",
+    slug: "sakaisujihonmachi",
     displayName: "堺筋本町",
     canonicalName: "堺筋本町",
     prefecture: "大阪府",

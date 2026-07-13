@@ -182,6 +182,12 @@ export function AreaHubRankingTop({
           </p>
         </>
       ) : null}
+      <div className="area-hub-ranking-context" aria-label="ランキングの基準">
+        <p>
+          掲載店舗の情報量、料金の分かりやすさ、営業時間、予約導線、更新状況をもとに編集部で整理しています。
+          PR枠や口コミ件数とは分けて表示します。
+        </p>
+      </div>
       <RankingHeroCards shops={topFive} targetArea={targetArea} />
       <p className="area-hub-section__footnote">
         <a href="#compare-tabs">条件別ランキング</a>

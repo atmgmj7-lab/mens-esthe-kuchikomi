@@ -34,6 +34,16 @@ const nextConfig: NextConfig = {
         destination: "/storelisting/",
         permanent: true
       },
+      {
+        source: "/area/sakaisuji-hommachi",
+        destination: "/area/sakaisujihonmachi/",
+        permanent: true
+      },
+      {
+        source: "/area/sakaisuji-hommachi/",
+        destination: "/area/sakaisujihonmachi/",
+        permanent: true
+      },
       // Legacy WordPress sitemap URLs → headless sitemap
       {
         source: "/wp-sitemap.xml",

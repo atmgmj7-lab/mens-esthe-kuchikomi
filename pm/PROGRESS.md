@@ -2533,3 +2533,15 @@ pm/PROGRESS.md
 - モバイルでは既存CSSの折りたたみフィルターUIを実際に使用し、一覧上部の表示密度を抑えた。
 - 条件0件時に、外すと候補が戻る条件と件数を提示する復帰導線を追加。
 - 変更ファイル: `headless/components/area/hub/AreaShopList.tsx`, `headless/components/area/hub/AreaFilterChips.tsx`, `headless/lib/area-shop-list-controls.ts`, `headless/scripts/check-final-design-preservation.mjs`, `pm/PROGRESS.md`。
+
+
+## 2026-07-13 店舗詳細完成形・主要エリアHub横展開
+- トップページのデザインは変更せず、店舗詳細と地域詳細テンプレートを対象に実装。
+- 店舗詳細ページへ、店舗画像のビジュアルデッキ、料金・口コミ・予約導線の信頼情報レール、料金/口コミ/基本情報/問い合わせを揃えるセクショングリッドを追加。
+- 地域詳細ページのランキング直上に、公開情報・料金・営業時間・予約導線・更新状況を基準にした編集部整理であることを明記。
+- `HUB_TEMPLATE_AREAS` を主要5エリアへ横展開。対象: 堺筋本町 `sakaisujihonmachi`、新大阪 `shinosaka`、日本橋 `nihonbashi`、梅田 `umeda`、堺・堺東 `sakai`。
+- 堺筋本町の実slugを本番WordPressに合わせ、旧 `/area/sakaisuji-hommachi/` は `/area/sakaisujihonmachi/` へ308リダイレクト。
+- 変更ファイル: `headless/components/ShopDetail.tsx`, `headless/components/area/area-hub-content.tsx`, `headless/lib/area-hub-config.ts`, `headless/lib/design-constants.ts`, `headless/lib/area-content-integrity.ts`, `headless/app/area/[slug]/page.tsx`, `headless/next.config.ts`, `headless/app/globals.css`, `headless/scripts/check-final-design-preservation.mjs`, `pm/PROGRESS.md`。
+- 検証結果: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` 成功。
+- ローカルHTTP確認: `/area/sakaisujihonmachi/`, `/area/shinosaka/`, `/area/nihonbashi/`, `/area/umeda/`, `/area/sakai/`, `/shops/milk-tea.../` が200。旧堺筋本町slugは308。
+- Playwright CLIで `/shops/milk-tea.../` 390px と `/area/sakaisujihonmachi/` 1440px のスクリーンショットを確認。

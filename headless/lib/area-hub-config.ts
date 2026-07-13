@@ -143,8 +143,156 @@ const UMEDA_RELATION: AreaHubRelationConfig = {
   secondaryGroupTitle: "近隣・関連エリア"
 };
 
+const SAKAISUJI_HONMACHI_RELATION: AreaHubRelationConfig = {
+  corePattern: /堺筋本町|本町|船場|北浜|長堀橋|中央区/,
+  relatedPattern: /日本橋|近鉄日本橋|なんば|難波|梅田|新大阪|西中島|堺東|堺/,
+  nearbyPattern: /心斎橋|淀屋橋|谷町四丁目|谷町六丁目|南船場|松屋町/,
+  dispatchLabel: "出張型（堺筋本町エリアへの派遣対応）",
+  stationNearPattern: /堺筋本町|本町|北浜|長堀橋|徒歩|駅周辺|駅前/,
+  labelRules: [
+    { pattern: /堺筋本町/, label: "堺筋本町駅周辺（中央区ビジネス街）" },
+    { pattern: /本町/, label: "本町駅周辺（堺筋本町からアクセス可）" },
+    { pattern: /北浜/, label: "北浜駅周辺（堺筋本町近隣）" },
+    { pattern: /長堀橋|南船場/, label: "長堀橋・南船場周辺" },
+    { pattern: /船場|中央区/, label: "船場・中央区周辺" }
+  ],
+  nearbyLabelRules: [
+    { pattern: /心斎橋/, label: "近隣エリア（心斎橋・堺筋本町から検討可）" },
+    { pattern: /淀屋橋|谷町四丁目|谷町六丁目|松屋町/, label: "近隣エリア（中央区周辺）" }
+  ],
+  relatedLabelRules: [
+    { pattern: /日本橋|近鉄日本橋|なんば|難波/, label: "関連エリア（日本橋・なんば方面）" },
+    { pattern: /梅田/, label: "関連エリア（梅田方面）" },
+    { pattern: /新大阪|西中島/, label: "関連エリア（新大阪・西中島方面）" },
+    { pattern: /堺東|堺/, label: "関連エリア（堺方面）" }
+  ],
+  fallbackRelatedLabel: "堺筋本町周辺の関連店舗",
+  primaryGroupTitle: "堺筋本町・本町徒歩圏",
+  secondaryGroupTitle: "中央区近隣・関連エリア"
+};
+
+const SHINOSAKA_RELATION: AreaHubRelationConfig = {
+  corePattern: /新大阪|東三国|西中島南方|西中島|南方|淀川区/,
+  relatedPattern: /梅田|大阪駅|日本橋|近鉄日本橋|なんば|難波|京橋|堺/,
+  nearbyPattern: /十三|江坂|淡路|中津|天神橋筋六丁目/,
+  dispatchLabel: "出張型（新大阪エリアへの派遣対応）",
+  stationNearPattern: /新大阪|東三国|西中島南方|西中島|南方|徒歩|駅周辺|駅前/,
+  labelRules: [
+    { pattern: /新大阪/, label: "新大阪駅周辺（出張前後に検討しやすい）" },
+    { pattern: /東三国/, label: "東三国駅周辺（新大阪近隣）" },
+    { pattern: /西中島南方|西中島|南方/, label: "西中島南方周辺（新大阪徒歩圏）" },
+    { pattern: /淀川区/, label: "淀川区周辺" }
+  ],
+  nearbyLabelRules: [
+    { pattern: /十三|中津|淡路/, label: "近隣エリア（新大阪からアクセス可）" },
+    { pattern: /江坂|天神橋筋六丁目/, label: "近隣エリア（北大阪方面）" }
+  ],
+  relatedLabelRules: [
+    { pattern: /梅田|大阪駅/, label: "関連エリア（梅田・大阪駅方面）" },
+    { pattern: /日本橋|近鉄日本橋|なんば|難波/, label: "関連エリア（日本橋・なんば方面）" },
+    { pattern: /京橋/, label: "関連エリア（京橋方面）" },
+    { pattern: /堺/, label: "関連エリア（堺方面）" }
+  ],
+  fallbackRelatedLabel: "新大阪周辺の関連店舗",
+  primaryGroupTitle: "新大阪・西中島徒歩圏",
+  secondaryGroupTitle: "北大阪近隣・関連エリア"
+};
+
+const SAKAI_RELATION: AreaHubRelationConfig = {
+  corePattern: /堺東|堺駅|堺市|三国ヶ丘|大小路|宿院|中百舌鳥|なかもず/,
+  relatedPattern: /梅田|大阪駅|新大阪|日本橋|近鉄日本橋|なんば|難波|天王寺/,
+  nearbyPattern: /鳳|泉北|住之江|岸和田|松原|北花田/,
+  dispatchLabel: "出張型（堺・堺東エリアへの派遣対応）",
+  stationNearPattern: /堺東|堺駅|三国ヶ丘|大小路|中百舌鳥|なかもず|徒歩|駅周辺|駅前/,
+  labelRules: [
+    { pattern: /堺東/, label: "堺東駅周辺（堺エリア中心）" },
+    { pattern: /堺駅/, label: "堺駅周辺" },
+    { pattern: /三国ヶ丘/, label: "三国ヶ丘駅周辺" },
+    { pattern: /大小路|宿院/, label: "堺中心部周辺" },
+    { pattern: /中百舌鳥|なかもず/, label: "中百舌鳥周辺" },
+    { pattern: /堺市/, label: "堺市内" }
+  ],
+  nearbyLabelRules: [
+    { pattern: /鳳|泉北|北花田/, label: "近隣エリア（堺市内周辺）" },
+    { pattern: /住之江|岸和田|松原/, label: "近隣エリア（堺から検討可）" }
+  ],
+  relatedLabelRules: [
+    { pattern: /天王寺/, label: "関連エリア（天王寺方面）" },
+    { pattern: /日本橋|近鉄日本橋|なんば|難波/, label: "関連エリア（日本橋・なんば方面）" },
+    { pattern: /梅田|大阪駅/, label: "関連エリア（梅田方面）" },
+    { pattern: /新大阪/, label: "関連エリア（新大阪方面）" }
+  ],
+  fallbackRelatedLabel: "堺・堺東周辺の関連店舗",
+  primaryGroupTitle: "堺東・堺駅周辺",
+  secondaryGroupTitle: "堺市内近隣・関連エリア"
+};
+
 /** 共通ハブテンプレート設定（エリア差分はここに集約） */
 export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
+  sakaisujihonmachi: {
+    seo: {
+      displayName: "堺筋本町",
+      breadcrumbLabel: "堺筋本町メンズエステ",
+      hubTitle: "堺筋本町メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較",
+      hubDescription:
+        "堺筋本町・本町・北浜・長堀橋周辺のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。仕事帰り、出張前後、駅近、深夜営業、料金目安をもとに堺筋本町エリアの候補店舗を探せます。",
+      coverageLabel: "堺筋本町・本町・北浜・長堀橋・船場周辺",
+      shopListH2: "堺筋本町メンズエステ店舗一覧",
+      shopListIntro:
+        "堺筋本町・本町・北浜周辺のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。中央区の徒歩圏店舗を優先し、近隣エリアの関連店舗もあわせて掲載しています。",
+      pageTitlePage2Plus:
+        "堺筋本町メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
+      pageDescriptionPage2Plus:
+        "堺筋本町・本町・北浜周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報コメントで比較しながら探せます。",
+      rankingTitle: "堺筋本町メンズエステおすすめランキング",
+      priceTableTitle: "堺筋本町メンズエステ料金比較表",
+      stationIntro:
+        "堺筋本町・本町・北浜・長堀橋徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
+      faqAreaRef: "堺筋本町",
+      faqFirstAnswer:
+        "堺筋本町・本町周辺の店舗を比較する場合は、堺筋本町エリアの店舗一覧ページのランキングと料金比較表から条件に合う店舗を絞り込むのがおすすめです。",
+      relationCardLabel: "堺筋本町との関係",
+      shopLinks: {
+        listLink: "堺筋本町メンズエステの店舗一覧へ",
+        compareLink: "堺筋本町メンズエステ店舗一覧（口コミ・料金比較）",
+        priceLink: "堺筋本町メンズエステ料金比較表へ",
+        stationLink: "駅近の堺筋本町メンズエステ一覧へ"
+      }
+    },
+    relation: SAKAISUJI_HONMACHI_RELATION
+  },
+  shinosaka: {
+    seo: {
+      displayName: "新大阪",
+      breadcrumbLabel: "新大阪メンズエステ",
+      hubTitle: "新大阪メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較",
+      hubDescription:
+        "新大阪・東三国・西中島南方周辺のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。出張前後、ホテル利用、深夜営業、駅近、料金目安をもとに新大阪エリアの候補店舗を探せます。",
+      coverageLabel: "新大阪・東三国・西中島南方・南方・淀川区周辺",
+      shopListH2: "新大阪メンズエステ店舗一覧",
+      shopListIntro:
+        "新大阪・東三国・西中島南方周辺のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。新幹線・出張利用の前後に確認しやすい候補を整理しています。",
+      pageTitlePage2Plus:
+        "新大阪メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
+      pageDescriptionPage2Plus:
+        "新大阪・東三国・西中島南方周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報コメントで比較しながら探せます。",
+      rankingTitle: "新大阪メンズエステおすすめランキング",
+      priceTableTitle: "新大阪メンズエステ料金比較表",
+      stationIntro:
+        "新大阪・東三国・西中島南方徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
+      faqAreaRef: "新大阪",
+      faqFirstAnswer:
+        "新大阪・東三国・西中島南方周辺の店舗を比較する場合は、新大阪エリアの店舗一覧ページのランキングと料金比較表から条件に合う店舗を絞り込むのがおすすめです。",
+      relationCardLabel: "新大阪との関係",
+      shopLinks: {
+        listLink: "新大阪メンズエステの店舗一覧へ",
+        compareLink: "新大阪メンズエステ店舗一覧（口コミ・料金比較）",
+        priceLink: "新大阪メンズエステ料金比較表へ",
+        stationLink: "駅近の新大阪メンズエステ一覧へ"
+      }
+    },
+    relation: SHINOSAKA_RELATION
+  },
   nihonbashi: {
     seo: {
       displayName: "大阪日本橋",
@@ -243,6 +391,38 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       }
     },
     relation: UMEDA_RELATION
+  },
+  sakai: {
+    seo: {
+      displayName: "堺・堺東",
+      breadcrumbLabel: "堺・堺東メンズエステ",
+      hubTitle: "堺・堺東メンズエステおすすめ一覧｜口コミ・料金・営業時間で比較",
+      hubDescription:
+        "堺・堺東・三国ヶ丘・中百舌鳥周辺のメンズエステを店舗一覧、口コミ、料金、営業時間、アクセスで比較。堺市内、駅近、深夜営業、料金目安をもとに堺エリアの候補店舗を探せます。",
+      coverageLabel: "堺東・堺駅・三国ヶ丘・中百舌鳥・堺市内周辺",
+      shopListH2: "堺・堺東メンズエステ店舗一覧",
+      shopListIntro:
+        "堺・堺東・三国ヶ丘周辺のメンズエステを、口コミ・料金目安・営業時間・アクセス・編集部コメントで比較できます。堺東中心部の店舗を優先し、堺市内の関連店舗もあわせて掲載しています。",
+      pageTitlePage2Plus:
+        "堺・堺東メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
+      pageDescriptionPage2Plus:
+        "堺・堺東・三国ヶ丘周辺のメンズエステ店舗一覧（{page}ページ目）。料金・営業時間・掲載情報コメントで比較しながら探せます。",
+      rankingTitle: "堺・堺東メンズエステおすすめランキング",
+      priceTableTitle: "堺・堺東メンズエステ料金比較表",
+      stationIntro:
+        "堺東・堺駅・三国ヶ丘・中百舌鳥徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
+      faqAreaRef: "堺・堺東",
+      faqFirstAnswer:
+        "堺・堺東周辺の店舗を比較する場合は、堺エリアの店舗一覧ページのランキングと料金比較表から条件に合う店舗を絞り込むのがおすすめです。",
+      relationCardLabel: "堺・堺東との関係",
+      shopLinks: {
+        listLink: "堺・堺東メンズエステの店舗一覧へ",
+        compareLink: "堺・堺東メンズエステ店舗一覧（口コミ・料金比較）",
+        priceLink: "堺・堺東メンズエステ料金比較表へ",
+        stationLink: "駅近の堺・堺東メンズエステ一覧へ"
+      }
+    },
+    relation: SAKAI_RELATION
   }
 };
 

@@ -60,8 +60,8 @@ export type AreaFeatureItem = {
 
 export const AREA_FEATURES = [
   {
-    slug: "sakaisuji-hommachi",
-    href: "/area/sakaisuji-hommachi/",
+    slug: "sakaisujihonmachi",
+    href: "/area/sakaisujihonmachi/",
     subtitle: "堺筋本町エリア特集",
     title: "堺筋本町メンズエステおすすめ一覧",
     description:

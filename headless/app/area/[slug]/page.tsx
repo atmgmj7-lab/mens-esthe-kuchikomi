@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { sanitizeAreaText } from "@/lib/area-content-integrity";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
 import { AreaPageView } from "@/components/AreaPageView";
@@ -31,6 +31,10 @@ type Props = {
   searchParams: Promise<{ page?: string }>;
 };
 
+const AREA_SLUG_ALIASES: Record<string, string> = {
+  "sakaisuji-hommachi": "sakaisujihonmachi"
+};
+
 function parsePage(value: string | undefined): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 1) return 1;
@@ -47,8 +51,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
   const { page: pageParam } = await searchParams;
+  const slug = AREA_SLUG_ALIASES[rawSlug] ?? rawSlug;
   const currentPage = parsePage(pageParam);
   const area = await withWpBuildFallback(`area metadata ${slug}`, () => getAreaBySlug(slug), null);
   if (!area) return {};
@@ -87,9 +92,16 @@ export default function AreaPage({ params, searchParams }: Props) {
 }
 
 async function AreaPageContent({ params, searchParams }: Props) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
   const { page: pageParam } = await searchParams;
   const currentPage = parsePage(pageParam);
+  const slug = AREA_SLUG_ALIASES[rawSlug] ?? rawSlug;
+
+  if (slug !== rawSlug) {
+    const pageSuffix = currentPage > 1 ? `?page=${currentPage}` : "";
+    redirect(`/area/${slug}/${pageSuffix}`);
+  }
+
   const area = await withWpBuildFallback(`area page ${slug}`, () => getAreaBySlug(slug), null);
   if (!area) notFound();
 

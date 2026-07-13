@@ -10,6 +10,7 @@ import { extractShopUserReviewItems, isNihonbashiShop } from "@/lib/area-shop-ut
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { phoneHref, shopField } from "@/lib/shop-contact";
+import { normalizeImageUrl } from "@/lib/wp/normalize";
 import {
   formatPriceForDisplay,
   getMinimumConfirmedPrice,
@@ -17,8 +18,70 @@ import {
 } from "@/lib/price-normalization";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
+const SHOP_VISUAL_KEYS = [
+  "shop_header_image",
+  "header_image",
+  "shop_top_image",
+  "top_image",
+  "shop_hero_image",
+  "hero_image",
+  "shop_main_visual",
+  "main_visual",
+  "shop_image",
+  "shop_main_image",
+  "main_image",
+  "image",
+  "shop_photo",
+  "photo",
+  "gallery_image",
+  "store_image",
+  "thumbnail"
+] as const;
+
 function field(shop: ShopView, key: string, fallback = "") {
   return shopField(shop, key, fallback);
+}
+
+function extractVisualUrl(value: unknown): string {
+  if (!value || typeof value === "number") return "";
+  if (typeof value === "string") return value ? normalizeImageUrl(value) : "";
+  if (typeof value !== "object") return "";
+
+  const item = value as Record<string, unknown>;
+  if (typeof item.url === "string" && item.url) return normalizeImageUrl(item.url);
+  if (typeof item.source_url === "string" && item.source_url) return normalizeImageUrl(item.source_url);
+
+  const sizes = item.sizes;
+  if (sizes && typeof sizes === "object") {
+    const sizesObject = sizes as Record<string, unknown>;
+    for (const key of ["large", "medium_large", "medium", "full"]) {
+      const size = sizesObject[key];
+      if (typeof size === "string" && size) return normalizeImageUrl(size);
+      if (size && typeof size === "object" && typeof (size as { url?: unknown }).url === "string") {
+        return normalizeImageUrl((size as { url: string }).url);
+      }
+    }
+  }
+
+  return "";
+}
+
+function resolveShopVisuals(shop: ShopView): string[] {
+  const candidates = [
+    shop.imageUrl,
+    ...SHOP_VISUAL_KEYS.map((key) => extractVisualUrl(shop.acf[key]))
+  ]
+    .filter(Boolean)
+    .map((url) => url || DEFAULT_SHOP_IMAGE);
+
+  const seen = new Set<string>();
+  const unique = candidates.filter((url) => {
+    if (seen.has(url)) return false;
+    seen.add(url);
+    return true;
+  });
+
+  return unique.length > 0 ? unique.slice(0, 4) : [DEFAULT_SHOP_IMAGE];
 }
 
 function resolveShopAreaNav(shop: ShopView, allAreas: AreaView[], parentArea?: AreaView | null) {
@@ -44,6 +107,7 @@ export function ShopDetail({
   allAreas?: AreaView[];
 }) {
   const image = shop.imageUrl || DEFAULT_SHOP_IMAGE;
+  const shopVisuals = resolveShopVisuals(shop);
   const tel = field(shop, "shop_tel");
   const line = field(shop, "shop_line");
   const officialUrl = shop.officialUrl || field(shop, "official_url");
@@ -159,10 +223,10 @@ export function ShopDetail({
             </div>
           </header>
 
-          <section className="shpc-intro-section escomi-final-shop-intro">
+          <section className="shpc-intro-section escomi-final-shop-intro escomi-final-shop-visual-deck">
             <div className="shpc-intro-image">
               <img
-                src={image}
+                src={shopVisuals[0] || image}
                 alt={shop.title}
                 width={800}
                 height={533}
@@ -170,6 +234,21 @@ export function ShopDetail({
                 fetchPriority="high"
                 decoding="async"
               />
+              {shopVisuals.length > 1 ? (
+                <div className="escomi-final-shop-visual-deck__thumbs" aria-label="店舗画像">
+                  {shopVisuals.slice(1).map((visual, index) => (
+                    <img
+                      key={`${shop.id}-visual-${index}`}
+                      src={visual}
+                      alt={`${shop.title} 店舗画像 ${index + 2}`}
+                      width={180}
+                      height={120}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
             <div className="shpc-intro-content">
               <RatingBadge shop={shop} className="shpc-stars" />
@@ -180,6 +259,20 @@ export function ShopDetail({
                 <a href="#shop-data">基本情報</a>
                 <a href="#shop-contact">予約・問い合わせ</a>
               </div>
+              <dl className="escomi-final-shop-trust-rail" aria-label="確認しやすい店舗情報">
+                <div>
+                  <dt>料金</dt>
+                  <dd>{primaryPriceLabel}</dd>
+                </div>
+                <div>
+                  <dt>口コミ</dt>
+                  <dd>{reviewCountLabel}</dd>
+                </div>
+                <div>
+                  <dt>予約</dt>
+                  <dd>{officialStatusLabel}</dd>
+                </div>
+              </dl>
               {field(shop, "shop_catch") ? (
                 <div className="shpc-intro-heading">{field(shop, "shop_catch")}</div>
               ) : null}
@@ -296,53 +389,54 @@ export function ShopDetail({
             </div>
           </section>
 
-          {prices.length > 0 ? (
-            <section id="shop-price" className="shop-price-section hl-section escomi-final-shop-section">
-              <h2 className="sec-title-simple shop-sec-title">
-                <span className="en">PRICE LIST</span>
-                <span className="ja">基本料金詳細</span>
-              </h2>
-              <div className="shop-detail-price-table-wrap">
-                <table className="shop-detail-price-table">
-                  <tbody>
-                    {prices.map(({ key, label, price }) => (
-                      <tr key={key}>
-                        <td className="cell-course">{label}</td>
-                        <td className="cell-price">
-                          <span className="course-price">
-                            {formatPriceForDisplay(price)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ) : (
-            <section id="shop-price" className="shop-price-section hl-section escomi-final-shop-section">
-              <h2 className="sec-title-simple shop-sec-title">
-                <span className="en">PRICE LIST</span>
-                <span className="ja">基本料金詳細</span>
-              </h2>
-              <p className="hl-price-empty">料金は店舗へお問い合わせください。</p>
-            </section>
-          )}
+          <div className="escomi-final-shop-sections-grid">
+            {prices.length > 0 ? (
+              <section id="shop-price" className="shop-price-section hl-section escomi-final-shop-section">
+                <h2 className="sec-title-simple shop-sec-title">
+                  <span className="en">PRICE LIST</span>
+                  <span className="ja">基本料金詳細</span>
+                </h2>
+                <div className="shop-detail-price-table-wrap">
+                  <table className="shop-detail-price-table">
+                    <tbody>
+                      {prices.map(({ key, label, price }) => (
+                        <tr key={key}>
+                          <td className="cell-course">{label}</td>
+                          <td className="cell-price">
+                            <span className="course-price">
+                              {formatPriceForDisplay(price)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            ) : (
+              <section id="shop-price" className="shop-price-section hl-section escomi-final-shop-section">
+                <h2 className="sec-title-simple shop-sec-title">
+                  <span className="en">PRICE LIST</span>
+                  <span className="ja">基本料金詳細</span>
+                </h2>
+                <p className="hl-price-empty">料金は店舗へお問い合わせください。</p>
+              </section>
+            )}
 
-          {recommend ? (
-            <section className="shop-info-section hl-section">
-              <h2 className="mod-customColor es-sec-title">
-                <span className="es-sec-title__en">RECOMMEND</span>
-                <span className="es-sec-title__ja">店舗紹介・推しポイント</span>
-              </h2>
-              <div
-                className="recommend-box"
-                dangerouslySetInnerHTML={{ __html: recommend.replace(/\n/g, "<br />") }}
-              />
-            </section>
-          ) : null}
+            {recommend ? (
+              <section className="shop-info-section hl-section escomi-final-shop-section">
+                <h2 className="mod-customColor es-sec-title">
+                  <span className="es-sec-title__en">RECOMMEND</span>
+                  <span className="es-sec-title__ja">店舗紹介・推しポイント</span>
+                </h2>
+                <div
+                  className="recommend-box"
+                  dangerouslySetInnerHTML={{ __html: recommend.replace(/\n/g, "<br />") }}
+                />
+              </section>
+            ) : null}
 
-          <section id="shop-reviews" className="shop-info-section hl-section escomi-final-shop-section">
+            <section id="shop-reviews" className="shop-info-section hl-section escomi-final-shop-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">USER REVIEWS</span>
               <span className="es-sec-title__ja">ユーザー口コミ</span>
@@ -367,9 +461,9 @@ export function ShopDetail({
             <p className="hl-review-form__notice">
               掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません。
             </p>
-          </section>
+            </section>
 
-          <section id="shop-data" className="shop-info-section hl-section escomi-final-shop-section">
+            <section id="shop-data" className="shop-info-section hl-section escomi-final-shop-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">SHOP INFO</span>
               <span className="es-sec-title__ja">店舗詳細データ</span>
@@ -430,9 +524,9 @@ export function ShopDetail({
                 </tr>
               </tbody>
             </table>
-          </section>
+            </section>
 
-          <section className="shop-info-section hl-section hl-review-submit-section">
+            <section className="shop-info-section hl-section hl-review-submit-section escomi-final-shop-section">
             <h2 className="mod-customColor es-sec-title">
               <span className="es-sec-title__en">USER REVIEW</span>
               <span className="es-sec-title__ja">口コミ投稿</span>
@@ -446,9 +540,10 @@ export function ShopDetail({
             <p className="hl-review-form__notice">
               個人情報、誹謗中傷、事実確認が難しい内容、過度な表現は掲載できない場合があります。
             </p>
-          </section>
+            </section>
 
-          <ShopContactCtaPanel shop={shop} />
+            <ShopContactCtaPanel shop={shop} />
+          </div>
 
           {shopAreaForHub ? (
             <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
