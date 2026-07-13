@@ -31,10 +31,28 @@
 - 履歴未保存のダッシュボード・配信設定10ファイルは `backup/original-dirty-20260714` に保存した。
 - `DASH-DESIGN-00`、`BLK-SECRET`、`BLK-SUPA-00` が残るため、今回の作業ツリー統合では公開コードへ適用しない。
 - production側で `git diff --check`、`npm run lint`、`npm run typecheck`、`npm test`、`npm run build` が成功した。
-- 元フォルダを正本へ戻すTask 5は、ユーザーの明示承認待ちとして未実施。
+- 元フォルダを正本へ戻すTask 5は、ユーザーの明示承認後に完了した。
 
 #### 未実施
-- 差分統合、削除、push、本番デプロイは未実施。
+- push、本番デプロイは未実施。
+
+### 2026-07-14 Task 5 元フォルダへのローカル統合
+
+#### 実行したこと
+- `backup/original-dirty-20260714` が `81884f9efca15395a744f64ff1dcf25130b80e14` を指し、履歴未保存15ファイル、一時index、元フォルダ実ファイルの一致を再確認した。
+- ユーザーの明示承認後、元フォルダの既存差分を整理し、`main` を検証済みコミット `1e62f683641713916d7efab401f70d06bcea10da` へfast-forwardした。
+- 元フォルダの `headless/` で `npm run lint`、`npm run typecheck`、`npm test`、`npm run build` を再実行した。
+- `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-production` を `git worktree remove` で削除し、`git worktree prune` を実行した。
+- 既存の `/private/tmp` 配下の作業ツリーは今回の対象外として変更していない。
+
+#### 確認結果
+- lint、typecheck、11検査、buildはすべて終了コード0。
+- buildは440ページ生成に成功した。
+- 元フォルダはクリーンな `main` となり、production作業ツリーの登録とフォルダがなくなった。
+- `backup/original-dirty-20260714` は保持されている。
+
+#### 未実施
+- push、本番デプロイは未実施。
 
 ### 2026-07-14 Q-07 FAQ表示・schema境界条件修正
 

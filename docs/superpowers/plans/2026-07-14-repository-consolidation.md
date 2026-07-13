@@ -289,7 +289,7 @@ Expected: `pm/PROGRESS.md` だけがコミットされ、Task 5は未実施の�
 - Consumes: Task 4で検証済みのproductionブランチとTask 1のバックアップref
 - Produces: 元フォルダだけを正本として使う単一作業ツリー構成
 
-- [ ] **Step 1: 削除対象とバックアップコミットをユーザーへ提示する**
+- [x] **Step 1: 削除対象とバックアップコミットをユーザーへ提示する**
 
 Run:
 
@@ -302,7 +302,7 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi status --short --br
 
 Expected: 2つのcommit ID、元フォルダの既存差分、整理対象の2パスが表示される。ユーザーが元フォルダ整理を明示承認するまでStep 2へ進まない。
 
-- [ ] **Step 2: 承認後、元フォルダをクリーンにして `main` をfast-forwardする**
+- [x] **Step 2: 承認後、元フォルダをクリーンにして `main` をfast-forwardする**
 
 Run only after explicit approval:
 
@@ -314,7 +314,7 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi merge --ff-only cod
 
 Expected: 元フォルダの `main` がproduction側の検証済みHEADと一致し、作業ツリーがクリーン。
 
-- [ ] **Step 3: 元フォルダの `headless/` で再検証する**
+- [x] **Step 3: 元フォルダの `headless/` で再検証する**
 
 Run:
 
@@ -328,7 +328,7 @@ npm run build
 
 Expected: すべて終了コード0。
 
-- [ ] **Step 4: production作業ツリーをGit経由で削除する**
+- [x] **Step 4: production作業ツリーをGit経由で削除する**
 
 Run from the parent repository, not from inside the worktree being removed:
 
@@ -339,7 +339,7 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi worktree prune
 
 Expected: production作業ツリーの登録とフォルダがなくなり、元フォルダと `backup/original-dirty-20260714` は残る。
 
-- [ ] **Step 5: 最終状態を確認する**
+- [x] **Step 5: 最終状態を確認する**
 
 Run:
 

@@ -105,9 +105,9 @@ production側は独立した複製ではないため、元フォルダをFinder�
 - production側にしかない必要ファイルが0件。
 - ユーザーがproduction作業ツリー削除を明示承認。
 
-## Task 1〜4 実施証拠
+## Task 1〜5 実施証拠
 
-この節を作業ツリー統合の追跡済み正本とする。`.superpowers/sdd/` は実装中の補助記録であり、Gitのローカル除外対象のため、Task 5でproduction作業ツリーを削除する前に本節と `pm/PROGRESS.md` を確認する。
+この節を作業ツリー統合の追跡済み正本とする。`.superpowers/sdd/` は実装中の補助記録であり、Gitのローカル除外対象だったため、Task 5でproduction作業ツリーを削除する前に本節と `pm/PROGRESS.md` へ必要な証拠を保存した。
 
 ### バックアップ
 
@@ -134,9 +134,14 @@ production側は独立した複製ではないため、元フォルダをFinder�
 - `headless/` の `npm run build`: 終了コード0、440ページ生成成功。
 - buildでは既存の `middleware` 非推奨警告と、WordPress APIの404による代替データ使用通知を確認した。
 
-### 未実施
+### Task 5実施結果
 
-- Task 5は未実施。元フォルダの整理、`main` のfast-forward、production作業ツリー削除は行っていない。
+- ユーザーの明示承認後、元フォルダの既存差分をバックアップrefで保護した状態で整理した。
+- 元フォルダの `main` を検証済みコミット `1e62f683641713916d7efab401f70d06bcea10da` へfast-forwardした。
+- 元フォルダの `headless/` で `npm run lint`、`npm run typecheck`、`npm test`、`npm run build` を再実行し、すべて終了コード0、buildは440ページ生成に成功した。
+- `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-production` を `git worktree remove` で削除し、`git worktree prune` を実行した。
+- `backup/original-dirty-20260714` は `81884f9efca15395a744f64ff1dcf25130b80e14` のまま保持した。
+- 既存の `/private/tmp` 配下の作業ツリーは今回の対象外のため変更していない。
 - `git push` と本番デプロイは行っていない。
 
 ## Q-07 HTML空白文字参照の追加修正
@@ -161,6 +166,6 @@ production側は独立した複製ではないため、元フォルダをFinder�
 - `headless/` の `npm run build`: 終了コード0、440ページ生成成功。
 - buildでは既存の `middleware` 非推奨警告、WordPress APIの404・タイムアウトによる代替データ使用通知、`useSearchParams()` のクライアント描画切替ログを確認した。
 
-### 未実施
+### 修正コミット時点の未実施
 
-- Task 5、元フォルダの変更、`git push`、本番デプロイは実施していない。
+- このQ-07修正コミット時点では、Task 5、元フォルダの変更、`git push`、本番デプロイは実施していなかった。
