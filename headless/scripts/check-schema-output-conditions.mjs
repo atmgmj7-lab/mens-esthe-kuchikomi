@@ -49,7 +49,19 @@ vm.runInNewContext(
   { filename: "seo.cjs" }
 );
 
-const { faqJsonLd, shopLocalBusinessJsonLd } = seoModule.exports;
+const { asFaqRows, faqJsonLd, shopLocalBusinessJsonLd } = seoModule.exports;
+
+const emptyHtmlFaqRows = asFaqRows([{ question: "有効な質問", answer: "<br />" }]);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(emptyHtmlFaqRows)),
+  [],
+  "Visible FAQ rows must exclude answers that contain only empty HTML"
+);
+assert.equal(
+  faqJsonLd(emptyHtmlFaqRows),
+  null,
+  "Visible FAQ rows and FAQPage schema must use the same valid row set"
+);
 
 assert.equal(faqJsonLd([]), null, "FAQPage schema must not be emitted when there are no visible FAQ rows");
 assert.equal(

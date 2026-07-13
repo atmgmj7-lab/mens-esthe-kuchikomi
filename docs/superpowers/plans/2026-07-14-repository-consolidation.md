@@ -31,7 +31,7 @@
 - Consumes: 元フォルダの `main` と非ignored作業内容
 - Produces: 元フォルダの通常indexを変えずに全作業内容を参照できる `backup/original-dirty-20260714`
 
-- [ ] **Step 1: 作業前の状態を記録する**
+- [x] **Step 1: 作業前の状態を記録する**
 
 Run:
 
@@ -42,7 +42,7 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-production status -
 
 Expected: 元フォルダは `main...origin/main [behind 26]` と既存差分を表示し、production側は `codex/production-baseline-20260713...origin/main [ahead 2]` でクリーン。
 
-- [ ] **Step 2: 一時indexへ元フォルダの全非ignored内容を登録する**
+- [x] **Step 2: 一時indexへ元フォルダの全非ignored内容を登録する**
 
 Run:
 
@@ -55,7 +55,7 @@ GIT_INDEX_FILE=/private/tmp/escomi-original-dirty-20260714.index git -C /Users/n
 
 Expected: 終了コード0。元フォルダの通常 `git status` は変化しない。
 
-- [ ] **Step 3: 一時indexからバックアップコミットと参照を作る**
+- [x] **Step 3: 一時indexからバックアップコミットと参照を作る**
 
 Run:
 
@@ -68,7 +68,7 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-production update-r
 
 Expected: `backup/original-dirty-20260714` が作成され、元フォルダのブランチと通常indexは変化しない。
 
-- [ ] **Step 4: バックアップtreeと一時indexの一致を検証する**
+- [x] **Step 4: バックアップtreeと一時indexの一致を検証する**
 
 Run:
 
@@ -80,7 +80,7 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi status --short --br
 
 Expected: `diff --cached --exit-code` が終了コード0。元フォルダの `git status` がStep 1と同一。
 
-- [ ] **Step 5: バックアップ参照作成をコミット履歴ではなく進行ログへ記録する**
+- [x] **Step 5: バックアップ参照作成をコミット履歴ではなく進行ログへ記録する**
 
 Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 
@@ -90,7 +90,7 @@ Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 - 元フォルダの通常index、実ファイル、`main` は変更していない。
 ```
 
-- [ ] **Step 6: 統合台帳、実行計画、進行ログをコミットする**
+- [x] **Step 6: 統合台帳、実行計画、進行ログをコミットする**
 
 Run:
 
@@ -118,7 +118,7 @@ Expected: 上記3ファイルだけがcurrent branchへコミットされ、バ�
 - Consumes: `backup/original-dirty-20260714` と `codex/production-baseline-20260713` の5ファイル差分
 - Produces: 5ファイルを今回の統合では採用せず、バックアップrefに保留したことを示す検証記録
 
-- [ ] **Step 1: 5ファイルの差分を個別に確認する**
+- [x] **Step 1: 5ファイルの差分を個別に確認する**
 
 Run:
 
@@ -128,7 +128,7 @@ git diff codex/production-baseline-20260713..backup/original-dirty-20260714 -- h
 
 Expected: 口コミ、PR、ランキング、Hub表示に関する差分だけを確認できる。差分はバックアップrefに残し、公開コードへは適用しない。
 
-- [ ] **Step 2: 現在の公開コードの品質検査を確認する**
+- [x] **Step 2: 現在の公開コードの品質検査を確認する**
 
 Run in `headless/`:
 
@@ -141,7 +141,7 @@ npm run test:schema-output
 
 Expected: すべて終了コード0。現在のQ-04からQ-07の表示条件を維持する。
 
-- [ ] **Step 3: 今回は公開コードへ適用しない判断を記録する**
+- [x] **Step 3: 今回は公開コードへ適用しない判断を記録する**
 
 Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 
@@ -153,7 +153,7 @@ Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 
 Expected: 5ファイルの現在版は変更されず、バックアップrefと進行ログだけで追跡できる。
 
-- [ ] **Step 4: 公開UI差分の保留判断をコミットする**
+- [x] **Step 4: 公開UI差分の保留判断をコミットする**
 
 Run:
 
@@ -183,7 +183,7 @@ Expected: `pm/PROGRESS.md` だけがコミットされ、`headless/` は変更�
 - Consumes: 履歴未保存のダッシュボード差分10件
 - Produces: 公開コードへ混ぜず、後続ダッシュボードタスクから参照できるバックアップrefと採否メモ
 
-- [ ] **Step 1: バックアップrefに10ファイルが存在することを確認する**
+- [x] **Step 1: バックアップrefに10ファイルが存在することを確認する**
 
 Run:
 
@@ -193,7 +193,7 @@ git ls-tree -r --name-only backup/original-dirty-20260714 -- .github/workflows/d
 
 Expected: 上記10ファイルを含む一覧が出る。
 
-- [ ] **Step 2: 現在のBlockerを確認する**
+- [x] **Step 2: 現在のBlockerを確認する**
 
 Run:
 
@@ -203,7 +203,7 @@ rg -n "DASH-DESIGN-00|BLK-SECRET|BLK-SUPA-00" pm/BLOCKERS.md
 
 Expected: 完成デザイン不足、Secret未確認、Supabase未確認が表示される。
 
-- [ ] **Step 3: 公開コードへ統合しない判断を記録する**
+- [x] **Step 3: 公開コードへ統合しない判断を記録する**
 
 Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 
@@ -212,7 +212,7 @@ Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 - `DASH-DESIGN-00`、`BLK-SECRET`、`BLK-SUPA-00` が残るため、今回の作業ツリー統合では公開コードへ適用しない。
 ```
 
-- [ ] **Step 4: ダッシュボード差分の保留判断をコミットする**
+- [x] **Step 4: ダッシュボード差分の保留判断をコミットする**
 
 Run:
 
@@ -234,7 +234,7 @@ Expected: `pm/PROGRESS.md` だけがコミットされ、ダッシュボード�
 - Consumes: Task 1からTask 3の結果
 - Produces: 元フォルダへ進められる検証済みコミット
 
-- [ ] **Step 1: production側のGit状態を確認する**
+- [x] **Step 1: production側のGit状態を確認する**
 
 Run:
 
@@ -245,7 +245,7 @@ git diff --check
 
 Expected: 意図した変更だけが表示され、空白エラーがない。
 
-- [ ] **Step 2: 全品質検査を実行する**
+- [x] **Step 2: 全品質検査を実行する**
 
 Run in `headless/`:
 
@@ -258,7 +258,7 @@ npm run build
 
 Expected: すべて終了コード0。
 
-- [ ] **Step 3: 最終検証結果を進行ログへ記録する**
+- [x] **Step 3: 最終検証結果を進行ログへ記録する**
 
 Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 
@@ -267,7 +267,7 @@ Add this exact result to the current consolidation section in `pm/PROGRESS.md`:
 - 元フォルダを正本へ戻すTask 5は、ユーザーの明示承認待ちとして未実施。
 ```
 
-- [ ] **Step 4: 最終検証結果をコミットする**
+- [x] **Step 4: 最終検証結果をコミットする**
 
 Run:
 

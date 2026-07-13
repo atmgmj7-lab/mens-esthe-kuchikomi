@@ -36,6 +36,30 @@
 #### 未実施
 - 差分統合、削除、push、本番デプロイは未実施。
 
+### 2026-07-14 Q-07 FAQ表示・schema境界条件修正
+
+#### 修正内容
+- `asFaqRows` で回答の表示用HTMLは保持したまま、HTML除去後の本文が空になる行を除外するよう修正した。
+- `question: "有効な質問"`、`answer: "<br />"` の入力が表示行の空配列になり、同じ行集合からFAQPage schemaも生成されない回帰テストを追加した。
+- 統合計画のTask 1〜4にある全Stepを完了表示へ更新し、明示承認が必要なTask 5は未完了のまま維持した。
+- バックアップref、保存対象15件、Task 1〜4のコミットとレビュー、品質検査、未実施事項を `docs/technical/repository-consolidation-inventory-2026-07-14.md` へ追跡済み証拠として保存した。
+- `.superpowers/sdd/` は補助記録とし、Task 5前には追跡済み統合台帳と本進行ログを正本として確認する方針を記録した。
+
+#### RED / GREEN
+- RED: 回帰テスト追加後の `npm run test:schema-output` は終了コード1。`asFaqRows` が実際には `[{ question: '有効な質問', answer: '<br />' }]` を返し、期待する空配列との差で失敗した。
+- GREEN: `asFaqRows` の最小修正後、`npm run test:schema-output` は終了コード0で `schema output condition checks passed`。
+
+#### 最終検証
+- `git diff --check`: 成功。
+- `headless/` の `npm run lint`: 成功。
+- `headless/` の `npm run typecheck`: 成功。
+- `headless/` の `npm test`: 11検査すべて成功。
+- `headless/` の `npm run build`: 成功、440ページ生成。
+- build警告: 既存の `middleware` 規約非推奨と、WordPress APIの404による代替データ使用通知を確認した。
+
+#### 未実施
+- Task 5、元フォルダの変更、push、本番デプロイは未実施。
+
 ### 2026-07-14 Task 2 履歴未保存の公開UI差分5件の採否判定
 
 #### 判定結果

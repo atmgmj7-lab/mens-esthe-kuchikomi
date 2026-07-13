@@ -67,7 +67,7 @@ export function asFaqRows(value: unknown): Array<{ question: string; answer: str
       const record = item as Record<string, unknown>;
       const question = stripHtml(record.question);
       const answer = typeof record.answer === "string" ? record.answer : stripHtml(record.answer);
-      if (!question || !answer) return null;
+      if (!question || !stripHtml(answer)) return null;
       return { question, answer };
     })
     .filter((row): row is { question: string; answer: string } => Boolean(row));

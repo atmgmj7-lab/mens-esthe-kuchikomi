@@ -104,3 +104,37 @@ production側は独立した複製ではないため、元フォルダをFinder�
 - 元フォルダ上で同じ検査が成功。
 - production側にしかない必要ファイルが0件。
 - ユーザーがproduction作業ツリー削除を明示承認。
+
+## Task 1〜4 実施証拠
+
+この節を作業ツリー統合の追跡済み正本とする。`.superpowers/sdd/` は実装中の補助記録であり、Gitのローカル除外対象のため、Task 5でproduction作業ツリーを削除する前に本節と `pm/PROGRESS.md` を確認する。
+
+### バックアップ
+
+- バックアップref: `backup/original-dirty-20260714` = `81884f9efca15395a744f64ff1dcf25130b80e14`。
+- 親コミット: `d61598103f35b70ee8ee07dfc626b58b38d2f7f2`。
+- 初回にignoredの `dashboard/.env.example` が対象外だったことを検出し、同ファイルだけを一時indexへ強制追加した。
+- 修正後、削除前に保存する15ファイルを個別に `git cat-file -e` で確認し、すべてバックアップrefに存在することを確認した。
+- 一時indexとバックアップrefのtree一致、`dashboard/.env.example` の元ファイルとのblob一致、元フォルダのHEAD・通常index・既存未コミット状態の不変を確認した。
+
+### Task別コミットとレビュー
+
+- Task 1: `72b1150`（統合計画・台帳・バックアップ記録）、`c0bb030`（ignoredファイルを含むバックアップ完全性修正）。実装後レビュー承認。
+- Task 2: `b88bf02`（公開UI試作5件を今回適用しない判断）。実装後レビュー承認。
+- Task 3: `88426d7`（ダッシュボード10件をBlocker解消まで保留する判断）。バックアップ修正後の再レビュー承認。
+- Task 4: `c1600e8`（production側の統合済み基準を最終検証）。実装後レビュー承認。
+
+### 品質検査
+
+- 最終レビューのQ-07境界条件修正後に、以下の全検査を再実行した。
+- `git diff --check`: 終了コード0。
+- `headless/` の `npm run lint`: 終了コード0。
+- `headless/` の `npm run typecheck`: 終了コード0。
+- `headless/` の `npm test`: 終了コード0、11検査成功。
+- `headless/` の `npm run build`: 終了コード0、440ページ生成成功。
+- buildでは既存の `middleware` 非推奨警告と、WordPress APIの404による代替データ使用通知を確認した。
+
+### 未実施
+
+- Task 5は未実施。元フォルダの整理、`main` のfast-forward、production作業ツリー削除は行っていない。
+- `git push` と本番デプロイは行っていない。
