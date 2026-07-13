@@ -5,6 +5,7 @@ import { AreaHubSectionHeader } from "@/components/area/hub/AreaHubSectionHeader
 import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
 import {
   AreaHubCompareTabsSections,
+  AreaHubLocalGuideSection,
   AreaHubPriceAndGuideSections,
   AreaHubRankingTop,
   AreaFaqSection,
@@ -100,6 +101,13 @@ export function AreaHubPageTemplate({
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
   const heroVisual = resolveAreaFeatureVisual(area.slug, parentArea?.slug, areaFeatures);
   const hasRelatedAreas = childAreas.length > 0 || Boolean(parentArea && siblingAreas.length > 0);
+  const pageAnchorLinks = hubContext.localGuide
+    ? [
+        ...PAGE_ANCHOR_LINKS.slice(0, 4),
+        { href: "#local-guide", label: "選び方" },
+        ...PAGE_ANCHOR_LINKS.slice(4)
+      ]
+    : PAGE_ANCHOR_LINKS;
   const heroStyle = heroVisual.image
     ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
     : undefined;
@@ -187,7 +195,7 @@ export function AreaHubPageTemplate({
         </section>
 
         <nav className="area-hub-anchor-nav escomi-final-area-anchor-nav" aria-label="ページ内ナビゲーション">
-          {PAGE_ANCHOR_LINKS.map((link) => (
+          {pageAnchorLinks.map((link) => (
             <a key={link.href} href={link.href} className="area-hub-anchor-nav__link">
               {link.label}
             </a>
@@ -207,12 +215,16 @@ export function AreaHubPageTemplate({
             <Link href={`${areaPath}#ranking`}>おすすめランキングを見る</Link>
             <Link href={`${areaPath}#price-table`}>料金比較を見る</Link>
             <Link href={`${areaPath}#beginner`}>初心者向け店舗を見る</Link>
+            {hubContext.localGuide ? (
+              <Link href={`${areaPath}#local-guide`}>{hubContext.name}の選び方を見る</Link>
+            ) : null}
             {hasRelatedAreas ? (
               <Link href={`${areaPath}#related-areas`}>関連エリアを見る</Link>
             ) : null}
           </div>
         </section>
 
+        <AreaHubLocalGuideSection hubContext={hubContext} />
         <AreaHubRankingTop
           rankingShops={allShops}
           targetArea={area}

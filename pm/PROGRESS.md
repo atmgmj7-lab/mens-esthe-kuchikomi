@@ -2,6 +2,40 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-13 S-10 堺筋本町Hub改善
+
+#### 実行したTask ID
+- `S-10`: 堺筋本町Hub改善。
+
+#### 変更したファイル
+- `headless/lib/area-hub-config.ts`
+- `headless/lib/area-shop-utils.ts`
+- `headless/components/area/AreaHubPageTemplate.tsx`
+- `headless/components/area/area-hub-content.tsx`
+- `headless/app/globals.css`
+- `headless/scripts/check-s10-sakaisujihonmachi-hub.mjs`
+- `headless/package.json`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- 堺筋本町Hub専用に「堺筋本町・本町・北浜の使い分け」ガイド設定を追加した。
+- `AreaHubLocalGuideSection` を追加し、堺筋本町Hubだけに仕事帰り・出張前後、徒歩圏、料金・営業時間・公式導線の確認ポイントを表示するようにした。
+- ページ内ナビと内部リンク枠に `#local-guide` 導線を追加し、Hub内で選び方ガイドへ移動できるようにした。
+- S-10専用検査を `npm test` に追加し、堺筋本町専用ガイド設定・表示コンポーネント・アンカー導線を固定した。
+
+#### テスト結果
+- RED確認: `npm run test:s10-sakaisujihonmachi-hub` が実装前に `localGuide` 未定義で失敗。
+- `npm run test:s10-sakaisujihonmachi-hub`: 成功。
+- `npm run lint`: 成功。
+- `npm run typecheck`: 成功。
+- `npm test`: 成功。
+- `npm run build`: 成功。
+- ローカル本番HTTP確認: `http://127.0.0.1:3010/area/sakaisujihonmachi/` で `#local-guide`、`堺筋本町・本町・北浜の使い分け`、`仕事帰り・出張前後`、`料金・営業時間・公式導線` を確認。`/area/nihonbashi/` には堺筋本町専用ガイドが出ないことも確認。
+- 補足: build中に既存の `middleware` 非推奨警告、WordPress origin timeout / 404 fallback、既知の `useSearchParams()` bailoutログは出たが、build結果は成功。
+
+#### 未実施
+- 本番デプロイ、push、元の `mens-esthe-kuchikomi` フォルダ変更は未実施。
+
 ### 2026-07-13 Q-07 FAQ / schema出力条件確認
 
 #### 実行したTask ID

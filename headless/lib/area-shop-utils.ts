@@ -46,6 +46,7 @@ export type AreaHubContext = {
   faqFirstAnswer: string;
   relationCardLabel: string;
   shopLinks: AreaHubSeoConfig["shopLinks"];
+  localGuide?: AreaHubSeoConfig["localGuide"];
   primaryGroupTitle: string;
   secondaryGroupTitle: string;
   pageTitlePage2Plus: string;
@@ -158,6 +159,7 @@ export function resolveAreaHubContext(
     faqFirstAnswer: seo.faqFirstAnswer,
     relationCardLabel: seo.relationCardLabel,
     shopLinks: seo.shopLinks,
+    localGuide: seo.localGuide,
     primaryGroupTitle: relation?.primaryGroupTitle ?? `${area.name}エリア`,
     secondaryGroupTitle: relation?.secondaryGroupTitle ?? "近隣・関連エリア",
     guidePath: seo.guidePath,

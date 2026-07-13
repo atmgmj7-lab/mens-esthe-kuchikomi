@@ -116,6 +116,36 @@ export function AreaFaqSection({
   );
 }
 
+export function AreaHubLocalGuideSection({ hubContext }: { hubContext: AreaHubContext }) {
+  const guide = hubContext.localGuide;
+  if (!guide || guide.items.length === 0) return null;
+
+  return (
+    <AreaHubSectionShell theme="guide" areaSlug={hubContext.slug} id="local-guide">
+      <AreaHubSectionHeader theme="guide" areaSlug={hubContext.slug} ja={guide.title} />
+      <p className="area-hub-section__intro area-hub-section__intro--compact">
+        {guide.lead}
+      </p>
+      <div className="area-hub-guide-cards area-hub-local-guide-cards">
+        {guide.items.map((item, index) => (
+          <article key={item.title} className="area-hub-guide-card area-hub-local-guide-card">
+            <span className="area-hub-guide-card__num">{index + 1}</span>
+            <div>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+              {item.href ? (
+                <Link href={item.href} className="area-hub-local-guide-card__link">
+                  {item.linkLabel ?? "詳しく見る"}
+                </Link>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </AreaHubSectionShell>
+  );
+}
+
 function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, "slug" | "name">) {
   const lateNightShops = rankingShops.filter(isLateNightShop);
   const beginnerShops = rankingShops.filter(isBeginnerFriendlyShop);

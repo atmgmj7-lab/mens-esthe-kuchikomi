@@ -5,6 +5,19 @@ export type AreaHubShopLinks = {
   stationLink: string;
 };
 
+export type AreaHubLocalGuideItem = {
+  title: string;
+  body: string;
+  href?: string;
+  linkLabel?: string;
+};
+
+export type AreaHubLocalGuideConfig = {
+  title: string;
+  lead: string;
+  items: AreaHubLocalGuideItem[];
+};
+
 export type AreaHubRelationLabelRule = {
   pattern: RegExp;
   label: string;
@@ -41,6 +54,7 @@ export type AreaHubSeoConfig = {
   faqFirstAnswer: string;
   relationCardLabel: string;
   shopLinks: AreaHubShopLinks;
+  localGuide?: AreaHubLocalGuideConfig;
   guidePath?: string;
   guideTitle?: string;
   guideCtaLabel?: string;
@@ -257,6 +271,34 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         compareLink: "堺筋本町メンズエステ店舗一覧（口コミ・料金比較）",
         priceLink: "堺筋本町メンズエステ料金比較表へ",
         stationLink: "駅近の堺筋本町メンズエステ一覧へ"
+      },
+      localGuide: {
+        title: "堺筋本町・本町・北浜の使い分け",
+        lead:
+          "堺筋本町は中央区の徒歩圏で候補が広がりやすいエリアです。店舗一覧だけでなく、仕事帰り・出張前後の使いやすさ、料金・営業時間・公式導線をあわせて確認してください。",
+        items: [
+          {
+            title: "堺筋本町は仕事帰り・出張前後で探しやすい",
+            body:
+              "中央区の徒歩圏にある店舗を中心に、営業時間、最終受付、予約導線を先に確認すると候補を絞り込みやすくなります。",
+            href: "#late-night",
+            linkLabel: "深夜営業を確認"
+          },
+          {
+            title: "本町・北浜は徒歩圏の関連候補として見る",
+            body:
+              "本町、北浜、長堀橋、船場周辺は堺筋本町から比較しやすい近隣候補です。住所やエリア関係ラベルで距離感を確認してください。",
+            href: "#station",
+            linkLabel: "駅近候補を見る"
+          },
+          {
+            title: "料金・営業時間・公式導線を先に確認",
+            body:
+              "料金は未確認値を相場として扱わず、掲載料金と公式情報を分けて確認します。問い合わせ前に店舗詳細と公式サイトの両方を見るのが安全です。",
+            href: "#price-table",
+            linkLabel: "料金比較を見る"
+          }
+        ]
       }
     },
     relation: SAKAISUJI_HONMACHI_RELATION
