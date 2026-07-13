@@ -10290,7 +10290,7 @@ body .mep-area-section h2.mep-section-title::after {
   background-color: #172833;
   background-position: center;
   background-size: cover;
-  border-radius: 28px;
+  border-radius: 0;
   min-height: clamp(280px, 42vw, 430px);
   overflow: hidden;
   position: relative;
@@ -10391,7 +10391,7 @@ body .mep-area-section h2.mep-section-title::after {
   }
 
   .area-archive-header {
-    border-radius: 22px;
+    border-radius: 0;
     min-height: 340px;
   }
 
