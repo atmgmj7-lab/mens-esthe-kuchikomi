@@ -2,6 +2,33 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-14 元フォルダ・production作業ツリー統合調査
+
+#### 実行したこと
+- 元フォルダとproduction側が、同じGitディレクトリを使うメイン作業ツリーと追加作業ツリーであることを確認した。
+- 元フォルダの追跡済み変更49件を、`origin/main`、production HEAD、全Git履歴と比較した。
+- ビルド生成物などを除いて、元フォルダだけにある実ファイル117件と、production側だけにある実ファイル20件をchecksum比較した。
+- `docs/technical/repository-consolidation-inventory-2026-07-14.md` に保存要否と削除許可条件を記録した。
+- `docs/superpowers/plans/2026-07-14-repository-consolidation.md` に、バックアップ作成から元フォルダを正本へ戻すまでの実行手順を記録した。
+
+#### 調査結果
+- 元フォルダの追跡済み変更49件のうち15件は `origin/main` と同一、14件はproduction HEADと同一だった。
+- 両方と異なる34件のうち20件はGit履歴内に同一内容があり、14件は履歴未保存だった。
+- 元フォルダだけにある実ファイル117件のうち116件はGit履歴内に同一内容があり、履歴未保存は `dashboard/.env.example` だけだった。
+- 削除前に必ず保存する対象は、履歴未保存の追跡済み14件と `dashboard/.env.example` の合計15件。
+- 現在の公開コードはproduction側の `9b66731` を基準にし、元フォルダからの一括コピーは行わない方針とした。
+
+#### 確認結果
+- production側: `codex/production-baseline-20260713...origin/main [ahead 2]`、調査開始時はクリーン。
+- 元フォルダ: `main...origin/main [behind 26]`、既存の未コミット状態を維持。
+- 前ターンの再確認でproduction側 `npm test` は成功。
+- `backup/original-dirty-20260714` を一時indexから作成した。
+- 一時indexとバックアップrefのtree一致を `git diff --cached --exit-code` で確認した。
+- 元フォルダの通常index、実ファイル、`main` は変更していない。
+
+#### 未実施
+- 差分統合、削除、push、本番デプロイは未実施。
+
 ### 2026-07-13 S-10 堺筋本町Hub改善
 
 #### 実行したTask ID
