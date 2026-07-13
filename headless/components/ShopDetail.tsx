@@ -122,6 +122,7 @@ export function ShopDetail({
   const shopAreaForHub = areaSlugForNav
     ? allAreas.find((a) => a.slug === areaSlugForNav)
     : undefined;
+  const areaPath = areaSlugForNav ? `/area/${areaSlugForNav}/` : "";
 
   const ages = [
     ["18〜19歳", Number(field(shop, "age_18_19") || field(shop, "age_18") || 0)],
@@ -163,6 +164,11 @@ export function ShopDetail({
       <div className="l-mainContent__inner hl-page-inner escomi-final-shop-shell">
         <div className="shop-breadcrumb area-breadcrumb u-mb-20">
           <Link href="/">ホーム</Link> &gt; <Link href="/shops/">店舗情報</Link> &gt;{" "}
+          {areaPath ? (
+            <>
+              <Link href={areaPath}>{areaName}</Link> &gt;{" "}
+            </>
+          ) : null}
           <span>{shop.title}</span>
         </div>
 
@@ -258,6 +264,13 @@ export function ShopDetail({
                 <a href="#shop-reviews">口コミ</a>
                 <a href="#shop-data">基本情報</a>
                 <a href="#shop-contact">予約・問い合わせ</a>
+                {areaPath ? (
+                  <>
+                    <Link href={`${areaPath}#ranking`}>同エリアランキング</Link>
+                    <Link href={`${areaPath}#price-table`}>同エリア料金比較</Link>
+                  </>
+                ) : null}
+                <Link href={buildReviewSubmitUrl(shop.slug)}>口コミ投稿</Link>
               </div>
               <dl className="escomi-final-shop-trust-rail" aria-label="確認しやすい店舗情報">
                 <div>

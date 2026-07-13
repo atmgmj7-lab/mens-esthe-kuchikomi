@@ -99,6 +99,7 @@ export function AreaHubPageTemplate({
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
   const heroVisual = resolveAreaFeatureVisual(area.slug, parentArea?.slug, areaFeatures);
+  const hasRelatedAreas = childAreas.length > 0 || Boolean(parentArea && siblingAreas.length > 0);
   const heroStyle = heroVisual.image
     ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
     : undefined;
@@ -192,6 +193,25 @@ export function AreaHubPageTemplate({
             </a>
           ))}
         </nav>
+
+        <section className="escomi-s40-area-link-map hl-section" aria-labelledby="s40-area-links-title">
+          <div className="escomi-s40-area-link-map__body">
+            <p className="escomi-s40-area-link-map__eyebrow">NEXT CHECK</p>
+            <h2 id="s40-area-links-title">{hubContext.name}で次に見るページ</h2>
+            <p>
+              店舗詳細、ランキング、料金比較、初心者向け条件、近隣エリアを同じページ内で行き来できます。
+            </p>
+          </div>
+          <div className="escomi-s40-area-link-map__links" aria-label={`${hubContext.name}の主要内部リンク`}>
+            <Link href={`${areaPath}#shop-list`}>店舗一覧から詳細を見る</Link>
+            <Link href={`${areaPath}#ranking`}>おすすめランキングを見る</Link>
+            <Link href={`${areaPath}#price-table`}>料金比較を見る</Link>
+            <Link href={`${areaPath}#beginner`}>初心者向け店舗を見る</Link>
+            {hasRelatedAreas ? (
+              <Link href={`${areaPath}#related-areas`}>関連エリアを見る</Link>
+            ) : null}
+          </div>
+        </section>
 
         <AreaHubRankingTop
           rankingShops={allShops}

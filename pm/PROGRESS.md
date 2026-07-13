@@ -2557,3 +2557,15 @@ pm/PROGRESS.md
 - 検証結果: `npm run test:schema-output` 成功、`npm test` 成功、`npm run typecheck && npm run lint && npm test && npm run build && git diff --check` 成功。
 - ローカル本番HTML確認: `/area/sakaisujihonmachi/` は `BreadcrumbList` / `ItemList` / 有効な `FAQPage`、`/area/osaka/` は `BreadcrumbList` のみ、`/shops/milk-tea.../` は `HealthAndBeautyBusiness` のみ。3ページとも `AggregateRating` 0件、空FAQPage 0件。
 - 次の候補: schema条件の本番HTML確認後、`S-40` 主要内部リンク整理または `MIG-00` WordPress依存調査。
+
+
+## 2026-07-13 S-40 主要内部リンク整理
+- SEO回遊導線の強化として、地域Hubページに `NEXT CHECK` の内部リンク枠を追加。
+- 地域Hubから店舗一覧、同ページ内ランキング、料金比較、初心者向け、関連エリアへ移動できるようにした。
+- 地域詳細の店舗カードから店舗詳細へ進む導線をS-40専用テストで固定。
+- 店舗詳細のパンくずに所属エリアリンクを追加。
+- 店舗詳細上部のクイックナビに、同エリアランキング、同エリア料金比較、口コミ投稿へのリンクを追加。
+- 既存の `ShopAreaHubLinks` による店舗詳細下部のランキング、料金比較、口コミ導線もS-40専用テストで固定。
+- 追加テスト: `headless/scripts/check-internal-link-map.mjs`、npm script `test:internal-links`。
+- 検証結果: `npm run typecheck && npm run lint && npm test && npm run build && git diff --check` 成功。
+- ローカル本番HTML確認: `/area/sakaisujihonmachi/` はS-40内部リンク枠、店舗一覧、ランキング、料金比較、初心者向け、関連エリア、店舗詳細リンクが欠落なし。`/shops/milk-tea.../` は同エリアランキング、同エリア料金比較、口コミ投稿リンクが欠落なし。
