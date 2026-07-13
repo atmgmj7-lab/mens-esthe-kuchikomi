@@ -3,17 +3,19 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ReviewSubmitForm } from "@/components/reviews/ReviewSubmitForm";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
+import { pageMetadata } from "@/lib/seo";
 import { getShopBySlug } from "@/lib/wp/shops";
 
-export const metadata: Metadata = {
-  title: "口コミを投稿する｜エスコミ",
+export const metadata: Metadata = pageMetadata({
+  title: "口コミを投稿する",
   description:
     "実際に利用した方の口コミを募集しています。投稿内容は運営側で確認後、掲載されます。",
+  path: "/reviews/submit/",
   robots: {
     index: false,
     follow: false
   }
-};
+});
 
 type Props = {
   searchParams: Promise<{ shop?: string | string[] }>;

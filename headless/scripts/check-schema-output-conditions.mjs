@@ -57,8 +57,13 @@ assert.equal(
   null,
   "FAQPage schema must not be emitted for invalid FAQ rows"
 );
+assert.equal(
+  faqJsonLd([{ question: "<span></span>", answer: "<br />" }]),
+  null,
+  "FAQPage schema must not be emitted when FAQ rows contain only empty HTML"
+);
 
-const faqSchema = faqJsonLd([{ question: "料金は確認できますか？", answer: "<p>店舗ページで確認できます。</p>" }]);
+const faqSchema = faqJsonLd([{ question: "<b>料金は確認できますか？</b>", answer: "<p>店舗ページで確認できます。</p>" }]);
 assert.equal(faqSchema["@type"], "FAQPage");
 assert.deepEqual(JSON.parse(JSON.stringify(faqSchema.mainEntity)), [
   {
@@ -111,10 +116,34 @@ assert.ok(
   "Area hub pages must render FAQPage JSON-LD only when faqJsonLd returns a schema"
 );
 
+const areaPageSource = readFileSync(join(root, "components/AreaPageView.tsx"), "utf8");
+assert.ok(
+  areaPageSource.includes("const faqSchema = faqJsonLd(faqRows)"),
+  "Area pages must compute FAQPage JSON-LD separately from visible FAQ rows"
+);
+assert.ok(
+  areaPageSource.includes("faqSchema ?"),
+  "Area pages must render FAQPage JSON-LD only when faqJsonLd returns a schema"
+);
+assert.ok(
+  !areaPageSource.includes("JSON.stringify(faqJsonLd(faqRows))"),
+  "Area pages must not stringify a nullable FAQPage schema directly"
+);
+
 const areaHubContentSource = readFileSync(join(root, "components/area/area-hub-content.tsx"), "utf8");
 assert.ok(
   areaHubContentSource.includes("items.length === 0"),
   "Visible FAQ section must not render when there are no FAQ rows"
+);
+
+const shopDetailSource = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
+assert.ok(
+  shopDetailSource.includes("const shopSchema = shopLocalBusinessJsonLd(shop)"),
+  "Shop pages must compute LocalBusiness JSON-LD before rendering it"
+);
+assert.ok(
+  shopDetailSource.includes("JSON.stringify(shopSchema)"),
+  "Shop pages must render only the computed LocalBusiness JSON-LD object"
 );
 
 console.log("schema output condition checks passed");

@@ -115,6 +115,7 @@ export function ShopDetail({
   const summary = field(shop, "shop_ai_summary");
   const recommend = field(shop, "recommend_text");
   const userReviews = extractShopUserReviewItems(shop);
+  const shopSchema = shopLocalBusinessJsonLd(shop);
   const isNihonbashi = isNihonbashiShop(shop);
   const { areaName, areaSlugForNav } = resolveShopAreaNav(shop, allAreas, parentArea);
   const areaLeadPrefix = areaName === "エリア" ? "掲載エリア" : `${areaName}周辺`;
@@ -158,7 +159,7 @@ export function ShopDetail({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(shopLocalBusinessJsonLd(shop))
+          __html: JSON.stringify(shopSchema)
         }}
       />
       <div className="l-mainContent__inner hl-page-inner escomi-final-shop-shell">

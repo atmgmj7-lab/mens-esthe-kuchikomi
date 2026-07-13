@@ -105,6 +105,7 @@ function unauthorizedResponse(): NextResponse {
     headers: {
       "WWW-Authenticate": 'Basic realm="Dashboard"',
       "Content-Type": "text/plain; charset=utf-8",
+      "X-Robots-Tag": "noindex, nofollow",
     },
   });
 }

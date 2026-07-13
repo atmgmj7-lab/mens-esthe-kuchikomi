@@ -22,12 +22,14 @@ export function pageMetadata({
   title,
   description,
   path,
-  canonicalOverride
+  canonicalOverride,
+  robots
 }: {
   title: string;
   description: string;
   path: string;
   canonicalOverride?: string;
+  robots?: Metadata["robots"];
 }): Metadata {
   const canonical = canonicalOverride ?? canonicalUrl(path);
   return {
@@ -46,7 +48,8 @@ export function pageMetadata({
       card: "summary_large_image",
       title,
       description
-    }
+    },
+    robots
   };
 }
 

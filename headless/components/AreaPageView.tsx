@@ -45,6 +45,7 @@ export function AreaPageView({
   const characteristics = safeText(area.acf.area_characteristics, area.description);
   const column = sanitizeAreaHtml(area.slug, safeText(area.acf.area_column_content));
   const faqRows = filterAreaFaqRows(area.slug, asFaqRows(area.acf.area_faq_content));
+  const faqSchema = faqJsonLd(faqRows);
   const mapUrl = isParentArea ? resolveMapEmbedUrl(area) : "";
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const visibleShopCountLabel = shops.length > 0 ? `${shops.length}件表示中` : "店舗情報を準備中";
@@ -192,10 +193,12 @@ export function AreaPageView({
                 </div>
               ))}
             </dl>
-            <script
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqRows)) }}
-            />
+            {faqSchema ? (
+              <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+              />
+            ) : null}
           </section>
         ) : null}
 

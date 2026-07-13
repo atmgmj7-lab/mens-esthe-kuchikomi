@@ -2,6 +2,69 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-13 Q-07 FAQ / schema出力条件確認
+
+#### 実行したTask ID
+- `Q-07`: FAQ / schema出力条件確認。
+
+#### 変更したファイル
+- `headless/components/AreaPageView.tsx`
+- `headless/components/ShopDetail.tsx`
+- `headless/scripts/check-schema-output-conditions.mjs`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- 通常エリアページで、表示用FAQ行とは別に `faqJsonLd()` の結果を確認し、FAQPage schemaを作れる場合だけJSON-LD scriptを出すようにした。
+- 店舗詳細ページでLocalBusiness schemaを `shopSchema` として先に生成し、scriptにはその確定済みオブジェクトだけを渡す形に整理した。
+- Q-07専用検査を強化し、空HTMLだけのFAQ、nullになり得るFAQ schemaの直stringify、ACF口コミ件数や編集部コメントからのAggregateRating/Review出力を検出できるようにした。
+
+#### テスト結果
+- RED確認: `npm run test:schema-output` が実装前に通常エリアページのFAQ schemaガード不足で失敗。
+- `npm run test:schema-output`: 成功。
+- `npm test`: 成功。
+- `npm run lint`: 成功。
+- `npm run typecheck`: 成功。
+- `npm run build`: 成功。
+- 生成物確認: `.next/server/app` のHTML/RSC 3,756ファイルを走査し、`FAQPage` 0件、`AggregateRating` 0件、Review schema 0件、口コミなし表示とAggregateRatingの混在0件を確認。
+- 補足: build中に既存の `middleware` 非推奨警告、WordPress origin timeout fallback、既知の `useSearchParams()` bailoutログは出たが、build結果は成功。
+
+#### 未実施
+- 本番デプロイ、push、元の `mens-esthe-kuchikomi` フォルダ変更は未実施。
+
+### 2026-07-13 Q-06 ダッシュボード・口コミ投稿ページ noindex / canonical 対応
+
+#### 実行したTask ID
+- `Q-06`: title / meta / canonical / noindex確認。
+
+#### 変更したファイル
+- `headless/lib/seo.ts`
+- `headless/app/dashboard/page.tsx`
+- `headless/app/dashboard/analytics/layout.tsx`
+- `headless/app/reviews/submit/page.tsx`
+- `headless/middleware.ts`
+- `headless/scripts/check-q06-seo-metadata.mjs`
+- `headless/package.json`
+- `pm/PROGRESS.md`
+
+#### 完了したこと
+- `pageMetadata` で robots 指定を扱えるようにした。
+- `/dashboard/`、`/dashboard/analytics/`、`/reviews/submit/` に `noindex, nofollow` と自己 canonical を明示した。
+- `/reviews/submit?shop=...` のようなクエリ付き導線でも、canonical は `/reviews/submit/` に統一する設定にした。
+- Basic認証でダッシュボードが401になる場合も、`X-Robots-Tag: noindex, nofollow` を返すようにした。
+- Q-06専用検査を `npm test` に追加し、再発を検出できるようにした。
+
+#### テスト結果
+- RED確認: `npm run test:q06-seo-metadata` が実装前に robots 未保持で失敗。
+- `npm run lint`: 成功。
+- `npm run typecheck`: 成功。
+- `npm test`: 成功。
+- `npm run build`: 成功。
+- 生成HTML確認: `.next/server/app/dashboard.html`、`.next/server/app/dashboard/analytics.html`、`.next/server/app/reviews/submit.html` で `meta name="robots" content="noindex, nofollow"` と各ページ自身の canonical を確認。
+- 補足: build中に既存の `middleware` 非推奨警告、WordPress origin timeout fallback、既知の `useSearchParams()` bailoutログは出たが、build結果は成功。
+
+#### 未実施
+- 本番デプロイ、push、元の `mens-esthe-kuchikomi` フォルダ変更は未実施。
+
 ### 2026-07-12 大阪特集エリアカルーセル全幅化
 
 #### 実行したTask ID
