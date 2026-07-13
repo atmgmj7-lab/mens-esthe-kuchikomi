@@ -25,6 +25,8 @@
 - `backup/original-dirty-20260714` を一時indexから作成した。
 - 一時indexとバックアップrefのtree一致を `git diff --cached --exit-code` で確認した。
 - 元フォルダの通常index、実ファイル、`main` は変更していない。
+- 履歴未保存のダッシュボード・配信設定10ファイルは `backup/original-dirty-20260714` に保存した。
+- `DASH-DESIGN-00`、`BLK-SECRET`、`BLK-SUPA-00` が残るため、今回の作業ツリー統合では公開コードへ適用しない。
 
 #### 未実施
 - 差分統合、削除、push、本番デプロイは未実施。
