@@ -30,6 +30,8 @@
 - 更新後、同ファイルのblob一致、一時indexとバックアップrefのtree一致、元フォルダHEAD・通常index・実ファイルの不変を確認した。
 - 履歴未保存のダッシュボード・配信設定10ファイルは `backup/original-dirty-20260714` に保存した。
 - `DASH-DESIGN-00`、`BLK-SECRET`、`BLK-SUPA-00` が残るため、今回の作業ツリー統合では公開コードへ適用しない。
+- production側で `git diff --check`、`npm run lint`、`npm run typecheck`、`npm test`、`npm run build` が成功した。
+- 元フォルダを正本へ戻すTask 5は、ユーザーの明示承認待ちとして未実施。
 
 #### 未実施
 - 差分統合、削除、push、本番デプロイは未実施。
