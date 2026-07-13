@@ -96,3 +96,9 @@
 2. 分離後に `npm run lint && npm run typecheck && npm test && npm run build` を再実行する。
 3. Playwrightで `/`, `/area/osaka/`, `/area/nihonbashi/`, 店舗詳細を再確認する。
 4. 問題なければ本番反映を実行する。
+
+## 2026-07-13 Q-07後の次アクション
+
+1. `S-40` 主要内部リンク整理: Hub、店舗詳細、口コミ投稿、料金比較、関連エリアの回遊導線を強化する。
+2. `MIG-00` WordPress依存調査: 店舗、エリア、口コミ、FAQ、画像、ランキングの現行取得元を一覧化する。
+3. `SUPA-00` Supabase存在確認: Secretを表示せず、接続コード・環境変数名・既存SQLの有無だけ整理する。

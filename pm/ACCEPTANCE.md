@@ -59,10 +59,10 @@
 
 | 条件 | 状態 |
 |---|---|
-| 口コミ0件ではAggregateRatingを出力しない | pending |
-| FAQが存在しないページではFAQPageを出力しない | pending |
-| 必須項目が不足するschemaを出力しない | pending |
-| 画面に存在しない情報をschemaだけに出さない | pending |
+| 口コミ0件ではAggregateRatingを出力しない | done |
+| FAQが存在しないページではFAQPageを出力しない | done |
+| 必須項目が不足するschemaを出力しない | done |
+| 画面に存在しない情報をschemaだけに出さない | done |
 
 ## 移行
 
@@ -156,3 +156,11 @@
 - 口コミ、編集部コメント、店舗提供情報、PR情報の分離注記を表示。
 - 未確認料金は問い合わせ文言で表示し、`0円` 表示を避ける既存保全テストが成功。
 - 本番反映は未実行。
+
+## 2026-07-13 Q-07 FAQ / schema出力条件確認
+
+- `faqJsonLd([])` と不正FAQ行は `null` を返し、FAQPage JSON-LDを出力しない。
+- 地域HubページのFAQPage JSON-LDは `faqJsonLd` がschemaを返す場合だけ出力する。
+- 地域HubのFAQ表示セクションはFAQ行がない場合は描画しない。
+- 店舗詳細のLocalBusiness JSON-LDは、ACFの口コミ件数・固定評価・編集部コメントだけでは `aggregateRating` / `review` を出力しない。
+- `npm run test:schema-output` を追加し、`npm test` に接続済み。

@@ -94,6 +94,7 @@ export function AreaHubPageTemplate({
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
   const faqItems = buildFaqItems(hubContext);
+  const faqSchema = faqJsonLd(faqItems);
   const lastUpdated = resolveLastUpdatedLabel(allShops);
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
@@ -119,10 +120,12 @@ export function AreaHubPageTemplate({
           __html: JSON.stringify(shopItemListJsonLd(allShops.filter((shop) => !shop.ranking.isPr), hubContext.shopListH2, areaPath))
         }}
       />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }}
-      />
+      {faqSchema ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        />
+      ) : null}
 
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell">
         <nav className="area-hub-breadcrumb" aria-label="パンくず">

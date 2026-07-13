@@ -70,18 +70,37 @@ export function asFaqRows(value: unknown): Array<{ question: string; answer: str
     .filter((row): row is { question: string; answer: string } => Boolean(row));
 }
 
-export function faqJsonLd(rows: Array<{ question: string; answer: string }>) {
+export function faqJsonLd(rows: Array<{ question: string; answer: string }>): Record<string, unknown> | null {
+  const mainEntity = rows
+    .map((row) => {
+      const question = stripHtml(row.question);
+      const answer = stripHtml(row.answer);
+      if (!question || !answer) return null;
+
+      return {
+        "@type": "Question",
+        name: question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: answer
+        }
+      };
+    })
+    .filter((row): row is {
+      "@type": "Question";
+      name: string;
+      acceptedAnswer: {
+        "@type": "Answer";
+        text: string;
+      };
+    } => Boolean(row));
+
+  if (mainEntity.length === 0) return null;
+
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: rows.map((row) => ({
-      "@type": "Question",
-      name: row.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: stripHtml(row.answer)
-      }
-    }))
+    mainEntity
   };
 }
 

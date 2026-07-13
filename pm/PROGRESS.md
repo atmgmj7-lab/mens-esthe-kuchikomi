@@ -2545,3 +2545,15 @@ pm/PROGRESS.md
 - 検証結果: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build` 成功。
 - ローカルHTTP確認: `/area/sakaisujihonmachi/`, `/area/shinosaka/`, `/area/nihonbashi/`, `/area/umeda/`, `/area/sakai/`, `/shops/milk-tea.../` が200。旧堺筋本町slugは308。
 - Playwright CLIで `/shops/milk-tea.../` 390px と `/area/sakaisujihonmachi/` 1440px のスクリーンショットを確認。
+
+
+## 2026-07-13 Q-07 FAQ / schema出力条件確認
+- SEO事故防止のため、FAQPageと店舗LocalBusiness JSON-LDの出力条件を明示的に検査。
+- `faqJsonLd` は空配列・質問または回答が空のFAQ行では `null` を返し、FAQPage schemaを生成しないよう変更。
+- `AreaHubPageTemplate` は `faqJsonLd` がschemaを返す場合だけFAQPage JSON-LDを出力するよう変更。
+- `AreaFaqSection` はFAQ行0件の場合に表示セクション自体を描画しないよう変更。
+- `shopLocalBusinessJsonLd` がACFの `review_count` / `review_star` / `shop_ai_summary` だけで `aggregateRating` や `review` を出力しないことを再発防止テストで固定。
+- 追加テスト: `headless/scripts/check-schema-output-conditions.mjs`、npm script `test:schema-output`。
+- 検証結果: `npm run test:schema-output` 成功、`npm test` 成功、`npm run typecheck && npm run lint && npm test && npm run build && git diff --check` 成功。
+- ローカル本番HTML確認: `/area/sakaisujihonmachi/` は `BreadcrumbList` / `ItemList` / 有効な `FAQPage`、`/area/osaka/` は `BreadcrumbList` のみ、`/shops/milk-tea.../` は `HealthAndBeautyBusiness` のみ。3ページとも `AggregateRating` 0件、空FAQPage 0件。
+- 次の候補: schema条件の本番HTML確認後、`S-40` 主要内部リンク整理または `MIG-00` WordPress依存調査。

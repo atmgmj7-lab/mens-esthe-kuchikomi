@@ -103,6 +103,8 @@ export function AreaFaqSection({
   items: Array<{ question: string; answer: string }>;
   areaSlug: string;
 }) {
+  if (items.length === 0) return null;
+
   return (
     <AreaHubSectionShell theme="faq" areaSlug={areaSlug} id="faq">
       <AreaHubSectionHeader theme="faq" areaSlug={areaSlug} ja="よくある質問" />

@@ -1,0 +1,120 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import ts from "typescript";
+import vm from "node:vm";
+import { fileURLToPath } from "node:url";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
+
+const stripHtml = (value) =>
+  typeof value === "string"
+    ? value
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    : "";
+
+const seoSource = readFileSync(join(root, "lib/seo.ts"), "utf8");
+const seoCompiled = ts.transpileModule(seoSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+}).outputText;
+const seoModule = { exports: {} };
+
+vm.runInNewContext(
+  seoCompiled,
+  {
+    module: seoModule,
+    exports: seoModule.exports,
+    console,
+    require: (id) => {
+      if (id === "@/lib/wp/client") return { stripHtml };
+      if (id === "@/lib/shop-contact") {
+        return {
+          resolveShopAreaTerm: (shop) => shop.terms?.find((term) => term.slug === shop.areaSlug) ?? shop.terms?.[0]
+        };
+      }
+      if (id === "@/lib/price-normalization") {
+        return {
+          resolveShopPrimaryPrice: () => ({ status: "unknown", amount: null }),
+          shouldOutputPriceSchema: () => false,
+          formatPriceForDisplay: () => null
+        };
+      }
+      throw new Error(`Unsupported test require: ${id}`);
+    }
+  },
+  { filename: "seo.cjs" }
+);
+
+const { faqJsonLd, shopLocalBusinessJsonLd } = seoModule.exports;
+
+assert.equal(faqJsonLd([]), null, "FAQPage schema must not be emitted when there are no visible FAQ rows");
+assert.equal(
+  faqJsonLd([{ question: "", answer: "回答だけ" }]),
+  null,
+  "FAQPage schema must not be emitted for invalid FAQ rows"
+);
+
+const faqSchema = faqJsonLd([{ question: "料金は確認できますか？", answer: "<p>店舗ページで確認できます。</p>" }]);
+assert.equal(faqSchema["@type"], "FAQPage");
+assert.deepEqual(JSON.parse(JSON.stringify(faqSchema.mainEntity)), [
+  {
+    "@type": "Question",
+    name: "料金は確認できますか？",
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: "店舗ページで確認できます。"
+    }
+  }
+]);
+
+const hiddenReviewShop = {
+  id: 101,
+  slug: "schema-test-shop",
+  title: "schema test shop",
+  link: "",
+  contentHtml: "",
+  excerpt: "",
+  imageUrl: "",
+  terms: [],
+  officialUrl: "",
+  areaSlug: "",
+  acf: {
+    review_count: "99",
+    review_star: "5.0",
+    shop_ai_summary: "編集部コメントです。"
+  },
+  ranking: {
+    manualRank: null,
+    rankingPriority: null,
+    isRankingEnabled: false,
+    rankingReason: "",
+    isPr: false,
+    rankingLabel: "",
+    promotion: { isPromotion: false, label: "", rel: "" }
+  }
+};
+const shopSchema = shopLocalBusinessJsonLd(hiddenReviewShop);
+
+assert.equal(shopSchema.aggregateRating, undefined, "LocalBusiness schema must not output AggregateRating from ACF counts or editor ratings");
+assert.equal(shopSchema.review, undefined, "LocalBusiness schema must not output hidden/editorial comments as Review schema");
+assert.equal(shopSchema.telephone, undefined, "LocalBusiness schema must not output missing telephone");
+assert.equal(shopSchema.address, undefined, "LocalBusiness schema must not output missing address");
+assert.equal(shopSchema.priceRange, undefined, "LocalBusiness schema must not output unconfirmed price");
+
+const areaHubSource = readFileSync(join(root, "components/area/AreaHubPageTemplate.tsx"), "utf8");
+assert.ok(
+  areaHubSource.includes("faqSchema ?"),
+  "Area hub pages must render FAQPage JSON-LD only when faqJsonLd returns a schema"
+);
+
+const areaHubContentSource = readFileSync(join(root, "components/area/area-hub-content.tsx"), "utf8");
+assert.ok(
+  areaHubContentSource.includes("items.length === 0"),
+  "Visible FAQ section must not render when there are no FAQ rows"
+);
+
+console.log("schema output condition checks passed");
