@@ -140,6 +140,7 @@ production側は独立した複製ではないため、元フォルダをFinder�
 - 元フォルダの `main` を検証済みコミット `1e62f683641713916d7efab401f70d06bcea10da` へfast-forwardした。
 - 元フォルダの `headless/` で `npm run lint`、`npm run typecheck`、`npm test`、`npm run build` を再実行し、すべて終了コード0、buildは440ページ生成に成功した。
 - `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-production` を `git worktree remove` で削除し、`git worktree prune` を実行した。
+- `codex/production-baseline-20260713` が `main` に完全に含まれることを確認し、接続先設定を外した後に `git branch -d` で通常削除した。
 - `backup/original-dirty-20260714` は `81884f9efca15395a744f64ff1dcf25130b80e14` のまま保持した。
 - 既存の `/private/tmp` 配下の作業ツリーは今回の対象外のため変更していない。
 - `git push` と本番デプロイは行っていない。

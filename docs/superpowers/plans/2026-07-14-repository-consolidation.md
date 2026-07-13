@@ -339,6 +339,8 @@ git -C /Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi worktree prune
 
 Expected: production作業ツリーの登録とフォルダがなくなり、元フォルダと `backup/original-dirty-20260714` は残る。
 
+実施時は `codex/production-baseline-20260713` が `main` に完全に含まれることを確認し、接続先設定を外して `git branch -d` で通常削除した。バックアップブランチは削除していない。
+
 - [x] **Step 5: 最終状態を確認する**
 
 Run:
