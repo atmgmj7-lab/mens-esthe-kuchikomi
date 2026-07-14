@@ -37,12 +37,15 @@
 - `git diff --check`: 成功。
 - 公開route、metadata、sitemap、表示component差分: なし。
 - JWT / Supabase secret形式: 検出なし。
+- `supabase start`: 専用local portでmigration初回適用成功。
+- `supabase db reset`: migration再適用成功。
+- `supabase db lint --local`: api/app/extensions/private/publicの全schemaでerrorなし。
+- `supabase stop`: local環境停止成功。
 - build時は既知のmiddleware非推奨、WordPress timeout fallback、`useSearchParams()` bailoutログが出たが、結果は成功した。
 
 #### 未実施と次の停止点
-- Docker daemonが起動していないため、`supabase db reset` と `supabase db lint --local` は未実施。
-- 次はDocker起動後にSQLを実DBへ適用して検査する。
-- その後も、本番Supabase接続、3店舗試験、30店舗試験、382店舗投入、shadow、cutoverはそれぞれユーザー承認前で停止する。
+- 本番Supabase接続、3店舗試験、30店舗試験、382店舗投入、shadow、cutoverはそれぞれユーザー承認前で停止する。
+- 次は本番projectの所有者・費用・Secret登録場所と、3店舗の非公開試験範囲を確認する。
 - 戻し方と段階手順は `docs/runbooks/supabase-seo-safe-migration.md` に記録した。
 
 ### 2026-07-14 主要5地域Top10 SEO Phase 3公開承認

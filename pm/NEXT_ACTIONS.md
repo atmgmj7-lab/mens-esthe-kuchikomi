@@ -5,14 +5,14 @@
 ## 2026-07-14 Supabase SEO安全移行
 
 1. `codex/supabase-seo-safe-migration` で、ローカルmigration、移行監査、WordPress既定の参照先安全装置を作成した。
-2. Docker daemonが起動していないため、`supabase db reset` と `supabase db lint --local` は未実施。次はDocker起動後にこの2検査を行う。
-3. 検査成功後、本番Supabase作成・接続、Secret登録、3店舗試験の承認をユーザーへ確認する。
+2. 専用local portで `supabase start`、`supabase db reset`、`supabase db lint --local` が成功し、検査後にlocal環境を停止した。
+3. 次は本番Supabase作成・接続、Secret登録、3店舗試験の承認をユーザーへ確認する。
 4. 382店舗全件投入、shadow、公開参照先切替はそれぞれ別承認とする。
 5. 既存の合計12コミット公開作業とはブランチを分け、今回の移行基盤を混ぜない。
 
 ### 現在の次の1タスク
 
-Docker Desktop起動後に `supabase db reset` と `supabase db lint --local` を行い、SQLを実DBで検証する。本番接続・投入・切替はまだ行わない。
+本番Supabaseの所有者・費用・Secret登録場所と、3店舗だけを非公開試験投入する範囲をユーザーへ確認する。承認前に本番接続・投入・切替を行わない。
 
 ## 2026-07-14 現在の実行順
 

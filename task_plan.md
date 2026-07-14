@@ -60,13 +60,14 @@ Phase 5
 |-------|---------|------------|
 | `docs/ai-skills.md` が存在しない | 1 | AGENTS.mdのルールと利用可能なSupabase手順を直接適用し、不在を進行ログへ記録する |
 | `../pm/DECISIONS.md` と `../docs/design/...` を誤った相対位置で読もうとして失敗 | 1 | リポジトリルート基準の `pm/...` と `docs/...` に直して再確認する |
-| Docker daemonが起動しておらず、SupabaseローカルDBへ接続できない | 1 | SQL契約検査とCLI生成を継続し、DB実適用はDocker起動後の未実施検査として残す |
+| Docker daemonが起動しておらず、SupabaseローカルDBへ接続できない | 1 | Docker Desktopを起動し、専用portで実DB適用・reset・lintまで成功した |
 | 監査moduleの正規表現でword boundaryへ量指定子を付け、構文エラー | 1 | 不要な `?` を削除し、同じ検査を再実行する |
 | VM内オブジェクトを `deepEqual` し、別realmのprototype差で失敗 | 1 | JSON値として比較し、設定内容そのものを検査する |
 | 既存 `WP_API_BASE_URL=/wp-json` を監査CLIが二重に扱えない | 1 | `/wp-json` と `/wp-json/wp/v2` を正規化する関数を追加する |
 | 公開content/reviewの親店舗・地域が非公開でも行policyだけでは出せた | 1 | RLSへ公開親の存在条件を追加する |
 | Secret検査commandの引用符が壊れてshell構文エラー | 1 | 複雑な引用をやめ、JWTとSupabase secret形式の単純な検査へ分けて成功させた |
 | commit前の `git diff --check` が文書末尾の余分な空行2件を検出 | 1 | 2文書の末尾空行を削除し、再検査する |
+| Supabase標準DB port 54322が別ローカルprojectで使用中 | 1 | 他projectを停止せず、このprojectのlocal portを57320番台へ分離する |
 
 ## Notes
 
@@ -74,4 +75,4 @@ Phase 5
 - Secret値を表示・記録・コミットしない。
 - WordPress本番データ、Supabase本番データ、親リポジトリを変更しない。
 - 外部調査結果は `findings.md` にのみ記録する。
-- Docker daemon起動後の `supabase db reset` と `supabase db lint --local` は次の未実施検査として残る。
+- `supabase start`、`supabase db reset`、`supabase db lint --local` は専用portで成功し、検査後にlocal環境を停止した。

@@ -8,10 +8,11 @@
 - schema契約検査: 成功
 - WordPress公開382店舗の読み取り監査: 成功
 - WordPress既定の参照先安全装置: 作成済み
-- Dockerを使うローカルDB実適用: daemon未起動のため未実施
+- Dockerを使うローカルDB実適用: 初回適用、db reset、DB lint成功
 - Supabase本番プロジェクト: 未作成・未接続
 - 本番データ投入: 未実施
 - 公開参照先切替: 未実施
+- local Supabase: 検査後に停止済み
 - push / deploy: 未実施
 
 ## 1. ローカル検査

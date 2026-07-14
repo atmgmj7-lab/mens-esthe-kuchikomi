@@ -42,14 +42,14 @@
 | `docs/ai-skills.md` がなかった | 利用可能なSupabase skillとAGENTS.mdの安全条件を正本として進める |
 | 現行の `npm test` | 11種類の品質検査がすべて成功し、変更前基準は正常だった |
 | Supabase CLI | ローカルにversion 2.101.0があり、公式migration生成手順を使える |
-| Docker daemon | 現在未起動のため、migrationの実DB適用とDB lintは未実施 |
+| Supabase実DB検査 | Docker Desktopを起動し、migration初回適用、db reset、api/app/private/public/extensionsのDB lintがすべて成功した |
 
 ## Conclusion
 
 - WordPressからSupabaseへの移行は可能で、公開表示をWordPressのまま保つ限り今回の基盤追加はSEOへ直接影響しない。
 - Supabase化だけでは順位は上がらない。本文0件、地域説明0件、口コミ公開経路なし、出典0件、確認日0件を埋める運用が主なSEO施策になる。
 - 今回の構成は料金・営業時間・画像・出典・本文履歴・口コミ審査を分離しているため、現在のWordPress ACFへ項目を足し続けるより拡張しやすい。
-- 次の安全な工程はDockerでmigrationを実適用し、その後に別承認で3店舗だけを非公開試験投入することである。
+- 次の安全な工程は、本番Supabaseの所有者・費用・Secret登録場所を別承認し、3店舗だけを非公開試験投入することである。
 
 ## Resources
 

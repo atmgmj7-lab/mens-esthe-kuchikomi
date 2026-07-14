@@ -59,6 +59,8 @@
   - lint、typecheck、14検査、build 440ページ生成を実行した。
   - 公開route、metadata、sitemap、表示componentに差分がないことを確認した。
   - Secret形式の混入がないことと `git diff --check` を確認した。
+  - Supabaseを専用local portで起動し、migration初回適用、db reset、DB lintを実行した。
+  - 検査後に `supabase stop` でlocal環境を停止した。
   - 本番未接続、未投入、未切替、未push、未deployを確認した。
 - Files created/modified:
   - `docs/data/supabase-wp-field-map-2026-07-14.md`
@@ -89,6 +91,10 @@
 | build | `npm run build` | 440ページ生成 | 440/440成功 | 成功 |
 | 公開コード差分 | app/components/seo/wp | 差分なし | 出力なし | 成功 |
 | Secret形式検査 | JWT / Supabase secret形式 | 検出なし | 検出なし | 成功 |
+| Supabase初回適用 | `supabase start` | migration適用 | schema初期化とmigration適用成功 | 成功 |
+| Supabase再構築 | `supabase db reset` | 再適用成功 | migration再適用成功 | 成功 |
+| Supabase DB lint | `supabase db lint --local` | schema errorなし | 5schemaすべてerrorなし | 成功 |
+| Supabase停止 | `supabase stop` | local container停止 | 停止成功 | 成功 |
 
 ## Error Log
 
@@ -103,6 +109,7 @@
 | 2026-07-14 | 公開content/reviewが非公開店舗に紐づく場合のRLS条件不足 | 1 | 公開親店舗・地域の存在条件をpolicyへ追加 |
 | 2026-07-14 | Secret検査commandの引用符がshell構文エラー | 1 | 単純な2形式の検査に分けて成功 |
 | 2026-07-14 | 文書末尾の余分な空行2件をdiff checkが検出 | 1 | 末尾空行を削除して再検査 |
+| 2026-07-14 | Supabase標準DB port 54322が別projectと競合 | 1 | local portを57320番台へ分離 |
 
 ## 5-Question Reboot Check
 
