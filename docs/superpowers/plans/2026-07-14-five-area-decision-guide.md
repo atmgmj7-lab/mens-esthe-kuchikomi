@@ -31,7 +31,7 @@
 - Consumes: `AreaHubPageTemplate.tsx`、`area-hub-config.ts`、`AreaHubDecisionGuide.tsx`、`globals.css`のソース
 - Produces: `npm run test:five-area-decision-guide`と`npm test`へ接続された回帰検査
 
-- [ ] **Step 1: 失敗する契約検査を書く**
+- [x] **Step 1: 失敗する契約検査を書く**
 
 ```js
 import assert from "node:assert/strict";
@@ -60,13 +60,13 @@ assert.match(css, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(css, /\.escomi-final-area-hero\.escomi-final-area-hero--photo[\s\S]*?border-radius:\s*0/);
 ```
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-five-area-decision-guide.mjs`
 
 Expected: `ENOENT`で`AreaHubDecisionGuide.tsx`が存在しないため終了コード1。
 
-- [ ] **Step 3: package.jsonへ検査を接続する**
+- [x] **Step 3: package.jsonへ検査を接続する**
 
 ```json
 "test:five-area-decision-guide": "node scripts/check-five-area-decision-guide.mjs"
@@ -74,7 +74,7 @@ Expected: `ENOENT`で`AreaHubDecisionGuide.tsx`が存在しないため終了コ
 
 既存`test`の最後へ`&& npm run test:five-area-decision-guide`を追加する。
 
-- [ ] **Step 4: テスト追加だけをコミットする**
+- [x] **Step 4: テスト追加だけをコミットする**
 
 ```bash
 git add headless/scripts/check-five-area-decision-guide.mjs headless/package.json
@@ -92,7 +92,7 @@ git commit -m "test: guard five area decision guide"
 - Consumes: `AreaHubContext`、`ShopView[]`、`hasPublishedPrice`、`isLateNightShop`、`aggregateReviewCountLabel`
 - Produces: `decisionGuide?: { selectionTitle: string; intro: string }`と`AreaHubDecisionGuide({ hubContext, shops })`
 
-- [ ] **Step 1: 地域固有設定型を追加する**
+- [x] **Step 1: 地域固有設定型を追加する**
 
 ```ts
 export type AreaHubDecisionGuideConfig = {
@@ -103,11 +103,11 @@ export type AreaHubDecisionGuideConfig = {
 
 `AreaHubSeoConfig`の`shopLinks: AreaHubShopLinks;`直後へ`decisionGuide?: AreaHubDecisionGuideConfig;`を追加する。
 
-- [ ] **Step 2: 重点5地域へ承認済み本文を追加する**
+- [x] **Step 2: 重点5地域へ承認済み本文を追加する**
 
 各地域の`seo`へ仕様書記載の`selectionTitle`と`intro`を完全一致で追加する。`nanba`には追加しない。
 
-- [ ] **Step 3: 4カードの表示データを実装する**
+- [x] **Step 3: 4カードの表示データを実装する**
 
 ```tsx
 const pricedCount = shops.filter(hasPublishedPrice).length;
@@ -124,13 +124,13 @@ const cards = [
 
 各カードには推測ではないことが分かる補足文と「一覧を見る」「料金を比べる」「営業時間を見る」「口コミを見る」のCTAを付ける。星評価、価格金額、未確認件数は出さない。
 
-- [ ] **Step 4: GREENを確認する**
+- [x] **Step 4: GREENを確認する**
 
 Run: `cd headless && npm run test:five-area-decision-guide`
 
 Expected: テンプレートとCSSが未実装なので、`AreaHubDecisionGuide`または全幅・グリッド契約で終了コード1。
 
-- [ ] **Step 5: 固有本文とカードをコミットする**
+- [x] **Step 5: 固有本文とカードをコミットする**
 
 ```bash
 git add headless/lib/area-hub-config.ts headless/components/area/hub/AreaHubDecisionGuide.tsx
@@ -150,7 +150,7 @@ git commit -m "feat: add five area decision guide content"
 - Consumes: `AreaHubDecisionGuide`
 - Produces: 全幅`.escomi-final-area-hero--photo`、本文幅`.escomi-final-area-hero__inner`、4列・2列`.area-decision-guide__grid`
 
-- [ ] **Step 1: テンプレートの幅制限を分離する**
+- [x] **Step 1: テンプレートの幅制限を分離する**
 
 パンくず用本文枠、幅制限のないhero、hero内本文枠、hero後本文枠の順にDOMを分ける。
 
@@ -198,11 +198,11 @@ git commit -m "feat: add five area decision guide content"
 </div>
 ```
 
-- [ ] **Step 2: 重複ナビを削除する**
+- [x] **Step 2: 重複ナビを削除する**
 
 `SECTION_NAV_CHIPS`、`PAGE_ANCHOR_LINKS`、hero内チップ、`area-hub-anchor-nav`、`escomi-s40-area-link-map`を削除する。各コンテンツ本体と既存アンカーIDは残す。
 
-- [ ] **Step 3: 全幅とカードグリッドをスタイルする**
+- [x] **Step 3: 全幅とカードグリッドをスタイルする**
 
 ```css
 .escomi-final-area-hero.escomi-final-area-hero--photo {
@@ -234,19 +234,19 @@ git commit -m "feat: add five area decision guide content"
 
 カードは既存のクリーム、ネイビー、ゴールド、ティールを使い、`:focus-visible`と`prefers-reduced-motion`を追加する。
 
-- [ ] **Step 4: GREENを確認する**
+- [x] **Step 4: GREENを確認する**
 
 Run: `cd headless && npm run test:five-area-decision-guide`
 
 Expected: `five area decision guide checks passed`、終了コード0。
 
-- [ ] **Step 5: 関連回帰検査を確認する**
+- [x] **Step 5: 関連回帰検査を確認する**
 
 Run: `cd headless && npm run test:internal-links && npm run test:final-design-preservation && npm run test:s10-sakaisujihonmachi-hub`
 
 Expected: 3検査すべて終了コード0。削除した重複ナビを前提にする既存検査があれば、新しい4カードの同一リンク契約へ更新する。
 
-- [ ] **Step 6: UI実装をコミットする**
+- [x] **Step 6: UI実装をコミットする**
 
 ```bash
 git add headless/components/area/AreaHubPageTemplate.tsx headless/app/globals.css headless/scripts/check-internal-link-map.mjs headless/scripts/check-final-design-preservation.mjs headless/scripts/check-s10-sakaisujihonmachi-hub.mjs
@@ -258,36 +258,35 @@ git commit -m "feat: improve five area seo decision flow"
 **Files:**
 - Modify: `pm/PROGRESS.md`
 - Modify: `pm/NEXT_ACTIONS.md`
-- Modify: `progress.md`
-- Modify: `task_plan.md`
+- Modify: `docs/superpowers/plans/2026-07-14-five-area-decision-guide.md`
 
 **Interfaces:**
 - Consumes: Task 1〜3の実装と検査結果
 - Produces: 公開前の再現可能な検査記録と次アクション
 
-- [ ] **Step 1: 品質検査を実行する**
+- [x] **Step 1: 品質検査を実行する**
 
 Run: `cd headless && npm run lint && npm run typecheck && npm test && npm run build`
 
 Expected: lint・型・全検査・440ページbuildが終了コード0。
 
-- [ ] **Step 2: 差分安全検査を実行する**
+- [x] **Step 2: 差分安全検査を実行する**
 
 Run: `git diff --check && git status --short && git diff --stat origin/main...HEAD`
 
 Expected: 空白エラーなし。変更が本計画のファイルだけに限定される。
 
-- [ ] **Step 3: 進行文書へ実装内容と検査結果を記録する**
+- [x] **Step 3: 進行文書へ実装内容と検査結果を記録する**
 
-重点5地域、全幅ヘッダー、4カード、WordPress継続、Supabase未切替、push・デプロイ未実施を4文書へ記録する。
+重点5地域、全幅ヘッダー、4カード、WordPress継続、Supabase未切替、push・デプロイ未実施を進行文書へ記録する。ルート直下に`progress.md`と`task_plan.md`は存在しないため、新規作成せず本計画と`pm/`の正本2文書を更新する。
 
-- [ ] **Step 4: 文書と最終差分をコミットする**
+- [x] **Step 4: 文書と最終差分をコミットする**
 
 ```bash
-git add docs/superpowers/plans/2026-07-14-five-area-decision-guide.md pm/PROGRESS.md pm/NEXT_ACTIONS.md progress.md task_plan.md
+git add docs/superpowers/plans/2026-07-14-five-area-decision-guide.md pm/PROGRESS.md pm/NEXT_ACTIONS.md
 git commit -m "docs: record five area seo implementation"
 ```
 
-- [ ] **Step 5: push・デプロイ前で停止する**
+- [x] **Step 5: push・デプロイ前で停止する**
 
 `codex/seo-visibility-cards`のコミット一覧、検査結果、未実施事項を報告し、本番公開の明示確認を待つ。
