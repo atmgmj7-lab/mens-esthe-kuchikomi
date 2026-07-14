@@ -1,0 +1,62 @@
+{
+  "shops": [
+    {
+      "id": 101,
+      "slug": "alpha",
+      "title": { "rendered": "Alpha大阪" },
+      "content": { "rendered": "" },
+      "excerpt": { "rendered": "" },
+      "featured_media": 0,
+      "area": [10, 11],
+      "acf": {
+        "shop_price_60min": "0円",
+        "shop_address": "梅田駅から徒歩5分",
+        "shop_ai_summary": "AI生成経路の掲載情報コメント"
+      }
+    },
+    {
+      "id": 102,
+      "slug": "beta",
+      "title": { "rendered": "Beta日本橋" },
+      "content": { "rendered": "<p>確認済みの店舗紹介です。</p>" },
+      "excerpt": { "rendered": "確認済み紹介" },
+      "featured_media": 99,
+      "area": [10],
+      "official_url": "https://example.com/beta",
+      "acf": {
+        "price_90": "12,000円",
+        "shop_address": "大阪府大阪市中央区日本橋1-2-3",
+        "source_url": "https://example.com/beta/access",
+        "verified_at": "2026-07-14T00:00:00Z"
+      }
+    },
+    {
+      "id": 103,
+      "slug": "gamma",
+      "title": { "rendered": "Gamma新大阪" },
+      "content": { "rendered": "" },
+      "excerpt": { "rendered": "" },
+      "featured_media": 0,
+      "area": [],
+      "acf": {}
+    }
+  ],
+  "areas": [
+    {
+      "id": 10,
+      "slug": "osaka",
+      "name": "大阪",
+      "count": 2,
+      "description": "",
+      "acf": {}
+    },
+    {
+      "id": 11,
+      "slug": "umeda",
+      "name": "梅田",
+      "count": 1,
+      "description": "梅田地域の確認済み説明です。",
+      "acf": {}
+    }
+  ]
+}

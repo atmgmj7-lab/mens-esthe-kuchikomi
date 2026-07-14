@@ -12,6 +12,9 @@
 | DEC-006 | `Q-10` は廃止し、内容を `Q-03` と `Q-07` に分割統合する | 星評価とschema条件を分けて扱うため | Q-00指示 |
 | DEC-007 | `S-10`〜`S-14` と `S-40` は現行Next.jsサイト改善タスクとする | WordPressテーマ改善ではないため | `pm/CODEX_TASKS.md` |
 | DEC-008 | 完全移行は `MIG-00` → `SUPA-00` → `MIG-01` → `SUPA-02` → `MIG-02` → `SUPA-01` → `MIG-03` → `CMS-01` → `CUTOVER-01` → `WP-OFF-01` の順に進める | Supabase作成前に依存とデータを確定するため | Q-00指示 |
+| DEC-009 | 最初のSupabase構成は店舗・地域・料金・営業時間・画像・出典・本文・口コミ・取込履歴に限定する | 41テーブルの一括移行を避け、SEOに必要な確認済み情報から蓄積するため | `docs/superpowers/specs/2026-07-14-supabase-seo-safe-migration-design.md` |
+| DEC-010 | 公開表示はWordPressを既定値とし、shadow比較を経てから別承認でSupabaseへ切り替える | URL、canonical、sitemap、公開HTMLを移行準備だけで変えないため | `headless/lib/content-source/config.ts` |
+| DEC-011 | Supabase Data APIは `api` schemaの公開済み読み取りviewだけに限定し、ブラウザからの書き込みを許可しない | 審査前口コミ、取込履歴、管理情報の漏えいを防ぐため | `supabase/migrations/20260714020257_seo_safe_content_core.sql` |
 
 ## 未決定
 
@@ -25,6 +28,7 @@
 | 堺/堺東URL構造 | 人間判断待ち |
 | WordPress更新停止日 | 人間判断待ち |
 | 本番切替日 | 人間判断待ち |
+| Supabase本番接続とSecret登録 | ローカルDB実適用確認後の人間判断待ち |
 
 ## 2026-07-11 Q-01 決定
 - WordPress元データは変更せず、Next.js表示層で地名混入を抑止する。

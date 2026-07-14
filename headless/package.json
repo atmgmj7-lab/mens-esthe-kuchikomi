@@ -13,7 +13,7 @@
     "perf:check": "node scripts/performance-check.mjs",
     "typecheck": "tsc --noEmit",
     "test:area-integrity": "node scripts/check-area-content-integrity.mjs",
-    "test": "npm run test:area-integrity && npm run test:price-normalization && npm run test:content-provenance && npm run test:review-rating && npm run test:promotion-disclosure && npm run test:q06-seo-metadata && npm run test:schema-output && npm run test:s10-sakaisujihonmachi-hub && npm run test:internal-links && npm run test:final-design-preservation && npm run test:wp-build-resilience",
+    "test": "npm run test:area-integrity && npm run test:price-normalization && npm run test:content-provenance && npm run test:review-rating && npm run test:promotion-disclosure && npm run test:q06-seo-metadata && npm run test:schema-output && npm run test:s10-sakaisujihonmachi-hub && npm run test:internal-links && npm run test:final-design-preservation && npm run test:wp-build-resilience && npm run test:supabase-content-schema && npm run test:wp-migration-audit && npm run test:content-source-config",
     "test:price-normalization": "node scripts/check-price-normalization.mjs",
     "test:content-provenance": "node scripts/check-content-provenance.mjs",
     "test:review-rating": "node scripts/check-review-rating.mjs",
@@ -23,7 +23,10 @@
     "test:s10-sakaisujihonmachi-hub": "node scripts/check-s10-sakaisujihonmachi-hub.mjs",
     "test:internal-links": "node scripts/check-internal-link-map.mjs",
     "test:final-design-preservation": "node scripts/check-final-design-preservation.mjs",
-    "test:wp-build-resilience": "node scripts/check-wp-build-resilience.mjs"
+    "test:wp-build-resilience": "node scripts/check-wp-build-resilience.mjs",
+    "test:supabase-content-schema": "node scripts/check-supabase-content-schema.mjs",
+    "test:wp-migration-audit": "node scripts/check-wp-migration-audit.mjs",
+    "test:content-source-config": "node scripts/check-content-source-config.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

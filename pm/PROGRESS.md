@@ -2,6 +2,49 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-14 Supabase SEO安全移行のローカル基盤
+
+#### 実行範囲
+- `codex/supabase-seo-safe-migration` ブランチへ分離し、既存の合計12コミット公開単位と混ぜなかった。
+- 公開URL、canonical、robots、schema、sitemap、現在のWordPress表示は変更しなかった。
+- 本番Supabase作成・接続、WordPress/Supabase本番書き込み、公開参照先切替、push、deployは行わなかった。
+
+#### 実装したこと
+- `app` に店舗、地域、料金、営業時間、画像、出典、本文履歴、口コミを分離した最小schemaを作成した。
+- `private` に移行batchと行別の生データ・変換結果・警告を残す構成を作成した。
+- Supabase Data APIは `api` schemaの `security_invoker` 読み取りviewだけに限定した。
+- anon/authenticatedの書き込み権限を与えず、RLSで公開済み店舗・地域・本文・承認済み口コミだけを読めるようにした。
+- `CONTENT_DATA_SOURCE` はWordPressを既定値とし、shadow比較とSupabase切替承認を判定するmoduleを追加した。既存公開routeへはまだ接続していない。
+- WordPress公開APIを読み取る移行監査を追加し、382店舗・34地域を再確認した。
+
+#### 2026-07-14再監査結果
+- 店舗382、地域34。
+- 店舗本文0、抜粋0、地域説明0、専用出典URL0、確認日0。
+- 画像241、公式URL333、確認可能料金252、AI要約76。
+- 地域なし75店舗、複数地域230店舗、公開口コミAPIは未接続。
+- 住所は安全側の厳しい判定で49件だけを番地住所候補とし、333件を住所/アクセス要確認とした。
+
+#### TDDとQA
+- schema検査、移行監査、参照先設定は、実装前の意図した失敗を確認してから実装した。
+- QAで、既存の `WP_API_BASE_URL=/wp-json` 互換不足と、非公開親に紐づく本文/口コミのRLS条件不足を検出した。
+- 2件とも再発検査を先に失敗させてから修正し、成功を確認した。
+
+#### 検証結果
+- `npm run lint`: 成功。
+- `npm run typecheck`: 成功。
+- `npm test`: 既存11件+新規3件、合計14検査すべて成功。
+- `npm run build`: 440/440ページ生成で成功。
+- `git diff --check`: 成功。
+- 公開route、metadata、sitemap、表示component差分: なし。
+- JWT / Supabase secret形式: 検出なし。
+- build時は既知のmiddleware非推奨、WordPress timeout fallback、`useSearchParams()` bailoutログが出たが、結果は成功した。
+
+#### 未実施と次の停止点
+- Docker daemonが起動していないため、`supabase db reset` と `supabase db lint --local` は未実施。
+- 次はDocker起動後にSQLを実DBへ適用して検査する。
+- その後も、本番Supabase接続、3店舗試験、30店舗試験、382店舗投入、shadow、cutoverはそれぞれユーザー承認前で停止する。
+- 戻し方と段階手順は `docs/runbooks/supabase-seo-safe-migration.md` に記録した。
+
 ### 2026-07-14 主要5地域Top10 SEO Phase 3公開承認
 
 - ユーザーが、Phase 0〜2文書を12件目として含める公開単位を明示承認した。
