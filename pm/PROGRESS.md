@@ -2,6 +2,32 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-15 重点5地域 SEO・視認性改善 本番公開完了
+
+#### 公開したこと
+- 重点5地域（堺筋本町、堺、大阪日本橋、新大阪、梅田）の全幅ヘッダー、地域固有本文、「選び方・料金・深夜・口コミ」4カードを `main` へ統合し、本番公開した。
+- 公開データの取得元はWordPressのまま維持した。Supabase公開切替、WordPress停止、URL・canonical・robots・schema・sitemapの意図的変更は行っていない。
+- `main` の公開対象は、5地域実装の7コミットと、日本語店舗URLの本番再発防止コミット `c448a7a`。
+
+#### 公開時に解消した問題
+- 最初の自動デプロイはVercel本番反映まで成功したが、GitHub ActionsからWordPressへ接続できず26ページだけが生成され、日本語slugの店舗ページがNext.js 16.2.6の非ASCII cache tag不具合で500になった。
+- 接続可能なローカル環境で440ページを事前生成した成果物 `dpl_CVBV8Wzq6Le2r3a77fb6rppTjggB` を公開し、店舗URLを即時復旧した。
+- Next.jsを16.2.10へ更新し、WordPress接続不能時は実店舗ではなく非公開の検査用slugだけを事前生成するよう修正した。修正前に2検査が失敗し、修正後に成功することを確認した。
+
+#### 最終公開結果
+- GitHub Actions: run `29352333209` は認証、lint、440ページbuild、Vercel本番反映、SEO切替検査まで全工程成功。
+- Vercel production: `dpl_5ZusbxihkRgFWMeSXmVjMSSEimN6`、`Ready`、`https://mens-esthe-kuchikomi.com` へalias済み。
+- SEO切替検査: 主要ページ、redirect、robots、canonical、GA4、サイトマップ425件、店舗URL5件、404サンプルがすべて成功。公開後500ログは0件。
+- Playwright本番検査: 5地域×パソコン/スマホの10表示がすべてHTTP 200。背景全幅、角丸0、本文開始位置一致、H1各1件、PC4列、スマホ2列×2段、固有本文5種、4リンク、横はみ出し0を確認した。
+
+#### 残課題と評価日
+- Search Consoleの公開後基準値取得とURL検査は未実施。14日評価日は2026-07-29、30日評価日は2026-08-14。
+- `npm audit` は既存3件（moderate 2、high 1）、`middleware`規約非推奨、GitHub ActionsのNode.js 20互換警告が残る。
+- `BLOCK-006` は解除。`BLOCK-005` の監視・自動更新パイプライン整理は継続。
+
+#### 次の1タスク
+- Search Consoleで重点5地域の公開後基準値とインデックス状態を記録し、その後は固有情報と承認済み口コミの蓄積を優先する。
+
 ### 2026-07-14 重点5地域 SEO・視認性改善（公開前実装完了）
 
 #### 実装したこと
