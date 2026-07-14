@@ -18,7 +18,7 @@ export async function generateStaticParams() {
     (shop) => ({
       slug: shop.slug
     }),
-    [{ slug: "c-r-e-a-m%ef%bc%88%e3%82%af%e3%83%aa%e3%83%bc%e3%83%a0%ef%bc%89" }]
+    [{ slug: "__wp-build-fallback__" }]
   );
 }
 

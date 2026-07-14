@@ -100,7 +100,16 @@ assert.ok(columnRoute.includes("getStaticParamsOrFallback"), "column static para
 assert.ok(columnRoute.includes('slug: "hello-world"'), "column static params fallback must include a known post");
 
 const shopRoute = read("app/shops/[slug]/page.tsx");
-assert.ok(shopRoute.includes("getStaticParamsOrFallback"), "shop static params must use a non-empty fallback");
+assert.ok(shopRoute.includes("getStaticParamsOrFallback"), "shop static params must use the build fallback helper");
+assert.ok(
+  shopRoute.includes('slug: "__wp-build-fallback__"'),
+  "shop static params must use a non-public sentinel when WP is unavailable during build"
+);
+assert.doesNotMatch(
+  shopRoute,
+  /c-r-e-a-m%ef%bc%88/,
+  "shop static params must not hard-code a shop whose data may be unavailable during build"
+);
 
 const columnIndex = read("app/column/page.tsx");
 assert.ok(columnIndex.includes("withWpBuildFallback"), "column index must render when WP posts fail");
