@@ -12,6 +12,7 @@ import {
   buildFaqItems
 } from "@/components/area/area-hub-content";
 import { AreaHubRelatedAreas } from "@/components/area/hub/AreaHubRelatedAreas";
+import { AreaHubDecisionGuide } from "@/components/area/hub/AreaHubDecisionGuide";
 import { AreaShopList } from "@/components/area/hub/AreaShopList";
 import {
   aggregateReviewCountLabel,
@@ -23,24 +24,6 @@ import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-con
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { CSSProperties } from "react";
 import type { AreaView, ShopView } from "@/lib/wp/types";
-
-const SECTION_NAV_CHIPS = [
-  { href: "#price-table", label: "料金比較" },
-  { href: "#late-night", label: "深夜営業" },
-  { href: "#beginner", label: "初心者向け" },
-  { href: "#station", label: "駅近" },
-  { href: "?filter=official#shop-list", label: "公式サイトあり" }
-] as const;
-
-const PAGE_ANCHOR_LINKS = [
-  { href: "#ranking", label: "おすすめランキング" },
-  { href: "#shop-list", label: "店舗一覧" },
-  { href: "#compare-tabs", label: "条件別比較" },
-  { href: "#reviews", label: "口コミ" },
-  { href: "#price-guide", label: "料金相場" },
-  { href: "#faq", label: "FAQ" },
-  { href: "#related-areas", label: "関連エリア" }
-] as const;
 
 function areaHubBreadcrumbJsonLd(
   hubContext: ReturnType<typeof resolveAreaHubContext>,
@@ -100,14 +83,6 @@ export function AreaHubPageTemplate({
   const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
   const reviewCountLabel = aggregateReviewCountLabel(allShops);
   const heroVisual = resolveAreaFeatureVisual(area.slug, parentArea?.slug, areaFeatures);
-  const hasRelatedAreas = childAreas.length > 0 || Boolean(parentArea && siblingAreas.length > 0);
-  const pageAnchorLinks = hubContext.localGuide
-    ? [
-        ...PAGE_ANCHOR_LINKS.slice(0, 4),
-        { href: "#local-guide", label: "選び方" },
-        ...PAGE_ANCHOR_LINKS.slice(4)
-      ]
-    : PAGE_ANCHOR_LINKS;
   const heroStyle = heroVisual.image
     ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
     : undefined;
@@ -136,7 +111,7 @@ export function AreaHubPageTemplate({
         />
       ) : null}
 
-      <div className="l-main_content__inner hl-page-inner escomi-final-area-shell">
+      <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-breadcrumb-shell">
         <nav className="area-hub-breadcrumb" aria-label="パンくず">
           <Link href="/">ホーム</Link>
           <span aria-hidden="true"> &gt; </span>
@@ -148,13 +123,15 @@ export function AreaHubPageTemplate({
           ) : null}
           <span>{hubContext.breadcrumbLabel}</span>
         </nav>
+      </div>
 
-        <section
-          className="escomi-final-area-hero escomi-final-area-hero--photo hl-fade-in"
-          aria-labelledby="area-final-title"
-          aria-label={heroVisual.imageAlt}
-          style={heroStyle}
-        >
+      <section
+        className="escomi-final-area-hero escomi-final-area-hero--photo hl-fade-in"
+        aria-labelledby="area-final-title"
+        aria-label={heroVisual.imageAlt}
+        style={heroStyle}
+      >
+        <div className="escomi-final-area-hero__inner escomi-final-area-shell">
           <header className="area-hub-header escomi-final-area-hero__body">
             <p className="escomi-final-area-hero__eyebrow">AREA GUIDE</p>
             <h1 id="area-final-title" className="area-hub-hero__title">{hubContext.hubTitle}</h1>
@@ -182,48 +159,12 @@ export function AreaHubPageTemplate({
             <p className="escomi-final-area-hero__source-note">
               口コミ・編集部コメント・PR情報は分けて掲載しています。料金や営業時間は予約前に公式情報で確認してください。
             </p>
-
-            <div className="area-hub-filter-chips escomi-final-area-hero__chips" aria-label="セクションへ移動">
-              <span className="area-hub-filter-chips__label">条件で探す</span>
-              {SECTION_NAV_CHIPS.map((chip) => (
-                <a key={chip.href} href={chip.href} className="area-hub-filter-chips__chip">
-                  {chip.label}
-                </a>
-              ))}
-            </div>
           </header>
-        </section>
+        </div>
+      </section>
 
-        <nav className="area-hub-anchor-nav escomi-final-area-anchor-nav" aria-label="ページ内ナビゲーション">
-          {pageAnchorLinks.map((link) => (
-            <a key={link.href} href={link.href} className="area-hub-anchor-nav__link">
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        <section className="escomi-s40-area-link-map hl-section" aria-labelledby="s40-area-links-title">
-          <div className="escomi-s40-area-link-map__body">
-            <p className="escomi-s40-area-link-map__eyebrow">NEXT CHECK</p>
-            <h2 id="s40-area-links-title">{hubContext.name}で次に見るページ</h2>
-            <p>
-              店舗詳細、ランキング、料金比較、初心者向け条件、近隣エリアを同じページ内で行き来できます。
-            </p>
-          </div>
-          <div className="escomi-s40-area-link-map__links" aria-label={`${hubContext.name}の主要内部リンク`}>
-            <Link href={`${areaPath}#shop-list`}>店舗一覧から詳細を見る</Link>
-            <Link href={`${areaPath}#ranking`}>おすすめランキングを見る</Link>
-            <Link href={`${areaPath}#price-table`}>料金比較を見る</Link>
-            <Link href={`${areaPath}#beginner`}>初心者向け店舗を見る</Link>
-            {hubContext.localGuide ? (
-              <Link href={`${areaPath}#local-guide`}>{hubContext.name}の選び方を見る</Link>
-            ) : null}
-            {hasRelatedAreas ? (
-              <Link href={`${areaPath}#related-areas`}>関連エリアを見る</Link>
-            ) : null}
-          </div>
-        </section>
-
+      <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-content-shell">
+        <AreaHubDecisionGuide hubContext={hubContext} shops={allShops} />
         <AreaHubLocalGuideSection hubContext={hubContext} />
         <AreaHubRankingTop
           rankingShops={allShops}

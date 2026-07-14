@@ -10305,6 +10305,8 @@ body .mep-area-section h2.mep-section-title::after {
 /* Area pages use the same featured-area photo system as the top carousel. */
 .escomi-final-area-hero.escomi-final-area-hero--photo {
   --es-area-hero-image: none;
+  border: 0;
+  border-radius: 0;
   background-color: #172833;
   background-image:
     linear-gradient(105deg, rgba(8, 13, 17, 0.72) 0%, rgba(8, 13, 17, 0.58) 46%, rgba(8, 13, 17, 0.28) 100%),
@@ -10312,9 +10314,13 @@ body .mep-area-section h2.mep-section-title::after {
   background-position: center;
   background-size: cover;
   color: #fbfaf6;
+  box-shadow: none;
   grid-template-columns: minmax(0, 1fr);
+  margin: 0;
   min-height: clamp(500px, 54vw, 640px);
   max-width: 100%;
+  padding: 0;
+  width: 100%;
 }
 
 .escomi-final-area-hero.escomi-final-area-hero--photo::before {
@@ -10323,12 +10329,29 @@ body .mep-area-section h2.mep-section-title::after {
     linear-gradient(90deg, rgba(176, 141, 62, 0.22), transparent 34%, rgba(15, 137, 149, 0.14));
 }
 
+.escomi-final-area-breadcrumb-shell {
+  padding-bottom: 0;
+}
+
+.escomi-final-area-content-shell {
+  padding-top: clamp(1.5rem, 4vw, 3rem);
+}
+
+.escomi-final-area-hero__inner {
+  margin-inline: auto;
+  min-height: inherit;
+  padding-inline: var(--hl-gutter);
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
 .escomi-final-area-hero--photo .escomi-final-area-hero__body {
   justify-content: flex-end;
   max-width: 880px;
   min-width: 0;
   min-height: inherit;
-  padding: clamp(2rem, 5vw, 4.5rem);
+  padding: clamp(2rem, 5vw, 4.5rem) 0;
   text-align: left;
 }
 
@@ -10382,6 +10405,183 @@ body .mep-area-section h2.mep-section-title::after {
   background: rgba(255, 255, 255, 0.15) !important;
   border-color: rgba(255, 255, 255, 0.26) !important;
   color: #ffffff !important;
+}
+
+/* Five priority areas: decision guide directly below the full-bleed hero. */
+.area-decision-guide {
+  margin-bottom: clamp(2.4rem, 6vw, 5rem);
+  position: relative;
+}
+
+.area-decision-guide__header {
+  display: grid;
+  gap: 0.7rem;
+  margin-bottom: clamp(1.15rem, 3vw, 1.8rem);
+  max-width: 880px;
+}
+
+.area-decision-guide__eyebrow {
+  color: #9a7528;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  margin: 0;
+}
+
+.area-decision-guide__header h2 {
+  color: #26333b;
+  font-family: var(--es-heading-serif, var(--hl-serif));
+  font-size: clamp(1.45rem, 3vw, 2.15rem);
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.area-decision-guide__intro {
+  color: #52656f;
+  font-size: 0.98rem;
+  line-height: 1.95;
+  margin: 0;
+  max-width: 78ch;
+}
+
+.area-decision-guide__grid {
+  display: grid;
+  gap: clamp(0.7rem, 1.7vw, 1.1rem);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.area-decision-card {
+  --area-decision-accent: #0f7c8a;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 247, 238, 0.94)),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--area-decision-accent) 16%, transparent), transparent 62%);
+  border: 1px solid color-mix(in srgb, var(--area-decision-accent) 26%, #e7e3d8);
+  border-top: 4px solid var(--area-decision-accent);
+  color: #26333b;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-height: 270px;
+  overflow: hidden;
+  padding: clamp(0.95rem, 2vw, 1.3rem);
+  position: relative;
+  text-decoration: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.area-decision-card::after {
+  background: color-mix(in srgb, var(--area-decision-accent) 8%, transparent);
+  border-radius: 50%;
+  content: "";
+  height: 7rem;
+  pointer-events: none;
+  position: absolute;
+  right: -3.5rem;
+  top: -3.5rem;
+  width: 7rem;
+}
+
+.area-decision-card--price {
+  --area-decision-accent: #a77d24;
+}
+
+.area-decision-card--late-night {
+  --area-decision-accent: #324b68;
+}
+
+.area-decision-card--reviews {
+  --area-decision-accent: #7b566d;
+}
+
+.area-decision-card:hover {
+  border-color: color-mix(in srgb, var(--area-decision-accent) 48%, #e7e3d8);
+  box-shadow: 0 16px 34px rgba(38, 51, 59, 0.1);
+  transform: translateY(-3px);
+}
+
+.area-decision-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--area-decision-accent) 48%, transparent);
+  outline-offset: 4px;
+}
+
+.area-decision-card__number {
+  color: var(--area-decision-accent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.area-decision-card h3 {
+  color: #52656f;
+  font-family: var(--es-heading-sans, var(--hl-sans));
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.area-decision-card strong {
+  color: #26333b;
+  display: block;
+  font-family: var(--es-heading-serif, var(--hl-serif));
+  font-size: clamp(1.02rem, 1.6vw, 1.25rem);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.area-decision-card p {
+  color: #60717a;
+  flex: 1;
+  font-size: 0.86rem;
+  line-height: 1.75;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.area-decision-card__cta {
+  color: var(--area-decision-accent);
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin-top: auto;
+}
+
+@media (max-width: 767px) {
+  .area-decision-guide__grid {
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .area-decision-guide__intro {
+    font-size: 0.9rem;
+    line-height: 1.85;
+  }
+
+  .area-decision-card {
+    gap: 0.55rem;
+    min-height: 280px;
+    padding: 0.85rem;
+  }
+
+  .area-decision-card strong {
+    font-size: 0.98rem;
+  }
+
+  .area-decision-card p {
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .area-decision-card {
+    transition: none;
+  }
+
+  .area-decision-card:hover {
+    transform: none;
+  }
 }
 
 .area-archive-header {
@@ -10474,12 +10674,12 @@ body .mep-area-section h2.mep-section-title::after {
   }
 
   .escomi-final-area-hero.escomi-final-area-hero--photo {
-    border-radius: 22px;
+    border-radius: 0;
     min-height: 620px;
   }
 
   .escomi-final-area-hero--photo .escomi-final-area-hero__body {
-    padding: 1.35rem;
+    padding: 1.35rem 0;
     width: 100%;
   }
 
