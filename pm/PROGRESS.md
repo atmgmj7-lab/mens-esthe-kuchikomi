@@ -2,6 +2,69 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-14 主要5地域Top10 SEO Phase 3公開承認
+
+- ユーザーが、Phase 0〜2文書を12件目として含める公開単位を明示承認した。
+- 合計12コミットを `main` へpushし、GitHub Actions経由のVercel本番反映と公開後検査まで行う。
+- Search Consoleへのログインが必要な操作は自動実行せず、本番確認後に人間向け手順を提示する。
+- WordPress、Supabase、親リポジトリ、既存 `/private/tmp` 作業ツリーは今回の公開対象に含めない。
+
+### 2026-07-14 主要5地域Top10 SEO Phase 0〜2公開前確認
+
+#### Phase 0
+- 正式作業場所 `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi`、branch `main`、HEAD `6d84706`、`origin/main` `593dcea` を確認した。
+- `git fetch origin --prune` 後も、ローカルmainは `origin/main` より11コミット先行している。
+- 既存 `/private/tmp/escomi-*` 7作業ツリー、親リポジトリの旧submodule参照、開始時の文書差分を確認し、変更しなかった。
+- `backup/original-dirty-20260714` 内の過去SEO計画7件を参照し、現在の `pm/SEO_TOP10_EXECUTION_PROMPT.md` を正本として優先順位を確定した。
+
+#### Phase 1
+- Search Console接続機能がないため、Secretや保存ログイン情報を要求せず、人間向け取得手順へ切り替えた。
+- `docs/seo/pre-publish-baseline-2026-07-14.md` に、90日・28日の記入欄、URL検査手順、7検索語×Yahoo!検索簡易版10件の観測結果を保存した。
+- 観測順はGoogle順位・確定順位として扱わず、14日・30日評価はSearch Consoleの同条件データを正式基準とした。
+
+#### Phase 2
+- `headless/` の `npm run lint`、`npm run typecheck`、`npm test`、`npm run build` はすべて成功した。
+- 11検査すべて成功し、buildは440ページを生成した。
+- 指定8ページをPC 1440×1000、スマホ390×844で確認し、全16表示がHTTP 200、横はみ出し0、壊れた画像0、画面外操作部品0だった。
+- 5地域のtitle、description、h1、canonical、robots、料金、FAQ/schema、口コミschema、PR分離、実 `a[href]` 内部リンクを確認した。
+- ダッシュボード2ページと口コミ投稿は `noindex, nofollow`。口コミ投稿のローカルcanonicalは `/reviews/submit/` へ修正済みで、公開中はサイトTOPを指していた。
+- 公開中5地域との主要SEO項目は同じ。堺筋本町だけローカルに専用ガイド約390文字と内部リンク5本が追加されている。
+- 新大阪49店舗中42店舗は複数areaタームを持ち、店舗名・住所・ItemList schemaに別地域名を含む。固定文言の流用ではないが、厳密な地域分離条件では残るリスクとして記録した。
+- Playwright撮影の黒い欠けは `backdrop-filter` 部分の画像合成乱れと切り分け、DOMの幅・色・操作部品位置が正常であることを確認した。コードは変更していない。
+- 詳細な公開前承認資料を `docs/seo/pre-publish-verification-2026-07-14.md` に保存した。
+
+#### 既存警告・残課題
+- build中に `middleware` 規約非推奨、WordPress APIタイムアウト/404時の代替データ、`useSearchParams()` のクライアント描画切替ログを確認した。build結果は成功。
+- Search Console実数とGoogle選択canonicalは未取得。
+- 公開ダッシュボードはBasic認証でHTTP 401のため、認証を回避せず本文比較を行っていない。
+- 親リポジトリのsubmodule参照更新は別承認事項として維持した。
+
+#### 未実施
+- Phase 3、commit、push、本番デプロイ、本番WordPress/Supabase変更、Search Console書き込みは未実施。
+
+#### 次の1タスク
+- 11コミットだけをpushするか、Phase 0〜2文書を別コミットにまとめて12コミットでpushするか、ユーザーの明示承認を待つ。
+
+### 2026-07-14 主要5地域Top10 SEO実行プロンプト作成
+
+#### 実行したこと
+- 正式な作業場所を `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi` として固定した。
+- 既存の5地域SEO計画、現在のmain、公開前ブロッカー、統合済みQ-01〜Q-07・S-10・S-40の状態を整理した。
+- `pm/SEO_TOP10_EXECUTION_PROMPT.md` に、公開前計測、11コミットの検証、本番反映承認、堺筋本町集中、堺東URL判断、14日・30日評価までの実行指示を作成した。
+- `pm/NEXT_ACTIONS.md` の先頭を2026-07-14現在の実行順へ更新し、古いQ-01開始指示は履歴扱いであることを明記した。
+- 5地域を同時に広げず、堺筋本町を主対象、堺東を次点とする順序を明記した。
+
+#### 制約
+- 初回実行はPhase 0〜2までとし、push・本番デプロイ前に必ず停止する。
+- 親リポジトリ、既存 `/private/tmp` 作業ツリー、本番DB、Secretは変更しない。
+- 堺/堺東URL構造は人間判断前に変更しない。
+
+#### 未実施
+- SEO実装、Search Console取得、push、本番デプロイは未実施。
+
+#### 次の1タスク
+- `pm/SEO_TOP10_EXECUTION_PROMPT.md` のPhase 0〜2を実行し、公開前判断材料を作成する。
+
 ### 2026-07-14 元フォルダ・production作業ツリー統合調査
 
 #### 実行したこと
