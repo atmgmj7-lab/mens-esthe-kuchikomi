@@ -78,6 +78,16 @@ assert.match(
 );
 assert.match(
   css,
+  /\.escomi-final-area-hero__inner\s*\{[\s\S]*?max-width:\s*var\(--hl-area-container-max,[\s\S]*?padding-inline:\s*var\(--hl-area-gutter,/,
+  "Hero content must use the same desktop width and gutter as the area body"
+);
+assert.match(
+  css,
+  /@media\s*\(max-width:\s*767px\)[\s\S]*?\.escomi-final-area-hero__inner\s*\{[\s\S]*?padding-inline:\s*var\(--hl-gutter-sm\)/,
+  "Hero content must use the same mobile gutter as the area body"
+);
+assert.match(
+  css,
   /\.area-decision-guide__grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/,
   "Decision guide must use four desktop columns"
 );

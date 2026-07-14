@@ -10339,8 +10339,9 @@ body .mep-area-section h2.mep-section-title::after {
 
 .escomi-final-area-hero__inner {
   margin-inline: auto;
+  max-width: var(--hl-area-container-max, 1280px);
   min-height: inherit;
-  padding-inline: var(--hl-gutter);
+  padding-inline: var(--hl-area-gutter, var(--hl-gutter));
   position: relative;
   width: 100%;
   z-index: 1;
@@ -10548,6 +10549,10 @@ body .mep-area-section h2.mep-section-title::after {
 }
 
 @media (max-width: 767px) {
+  .escomi-final-area-hero__inner {
+    padding-inline: var(--hl-gutter-sm);
+  }
+
   .area-decision-guide__grid {
     gap: 0.65rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
