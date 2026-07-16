@@ -58,8 +58,9 @@ export type AreaHubContext = {
 };
 
 const DISPATCH_PATTERN = /出張|デリバリー|派遣/;
-const WALKING_PATTERN =
-  /徒歩|駅(?:より|から)?\d|駅周辺|駅前|徒歩圏/;
+const EXPLICIT_STATION_FIELDS = ["shop_station", "nearest_station", "station", "shop_access"] as const;
+const WALK_MINUTES_PATTERN = /徒歩\s*(?:約\s*)?[0-9０-９]+\s*分/;
+const BEGINNER_FEATURE_PATTERN = /初心者|初めての方|はじめての方/;
 
 export {
   NIHONBASHI_GUIDE_DESCRIPTION,
@@ -176,6 +177,45 @@ function buildLocationHaystack(shop: ShopView): string {
   return `${address}${area}`;
 }
 
+function normalizeShopFactText(value: unknown): string {
+  return safeText(value)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function shopStationAccessText(shop: ShopView): string {
+  for (const key of EXPLICIT_STATION_FIELDS) {
+    const value = normalizeShopFactText(shop.acf[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+function hasExplicitStationWalk(shop: ShopView): boolean {
+  const station = shopStationAccessText(shop);
+  return /駅/.test(station) && WALK_MINUTES_PATTERN.test(station);
+}
+
+export function shopExplicitFeatureNames(shop: ShopView): string[] {
+  const names = [shop.acf.shop_features, shop.acf.features, shop.acf.shop_facilities]
+    .flatMap((value) => (Array.isArray(value) ? value : []))
+    .map((value) => {
+      if (typeof value === "string") return normalizeShopFactText(value);
+      if (!value || typeof value !== "object") return "";
+      return normalizeShopFactText((value as Record<string, unknown>).name);
+    })
+    .filter((value): value is string => Boolean(value));
+
+  return [...new Set(names)];
+}
+
+export function shopBeginnerFeatureLabel(shop: ShopView): string {
+  return shopExplicitFeatureNames(shop).find((feature) => BEGINNER_FEATURE_PATTERN.test(feature)) ?? "";
+}
+
 function isDispatchShop(shop: ShopView): boolean {
   return DISPATCH_PATTERN.test(buildLocationHaystack(shop));
 }
@@ -195,7 +235,7 @@ function classifyWithRelationConfig(
 
   if (relConfig.relatedPattern?.test(haystack)) return "related";
   if (relConfig.corePattern.test(haystack)) {
-    if (WALKING_PATTERN.test(haystack)) return "walkable";
+    if (hasExplicitStationWalk(shop)) return "walkable";
     return "core";
   }
   if (relConfig.nearbyPattern?.test(haystack)) return "nearby";
@@ -256,9 +296,8 @@ export function classifyShopRelation(
     return classifyWithRelationConfig(shop, targetArea, relConfig);
   }
 
-  const haystack = buildLocationHaystack(shop);
   if (isShopInArea(shop, targetArea.slug)) {
-    if (WALKING_PATTERN.test(haystack)) return "walkable";
+    if (hasExplicitStationWalk(shop)) return "walkable";
     return "core";
   }
 
@@ -274,7 +313,6 @@ export function resolveShopRelationLabel(
     return resolveLabelWithRelationConfig(shop, targetArea, relConfig);
   }
 
-  const haystack = buildLocationHaystack(shop);
   const area = shopAreaLabel(shop);
   const relation = classifyShopRelation(shop, targetArea);
 
@@ -287,23 +325,7 @@ export function resolveShopRelationLabel(
 }
 
 export function shopNearestStation(shop: ShopView): string {
-  const haystack = buildLocationHaystack(shop);
-
-  if (/近鉄日本橋/.test(haystack)) return "近鉄日本橋駅周辺";
-  if (/日本橋駅/.test(haystack) && WALKING_PATTERN.test(haystack)) return "日本橋駅周辺";
-  if (/なんば|難波/.test(haystack) && WALKING_PATTERN.test(haystack)) return "なんば周辺";
-  if (/谷町九丁目/.test(haystack) && WALKING_PATTERN.test(haystack)) return "谷町九丁目駅周辺";
-  if (/黒門/.test(haystack) && WALKING_PATTERN.test(haystack)) return "黒門市場周辺";
-  if (/千日前/.test(haystack) && WALKING_PATTERN.test(haystack)) return "千日前駅周辺";
-  if (/堺筋本町/.test(haystack) && WALKING_PATTERN.test(haystack)) return "堺筋本町駅周辺";
-  if (/本町/.test(haystack) && WALKING_PATTERN.test(haystack)) return "本町駅周辺";
-  if (/梅田/.test(haystack)) return "梅田・大阪駅周辺";
-  if (/西中島/.test(haystack)) return "西中島南方・新大阪周辺";
-
-  const stationMatch = haystack.match(/([^\s、。]+駅)(?:より|から|周辺|前)?/);
-  if (stationMatch) return `${stationMatch[1]}周辺`;
-
-  return "店舗ページで確認";
+  return shopStationAccessText(shop) || "未確認";
 }
 
 export type PriceDisplayStatus =
@@ -393,21 +415,7 @@ export function isLateNightShop(shop: ShopView): boolean {
 }
 
 export function isBeginnerFriendlyShop(shop: ShopView): boolean {
-  const hours = safeText(shop.acf.shop_hours);
-  const tel = safeText(shop.acf.shop_tel);
-  const booking = safeText(shop.acf.shop_booking);
-  const editor = safeText(shop.acf.shop_ai_summary);
-  const hasOfficial = Boolean(shop.officialUrl);
-  const hasPrice = extractShopConfirmedPriceYen(shop) !== null;
-
-  let score = 0;
-  if (hours) score += 1;
-  if (hasOfficial) score += 1;
-  if (hasPrice) score += 1;
-  if (booking || tel) score += 1;
-  if (editor) score += 1;
-
-  return score >= 3;
+  return Boolean(shopBeginnerFeatureLabel(shop));
 }
 
 export function hasPublishedPrice(shop: ShopView): boolean {
@@ -417,19 +425,9 @@ export function hasPublishedPrice(shop: ShopView): boolean {
 /** 駅名または徒歩表記がある場合のみ駅近とする（自動付与しない） */
 export function isStationNearShop(
   shop: ShopView,
-  targetArea?: Pick<AreaView, "slug" | "name">
+  _targetArea?: Pick<AreaView, "slug" | "name">
 ): boolean {
-  const haystack = buildLocationHaystack(shop);
-  if (!WALKING_PATTERN.test(haystack)) return false;
-
-  const relConfig = targetArea ? getRelationConfig(targetArea) : null;
-  if (relConfig) {
-    const relation = classifyShopRelation(shop, targetArea!);
-    if (relation !== "core" && relation !== "walkable") return false;
-    return relConfig.stationNearPattern.test(haystack);
-  }
-
-  return /駅/.test(haystack) && WALKING_PATTERN.test(haystack);
+  return hasExplicitStationWalk(shop);
 }
 
 export function shopFeatureTags(
@@ -438,7 +436,7 @@ export function shopFeatureTags(
 ): string[] {
   const tags: string[] = [];
   if (isLateNightShop(shop)) tags.push("深夜営業");
-  if (isStationNearShop(shop, targetArea)) tags.push("駅近");
+  if (isStationNearShop(shop, targetArea)) tags.push("駅名・徒歩案内あり");
   if (isBeginnerFriendlyShop(shop)) tags.push("初心者向け");
   const booking = safeText(shop.acf.shop_booking);
   if (booking.includes("完全予約")) tags.push("完全予約制");
@@ -510,34 +508,56 @@ export function aggregateReviewCountLabel(shops: ShopView[]): string {
 
 export function buildEditorCommentShort(
   shop: ShopView,
-  targetArea?: Pick<AreaView, "slug" | "name">
+  _targetArea?: Pick<AreaView, "slug" | "name">
 ): string {
-  const summary = safeText(shop.acf.shop_ai_summary);
-  if (summary) {
-    const plain = summary.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
-    return plain.length > 90 ? `${plain.slice(0, 87)}...` : plain;
-  }
-  const relation = targetArea
-    ? resolveShopRelationLabel(shop, targetArea)
-    : shopAreaLabel(shop);
-  const hours = safeText(shop.acf.shop_hours);
-  if (hours) {
-    return `${relation}。営業時間は「${hours}」。公開情報をもとに編集部が整理したコメントです。`;
-  }
-  return `${relation}。公開情報・店舗ページをもとに編集部が比較しやすく整理したコメントです。`;
+  const summary = normalizeShopFactText(shop.acf.shop_ai_summary);
+  if (!summary) return "";
+  return summary.length > 90 ? `${summary.slice(0, 87)}...` : summary;
 }
 
-export function resolveLastUpdatedLabel(shops: ShopView[]): string {
+export type NormalizedShopUpdatedAt = {
+  label: string;
+  timestamp: number;
+};
+
+export function normalizeShopUpdatedAt(value: unknown): NormalizedShopUpdatedAt | null {
+  const raw = normalizeShopFactText(value);
+  const match =
+    raw.match(/^(\d{4})-(\d{2})-(\d{2})$/) ||
+    raw.match(/^(\d{4})\/(\d{2})\/(\d{2})$/) ||
+    raw.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日$/);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const timestamp = Date.UTC(year, month - 1, day);
+  const date = new Date(timestamp);
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return { label: `${year}年${month}月${day}日`, timestamp };
+}
+
+export function shopUpdatedTimestamp(shop: ShopView): number {
+  return normalizeShopUpdatedAt(shop.acf.shop_updated_at)?.timestamp ?? 0;
+}
+
+export function resolveLastUpdatedLabel(shops: ShopView[]): string | null {
   const dates = shops
-    .map((s) => safeText(s.acf.shop_updated_at))
-    .filter(Boolean);
-  if (dates.length === 0) return "2026年6月13日";
-  return "2026年6月13日";
+    .map((shop) => normalizeShopUpdatedAt(shop.acf.shop_updated_at))
+    .filter((date): date is NormalizedShopUpdatedAt => Boolean(date))
+    .sort((a, b) => b.timestamp - a.timestamp);
+  return dates[0]?.label ?? null;
 }
 
-export function resolveShopLastVerifiedLabel(shop: ShopView): string {
-  const date = safeText(shop.acf.shop_updated_at);
-  return date || "確認中";
+export function resolveShopLastVerifiedLabel(shop: ShopView): string | null {
+  return normalizeShopUpdatedAt(shop.acf.shop_updated_at)?.label ?? null;
 }
 
 export function areaRankingScore(

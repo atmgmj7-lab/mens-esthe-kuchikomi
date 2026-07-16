@@ -5,28 +5,15 @@ import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import Link from "next/link";
 import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";
 import { PriceLabel } from "@/components/common/PriceLabel";
-import { safeText } from "@/lib/wp/client";
 import {
-  hasPublishedPrice,
   resolveShopRelationLabel,
+  shopBeginnerFeatureLabel,
   shopHoursText,
   shopNearestStation
 } from "@/lib/area-shop-utils";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 type Variant = "late-night" | "beginner" | "station";
-
-function beginnerChecks(shop: ShopView) {
-  return [
-    { label: "公式サイトあり", ok: Boolean(shop.officialUrl) },
-    { label: "料金掲載あり", ok: hasPublishedPrice(shop) },
-    { label: "営業時間掲載", ok: Boolean(safeText(shop.acf.shop_hours)) },
-    {
-      label: "予約導線あり",
-      ok: Boolean(safeText(shop.acf.shop_booking) || safeText(shop.acf.shop_tel))
-    }
-  ];
-}
 
 export function RankingSpecialtyCards({
   shops,
@@ -43,6 +30,7 @@ export function RankingSpecialtyCards({
         const hours = shopHoursText(shop);
         const station = shopNearestStation(shop);
         const relation = resolveShopRelationLabel(shop, targetArea);
+        const beginnerFeature = shopBeginnerFeatureLabel(shop);
 
         return (
           <article key={shop.id} className={`ranking-specialty-card ranking-specialty-card--${variant}`}>
@@ -62,17 +50,9 @@ export function RankingSpecialtyCards({
               ) : null}
 
               {variant === "beginner" ? (
-                <ul className="ranking-specialty-card__checks">
-                  {beginnerChecks(shop).map((item) => (
-                    <li
-                      key={item.label}
-                      className={item.ok ? "is-ok" : "is-muted"}
-                      aria-label={`${item.label}: ${item.ok ? "あり" : "未確認"}`}
-                    >
-                      {item.label}
-                    </li>
-                  ))}
-                </ul>
+                <p className="ranking-specialty-card__beginner-feature">
+                  明示特徴: {beginnerFeature}
+                </p>
               ) : null}
 
               {variant === "station" ? (

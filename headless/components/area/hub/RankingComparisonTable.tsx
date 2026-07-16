@@ -12,7 +12,7 @@ export function RankingComparisonTable({ shops }: { shops: ShopView[] }) {
           <span role="columnheader">店舗</span>
           <span role="columnheader">60分目安</span>
           <span role="columnheader">営業時間</span>
-          <span role="columnheader">最寄駅</span>
+          <span role="columnheader">駅・徒歩案内</span>
           <span role="columnheader">口コミ</span>
         </div>
         <div className="ranking-comparison-table__body" role="rowgroup">
@@ -34,7 +34,7 @@ export function RankingComparisonTable({ shops }: { shops: ShopView[] }) {
                 <span>{shopHoursText(shop)}</span>
               </div>
               <div className="ranking-comparison-table__cell" role="cell">
-                <span className="ranking-comparison-table__cell-label">最寄駅</span>
+                <span className="ranking-comparison-table__cell-label">駅・徒歩案内</span>
                 <span>{shopNearestStation(shop)}</span>
               </div>
               <div className="ranking-comparison-table__cell" role="cell">

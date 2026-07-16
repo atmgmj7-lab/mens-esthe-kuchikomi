@@ -183,6 +183,13 @@ export function shopItemListJsonLd(
   };
 }
 
+function isConfirmedStreetAddress(value: string): boolean {
+  if (!value || /駅|出口|徒歩|アクセス/.test(value)) return false;
+  const hasAdministrativeArea = /(?:都|道|府|県).*(?:市|区|町|村)/.test(value);
+  const hasStreetNumber = /\d+(?:丁目|番地|番|号|-\d)/.test(value);
+  return hasAdministrativeArea || hasStreetNumber;
+}
+
 export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown> {
   const tel = stripHtml(shop.acf.shop_tel);
   const address = stripHtml(shop.acf.shop_address);
@@ -197,7 +204,7 @@ export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown>
   };
 
   if (tel) data.telephone = tel;
-  if (address) {
+  if (isConfirmedStreetAddress(address)) {
     data.address = {
       "@type": "PostalAddress",
       streetAddress: address,

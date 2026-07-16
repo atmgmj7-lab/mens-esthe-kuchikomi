@@ -2,6 +2,7 @@ import { resolvePromotionDisclosure } from "@/lib/promotion-disclosure";
 import {
   areaRankingScore,
   classifyShopRelation,
+  shopUpdatedTimestamp,
   type AreaHubContext
 } from "@/lib/area-shop-utils";
 import { safeText } from "@/lib/wp/client";
@@ -81,13 +82,6 @@ export function normalizeShopRanking(acf: Record<string, unknown>): ShopRankingM
     rankingLabel: safeText(acf.ranking_label),
     promotion
   };
-}
-
-function shopUpdatedTimestamp(shop: ShopView): number {
-  const raw = safeText(shop.acf.shop_updated_at);
-  if (!raw) return 0;
-  const parsed = Date.parse(raw.replace(/年|月/g, "-").replace(/日/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function compareAutoRanking(

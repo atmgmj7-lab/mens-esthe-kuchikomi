@@ -285,7 +285,7 @@ function CompareTabPanel({
   );
 }
 
-/** 条件別タブ（料金比較・深夜・初心者・駅近） */
+/** 条件別タブ（料金比較・深夜・初心者・駅名・徒歩案内） */
 export function AreaHubCompareTabsSections({
   rankingShops,
   targetArea,
@@ -367,13 +367,13 @@ export function AreaHubCompareTabsSections({
             },
             {
               id: "station",
-              label: "駅近",
+              label: "駅名・徒歩案内あり",
               content: (
                 <CompareTabPanel
                   theme="station"
                   areaSlug={targetArea.slug}
-                  ja={`駅近の${hubContext.name}メンズエステ`}
-                  intro={hubContext.stationIntro}
+                  ja={`駅名・徒歩案内がある${hubContext.name}メンズエステ`}
+                  intro="WordPressの駅名と徒歩分数が明示されている店舗だけを掲載しています。"
                 >
                   {stationShops.length > 0 ? (
                     <RankingSpecialtyPagedList
@@ -381,10 +381,10 @@ export function AreaHubCompareTabsSections({
                       targetArea={targetArea}
                       variant="station"
                       pageSize={specialtyPageSize}
-                      ariaLabel="駅近店舗のページ送り"
+                      ariaLabel="駅名・徒歩案内がある店舗のページ送り"
                     />
                   ) : (
-                    <p className="area-hub-section__empty">駅近候補の店舗情報を確認中です。</p>
+                    <p className="area-hub-section__empty">駅名と徒歩分数を確認できる店舗はありません。</p>
                   )}
                 </CompareTabPanel>
               )

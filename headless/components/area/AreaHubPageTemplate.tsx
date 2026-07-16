@@ -146,10 +146,12 @@ export function AreaHubPageTemplate({
                 <dt>確認済み口コミ</dt>
                 <dd>{reviewCountLabel}</dd>
               </div>
-              <div>
-                <dt>最終更新日</dt>
-                <dd>{lastUpdated}</dd>
-              </div>
+              {lastUpdated ? (
+                <div>
+                  <dt>掲載情報の確認日</dt>
+                  <dd>{lastUpdated}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>対応エリア</dt>
                 <dd>{hubContext.coverageLabel}</dd>

@@ -195,11 +195,19 @@ function explicitFeatureNames(acf: Record<string, unknown>): string[] {
   return [...new Set(names)];
 }
 
+function isConfirmedStreetAddress(value: string): boolean {
+  if (!value || /駅|出口|徒歩|アクセス/.test(value)) return false;
+  const hasAdministrativeArea = /(?:都|道|府|県).*(?:市|区|町|村)/.test(value);
+  const hasStreetNumber = /\d+(?:丁目|番地|番|号|-\d)/.test(value);
+  return hasAdministrativeArea || hasStreetNumber;
+}
+
 export function buildShopDetailViewModel(shop: ShopView, areaName: string): ShopDetailViewModel {
   const acf = shop.acf;
   const primaryPrice = resolveShopPrimaryPrice(acf);
   const priceLabel = formatPriceForDisplay(primaryPrice, "〜");
   const station = firstText(acf, ["shop_station", "nearest_station", "station", "shop_access"]);
+  const address = firstText(acf, ["shop_address"]);
   const hours = firstText(acf, ["shop_hours"]);
   const bookingUrl =
     ["shop_booking_url", "booking_url", "reservation_url", "shop_reservation_url"]
@@ -231,9 +239,15 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
   if (bookingAction) facts.push({ key: "booking", label: "予約方法", value: bookingAction.label });
 
   const infoRows: ShopDetailInfoRow[] = [];
+  if (address) {
+    infoRows.push({
+      key: "address",
+      label: isConfirmedStreetAddress(address) ? "住所" : "アクセス案内",
+      value: address
+    });
+  }
   for (const [key, label, value] of [
-    ["address", "住所", firstText(acf, ["shop_address"])],
-    ["station", "最寄駅・アクセス", station],
+    ["station", "駅・アクセス案内", station],
     ["hours", "営業時間", hours],
     ["holiday", "定休日", firstText(acf, ["shop_holiday"])],
     ["booking", "予約", firstText(acf, ["shop_booking"])],

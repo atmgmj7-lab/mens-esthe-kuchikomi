@@ -7,10 +7,10 @@ import {
   isLateNightShop,
   isStationNearShop,
   shopReviewCount,
+  shopUpdatedTimestamp,
   sortShopsForRanking
 } from "@/lib/area-shop-utils";
 import { orderShopsForAreaRanking, type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
-import { safeText } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const HUB_SHOP_LIST_INITIAL_COUNT = 12;
@@ -29,7 +29,7 @@ export type ShopListSortId = "recommended" | "updated" | "price-asc" | "late-nig
 
 export const SHOP_LIST_FILTER_OPTIONS: Array<{ id: ShopListFilterId; label: string }> = [
   { id: "late-night", label: "深夜営業" },
-  { id: "station", label: "駅近" },
+  { id: "station", label: "駅名・徒歩案内あり" },
   { id: "price", label: "料金掲載あり" },
   { id: "official", label: "公式サイトあり" },
   { id: "beginner", label: "初心者向け" },
@@ -42,7 +42,7 @@ export const SHOP_LIST_SORT_OPTIONS: Array<{ id: ShopListSortId; label: string }
   { id: "updated", label: "更新順" },
   { id: "price-asc", label: "料金が安い順" },
   { id: "late-night", label: "深夜営業" },
-  { id: "station", label: "駅近" }
+  { id: "station", label: "駅名・徒歩案内あり" }
 ];
 
 function isDispatchShop(shop: ShopView, targetArea: Pick<AreaView, "slug" | "name">): boolean {
@@ -51,13 +51,6 @@ function isDispatchShop(shop: ShopView, targetArea: Pick<AreaView, "slug" | "nam
 
 function hasShopReviews(shop: ShopView): boolean {
   return shopReviewCount(shop) > 0;
-}
-
-function shopUpdatedTimestamp(shop: ShopView): number {
-  const raw = safeText(shop.acf.shop_updated_at);
-  if (!raw) return 0;
-  const parsed = Date.parse(raw.replace(/年|月/g, "-").replace(/日/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function matchesShopListFilters(
