@@ -3108,3 +3108,13 @@ pm/PROGRESS.md
 - 本番へmigration `20260716003830_shop_owner_requests.sql` をtransaction適用し、履歴、2テーブル、RLS、匿名・authenticated拒否、service role権限を確認した。
 - Vercel Productionへ `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`SHOP_OWNER_REQUEST_RATE_LIMIT_SECRET` を値非表示で登録した。
 - WordPress公開情報とSupabase公開viewは変更せず、`main` push・Vercel deploy前で進行記録を更新した。
+
+## 2026-07-16 店舗詳細・Phase 4 本番反映完了
+
+- 実装反映commit `badd4f9` を `main` へpushした。
+- GitHub ActionsはVercel run `29504137602`、Xserver run `29504137607` が成功した。
+- Vercel production deployment `https://escomi-headless-g7shr3mav-narikiyos-projects.vercel.app` はREADYで、本番URL `https://mens-esthe-kuchikomi.com` へ反映済み。
+- トップ、堺筋本町、代表3店舗、店舗登録ページはHTTP 200。申請APIは不正な空入力を400で拒否し、申請・rate limitテーブルは0件のまま。
+- PC 1440pxとスマホ390pxで、横スクロール0、4:3画像、店舗責任者導線、スマホ固定導線を確認。画像なし店舗も代替画像が4:3で表示された。
+- 本番Supabaseのmigration履歴、RLS、匿名拒否、service role権限を確認。Security / Performance Advisorはともにerror 0 / warning 0。
+- Phase 4の調査値は非公開候補のまま維持し、WordPress公開情報、Supabase公開view、公開参照先は変更していない。

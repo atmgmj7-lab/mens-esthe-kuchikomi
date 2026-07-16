@@ -123,9 +123,9 @@ Phase 11 complete（店舗詳細C案と店舗責任者申請の全11タスク、
 - [x] 別サービスを指していたSupabase CLIリンクを解除する
 - [x] 正しいエスコミ本番Supabaseへ店舗責任者申請migrationを適用する
 - [x] Vercel ProductionへSupabase接続情報とrate limit secretを登録する
-- [ ] `main` へ反映し、GitHub ActionsとVercel本番を確認する
-- [ ] PC・スマホ・対象店舗・申請APIの本番確認を行う
-- **Status:** in progress（本番deploy・表示確認中）
+- [x] `main` へ反映し、GitHub ActionsとVercel本番を確認する
+- [x] PC・スマホ・対象店舗・申請APIの本番確認を行う
+- **Status:** complete
 
 ## Key Questions
 
