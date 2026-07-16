@@ -4,6 +4,7 @@ import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { GA_MEASUREMENT_ID, gaEvent, pageview } from "@/lib/gtag";
+import { normalizePublicShopSlug } from "@/lib/shop-slug";
 
 function isExternalHref(href: string): boolean {
   if (!href || href.startsWith("#") || href.startsWith("/") || href.startsWith("tel:")) {
@@ -46,10 +47,12 @@ export function GoogleAnalytics() {
   useEffect(() => {
     if (!GA_MEASUREMENT_ID) return;
 
-    const shopMatch = pathname.match(/^\/shops\/([^/]+)\/?$/);
-    if (shopMatch?.[1]) {
+    const shopSlug = normalizePublicShopSlug(
+      pathname.match(/^\/shops\/([^/]+)\/?$/)?.[1] || ""
+    );
+    if (shopSlug) {
       gaEvent("shop_view", {
-        shop_slug: shopMatch[1],
+        shop_slug: shopSlug,
         page_path: pathname
       });
     }
@@ -65,9 +68,40 @@ export function GoogleAnalytics() {
       const href = anchor.getAttribute("href")?.trim() || "";
       if (!href) return;
 
+      const ctaKind = anchor.getAttribute("data-shop-cta-kind") || "";
+      const isShopCta = ["reservation", "line", "tel", "official", "owner"].includes(
+        ctaKind
+      );
+      if (isShopCta) {
+        const pathShopSlug = normalizePublicShopSlug(
+          pathname.match(/^\/shops\/([^/]+)\/?$/)?.[1] || ""
+        );
+        const dataShopSlug = normalizePublicShopSlug(
+          anchor.getAttribute("data-shop-slug") || ""
+        );
+        const shopSlug = dataShopSlug || pathShopSlug;
+        const ctaPosition =
+          anchor.getAttribute("data-shop-cta-position") || "unknown";
+        const eventName =
+          ctaKind === "official"
+            ? "official_site_click"
+            : ctaKind === "owner"
+              ? "shop_owner_request_click"
+              : "shop_reservation_click";
+
+        gaEvent(eventName, {
+          shop_slug: shopSlug,
+          cta_kind: ctaKind,
+          cta_position: ctaPosition,
+          link_url: ctaKind === "tel" ? "tel:" : href,
+          page_path: pathname
+        });
+        return;
+      }
+
       if (href.startsWith("tel:")) {
         gaEvent("tel_click", {
-          link_url: href,
+          link_url: "tel:",
           page_path: pathname
         });
         return;

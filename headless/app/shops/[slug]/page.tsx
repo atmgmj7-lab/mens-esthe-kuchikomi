@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ShopDetail } from "@/components/ShopDetail";
 import { getAreaById, getAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+import { toShopRouteParam } from "@/lib/shop-route-param";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
@@ -16,9 +17,9 @@ export async function generateStaticParams() {
     "shop static params",
     getShopsForSitemap,
     (shop) => ({
-      slug: shop.slug
+      slug: toShopRouteParam(shop.slug)
     }),
-    [{ slug: "c-r-e-a-m%ef%bc%88%e3%82%af%e3%83%aa%e3%83%bc%e3%83%a0%ef%bc%89" }]
+    [{ slug: "c-r-e-a-m（クリーム）" }]
   );
 }
 

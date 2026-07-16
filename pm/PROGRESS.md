@@ -2,6 +2,151 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-16 店舗詳細C案のローカル実装・全幅QA
+
+#### 最終横断レビュー修正（独立再レビュー承認済み）
+- DB/APIのcanonical encoded slug、target URL完全一致、WordPress正本照合、private分散rate limit、口コミの店舗ID一致、production 18条件証跡の6件をテスト先行で修正した。
+- local SupabaseでC-REST申請を実APIから保存し、WordPress正式名への正本化、匿名拒否、原子RPCの6回目拒否を確認して検査行を削除した。
+- Nextの静的生成paramだけをdecoded Unicodeへ変換し、canonical single-encoded店舗URLの404を200へ直した。公開URLとWordPress slugは変更していない。
+- JSON-LDのscript境界をescapeし、`next start`で3店舗×6幅=18条件をすべて再実測して18/18合格、代表6画像を目視した。
+- 独立最終再レビューでCritical 0、Important 0を確認し、全26検査、lint、型チェック、441/441ページbuild、3店舗のcanonical URLが再度成功した。11/11のローカル完了を承認済み。
+
+#### 完了したこと
+- Owner 4タスク、Detail 7タスクの合計11タスクをローカルで完了した。
+- 店舗責任者の申請はSupabase非公開審査候補へ保存し、自動公開しない流れにした。
+- 店舗詳細C案を全店舗共通で実装し、画像・料金・営業時間・公式URLなど、WordPressで存在を確認できた情報だけを表示するようにした。
+- 代表3店舗をPC 1440/1280/1024、スマホ390/375/320で確認し、合計18条件すべてで横崩れ、重なり、画像縦伸ばし、操作領域、表の折返しを合格させた。
+- 仮の12,000円、静的OPEN、0名を除去した。画像なし店舗は共通画像、料金なし店舗は料金欄なしで表示した。
+- LINE・電話予約、公式サイト、店舗責任者クリックを区別し、各1回、重複0、電話番号なしを実画面で確認した。
+- percent-encoded WordPress slug、店舗責任者帯の文字色、旧電話計測の番号残存をテスト先行で修正した。
+- 全26 npm検査、local Supabase統合、lint、型チェック、441/441ページbuild、Git差分検査が成功した。
+- 詳細は `.superpowers/sdd/task-7-report.md`、数値証跡は `.superpowers/sdd/task-7-browser-evidence.json` に保存した。
+
+#### 現在の停止位置
+- 最終横断レビューのImportant 6件は修正済み。独立再レビューでCritical 0、Important 0となり、11/11のローカル完了を承認済み。
+- WordPressを公開データ元として維持し、本番Supabase、WordPress公開値、GA外部送信は変更していない。
+- local Supabase、開発サーバー、表示ブラウザは停止済み。
+- stage、commit、push、deployは未実施。本番確認は別承認とする。
+- 非ブロッキングの後続候補は、期限切れrate-limit行の削除方針とraw `img`の画像最適化。
+
+### 2026-07-16 店舗詳細C案の設計・実装計画
+
+#### 完了したこと
+- 店舗詳細の画像縦伸ばし、PCの狭い本文幅、スマホ上部の過大表示、仮値表示をコードと実画面で確認した。
+- A/B/C案から、角丸カードを並べず、罫線・余白・文字組みで構成するC案をユーザー承認済み設計として確定した。
+- PC最大1360px、スマホ左右16px、画像4:3、確認できた情報だけを表示する基準を確定した。
+- 予約・公式サイトクリックを主要指標とし、配置別・店舗別に区別する計測方針を確定した。
+- WordPressを公開データ元として維持し、店舗責任者申請はSupabase非公開審査候補へ保存して自動公開しない設計にした。
+- 設計書1本と、非公開申請フロー・店舗詳細C案の実装計画2本を保存し、自己レビューを完了した。
+
+#### 現在の停止位置
+- 店舗詳細の完成品質は約40%。設計・実装計画は完了し、本体コードは未着手。
+- 次は `docs/superpowers/plans/2026-07-16-shop-owner-request-flow.md`、続いて `docs/superpowers/plans/2026-07-16-shop-detail-c-editorial-redesign.md` の順に実行する。
+- local migration・画面実装・全幅QA・build後の95%で停止する。
+- 本番Supabase、WordPress公開値、push、deployは変更しない。
+
+### 2026-07-15 堺筋本町 Phase 4 Supabase非公開投入準備
+
+#### 完了したこと
+- 本番へは書き込まず、26店舗・料金89行・営業時間23行・公式URL単位の出典71行・項目別出典189行を非公開で保存するSQLと検証SQLを作成した。
+- 既存382店舗の非公開データをローカルDBへ復元し、同じPhase 4 SQLを2回実行した。2回目も件数は増えず、取込記録26件を維持した。
+- 営業時間注記の文字列処理エラーは、失敗する自動検査を追加してから修正した。
+- 料金・営業時間の重複0、匿名公開view全9種0件、DBの規則違反0を確認した。
+- 調査レポートはローカル検証済みと本番未実施を分けて表示するよう更新した。
+- 全18検査、コード規則、型チェック、本番相当build 440/440ページ、Git差分検査が成功した。QAセルフレビューで追加の修正事項はなかった。
+
+#### 現在の停止位置
+- 本番SupabaseへのPhase 4データ投入は未実施。
+- WordPressを公開データ元として維持し、公開参照先、URL、canonical、sitemapは変更していない。
+- commit、push、deploy、本番公開は未実施。
+- 次は、生成SQLの内容と対象26店舗を確認し、本番Supabaseへ非公開で投入するか明示承認を得る。
+
+### 2026-07-15 SEO Phase 4「堺筋本町の実データ強化」
+
+#### 完了したこと
+- WordPress堺筋本町term 46の既定順先頭30店舗を固定し、人気順位・口コミ順位とは扱わず調査した。
+- 公式サイト、公式予約先、公式SNSだけを一次情報として72件記録した。検索結果と第三者サイトは値の出典にしていない。
+- 確認済みは正式名26、住所11、駅情報20、営業時間23、料金21、電話25、予約方法26、初回向け公式案内5店舗だった。
+- 一次情報を確認できなかった殿様気分、Elin、Feliz、プレミアム離宮は、推測やWordPress現行値で補わず未確認のまま残した。
+- 代表料金21店舗は最小8,000円、中央値12,500円、最大18,000円。価格帯は1 / 6 / 9 / 5 / 0店舗だった。
+- 営業時間確認済み23店舗のうち、具体的な翌日閉店時刻を確認できた20店舗だけを深夜対応に数えた。LAST表記2店舗は深夜件数へ含めていない。
+- 30店舗の根拠データ、一次情報一覧、比較集計、Supabase非公開draft候補26店舗分を生成した。
+- draft候補は既存の `app.shops`, `app.shop_prices`, `app.shop_business_hours`, `app.sources`, `app.shop_source_links` へ対応し、料金89行、営業時間23行、調査記録72件（公式URL単位71行）、項目別出典189行を保持する。
+- WordPress現行値は比較用snapshotに限定し、WordPress更新候補は廃止した。
+- 検査は30件と順序の固定、一次出典、未確認0、代表料金規則、空更新、口コミ・評価フィールドを拒否する。
+
+#### 検証結果
+- `npm run test:sakaisujihonmachi-phase4-data`: 成功。
+- `npm test`: 全17検査成功。
+- `npm run lint`: エラー0。
+- `npm run typecheck`: エラー0。
+- `npm run build`: 440/440ページ生成、終了コード0。
+- `git diff --check`: エラー0。
+- build中のWordPress応答遅延による代替データと `useSearchParams()` の表示切替は既存ログで、build自体は完了した。
+
+#### 現在の停止位置
+- Supabase非公開draft候補26店舗分はローカル2回投入で検証済み。本番には未投入。
+- WordPressを公開データ元として維持し、Supabase、公開参照先、URL、canonical、sitemapは変更していない。
+- commit、push、deploy、本番公開は未実施。次は生成SQLを人間確認し、別承認で本番Supabaseへ非公開投入するか決める。
+
+### 2026-07-14 Supabase 382店舗・34地域の非公開移行
+
+#### 完了したこと
+- WordPressを再監査し、店舗382・地域34、地域なし75、複数地域230、料金252、画像241を確認した。
+- 全地域、複数地域、地域なし店舗を扱う固定SQL生成と検証をテスト先行で実装した。
+- local DBで382店舗SQLを2回適用し、地域34・店舗382・関係782・料金252・画像241を維持した。
+- localの重複group 0件、anon公開view全9種0件、schema lint error 0を確認した。
+- 本番へ382店舗をdraft、地域・料金・画像を非公開で適用した。
+- 本番の地域34・子地域26・店舗382・関係782・料金252・画像241・batch 3・record 415を確認した。
+- 本番batchはsource 382・imported 382、地域なし75・複数地域230、重複group 0件だった。
+- 本番anon公開view全9種は0件、Security/Performance Advisorはerror 0 / warning 0だった。
+- 382店舗の固定SQLはWordPress元データを含むためGit除外し、誤追加防止検査を入れた。
+- npmの全16検査、lint、typecheck、git diff checkが成功した。
+
+#### 現在の停止位置
+- Supabase公開参照先切替、shadow、WordPress停止、push、deployは未実施。
+- 次はSEO・視認性改善の設計をユーザー確認後に実装する。
+
+### 2026-07-14 Supabase 30店舗非公開試験
+
+#### 完了したこと
+- ユーザー承認後、堺筋本町93店舗から既存3店舗を含む30店舗を固定した。
+- 料金欠損5件、画像欠損7件、公式URL欠損15件をすべて含め、通常データと複数地域所属を比較対象にした。
+- SQL生成module、再生成command、固定投入SQL、検証SQLをテスト先行で実装した。
+- local DBへ3店舗SQL→30店舗SQL→30店舗SQL再実行の順で適用し、店舗30・関係30・料金25・画像23を維持した。
+- 料金と画像の重複groupは0件、anonの公開view全9種は0件、schema lintはerror 0だった。
+- lint、typecheck、15検査、build 440ページ、git diff checkが成功した。
+- 正しいChrome profileで対象project refを照合し、本番事前件数が既存3店舗trialと一致することを確認した。
+- 本番へ30店舗SQLを適用し、地域1・店舗30・関係30・料金25・画像23・batch 2・record 33を確認した。
+- 30店舗batchはsource 30・imported 30、料金と画像の重複groupは0件、anonの公開view全9種は0件だった。
+- 本番Security/Performance Advisorはいずれもerror 0 / warning 0だった。残るinfoは非公開表のdeny-by-defaultと未使用indexの案内だけ。
+
+#### 現在の停止位置
+- 本番30店舗の非公開試験は完了した。
+- 382店舗全件投入は別承認前で停止している。
+- 382店舗、shadow、cutover、WordPress停止、push、deployは実施しない。
+
+### 2026-07-14 Supabase本番schemaと3店舗非公開試験
+
+#### 完了したこと
+- 対象Chrome profileへ接続し、正しいSupabase projectが健康状態であることを確認した。
+- SEO安全schema 13表・公開view 9件・RLS/policy/権限を本番へ適用した。
+- 出典参照3列のindex不足をテスト先行で修正し、追加migrationと履歴を本番へ適用した。
+- 本番Performance Advisorはerror 0 / warning 0。残るinfoは空DBでindexが未使用という案内だけ。
+- 堺筋本町93店舗には0円表記がなかったため値を作らず、MUSE(695)、sirena II(709)、殿様気分(1237)を試験対象にした。
+- 非公開試験SQLと検証SQLをテスト先行で実装し、local DBへ2回適用して重複しないことを確認した。
+- localでは地域1、店舗3、地域関係3、非公開料金2、非公開画像2、取込batch 1、取込record 3。公開view全9種はすべて0件だった。
+- 本番へ同じtrial SQLを適用し、3店舗がdraft、地域・料金・画像が非公開、取込recordがimportedであることを確認した。
+- 本番の保存件数はlocalと一致し、anonの公開view全9種は0件だった。
+- 本番Security/Performance Advisorはいずれもerror 0 / warning 0だった。
+- 最終QAはlint、typecheck、15検査、build 440ページ、DB lint/Advisor、git diff check、secret形式検査がすべて成功した。
+- local Supabaseは検査後に停止した。
+
+#### 現在の停止位置
+- 本番schemaと3店舗trialは完了。30店舗拡大の承認前で停止。
+- 公開参照先、WordPress、URL、canonical、sitemap、公開HTML、push、deployは変更していない。
+- 30店舗・382店舗への拡大、shadow、cutoverは別承認まで行わない。
+
 ### 2026-07-14 Supabase SEO安全移行のローカル基盤
 
 #### 実行範囲
@@ -2882,3 +3027,18 @@ pm/PROGRESS.md
 - 追加テスト: `headless/scripts/check-internal-link-map.mjs`、npm script `test:internal-links`。
 - 検証結果: `npm run typecheck && npm run lint && npm test && npm run build && git diff --check` 成功。
 - ローカル本番HTML確認: `/area/sakaisujihonmachi/` はS-40内部リンク枠、店舗一覧、ランキング、料金比較、初心者向け、関連エリア、店舗詳細リンクが欠落なし。`/shops/milk-tea.../` は同エリアランキング、同エリア料金比較、口コミ投稿リンクが欠落なし。
+
+
+## 2026-07-15 GA4・Search Console初期設定完了
+- GA4の対象プロパティ「関西メンズエステ口コミナビ」（プロパティID `531229543`）と測定ID `G-6XFMW5XKBW` を確認。
+- 本番ウェブストリーム `https://mens-esthe-kuchikomi.com`（ストリームID `14311325096`）が過去48時間以内のデータを受信していることを確認。
+- Xserver DNSへSearch Console所有権確認用TXTを追加し、ドメインプロパティ `mens-esthe-kuchikomi.com` の所有権確認に成功。既存SPFレコードは維持。
+- `https://mens-esthe-kuchikomi.com/sitemap.xml` は送信済み・読み込み成功・425ページ検出を確認。
+- URL検査結果: トップ、堺筋本町、堺、大阪日本橋、新大阪はGoogle登録済み。梅田は「クロール済み - インデックス未登録」だったため、優先クロールキューへの追加を実行。
+- GA4とSearch Consoleのドメインプロパティを本番ウェブストリームへ連携し、GA4管理画面のリンク一覧に2026-07-15付で表示されることを確認。
+
+## 2026-07-16 Owner Task 4 ローカル統合検証の停止状態
+
+- 店舗責任者申請はlocal Supabaseの非公開審査キューで検証済み。
+- WordPress公開情報とSupabase公開viewは変更していない。
+- 本番migration、Secret登録、本番申請保存、push、deployは未実施。

@@ -1,0 +1,40 @@
+import type { CSSProperties } from "react";
+import { ShopDetailActions } from "@/components/shop-detail/ShopDetailActions";
+import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
+import styles from "./ShopDetail.module.css";
+
+type ShopDetailHeroProps = {
+  model: ShopDetailViewModel;
+  rel: string;
+};
+
+export function ShopDetailHero({ model, rel }: ShopDetailHeroProps) {
+  return (
+    <header className={styles.hero}>
+      <div className={styles.titleRow}>
+        <div>
+          <p className={styles.kicker}>SHOP PROFILE · {model.areaName.toUpperCase()}</p>
+          <h1 className={styles.title}>{model.title}</h1>
+          {model.verifiedAt ? (
+            <p className={styles.verified}>掲載情報の確認日 {model.verifiedAt}</p>
+          ) : null}
+        </div>
+        <ShopDetailActions model={model} rel={rel} position="hero" />
+      </div>
+
+      {model.facts.length > 0 ? (
+        <dl
+          className={styles.facts}
+          style={{ "--fact-count": model.facts.length } as CSSProperties}
+        >
+          {model.facts.map((fact) => (
+            <div key={fact.key}>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </header>
+  );
+}

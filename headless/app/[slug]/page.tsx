@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { NihonbashiGuidePage } from "@/components/NihonbashiGuidePage";
+import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { WpStaticPage } from "@/components/WpStaticPage";
 import {
   NIHONBASHI_GUIDE_DESCRIPTION,
@@ -13,13 +15,32 @@ import {
   type StaticPageSlug
 } from "@/lib/static-pages";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+import { parseShopOwnerRequestInitial } from "@/lib/shop-owner-request-links";
 import { withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getAreaBySlug, getAreaShops } from "@/lib/wp/areas";
-import { getPageBySlug } from "@/lib/wp/pages";
+import { getPageBySlug, type PageView } from "@/lib/wp/pages";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+async function StoreListingPageContent({
+  page,
+  searchParams,
+}: {
+  page: PageView | null;
+  searchParams: Props["searchParams"];
+}) {
+  const query = await searchParams;
+  return (
+    <WpStaticPage
+      slug="storelisting"
+      page={page}
+      ownerRequestInitial={parseShopOwnerRequestInitial(query)}
+    />
+  );
+}
 
 export function generateStaticParams() {
   return STATIC_PAGE_SLUGS.map((slug) => ({ slug }));
@@ -49,7 +70,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-export default async function StaticWpPage({ params }: Props) {
+export default async function StaticWpPage({ params, searchParams }: Props) {
   const { slug } = await params;
   if (!isStaticPageSlug(slug)) notFound();
 
@@ -67,5 +88,13 @@ export default async function StaticWpPage({ params }: Props) {
   }
 
   const page = await withWpBuildFallback(`static page ${slug}`, () => getPageBySlug(slug), null);
+  if (slug === "storelisting") {
+    return (
+      <Suspense fallback={<RoutePageFallback variant="static" />}>
+        <StoreListingPageContent page={page} searchParams={searchParams} />
+      </Suspense>
+    );
+  }
+
   return <WpStaticPage slug={slug} page={page} />;
 }

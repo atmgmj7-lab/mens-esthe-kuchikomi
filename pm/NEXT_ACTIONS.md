@@ -1,18 +1,47 @@
 # Next Actions
 
-更新日: 2026-07-14
+更新日: 2026-07-16
 
-## 2026-07-14 Supabase SEO安全移行
+## 2026-07-16 店舗詳細C案 実装順
 
-1. `codex/supabase-seo-safe-migration` で、ローカルmigration、移行監査、WordPress既定の参照先安全装置を作成した。
-2. 専用local portで `supabase start`、`supabase db reset`、`supabase db lint --local` が成功し、検査後にlocal環境を停止した。
-3. 次は本番Supabase作成・接続、Secret登録、3店舗試験の承認をユーザーへ確認する。
-4. 382店舗全件投入、shadow、公開参照先切替はそれぞれ別承認とする。
-5. 既存の合計12コミット公開作業とはブランチを分け、今回の移行基盤を混ぜない。
+1. `docs/superpowers/plans/2026-07-16-shop-owner-request-flow.md` をテスト先行で実行し、店舗責任者申請をlocal Supabaseの非公開審査キューで検証する。
+2. `docs/superpowers/plans/2026-07-16-shop-detail-c-editorial-redesign.md` を実行し、仮値除去、画像4:3、PC最大1360px、スマホ左右16px、予約・公式導線を実装する。
+3. 情報充実・画像なし・料金なしの代表3店舗をPC 1440/1280/1024、スマホ390/375/320で確認する。
+4. 全検査、lint、typecheck、build、QAセルフレビューを完了する。
+5. WordPressを公開データ元として維持し、push・本番公開前の完成品質95%で停止する。
 
 ### 現在の次の1タスク
 
-本番Supabaseの所有者・費用・Secret登録場所と、3店舗だけを非公開試験投入する範囲をユーザーへ確認する。承認前に本番接続・投入・切替を行わない。
+店舗責任者申請フロー計画のTask 1から開始し、Supabaseの公式changelog・CLI help・Data API/RLS条件を確認する。
+
+以下の2026-07-15以前の節は履歴として残す。
+
+## 2026-07-15 SEO Phase 4 本番非公開投入前停止
+
+1. 一次情報72件と30店舗の確認結果は `docs/seo/sakaisujihonmachi-phase4-data-report-2026-07-15.md` を正本として確認する。
+2. Supabase非公開投入候補は `docs/data/sakaisujihonmachi-phase4-supabase-draft-preview-2026-07-15.json` の26店舗分と、Git除外した固定SQLを人間確認する。
+3. ローカルでは `app.shops` のdraft更新、料金89行、営業時間23行、公式URL単位の出典71行、項目別出典189行を2回投入し、重複なし・匿名公開view全9種0件を確認済み。
+4. 未確認の殿様気分、Elin、Feliz、プレミアム離宮は現行WordPress値を維持し、一次情報が見つかるまで更新しない。
+5. 本番Supabase非公開投入、commit、push、deploy、本番公開は別承認まで行わない。WordPressは更新先にしない。
+
+### 現在の次の1タスク
+
+対象26店舗と生成SQLを確認し、本番Supabaseへ非公開で投入するか明示承認する。公開切替はこの承認に含めない。
+
+以下の2026-07-14以前の節は履歴として残す。
+
+## 2026-07-14 Supabase SEO安全移行
+
+1. 本番schema、出典FK index、3店舗・30店舗試験、382店舗・34地域の非公開移行は完了した。
+2. 本番は地域34・店舗382・関係782・料金252・画像241、地域なし75・複数地域230、重複group 0件だった。
+3. anonの公開view全9種は0件、Security/Performance Advisorはいずれもerror 0 / warning 0だった。
+4. 次はSEO効果と視認性を同時に上げる実装を設計し、ユーザー承認後にテスト先行で進める。
+5. shadow、公開参照先切替、WordPress停止はそれぞれ別承認とする。
+6. 既存の合計12コミット公開作業とはブランチを分け、今回の移行基盤を混ぜない。
+
+### 現在の次の1タスク
+
+次の改善で最優先する成果を確認し、SEO・視認性改善の設計案を2〜3案に絞る。
 
 ## 2026-07-14 現在の実行順
 

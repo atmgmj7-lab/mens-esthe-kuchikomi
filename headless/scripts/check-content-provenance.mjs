@@ -4,6 +4,7 @@ import { join } from "node:path";
 import ts from "typescript";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { shopDetailIntegrationEvidence } from "./check-final-design-preservation.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const source = readFileSync(join(root, "lib/content-provenance.ts"), "utf8");
@@ -134,6 +135,8 @@ assert.equal(ratingOnly.canDisplayAsUserReview, false);
 const mixed = normalizeContentItems(
   [
     validUserReview,
+    { ...validUserReview, shopId: "101", body: "型だけ異なる同一店舗の口コミです。" },
+    { ...validUserReview, shopId: 202, body: "別店舗に属する口コミです。" },
     { ...validUserReview, approvalStatus: "pending", status: "pending" },
     editorial,
     aiGenerated,
@@ -142,18 +145,62 @@ const mixed = normalizeContentItems(
   ],
   { sourcePostType: "reviews", sourceField: "user_reviews", shopId: 101 }
 );
-assert.equal(mixed.filter((entry) => entry.canDisplayAsUserReview).length, 1);
+assert.equal(
+  mixed.filter((entry) => entry.canDisplayAsUserReview).length,
+  2,
+  "only approved reviews whose normalized shopId matches the current shop may display"
+);
+assert.equal(
+  mixed.some((entry) => entry.shopId === "202"),
+  false,
+  "a review belonging to a different shop must be removed at the provenance boundary"
+);
 
 const areaLatestSource = readFileSync(join(root, "components/area/AreaLatestReviews.tsx"), "utf8");
 assert.ok(!areaLatestSource.includes("口コミ・編集部"), "AreaLatestReviews must not mix review/editorial label");
 assert.ok(!areaLatestSource.includes("編集部レビュー"), "AreaLatestReviews must not show editorial review label");
 assert.ok(areaLatestSource.includes("ユーザー口コミ"), "AreaLatestReviews should clearly label user reviews");
 
-const shopDetailSource = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
+const shopDetailSource = [
+  readFileSync(join(root, "components/ShopDetail.tsx"), "utf8"),
+  readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8")
+].join("\n");
 assert.ok(!shopDetailSource.includes("Escomi編集部 Review"), "Shop detail must not label editorial text as Review");
 assert.ok(shopDetailSource.includes("ユーザー口コミ"), "Shop detail must separate user reviews");
 
+for (const [label, fixture] of [
+  ["full shop detail", shopDetailIntegrationEvidence.full],
+  ["sparse shop detail", shopDetailIntegrationEvidence.sparse]
+]) {
+  assert.equal(
+    fixture.captures.extractedReviewShops.length,
+    1,
+    `${label} must call the approved review extractor once`
+  );
+  assert.strictEqual(
+    fixture.captures.extractedReviewShops[0],
+    fixture.shop,
+    `${label} must extract reviews from the rendered WordPress shop`
+  );
+  assert.strictEqual(
+    fixture.captures.sectionsProps[0].reviews,
+    fixture.extractedReviews,
+    `${label} must pass only the extractor result to ShopDetailSections`
+  );
+  assert.ok(
+    fixture.html.includes('<section id="shop-reviews"></section>'),
+    `${label} must render the user-review section from the live composition`
+  );
+}
+
 const hubLinksSource = readFileSync(join(root, "components/common/ShopAreaHubLinks.tsx"), "utf8");
 assert.ok(!hubLinksSource.includes("口コミ・編集部レビュー"), "Area hub link must not mix user reviews and editorial reviews");
+
+const areaShopUtilsSource = readFileSync(join(root, "lib/area-shop-utils.ts"), "utf8");
+assert.match(
+  areaShopUtilsSource,
+  /item\.canDisplayAsUserReview\s*&&\s*item\.shopId\s*===\s*String\(shop\.id\)/,
+  "shop review extractor must enforce current-shop identity after normalization"
+);
 
 console.log("Content provenance check passed.");

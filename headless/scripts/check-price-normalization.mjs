@@ -80,6 +80,15 @@ assert.equal(coursePrices.length, 1);
 assert.equal(coursePrices[0].label, "90分");
 assert.equal(coursePrices[0].price.amount, 12000);
 
+const shopDetailViewModelSource = readFileSync(join(root, "lib/shop-detail-view-model.ts"), "utf8");
+assert.ok(!shopDetailViewModelSource.includes("?? 12000"));
+for (const inventedValue of ["12,000", "不定休", "完全予約制", "駐車場なし", "0名", "OPEN"]) {
+  assert.ok(
+    !shopDetailViewModelSource.includes(inventedValue),
+    `ShopDetailViewModel must not contain invented fallback value: ${inventedValue}`
+  );
+}
+
 const shopDetailSource = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
 assert.ok(!shopDetailSource.includes('Number(field(shop, "shop_price_60min")'), "ShopDetail must not Number() primary price fields");
 assert.ok(!shopDetailSource.includes("Number(value).toLocaleString"), "ShopDetail must not Number() course prices for display");

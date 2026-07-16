@@ -4,6 +4,7 @@ import { join } from "node:path";
 import ts from "typescript";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { shopDetailIntegrationEvidence } from "./check-final-design-preservation.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 
@@ -167,14 +168,44 @@ assert.ok(
   "Visible FAQ section must not render when there are no FAQ rows"
 );
 
-const shopDetailSource = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
+const shopDetailSource = [
+  readFileSync(join(root, "components/ShopDetail.tsx"), "utf8"),
+  readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8")
+].join("\n");
 assert.ok(
   shopDetailSource.includes("const shopSchema = shopLocalBusinessJsonLd(shop)"),
   "Shop pages must compute LocalBusiness JSON-LD before rendering it"
 );
 assert.ok(
-  shopDetailSource.includes("JSON.stringify(shopSchema)"),
-  "Shop pages must render only the computed LocalBusiness JSON-LD object"
+  shopDetailSource.includes("serializeJsonLd(shopSchema)"),
+  "Shop pages must safely serialize only the computed LocalBusiness JSON-LD object"
 );
+assert.ok(
+  !shopDetailSource.includes("JSON.stringify(shopSchema)"),
+  "Shop pages must not leave script-boundary characters unescaped"
+);
+
+for (const [label, fixture] of [
+  ["full shop detail", shopDetailIntegrationEvidence.full],
+  ["sparse shop detail", shopDetailIntegrationEvidence.sparse]
+]) {
+  const schemaIndex = fixture.html.indexOf('type="application/ld+json"');
+  const breadcrumbIndex = fixture.html.indexOf('aria-label="パンくず"');
+  assert.ok(schemaIndex >= 0, `${label} must render LocalBusiness JSON-LD`);
+  assert.ok(breadcrumbIndex >= 0, `${label} must render visible breadcrumb content`);
+  assert.ok(
+    schemaIndex < breadcrumbIndex,
+    `${label} must render LocalBusiness JSON-LD before visible content`
+  );
+  assert.strictEqual(
+    fixture.captures.schemaShops[0],
+    fixture.shop,
+    `${label} schema must be computed from the rendered WordPress shop`
+  );
+  assert.ok(
+    fixture.html.includes(JSON.stringify(fixture.schema)),
+    `${label} must render exactly the computed schema payload`
+  );
+}
 
 console.log("schema output condition checks passed");

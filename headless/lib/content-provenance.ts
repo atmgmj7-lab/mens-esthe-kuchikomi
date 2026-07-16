@@ -340,6 +340,10 @@ export function normalizeContentItems(
 ): NormalizedContentItem[] {
   if (!Array.isArray(items)) return [];
 
+  const expectedShopId = idValue(
+    firstDefined(context.shopId, context.shop_id, context.review_shop_id)
+  );
+
   return items
     .map((item) => {
       const record =
@@ -354,5 +358,7 @@ export function normalizeContentItems(
         sourceField: firstDefined(record.sourceField, record.source_field, context.sourceField, context.source_field)
       });
     })
-    .filter((item) => item.body || item.rating != null || item.sourceType !== "unknown");
+    .filter((item) => (
+      item.body || item.rating != null || item.sourceType !== "unknown"
+    ) && (!expectedShopId || item.shopId === expectedShopId));
 }

@@ -458,7 +458,9 @@ export function extractShopUserReviewItems(shop: ShopView): NormalizedContentIte
     shopId: shop.id,
     sourcePostType: "reviews",
     sourceField
-  }).filter((item) => item.canDisplayAsUserReview);
+  }).filter((item) => (
+    item.canDisplayAsUserReview && item.shopId === String(shop.id)
+  ));
 }
 
 export function shopReviewCount(shop: ShopView): number {

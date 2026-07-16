@@ -1,0 +1,762 @@
+{
+  "1237": {
+    "notes": [
+      "公式URL候補 https://spa-tono.com/ は2026-07-15の確認時にHTTP 403および調査ツールのタイムアウトとなったため、WordPress現行値を一次情報へ昇格していない。"
+    ]
+  },
+  "1221": {
+    "official_name": {
+      "status": "verified",
+      "value": "Riru chéri(リルシェ)",
+      "source_ids": ["s1"]
+    },
+    "official_url": {
+      "status": "verified",
+      "value": "https://riru-cheri.com/",
+      "source_ids": ["s1"]
+    },
+    "address": {
+      "status": "unverified",
+      "value": null,
+      "visibility": "unknown",
+      "source_ids": []
+    },
+    "access_points": [
+      {
+        "station": "堺筋本町駅",
+        "exit": null,
+        "walk_minutes": 5,
+        "source_ids": ["s3"]
+      }
+    ],
+    "business_hours": {
+      "status": "verified",
+      "value": {
+        "display": "11:00〜29:00（受付10:00〜27:00）",
+        "opens_at": "11:00",
+        "closes_at": "05:00",
+        "closes_next_day": true,
+        "is_24_hours": false
+      },
+      "source_ids": ["s1"]
+    },
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {
+          "name": "オイルトリートメント 90分",
+          "duration_minutes": 90,
+          "amount_yen": 17000,
+          "conditions": "通常料金",
+          "representative_eligible": true,
+          "source_ids": ["s2"]
+        },
+        {
+          "name": "オイルトリートメント 120分",
+          "duration_minutes": 120,
+          "amount_yen": 23000,
+          "conditions": "通常料金",
+          "representative_eligible": true,
+          "source_ids": ["s2"]
+        }
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s2"]
+    },
+    "contact": {
+      "phone": {
+        "status": "verified",
+        "value": "080-9831-1557",
+        "source_ids": ["s1"]
+      },
+      "booking_methods": [
+        {
+          "type": "phone",
+          "label": "電話予約",
+          "url": "tel:080-9831-1557",
+          "source_ids": ["s1"]
+        },
+        {
+          "type": "web",
+          "label": "ネット予約",
+          "url": "https://eslove.jp/shop/36969/reserve",
+          "source_ids": ["s1"]
+        },
+        {
+          "type": "line",
+          "label": "LINE登録",
+          "url": "https://line.me/ti/p/PnhfUaThTt",
+          "source_ids": ["s1"]
+        }
+      ]
+    },
+    "unverified_fields": ["address", "beginner_guidance"],
+    "sources": [
+      {
+        "id": "s1",
+        "kind": "official-site",
+        "title": "Riru chéri 公式サイト",
+        "url": "https://riru-cheri.com/",
+        "checked_on": "2026-07-15",
+        "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]
+      },
+      {
+        "id": "s2",
+        "kind": "official-site",
+        "title": "料金システム",
+        "url": "https://riru-cheri.com/system.html",
+        "checked_on": "2026-07-15",
+        "fields": ["prices"]
+      },
+      {
+        "id": "s3",
+        "kind": "official-site",
+        "title": "アクセス",
+        "url": "https://riru-cheri.com/access.html",
+        "checked_on": "2026-07-15",
+        "fields": ["access_points"]
+      }
+    ],
+    "notes": [
+      "公式アクセスページは堺筋本町駅から徒歩約5分と掲載しているが、出口は掲載していない。",
+      "公式サイトに期間限定割引の案内があるが、代表料金は通常料金だけから選定した。"
+    ]
+  },
+  "1210": {
+    "notes": [
+      "公式URL候補 http://www.osakaelin.com/ は第三者サイトへ転送され、HTTPS証明書も対象ホストと一致しなかった。検索キャッシュ値は確認済み値として採用していない。"
+    ]
+  },
+  "1203": {
+    "notes": [
+      "WordPress登録URL https://www.osakafeliz.com/ は第三者サイトへ転送されたため、現在の一次情報として採用していない。"
+    ]
+  },
+  "880": {
+    "official_name": {
+      "status": "verified",
+      "value": "Drnu・ドクターヌ",
+      "source_ids": ["s1"]
+    },
+    "official_url": {
+      "status": "verified",
+      "value": "https://drnu-osaka.com/",
+      "source_ids": ["s1"]
+    },
+    "access_points": [
+      {
+        "station": "淀屋橋駅",
+        "exit": null,
+        "walk_minutes": 3,
+        "source_ids": ["s1"]
+      },
+      {
+        "station": "淀屋橋駅",
+        "exit": "11番出口",
+        "walk_minutes": 3,
+        "source_ids": ["s1"]
+      }
+    ],
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {
+          "name": "プレミアムトリートメント 70分",
+          "duration_minutes": 70,
+          "amount_yen": 11000,
+          "conditions": "通常料金",
+          "representative_eligible": true,
+          "source_ids": ["s1"]
+        },
+        {
+          "name": "プレミアムトリートメント 100分",
+          "duration_minutes": 100,
+          "amount_yen": 15000,
+          "conditions": "通常料金",
+          "representative_eligible": true,
+          "source_ids": ["s1"]
+        },
+        {
+          "name": "プレミアムトリートメント 130分",
+          "duration_minutes": 130,
+          "amount_yen": 19000,
+          "conditions": "通常料金",
+          "representative_eligible": true,
+          "source_ids": ["s1"]
+        },
+        {
+          "name": "プレミアムトリートメント 160分",
+          "duration_minutes": 160,
+          "amount_yen": 23000,
+          "conditions": "通常料金",
+          "representative_eligible": true,
+          "source_ids": ["s1"]
+        }
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s1"]
+    },
+    "contact": {
+      "phone": {
+        "status": "verified",
+        "value": "070-5430-5661",
+        "source_ids": ["s1"]
+      },
+      "booking_methods": [
+        {
+          "type": "phone",
+          "label": "予約専用電話",
+          "url": "tel:070-5430-5661",
+          "source_ids": ["s1"]
+        },
+        {
+          "type": "line",
+          "label": "LINE予約",
+          "url": "https://line.me/ti/p/4sxDx1n_5o",
+          "source_ids": ["s1"]
+        }
+      ]
+    },
+    "unverified_fields": ["address", "business_hours", "beginner_guidance"],
+    "sources": [
+      {
+        "id": "s1",
+        "kind": "official-site",
+        "title": "Drnu・ドクターヌ 公式サイト",
+        "url": "https://drnu-osaka.com/",
+        "checked_on": "2026-07-15",
+        "fields": ["official_name", "official_url", "access_points", "prices", "contact.phone", "contact.booking_methods"]
+      }
+    ],
+    "notes": [
+      "公式サイト上部は営業時間11時〜27時、アクセス欄は10:00〜翌3:00（最終受付1:00）と不一致のため営業時間は未確認とした。",
+      "公式アクセス欄のAルーム・Bルームはいずれも淀屋橋駅で、堺筋本町駅の出口・徒歩分は確認できなかった。"
+    ]
+  },
+  "883": {
+    "official_name": {"status": "verified", "value": "FROG SPA(フロッグスパ)", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://frog-spa.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪市中央区南久宝寺町", "visibility": "after-booking", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": "6番出口", "walk_minutes": 4, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "12:00〜27:00（受付10:00〜25:30）", "opens_at": "12:00", "closes_at": "03:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {"name": "スタンダード 60分", "duration_minutes": 60, "amount_yen": 13000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 90分", "duration_minutes": 90, "amount_yen": 15000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 120分", "duration_minutes": 120, "amount_yen": 20000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 150分", "duration_minutes": 150, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s2"]
+    },
+    "contact": {"phone": {"status": "verified", "value": "080-3832-1844", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-3832-1844", "source_ids": ["s1"]}]},
+    "unverified_fields": ["beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "FROG SPA 公式サイト", "url": "https://frog-spa.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://frog-spa.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://frog-spa.com/access/", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["詳細住所は予約後案内のため、公開ページで確認できる町名までを保持する。"]
+  },
+  "885": {
+    "official_name": {"status": "verified", "value": "祇園the.Mrs", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://gion-mrs.com/", "source_ids": ["s1"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 5, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "11:00〜翌5:00（受付10:00〜翌3:00）", "opens_at": "11:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {"name": "スタンダード 75分", "duration_minutes": 75, "amount_yen": 12000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 90分", "duration_minutes": 90, "amount_yen": 15000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 120分", "duration_minutes": 120, "amount_yen": 20000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 150分", "duration_minutes": 150, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 180分", "duration_minutes": 180, "amount_yen": 30000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s2"]
+    },
+    "contact": {"phone": {"status": "verified", "value": "070-9003-3363", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:070-9003-3363", "source_ids": ["s1"]}]},
+    "unverified_fields": ["address", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "祇園the.Mrs 公式サイト", "url": "https://gion-mrs.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://gion-mrs.com/system", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://gion-mrs.com/access", "checked_on": "2026-07-15", "fields": ["access_points"]}
+    ],
+    "notes": ["WordPressの店舗名にある「天満橋店」は、現在の公式ページでは確認できない。公式ページが掲載する堺筋本町駅の情報だけを採用した。"]
+  },
+  "838": {
+    "official_name": {"status": "verified", "value": "ChouChou～シュシュ～北新地", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://chouchou-kitashinchi.com/", "source_ids": ["s1"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 5, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌4:00", "opens_at": "10:00", "closes_at": "04:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {"name": "スタンダードコース 60分", "duration_minutes": 60, "amount_yen": 10000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダードコース 90分", "duration_minutes": 90, "amount_yen": 13000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダードコース 120分", "duration_minutes": 120, "amount_yen": 18000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダードコース 150分", "duration_minutes": 150, "amount_yen": 23000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s2"]
+    },
+    "contact": {"phone": {"status": "verified", "value": "080-4889-1063", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-4889-1063", "source_ids": ["s1"]}]},
+    "unverified_fields": ["address", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "ChouChou 公式サイト", "url": "https://chouchou-kitashinchi.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://chouchou-kitashinchi.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://chouchou-kitashinchi.com/access/", "checked_on": "2026-07-15", "fields": ["access_points"]}
+    ],
+    "notes": ["公式サイトは複数ルームをまとめて案内している。堺筋本町ルームの駅情報だけを採用した。"]
+  },
+  "853": {
+    "official_name": {"status": "verified", "value": "Mrs.FlowerSpa", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://mrs-flowerspa.com/", "source_ids": ["s1"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 5, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "11:00〜翌5:00（受付10:00〜翌3:00）", "opens_at": "11:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {"name": "通常コース 90分", "duration_minutes": 90, "amount_yen": 15000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "通常コース 100分", "duration_minutes": 100, "amount_yen": 17000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "通常コース 120分", "duration_minutes": 120, "amount_yen": 20000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "通常コース 150分", "duration_minutes": 150, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "通常コース 180分", "duration_minutes": 180, "amount_yen": 30000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s2"]
+    },
+    "contact": {"phone": {"status": "verified", "value": "080-4583-9121", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-4583-9121", "source_ids": ["s1"]}]},
+    "unverified_fields": ["address", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "Mrs.FlowerSpa 公式サイト", "url": "https://mrs-flowerspa.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://mrs-flowerspa.com/system", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://mrs-flowerspa.com/access", "checked_on": "2026-07-15", "fields": ["access_points"]}
+    ]
+  },
+  "799": {
+    "official_name": {"status": "verified", "value": "ファーストクラス", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://firstclass-osaka.net/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪市中央区材木町1丁目", "visibility": "after-booking", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 5, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜26:00（受付9:00〜25:00）", "opens_at": "10:00", "closes_at": "02:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s3"]},
+    "prices": {
+      "status": "verified",
+      "courses": [
+        {"name": "スタンダード 60分", "duration_minutes": 60, "amount_yen": 10000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 90分", "duration_minutes": 90, "amount_yen": 14000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 120分", "duration_minutes": 120, "amount_yen": 18000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+        {"name": "スタンダード 150分", "duration_minutes": 150, "amount_yen": 23000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+      ],
+      "representative_course_index": 0,
+      "source_ids": ["s2"]
+    },
+    "contact": {"phone": {"status": "verified", "value": "06-6633-7886", "source_ids": ["s3"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:06-6633-7886", "source_ids": ["s3"]}]},
+    "unverified_fields": ["beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "ファーストクラス 公式サイト", "url": "https://firstclass-osaka.net/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://firstclass-osaka.net/system", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス・予約", "url": "https://firstclass-osaka.net/access", "checked_on": "2026-07-15", "fields": ["address", "access_points", "business_hours", "contact.phone", "contact.booking_methods"]}
+    ],
+    "notes": ["詳細住所は予約確定後案内のため、公開ページで確認できる町名までを保持する。"]
+  },
+  "805": {
+    "official_name": {"status": "verified", "value": "かりそめ別館 大阪泡洗体マッサージ", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://karisome-bekkan.com/", "source_ids": ["s1"]},
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌5:30（受付9:00〜翌3:30）", "opens_at": "10:00", "closes_at": "05:30", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "スタンダードメンズエステコース 90分", "duration_minutes": 90, "amount_yen": 13000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "スタンダードメンズエステコース 120分", "duration_minutes": 120, "amount_yen": 17000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "スタンダードメンズエステコース 150分", "duration_minutes": 150, "amount_yen": 21000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "スタンダードメンズエステコース 180分", "duration_minutes": 180, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "090-2282-4545", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:090-2282-4545", "source_ids": ["s1"]}]},
+    "unverified_fields": ["address", "access_points", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "かりそめ別館 公式サイト", "url": "https://karisome-bekkan.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://karisome-bekkan.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]}
+    ],
+    "notes": ["WordPress登録URL karisome.jp は現在の公式サイトへ転送される。現行公式名がWordPress名と異なるため名称差分は要確認とする。"]
+  },
+  "807": {
+    "official_name": {"status": "verified", "value": "君色ドレスSPA", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://kimiiro-dress.men-este.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪府大阪市中央区", "visibility": "public", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 3, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌6:00", "opens_at": "10:00", "closes_at": "06:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "基本コース 60分", "duration_minutes": 60, "amount_yen": 10000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本コース 90分", "duration_minutes": 90, "amount_yen": 13000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本コース 120分", "duration_minutes": 120, "amount_yen": 17000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本コース 150分", "duration_minutes": 150, "amount_yen": 21000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本コース 180分", "duration_minutes": 180, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "090-8239-1919", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:090-8239-1919", "source_ids": ["s1"]},
+      {"type": "web", "label": "WEB予約", "url": "https://estama.jp/shop/30754/reserve/", "source_ids": ["s1"]}
+    ]},
+    "unverified_fields": ["address_detail", "exit", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "君色ドレスSPA 公式サイト", "url": "https://kimiiro-dress.men-este.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://kimiiro-dress.men-este.com/system.html", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://kimiiro-dress.men-este.com/access.html", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["堺筋本町ルームの公開住所は大阪府大阪市中央区まで。フッターの番地は日本橋店のため堺筋本町住所に流用しない。"]
+  },
+  "812": {
+    "official_name": {"status": "verified", "value": "ミルクティー -milktea-", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://osakamilktea.com/", "source_ids": ["s1"]},
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌5:00", "opens_at": "10:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "contact": {"phone": {"status": "verified", "value": "080-9125-1071", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:080-9125-1071", "source_ids": ["s1"]},
+      {"type": "line", "label": "公式LINE", "url": "http://line.me/ti/p/DxUNSPnuRj", "source_ids": ["s1"]}
+    ]},
+    "unverified_fields": ["address", "access_points", "prices", "beginner_guidance"],
+    "sources": [{"id": "s1", "kind": "official-site", "title": "ミルクティー 公式サイト", "url": "https://osakamilktea.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]}],
+    "notes": ["公式ページは日本橋店表記で、堺筋本町の駅・住所情報は確認できなかった。料金ページは画像中心のため今回の取得経路では金額を一次情報として確定していない。"]
+  },
+  "815": {
+    "official_name": {"status": "verified", "value": "Mrs.HOLIC(ミセスホリック)", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://mrs-holic.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪市中央区高津2丁目", "visibility": "public", "source_ids": ["s3"]},
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌5:00", "opens_at": "10:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "通常料金 90分", "duration_minutes": 90, "amount_yen": 14000, "conditions": "公式ページ掲載の割引前通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常料金 120分", "duration_minutes": 120, "amount_yen": 18000, "conditions": "公式ページ掲載の割引前通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常料金 150分", "duration_minutes": 150, "amount_yen": 23000, "conditions": "公式ページ掲載の割引前通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-9303-2100", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-9303-2100", "source_ids": ["s1"]}]},
+    "unverified_fields": ["access_points", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "Mrs.HOLIC 公式サイト", "url": "https://mrs-holic.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://mrs-holic.com/system", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://mrs-holic.com/access", "checked_on": "2026-07-15", "fields": ["address"]}
+    ],
+    "notes": ["割引実施中のため、代表料金はページ上の矢印左側に掲載された通常料金から選定した。駅・徒歩分は掲載がなく未確認。"]
+  },
+  "817": {
+    "official_name": {"status": "verified", "value": "なにわ女子", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://naniwajoshi.com/", "source_ids": ["s1"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 3, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "14:00〜翌5:00（最終受付3:30）", "opens_at": "14:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "通常コース 60分", "duration_minutes": 60, "amount_yen": 11000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 90分", "duration_minutes": 90, "amount_yen": 15000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 120分", "duration_minutes": 120, "amount_yen": 20000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 150分", "duration_minutes": 150, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 180分", "duration_minutes": 180, "amount_yen": 30000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-7385-5289", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:080-7385-5289", "source_ids": ["s1"]},
+      {"type": "web", "label": "ネット予約", "url": "https://estama.jp/shop/38677/reserve/", "source_ids": ["s1"]},
+      {"type": "line", "label": "公式LINE", "url": "https://line.me/ti/g2/laWCo88uI63-K3Ve0lhqTa3PP7m2JOnNPWHReg", "source_ids": ["s1"]}
+    ]},
+    "unverified_fields": ["address", "exit", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "なにわ女子 公式サイト", "url": "https://naniwajoshi.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://naniwajoshi.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://naniwajoshi.com/access/", "checked_on": "2026-07-15", "fields": ["access_points"]}
+    ]
+  },
+  "820": {
+    "official_name": {"status": "verified", "value": "LUXY（ラグジー）", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://luxy-spa.com/top.php", "source_ids": ["s1"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": null, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌4:00（受付終了 翌2:30）", "opens_at": "10:00", "closes_at": "04:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "基本メニュー 90分", "duration_minutes": 90, "amount_yen": 16500, "conditions": "税込支払額", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本メニュー 120分", "duration_minutes": 120, "amount_yen": 22000, "conditions": "税込支払額", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本メニュー 150分", "duration_minutes": 150, "amount_yen": 29700, "conditions": "税込支払額", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本メニュー 180分", "duration_minutes": 180, "amount_yen": 39600, "conditions": "税込支払額", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "06-4256-1638", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:06-4256-1638", "source_ids": ["s1"]}]},
+    "beginner_guidance": {"status": "verified", "value": "初回は指名なしのフリーオーダーを推奨し、案内可能なセラピストからおすすめを案内すると説明している。", "source_ids": ["s2"]},
+    "unverified_fields": ["address", "exit", "walk_minutes"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "LUXY 公式サイト", "url": "https://luxy-spa.com/top.php", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://luxy-spa.com/system.php", "checked_on": "2026-07-15", "fields": ["prices", "beginner_guidance"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://luxy-spa.com/access.php", "checked_on": "2026-07-15", "fields": ["access_points"]}
+    ],
+    "notes": ["料金は税別表示と税込表示が併記されているため、支払額となる税込値を保存した。徒歩すぐは分数へ推測変換しない。"]
+  },
+  "826": {
+    "official_name": {"status": "verified", "value": "Un Secret（アンスクレ）", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://unsecret-osaka.com/top.php", "source_ids": ["s1"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": null, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌4:00（受付9:00〜翌2:30）", "opens_at": "10:00", "closes_at": "04:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "超濃厚密着施術 90分", "duration_minutes": 90, "amount_yen": 18000, "conditions": "コース料金に全て込み", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "超濃厚密着施術 120分", "duration_minutes": 120, "amount_yen": 24000, "conditions": "コース料金に全て込み", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "超濃厚密着施術 150分", "duration_minutes": 150, "amount_yen": 31000, "conditions": "コース料金に全て込み", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "超濃厚密着施術 180分", "duration_minutes": 180, "amount_yen": 40000, "conditions": "コース料金に全て込み", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "06-4256-1639", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:06-4256-1639", "source_ids": ["s1"]}]},
+    "beginner_guidance": {"status": "verified", "value": "初回は指名なしのフリーオーダーを推奨し、案内可能なセラピストからおすすめを案内すると説明している。", "source_ids": ["s2"]},
+    "unverified_fields": ["address", "exit", "walk_minutes"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "Un Secret 公式サイト", "url": "https://unsecret-osaka.com/top.php", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://unsecret-osaka.com/system.php", "checked_on": "2026-07-15", "fields": ["prices", "beginner_guidance"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://unsecret-osaka.com/access.php", "checked_on": "2026-07-15", "fields": ["access_points"]}
+    ],
+    "notes": ["徒歩すぐは分数へ推測変換しない。"]
+  },
+  "828": {
+    "official_name": {"status": "verified", "value": "VISCONTI（ヴィスコンティ）", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "http://www.menseste.jp/", "source_ids": ["s1"]},
+    "address": {"status": "not-published", "value": null, "visibility": "after-booking", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": "3番出口", "walk_minutes": 2, "source_ids": ["s3"]}],
+    "contact": {"phone": {"status": "verified", "value": "080-9601-0184", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:080-9601-0184", "source_ids": ["s1"]},
+      {"type": "line", "label": "LINE予約", "url": "https://line.me/ti/p/sPWbU1OKhv", "source_ids": ["s1"]}
+    ]},
+    "beginner_guidance": {"status": "verified", "value": "明示金額以外の追加料金、指名料、オプション設定がなく、初めてでも料金を把握しやすいと説明している。", "source_ids": ["s2"]},
+    "unverified_fields": ["business_hours", "prices"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "VISCONTI 公式サイト", "url": "http://www.menseste.jp/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "ご利用料金", "url": "http://www.menseste.jp/price.html", "checked_on": "2026-07-15", "fields": ["beginner_guidance"]},
+      {"id": "s3", "kind": "official-site", "title": "サロンのご紹介", "url": "http://www.menseste.jp/salon.html", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["詳細住所は予約後にSMSまたはLINEで案内すると明記されている。料金の金額部分は画像中心で取得できず、推測せず未確認とした。"]
+  },
+  "794": {
+    "official_name": {"status": "verified", "value": "CLUB LEGGENDA（クラブレジェンダ）", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://club-leggenda.com/", "source_ids": ["s1"]},
+    "business_hours": {"status": "verified", "value": {"display": "16:00〜翌5:00", "opens_at": "16:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "夜蝶コース 65分", "duration_minutes": 65, "amount_yen": 12000, "conditions": "通常料金・各種割引適用外", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "夜蝶コース 90分", "duration_minutes": 90, "amount_yen": 16000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 90分", "duration_minutes": 90, "amount_yen": 13000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 120分", "duration_minutes": 120, "amount_yen": 17000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 150分", "duration_minutes": 150, "amount_yen": 22000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 180分", "duration_minutes": 180, "amount_yen": 27000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-4709-6286", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-4709-6286", "source_ids": ["s1"]}]},
+    "unverified_fields": ["address", "access_points", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "CLUB LEGGENDA 公式サイト", "url": "https://club-leggenda.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://club-leggenda.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]}
+    ],
+    "notes": ["ページ上部・下部の現行営業時間16:00〜翌5:00を採用。古いイベント本文の16:00〜翌4:00は採用しない。"]
+  },
+  "795": {
+    "official_name": {"status": "verified", "value": "C.r.e.a.m", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://www.cream-osaka.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪市中央区久太郎町", "visibility": "after-booking", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": "3番出口", "walk_minutes": 2, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌5:00（受付 翌3:30まで）", "opens_at": "10:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s3"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "通常コース 90分", "duration_minutes": 90, "amount_yen": 14000, "conditions": "割引前通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 120分", "duration_minutes": 120, "amount_yen": 19000, "conditions": "割引前通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "通常コース 150分", "duration_minutes": 150, "amount_yen": 24000, "conditions": "割引前通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-6210-9216", "source_ids": ["s3"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-6210-9216", "source_ids": ["s3"]}]},
+    "unverified_fields": ["address_detail", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "C.r.e.a.m 公式サイト", "url": "https://www.cream-osaka.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url"]},
+      {"id": "s2", "kind": "official-site", "title": "公式トップ掲載の料金案内", "url": "https://www.cream-osaka.com/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://www.cream-osaka.com/access.html", "checked_on": "2026-07-15", "fields": ["address", "access_points", "business_hours", "contact.phone", "contact.booking_methods"]}
+    ],
+    "notes": ["詳細住所は予約時案内。公式トップの割引イベントから、矢印左側に掲載された通常料金を保存した。"]
+  },
+  "747": {
+    "official_name": {"status": "verified", "value": "Sanando サナンド", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://sanando.jp/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "〒542-0072 大阪府大阪市中央区高津2丁目3-14", "visibility": "public", "source_ids": ["s3"]},
+    "access_points": [{"station": "日本橋駅", "exit": "7番出口", "walk_minutes": 5, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜26:00（受付9:00〜25:00、事前予約9:00〜24:00）", "opens_at": "10:00", "closes_at": "02:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "Price List 75分", "duration_minutes": 75, "amount_yen": 12500, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "Price List 90分", "duration_minutes": 90, "amount_yen": 14500, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "Price List 120分", "duration_minutes": 120, "amount_yen": 18500, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "Price List 150分", "duration_minutes": 150, "amount_yen": 23500, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "Price List 180分", "duration_minutes": 180, "amount_yen": 29500, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-8520-0955", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-8520-0955", "source_ids": ["s1"]}]},
+    "unverified_fields": ["sakaisujihonmachi_access", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "Sanando 公式サイト", "url": "https://sanando.jp/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://sanando.jp/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://sanando.jp/access/", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["公式アクセスは日本橋店の住所・駅のみ。堺筋本町の駅情報として流用しない。新規割引は代表料金から除外した。"]
+  },
+  "763": {
+    "official_name": {"status": "verified", "value": "こころのゆりかご", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://kokoronoyurikago-osaka.site/", "source_ids": ["s1"]},
+    "contact": {"phone": {"status": "unverified", "value": null, "source_ids": []}, "booking_methods": [{"type": "web", "label": "WEB予約", "url": "https://kokoronoyurikago-osaka.site/reservation.html", "source_ids": ["s2"]}]},
+    "unverified_fields": ["address", "access_points", "business_hours", "prices", "phone", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "こころのゆりかご 公式サイト", "url": "https://kokoronoyurikago-osaka.site/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url"]},
+      {"id": "s2", "kind": "official-site", "title": "ご予約", "url": "https://kokoronoyurikago-osaka.site/reservation.html", "checked_on": "2026-07-15", "fields": ["contact.booking_methods"]}
+    ],
+    "notes": ["料金・電話・アクセスは画像中心で、今回の取得経路では文字として確定できなかった。画像から推測せず未確認とした。"]
+  },
+  "775": {
+    "official_name": {"status": "verified", "value": "ゆだねて", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://www.yudanete.com/", "source_ids": ["s1"]},
+    "address": {"status": "not-published", "value": null, "visibility": "after-booking", "source_ids": ["s3"]},
+    "access_points": [
+      {"station": "長堀橋駅", "exit": "2-B番出口", "walk_minutes": 3, "source_ids": ["s3"]},
+      {"station": "堺筋本町駅", "exit": "10番出口", "walk_minutes": 6, "source_ids": ["s3"]}
+    ],
+    "business_hours": {"status": "verified", "value": {"display": "堺筋本町ルーム 10:00〜3:00（共通受付8:00〜2:00）", "opens_at": "10:00", "closes_at": "03:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s3"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "コース料金 60分", "duration_minutes": 60, "amount_yen": 11000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 90分", "duration_minutes": 90, "amount_yen": 13000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 120分", "duration_minutes": 120, "amount_yen": 16000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 150分", "duration_minutes": 150, "amount_yen": 20000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 180分", "duration_minutes": 180, "amount_yen": 25000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 210分", "duration_minutes": 210, "amount_yen": 31000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-8899-1363", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:080-8899-1363", "source_ids": ["s1"]},
+      {"type": "web", "label": "WEB予約", "url": "https://www.yudanete.com/reserve.html", "source_ids": ["s4"]},
+      {"type": "line", "label": "LINE予約", "url": "https://line.me/ti/p/pytwZ7ihxV", "source_ids": ["s1"]}
+    ]},
+    "unverified_fields": ["address_detail", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "ゆだねて 公式サイト", "url": "https://www.yudanete.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://www.yudanete.com/system.html", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://www.yudanete.com/access.html", "checked_on": "2026-07-15", "fields": ["address", "access_points", "business_hours"]},
+      {"id": "s4", "kind": "official-site", "title": "予約フォーム", "url": "https://www.yudanete.com/reserve.html", "checked_on": "2026-07-15", "fields": ["contact.booking_methods"]}
+    ],
+    "notes": ["共通ヘッダーは営業時間10:00〜2:00だが、アクセスページの堺筋本町ルームは10:00〜3:00。対象ルームの値を採用し差異を保持した。"]
+  },
+  "779": {
+    "official_name": {"status": "verified", "value": "アヌSPA-アヌスパ-", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://anuspa.club/", "source_ids": ["s1"]},
+    "address": {"status": "not-published", "value": null, "visibility": "after-booking", "source_ids": ["s2"]},
+    "business_hours": {"status": "verified", "value": {"display": "11:00〜LAST（受付10:00〜LAST）", "opens_at": "11:00", "closes_at": null, "closes_next_day": false, "is_24_hours": false}, "source_ids": ["s1"]},
+    "contact": {"phone": {"status": "verified", "value": "070-4416-2728", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:070-4416-2728", "source_ids": ["s1"]}]},
+    "beginner_guidance": {"status": "verified", "value": "初回は指名なしのフリーオーダーを推奨し、おすすめのセラピストで案内すると説明している。", "source_ids": ["s2"]},
+    "unverified_fields": ["address_detail", "sakaisujihonmachi_access", "prices", "closing_time"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "アヌSPA 公式サイト", "url": "https://anuspa.club/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム・ご利用方法", "url": "https://anuspa.club/system.html", "checked_on": "2026-07-15", "fields": ["address", "beginner_guidance"]}
+    ],
+    "notes": ["LASTの具体時刻は掲載されていないため空欄。詳細住所は予約成立後のSMSで案内。料金表は画像中心のため金額は未確認。アクセスページは谷町九丁目駅だけで、堺筋本町駅は未確認。"]
+  },
+  "715": {
+    "official_name": {"status": "verified", "value": "The Gloss", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://gloss-osaka.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪府大阪市中央区久太郎町1丁目6-1", "visibility": "public", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": "3番出口", "walk_minutes": 5, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌5:00", "opens_at": "10:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "コース料金 90分", "duration_minutes": 90, "amount_yen": 16000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 120分", "duration_minutes": 120, "amount_yen": 22000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 150分", "duration_minutes": 150, "amount_yen": 28000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 180分", "duration_minutes": 180, "amount_yen": 34000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-3039-4363", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:080-3039-4363", "source_ids": ["s1"]},
+      {"type": "web", "label": "予約フォーム", "url": "https://gloss-osaka.com/reserve/", "source_ids": ["s1"]},
+      {"type": "line", "label": "LINE予約", "url": "https://line.me/ti/p/BfdNWwkM6W", "source_ids": ["s1"]}
+    ]},
+    "unverified_fields": ["beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "The Gloss 公式サイト", "url": "https://gloss-osaka.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://gloss-osaka.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://gloss-osaka.com/access/", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["WordPressで公式URLが空だったため、店名・電話・営業時間が一致する現行公式サイトを採用した。新規割引額は代表料金に使わない。"]
+  },
+  "716": {
+    "official_name": {"status": "verified", "value": "桃源郷", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://tougenkyou-osaka.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪府大阪市中央区南久宝寺1丁目", "visibility": "public", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": "3番出口", "walk_minutes": null, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜翌5:00", "opens_at": "10:00", "closes_at": "05:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "コース料金 90分", "duration_minutes": 90, "amount_yen": 12000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 120分", "duration_minutes": 120, "amount_yen": 16000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "コース料金 150分", "duration_minutes": 150, "amount_yen": 20000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "070-4192-6210", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:070-4192-6210", "source_ids": ["s1"]},
+      {"type": "line", "label": "公式LINE", "url": "https://line.me/ti/p/kioeoS1hiH", "source_ids": ["s1"]}
+    ]},
+    "unverified_fields": ["walk_minutes", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "桃源郷 公式サイト", "url": "https://tougenkyou-osaka.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://tougenkyou-osaka.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://tougenkyou-osaka.com/access/", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["公式アクセスは出口を掲載しているが徒歩分数は掲載していない。"]
+  },
+  "700": {
+    "unverified_fields": ["official_name", "official_url", "address", "access_points", "business_hours", "prices", "phone", "booking_methods", "beginner_guidance"],
+    "notes": ["一次情報となる現行公式サイトを特定できなかった。WordPress登録値と第三者掲載値は確認済み値へ昇格せず、すべて未確認として保持する。"]
+  },
+  "717": {
+    "official_name": {"status": "verified", "value": "UNION＋ - ユニオン プラス -", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://union-plus-es.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪府大阪市中央区北久宝寺町1丁目3", "visibility": "public", "source_ids": ["s3"]},
+    "access_points": [{"station": "堺筋本町駅", "exit": null, "walk_minutes": 3, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜25:00（受付9:00〜24:00）", "opens_at": "10:00", "closes_at": "01:00", "closes_next_day": true, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "基本料金 90分", "duration_minutes": 90, "amount_yen": 14000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 120分", "duration_minutes": 120, "amount_yen": 19000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 150分", "duration_minutes": 150, "amount_yen": 24000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 180分", "duration_minutes": 180, "amount_yen": 29000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-9600-9300", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:080-9600-9300", "source_ids": ["s1"]},
+      {"type": "line", "label": "LINE予約", "url": "https://lin.ee/YW05ESD", "source_ids": ["s1"]},
+      {"type": "web", "label": "WEB予約", "url": "https://union-plus-es.com/reserve/", "source_ids": ["s4"]}
+    ]},
+    "unverified_fields": ["exit", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "UNION＋ 公式サイト", "url": "https://union-plus-es.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://union-plus-es.com/price", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://union-plus-es.com/access", "checked_on": "2026-07-15", "fields": ["address", "access_points"]},
+      {"id": "s4", "kind": "official-site", "title": "ご予約", "url": "https://union-plus-es.com/reserve/", "checked_on": "2026-07-15", "fields": ["contact.booking_methods"]}
+    ],
+    "notes": ["新規割引・事前予約割引等は代表料金から除外した。"]
+  },
+  "701": {
+    "official_name": {"status": "verified", "value": "Queen Spumante（クイーンスプマンテ）", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "https://queenspumante.com/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪府大阪市中央区南久宝寺町1丁目", "visibility": "public", "source_ids": ["s3"]},
+    "access_points": [
+      {"station": "堺筋本町駅", "exit": "3番出口", "walk_minutes": 5, "source_ids": ["s3"]},
+      {"station": "長堀橋駅", "exit": "3番出口", "walk_minutes": 5, "source_ids": ["s3"]}
+    ],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜LAST（電話受付9:30〜3:30）", "opens_at": "10:00", "closes_at": null, "closes_next_day": false, "is_24_hours": false}, "source_ids": ["s1"]},
+    "prices": {"status": "verified", "courses": [
+      {"name": "基本料金 60分", "duration_minutes": 60, "amount_yen": 8000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 90分", "duration_minutes": 90, "amount_yen": 12000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 120分", "duration_minutes": 120, "amount_yen": 18000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 150分", "duration_minutes": 150, "amount_yen": 24000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]},
+      {"name": "基本料金 180分", "duration_minutes": 180, "amount_yen": 32000, "conditions": "通常料金", "representative_eligible": true, "source_ids": ["s2"]}
+    ], "representative_course_index": 0, "source_ids": ["s2"]},
+    "contact": {"phone": {"status": "verified", "value": "080-9602-0880", "source_ids": ["s1"]}, "booking_methods": [{"type": "phone", "label": "電話予約", "url": "tel:080-9602-0880", "source_ids": ["s1"]}]},
+    "unverified_fields": ["closing_time", "beginner_guidance"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "Queen Spumante 公式サイト", "url": "https://queenspumante.com/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "business_hours", "contact.phone", "contact.booking_methods"]},
+      {"id": "s2", "kind": "official-site", "title": "料金システム", "url": "https://queenspumante.com/system/", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "アクセス", "url": "https://queenspumante.com/map/", "checked_on": "2026-07-15", "fields": ["address", "access_points"]}
+    ],
+    "notes": ["LASTの具体時刻は掲載されていないため空欄。WordPressで公式URLが空だったため、店名・電話・対象ルームが一致する現行公式サイトを採用した。"]
+  },
+  "719": {
+    "official_name": {"status": "verified", "value": "VIO:V（ヴィオーヴ）", "source_ids": ["s1"]},
+    "official_url": {"status": "verified", "value": "http://www.viov.jp/", "source_ids": ["s1"]},
+    "address": {"status": "verified", "value": "大阪市中央区島之内周辺", "visibility": "after-booking", "source_ids": ["s3"]},
+    "access_points": [{"station": "長堀橋駅", "exit": null, "walk_minutes": 1, "source_ids": ["s3"]}],
+    "business_hours": {"status": "verified", "value": {"display": "10:00〜22:00（予約受付9:00〜21:00）", "opens_at": "10:00", "closes_at": "22:00", "closes_next_day": false, "is_24_hours": false}, "source_ids": ["s3"]},
+    "contact": {"phone": {"status": "verified", "value": "070-1814-0342", "source_ids": ["s1"]}, "booking_methods": [
+      {"type": "phone", "label": "電話予約", "url": "tel:070-1814-0342", "source_ids": ["s1"]},
+      {"type": "line", "label": "LINE予約", "url": "https://line.me/ti/p/Hrbqetw589", "source_ids": ["s1"]}
+    ]},
+    "beginner_guidance": {"status": "verified", "value": "初回だけ安く見せる広告や高額ローン勧誘は行わないと説明している。", "source_ids": ["s1"]},
+    "unverified_fields": ["address_detail", "exit", "prices"],
+    "sources": [
+      {"id": "s1", "kind": "official-site", "title": "VIO:V 公式サイト", "url": "http://www.viov.jp/", "checked_on": "2026-07-15", "fields": ["official_name", "official_url", "contact.phone", "contact.booking_methods", "beginner_guidance"]},
+      {"id": "s2", "kind": "official-site", "title": "料金表", "url": "http://www.viov.jp/price.html", "checked_on": "2026-07-15", "fields": ["prices"]},
+      {"id": "s3", "kind": "official-site", "title": "サロン紹介", "url": "http://www.viov.jp/salon.html", "checked_on": "2026-07-15", "fields": ["address", "access_points", "business_hours"]}
+    ],
+    "notes": ["詳細住所は予約時にSMSで案内。料金表は画像だけで金額を文字として確認できないため未確認とした。"]
+  }
+}

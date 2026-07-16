@@ -22,6 +22,9 @@ Thumbs.db
 # Headless 生成レポート（URL パリティ等）
 headless/reports/
 
+# WordPress全件移行SQL（元データを含むためGit追加禁止）
+supabase/imports/*.sql
+
 # エディタ
 .cursor/
 *.swp

@@ -26,6 +26,11 @@ const migrationFiles = readdirSync(migrationsDir).filter((file) =>
 assert.equal(migrationFiles.length, 1, "Exactly one SEO-safe content migration must exist");
 
 const sql = requiredFile(join(migrationsDir, migrationFiles[0]), "SEO-safe content migration");
+const allMigrationSql = readdirSync(migrationsDir)
+  .filter((file) => file.endsWith(".sql"))
+  .sort()
+  .map((file) => requiredFile(join(migrationsDir, file), `Supabase migration ${file}`))
+  .join("\n");
 const appTables = [
   "areas",
   "shops",
@@ -125,5 +130,19 @@ assert.match(
   /exists\s*\(\s*select 1 from app\.shops/i,
   "Published reviews must require a published shop"
 );
+
+const sourceForeignKeyIndexes = [
+  ["content_revisions", "source_id"],
+  ["contents", "source_id"],
+  ["shop_source_links", "source_id"]
+];
+
+for (const [table, column] of sourceForeignKeyIndexes) {
+  assert.match(
+    allMigrationSql,
+    new RegExp(`create index [^;]+ on app\\.${table} \\(\\s*${column}\\s*\\)`, "i"),
+    `Foreign key app.${table}.${column} must have a covering index`
+  );
+}
 
 console.log("Supabase content schema contract passed.");
