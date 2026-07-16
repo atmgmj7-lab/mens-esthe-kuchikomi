@@ -162,9 +162,9 @@ assert.deepEqual(
 assert.deepEqual(
   Array.from(full.quickLinks, ({ label, href }) => ({ label, href })),
   [
-    { label: "料金", href: "/shops/full-shop/#shop-price" },
-    { label: "基本情報", href: "/shops/full-shop/#shop-data" },
-    { label: "口コミ", href: "/shops/full-shop/#shop-reviews" }
+    { label: "料金", href: "/shops/full-shop/#prices" },
+    { label: "基本情報", href: "/shops/full-shop/#hours-access" },
+    { label: "口コミ", href: "/shops/full-shop/#reviews" }
   ]
 );
 

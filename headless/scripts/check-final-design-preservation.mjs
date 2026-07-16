@@ -80,6 +80,8 @@ function renderShopDetailIntegrationFixture({
     promotionInputs: [],
     reviewSubmitSlugs: [],
     schemaShops: [],
+    sectionLinkBuilds: [],
+    sectionNavProps: [],
     sectionsProps: []
   };
 
@@ -127,13 +129,13 @@ function renderShopDetailIntegrationFixture({
         captures.sectionsProps.push(props);
         const children = [];
         if (props.model.prices.length > 0) {
-          children.push(React.createElement("section", { id: "shop-price", key: "price" }));
+          children.push(React.createElement("section", { id: "prices", key: "price" }));
         }
         if (props.model.infoRows.length > 0) {
-          children.push(React.createElement("section", { id: "shop-data", key: "data" }));
+          children.push(React.createElement("section", { id: "hours-access", key: "data" }));
         }
         children.push(
-          React.createElement("section", { id: "shop-reviews", key: "reviews" }),
+          React.createElement("section", { id: "reviews", key: "reviews" }),
           React.createElement(
             "a",
             { href: props.reviewSubmitUrl, key: "review-submit" },
@@ -144,6 +146,19 @@ function renderShopDetailIntegrationFixture({
           "div",
           { "data-shop-integration": "sections" },
           children
+        );
+      }
+    },
+    "@/components/shop-detail/ShopSectionNav": {
+      ShopSectionNav: (props) => {
+        captures.sectionNavProps.push(props);
+        if (props.links.length === 0) return null;
+        return React.createElement(
+          "nav",
+          { "data-shop-integration": "section-nav" },
+          props.links.map((link) =>
+            React.createElement("a", { href: `#${link.id}`, key: link.id }, link.label)
+          )
         );
       }
     },
@@ -159,7 +174,7 @@ function renderShopDetailIntegrationFixture({
       visual: "shop-detail-visual",
       visualAside: "shop-detail-visual-aside",
       kicker: "shop-detail-kicker",
-      quickLinks: "shop-detail-quick-links"
+      sectionAnchor: "shop-detail-section-anchor"
     },
     "@/lib/area-shop-utils": {
       extractShopUserReviewItems: (inputShop) => {
@@ -189,6 +204,19 @@ function renderShopDetailIntegrationFixture({
       buildShopDetailViewModel: (inputShop, areaName) => {
         captures.modelBuilds.push({ shop: inputShop, areaName });
         return model;
+      },
+      buildShopSectionLinks: (inputModel, options) => {
+        captures.sectionLinkBuilds.push({ model: inputModel, options });
+        const links = [];
+        if (inputModel.catchText || inputModel.introductionText || inputModel.recommendText || inputModel.summaryText) {
+          links.push({ id: "overview", label: "概要" });
+        }
+        if (inputModel.prices.length > 0) links.push({ id: "prices", label: "料金" });
+        if (inputModel.infoRows.length > 0) links.push({ id: "hours-access", label: "営業時間・アクセス" });
+        if (inputModel.featureNames.length > 0) links.push({ id: "features", label: "特徴" });
+        if (options.hasReviews) links.push({ id: "reviews", label: "口コミ" });
+        if (options.hasNearby) links.push({ id: "nearby", label: "近隣店舗" });
+        return links;
       }
     }
   });
@@ -294,9 +322,9 @@ assert.ok(shopDetail.includes("ShopDetailHero"));
 assert.ok(shopDetail.includes("ShopDetailGallery"));
 assert.ok(shopDetail.includes("ShopDetailSections"));
 assert.ok(shopDetail.includes("ShopOwnerCta"));
-assert.ok(shopDetail.includes('id="shop-price"') || detailSections.includes('id="shop-price"'));
-assert.ok(detailSections.includes('id="shop-reviews"'));
-assert.ok(detailSections.includes('id="shop-data"'));
+assert.ok(detailSections.includes('id="prices"'));
+assert.ok(detailSections.includes('id="reviews"'));
+assert.ok(detailSections.includes('id="hours-access"'));
 assert.ok(!shopDetail.includes("areaAvg60"));
 assert.ok(!shopDetail.includes("shpc-badge-open"));
 assert.ok(!shopDetail.includes("age_18_19"));
@@ -538,7 +566,7 @@ const fullSectionsModel = {
   slug: "safe-shop",
   prices: [{ key: "price_90", label: "90分", price: { status: "confirmed", amount: 14000 } }],
   catchText: '<em data-source="catch">店舗提供のキャッチ</em>',
-  introductionHtml:
+  introductionText:
     '<p data-source="wordpress-introduction"><strong>WordPress店舗紹介本文</strong></p>',
   recommendText: '<em data-source="recommend">編集部のおすすめ情報</em>',
   summaryText: '<em data-source="summary">公開情報から整理した掲載情報</em>',
@@ -576,9 +604,13 @@ for (const heading of ["料金プラン", "この店舗について", "特徴・
 assert.ok(fullSectionsHtml.includes("<td>14,000円</td>"), "full price row must render the approved 14,000 yen value");
 assert.ok(
   fullSectionsHtml.includes(
-    '<p data-source="wordpress-introduction"><strong>WordPress店舗紹介本文</strong></p>'
+    '&lt;p data-source=&quot;wordpress-introduction&quot;&gt;&lt;strong&gt;WordPress店舗紹介本文&lt;/strong&gt;&lt;/p&gt;'
   ),
-  "only the approved WordPress introduction HTML must render as real HTML"
+  "WordPress introduction text must render as escaped React text"
+);
+assert.ok(
+  !fullSectionsHtml.includes('<p data-source="wordpress-introduction">'),
+  "WordPress introduction markup must never render as real HTML"
 );
 for (const [source, text] of [
   ["catch", "店舗提供のキャッチ"],
@@ -651,7 +683,7 @@ const sparseSectionsHtml = renderToStaticMarkup(
       slug: "safe-shop",
       prices: [],
       catchText: "",
-      introductionHtml: "",
+      introductionText: "",
       recommendText: "",
       summaryText: "",
       featureNames: [],
@@ -743,7 +775,7 @@ const fullIntegrationModel = {
     }
   ],
   infoRows: [{ key: "address", label: "住所", value: "大阪市" }],
-  introductionHtml: "",
+  introductionText: "",
   catchText: "",
   recommendText: "",
   summaryText: "",
@@ -846,13 +878,15 @@ for (const [label, fixture] of [
   assert.equal(fixture.captures.reviewSubmitSlugs.length, 1, `${label} must build one review URL`);
   assert.equal(fixture.captures.schemaShops.length, 1, `${label} must build one LocalBusiness schema`);
   assert.equal(fixture.captures.promotionInputs.length, 1, `${label} must resolve one promotion rel`);
+  assert.equal(fixture.captures.sectionLinkBuilds.length, 1, `${label} must build conditional section links once`);
+  assert.equal(fixture.captures.sectionNavProps.length, 1, `${label} must compose section navigation once`);
   assert.equal(
     fixture.html.split('type="application/ld+json"').length - 1,
     1,
     `${label} must render LocalBusiness JSON-LD exactly once`
   );
   assert.ok(
-    fixture.html.includes('<section id="shop-reviews"></section>'),
+    fixture.html.includes('<section id="reviews"></section>'),
     `${label} must always render the user-review section`
   );
   assert.ok(
@@ -868,6 +902,16 @@ for (const [label, fixture] of [
     fixture.captures.extractedReviewShops[0],
     fixture.shop,
     `${label} review extraction must receive the WordPress shop`
+  );
+  assert.strictEqual(
+    fixture.captures.sectionLinkBuilds[0].model,
+    fixture.model,
+    `${label} section links must use the shared view model`
+  );
+  assert.equal(
+    fixture.captures.sectionLinkBuilds[0].options.hasReviews,
+    fixture.extractedReviews.length > 0,
+    `${label} review menu visibility must follow approved review existence`
   );
   assert.strictEqual(
     fixture.captures.sectionsProps[0].reviews,
@@ -930,6 +974,7 @@ assertMarkupOrder(
     'aria-label="パンくず"',
     'data-shop-integration="hero"',
     'data-shop-integration="gallery"',
+    'data-shop-integration="section-nav"',
     'data-shop-integration="sections"',
     'data-shop-integration="owner"',
     'data-shop-integration="area-hub"',
@@ -952,17 +997,17 @@ assertMarkupOrder(
 );
 
 for (const href of [
-  'href="#shop-price"',
-  'href="#shop-data"',
-  'href="#shop-reviews"',
-  'href="/area/osaka/#ranking"',
-  'href="/area/osaka/#price-table"'
+  'href="#prices"',
+  'href="#hours-access"',
+  'href="#reviews"',
+  'href="#nearby"'
 ]) {
   assert.ok(fullShopDetailIntegration.html.includes(href), `full shop detail must render ${href}`);
 }
-assert.ok(!sparseShopDetailIntegration.html.includes('href="#shop-price"'));
-assert.ok(!sparseShopDetailIntegration.html.includes('href="#shop-data"'));
-assert.ok(sparseShopDetailIntegration.html.includes('href="#shop-reviews"'));
+assert.ok(!sparseShopDetailIntegration.html.includes('href="#prices"'));
+assert.ok(!sparseShopDetailIntegration.html.includes('href="#hours-access"'));
+assert.ok(!sparseShopDetailIntegration.html.includes('href="#reviews"'));
+assert.ok(!sparseShopDetailIntegration.html.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailIntegration.html.includes("#ranking"));
 assert.ok(!sparseShopDetailIntegration.html.includes("#price-table"));
 

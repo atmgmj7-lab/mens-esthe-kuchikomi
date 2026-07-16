@@ -188,7 +188,7 @@ for (const [label, fixture] of [
     `${label} must pass only the extractor result to ShopDetailSections`
   );
   assert.ok(
-    fixture.html.includes('<section id="shop-reviews"></section>'),
+    fixture.html.includes('<section id="reviews"></section>'),
     `${label} must render the user-review section from the live composition`
   );
 }

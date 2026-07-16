@@ -197,7 +197,7 @@ function actions(shop: ShopView, maxActions: 2): AreaShopCardAction[] {
 function quickLinks(shop: ShopView, shopPath: string): AreaShopCardQuickLink[] {
   const links: AreaShopCardQuickLink[] = [];
   if (resolveShopCoursePrices(shop.acf).length > 0) {
-    links.push({ key: "price", label: "料金", href: `${shopPath}#shop-price` });
+    links.push({ key: "price", label: "料金", href: `${shopPath}#prices` });
   }
 
   const hasDataSection = Boolean(
@@ -211,9 +211,9 @@ function quickLinks(shop: ShopView, shopPath: string): AreaShopCardQuickLink[] {
       httpUrl(shop.acf.official_url)
   );
   if (hasDataSection) {
-    links.push({ key: "data", label: "基本情報", href: `${shopPath}#shop-data` });
+    links.push({ key: "data", label: "基本情報", href: `${shopPath}#hours-access` });
   }
-  links.push({ key: "reviews", label: "口コミ", href: `${shopPath}#shop-reviews` });
+  links.push({ key: "reviews", label: "口コミ", href: `${shopPath}#reviews` });
   return links;
 }
 

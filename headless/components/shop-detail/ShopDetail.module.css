@@ -151,7 +151,7 @@
 
 .primaryAction:focus-visible,
 .secondaryAction:focus-visible,
-.quickLinks a:focus-visible,
+.sectionNavLink:focus-visible,
 .infoTable a:focus-visible,
 .textLink:focus-visible {
   outline: 3px solid var(--ink);
@@ -207,32 +207,58 @@
   align-self: center;
 }
 
-.quickLinks {
-  display: grid;
-  min-width: 0;
+.sectionNav {
+  position: sticky;
+  z-index: 20;
+  top: 0;
+  margin-inline: -32px;
   border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
 }
 
-.quickLinks a {
+.sectionNavList {
   display: flex;
+  min-width: 0;
+  padding-inline: 32px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.sectionNavLink {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   min-width: 0;
   min-height: 44px;
-  padding-block: 8px;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
+  padding: 9px 18px;
+  color: var(--sub);
   font-size: 0.78rem;
+  font-weight: 700;
   line-height: 1.45;
   text-decoration: none;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
-.quickLinks a::after {
-  flex: 0 0 auto;
-  color: var(--gold);
-  content: "→";
+.sectionNavLink::after {
+  position: absolute;
+  right: 18px;
+  bottom: -1px;
+  left: 18px;
+  height: 3px;
+  background: transparent;
+  content: "";
+}
+
+.sectionNavLink[aria-current="location"] {
+  color: var(--green);
+}
+
+.sectionNavLink[aria-current="location"]::after {
+  background: var(--green);
 }
 
 .sections {
@@ -248,6 +274,11 @@
   min-width: 0;
   padding: 58px 0;
   border-bottom: 1px solid var(--line);
+  scroll-margin-top: 112px;
+}
+
+.sectionAnchor {
+  scroll-margin-top: 112px;
 }
 
 .section > :not(.sectionHeading) {
@@ -517,6 +548,14 @@
 
   .hero {
     padding-top: 18px;
+  }
+
+  .sectionNav {
+    margin-inline: -16px;
+  }
+
+  .sectionNavList {
+    padding-inline: 16px;
   }
 
   .titleRow {

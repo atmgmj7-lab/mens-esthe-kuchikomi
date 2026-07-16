@@ -6,13 +6,17 @@ import { ShopDetailGallery } from "@/components/shop-detail/ShopDetailGallery";
 import { ShopDetailHero } from "@/components/shop-detail/ShopDetailHero";
 import { ShopDetailSections } from "@/components/shop-detail/ShopDetailSections";
 import { ShopOwnerCta } from "@/components/shop-detail/ShopOwnerCta";
+import { ShopSectionNav } from "@/components/shop-detail/ShopSectionNav";
 import styles from "@/components/shop-detail/ShopDetail.module.css";
 import { extractShopUserReviewItems } from "@/lib/area-shop-utils";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
-import { buildShopDetailViewModel } from "@/lib/shop-detail-view-model";
+import {
+  buildShopDetailViewModel,
+  buildShopSectionLinks
+} from "@/lib/shop-detail-view-model";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 function resolveShopAreaNav(
@@ -68,6 +72,10 @@ export function ShopDetail({
     ? allAreas.find((area) => area.slug === areaSlugForNav)
     : undefined;
   const areaPath = areaSlugForNav ? `/area/${areaSlugForNav}/` : "";
+  const sectionLinks = buildShopSectionLinks(model, {
+    hasReviews: userReviews.length > 0,
+    hasNearby: Boolean(shopAreaForHub)
+  });
 
   return (
     <main
@@ -94,27 +102,12 @@ export function ShopDetail({
           <ShopDetailHero model={model} rel={officialRel} />
           <section
             className={styles.visual}
-            aria-label="店舗画像とページ内メニュー"
+            aria-label="店舗画像と予約案内"
           >
             <ShopDetailGallery model={model} />
             <aside className={styles.visualAside}>
               <p className={styles.kicker}>AT A GLANCE</p>
               <h2>先に知りたい情報を、迷わず確認。</h2>
-              <nav className={styles.quickLinks} aria-label="店舗詳細内メニュー">
-                {model.prices.length > 0 ? (
-                  <a href="#shop-price">料金プラン</a>
-                ) : null}
-                {model.infoRows.length > 0 ? (
-                  <a href="#shop-data">アクセス・基本情報</a>
-                ) : null}
-                <a href="#shop-reviews">ユーザー口コミ</a>
-                {areaPath ? (
-                  <>
-                    <Link href={`${areaPath}#ranking`}>同エリアランキング</Link>
-                    <Link href={`${areaPath}#price-table`}>同エリア料金比較</Link>
-                  </>
-                ) : null}
-              </nav>
               <ShopDetailActions
                 model={model}
                 rel={officialRel}
@@ -122,6 +115,7 @@ export function ShopDetail({
               />
             </aside>
           </section>
+          <ShopSectionNav links={sectionLinks} />
           <ShopDetailSections
             model={model}
             reviews={userReviews}
@@ -130,7 +124,9 @@ export function ShopDetail({
           />
           <ShopOwnerCta shop={shop} />
           {shopAreaForHub ? (
-            <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
+            <div id="nearby" className={styles.sectionAnchor}>
+              <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
+            </div>
           ) : null}
           <AreaQuickLinks
             areas={allAreas}

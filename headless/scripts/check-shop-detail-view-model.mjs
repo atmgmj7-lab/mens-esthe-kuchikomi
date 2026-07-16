@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -57,7 +57,7 @@ vm.runInNewContext(
   { module, exports: module.exports, require, URL, Date, console },
   { filename: "shop-detail-view-model.cjs" }
 );
-const { buildShopDetailViewModel } = module.exports;
+const { buildShopDetailViewModel, buildShopSectionLinks } = module.exports;
 
 const base = {
   id: 123,
@@ -100,7 +100,7 @@ assert.deepEqual(
     { kind: "official", href: "https://example.jp/", external: true }
   ]
 );
-assert.equal(full.introductionHtml, "<p>店舗紹介</p>");
+assert.equal(full.introductionText, "店舗紹介");
 
 const sparse = buildShopDetailViewModel(
   {
@@ -230,6 +230,157 @@ for (const invalidDate of ["2026-02-29", "2026-04-31", "2026-13-01", "not-a-date
     "堺筋本町"
   );
   assert.equal(invalid.verifiedAt, null, `${invalidDate} must not be a verified date`);
+}
+
+const task8Failures = [];
+function task8Contract(label, run) {
+  try {
+    run();
+  } catch (error) {
+    task8Failures.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+task8Contract("safe-introduction-text", () => {
+  const safeIntroduction = buildShopDetailViewModel(
+    {
+      ...base,
+      title: "難波 & 癒し処",
+      contentHtml: [
+        '<p onclick="alert(1)">難波 &amp; 癒し処</p>',
+        "<script>window.__unsafe = true</script>",
+        '<a href="javascript:alert(2)" onmouseover="alert(3)">ご案内</a>',
+        '<img src="x" onerror="alert(4)">'
+      ].join(" ")
+    },
+    "難波"
+  );
+
+  assert.equal(safeIntroduction.title, "難波 & 癒し処", "日本語と&を含む店舗名を変えないでください");
+  assert.equal(
+    safeIntroduction.introductionText,
+    "難波 & 癒し処 ご案内",
+    "本文はentityを復元し、HTML、script、event属性、javascript URLを除いた純文字列にしてください"
+  );
+  assert.equal(
+    Object.hasOwn(safeIntroduction, "introductionHtml"),
+    false,
+    "安全でないHTML本文のview-model fieldを残さないでください"
+  );
+  for (const forbidden of ["<script", "onclick", "onmouseover", "onerror", "javascript:"]) {
+    assert.equal(
+      JSON.stringify(safeIntroduction).toLowerCase().includes(forbidden),
+      false,
+      `view modelへ${forbidden}を残さないでください`
+    );
+  }
+});
+
+task8Contract("conditional-section-links", () => {
+  assert.equal(
+    typeof buildShopSectionLinks,
+    "function",
+    "buildShopSectionLinks(model, { hasReviews, hasNearby })をexportしてください"
+  );
+  assert.deepEqual(
+    Array.from(
+      buildShopSectionLinks(
+        {
+          ...full,
+          introductionText: "店舗紹介",
+          featureNames: ["個室"],
+          infoRows: [{ key: "hours", label: "営業時間", value: "10:00〜24:00" }]
+        },
+        { hasReviews: true, hasNearby: true }
+      ),
+      ({ id, label }) => ({ id, label })
+    ),
+    [
+      { id: "overview", label: "概要" },
+      { id: "prices", label: "料金" },
+      { id: "hours-access", label: "営業時間・アクセス" },
+      { id: "features", label: "特徴" },
+      { id: "reviews", label: "口コミ" },
+      { id: "nearby", label: "近隣店舗" }
+    ]
+  );
+  assert.deepEqual(
+    Array.from(
+      buildShopSectionLinks(
+        {
+          ...sparse,
+          introductionText: "",
+          catchText: "",
+          recommendText: "",
+          summaryText: "",
+          prices: [],
+          infoRows: [],
+          featureNames: []
+        },
+        { hasReviews: false, hasNearby: false }
+      )
+    ),
+    [],
+    "空セクションのmenu linkを作らないでください"
+  );
+});
+
+task8Contract("safe-react-rendering", () => {
+  const sectionsSource = readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8");
+  assert.equal(
+    sectionsSource.includes("dangerouslySetInnerHTML"),
+    false,
+    "店舗紹介本文をdangerouslySetInnerHTMLで描画しないでください"
+  );
+  assert.ok(
+    sectionsSource.includes("model.introductionText"),
+    "店舗紹介本文はintroductionTextをReact文字列として描画してください"
+  );
+  for (const id of ["overview", "prices", "hours-access", "features", "reviews"]) {
+    assert.ok(sectionsSource.includes(`id=\"${id}\"`), `実在sectionへ#${id}を付けてください`);
+  }
+});
+
+task8Contract("section-navigation-accessibility", () => {
+  const componentPath = join(root, "components/shop-detail/ShopSectionNav.tsx");
+  assert.ok(existsSync(componentPath), "ShopSectionNav.tsxを作成してください");
+  const navSource = readFileSync(componentPath, "utf8");
+  const detailSource = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
+  const cssSource = readFileSync(join(root, "components/shop-detail/ShopDetail.module.css"), "utf8");
+  const areaCardSource = readFileSync(join(root, "lib/area-shop-card-view-model.ts"), "utf8");
+
+  assert.match(
+    navSource,
+    /export function ShopSectionNav\(\{ links \}: \{ links: ShopSectionLink\[\] \}\)/,
+    "ShopSectionNav({ links }: { links: ShopSectionLink[] })のexact signatureを維持してください"
+  );
+  assert.ok(navSource.includes("IntersectionObserver"), "実際の現在地を観測してください");
+  assert.match(
+    navSource,
+    /aria-current=\{activeId === link\.id \? "location" : undefined\}/,
+    "aria-currentは実際の現在地だけへ付けてください"
+  );
+  assert.equal(navSource.includes('role="tab"'), false, "ページ内anchorへrole=tabを付けないでください");
+  assert.equal(detailSource.includes("styles.quickLinks"), false, "固定quick linksを残さないでください");
+  assert.ok(detailSource.includes("buildShopSectionLinks"), "存在情報からmenu linksを組み立ててください");
+  assert.ok(detailSource.includes("<ShopSectionNav links={sectionLinks}"), "条件付きmenuだけを描画してください");
+  assert.match(cssSource, /\.sectionNav[^}]*position:\s*sticky/s, "ページ内menuを固定表示にしてください");
+  assert.match(cssSource, /\.sectionNavList[^}]*overflow-x:\s*auto/s, "スマホmenuを横スクロール可能にしてください");
+  assert.match(cssSource, /\.sectionNavLink[^}]*min-height:\s*44px/s, "menu操作を44px以上にしてください");
+  assert.match(cssSource, /\.sectionNavLink:focus-visible[^}]*outline:/s, "menuのfocus-visibleを表示してください");
+  assert.match(cssSource, /\.section[^}]*scroll-margin-top:/s, "sectionに固定header分のscroll marginを付けてください");
+  for (const id of ["prices", "hours-access", "reviews"]) {
+    assert.ok(areaCardSource.includes(`#${id}`), `Task 6 quick linkを#${id}へ同期してください`);
+  }
+  for (const staleId of ["#shop-price", "#shop-data", "#shop-reviews"]) {
+    assert.equal(areaCardSource.includes(staleId), false, `旧quick link ${staleId}を残さないでください`);
+  }
+});
+
+if (task8Failures.length > 0) {
+  console.error(`shop detail task 8 check failed (${task8Failures.length}/4 contracts):`);
+  for (const failure of task8Failures) console.error(`- ${failure}`);
+  process.exit(1);
 }
 
 console.log("shop detail view model check passed");

@@ -40,7 +40,7 @@ export function ShopDetailSections({
 }: ShopDetailSectionsProps) {
   const hasDescription = Boolean(
     model.catchText ||
-      model.introductionHtml ||
+      model.introductionText ||
       model.recommendText ||
       model.summaryText
   );
@@ -48,8 +48,24 @@ export function ShopDetailSections({
 
   return (
     <div className={styles.sections}>
+      {hasDescription ? (
+        <section id="overview" className={styles.section}>
+          <SectionHeading en="ABOUT">この店舗について</SectionHeading>
+          {model.catchText ? <p className={styles.catch}>{model.catchText}</p> : null}
+          {model.introductionText ? <p className={styles.richText}>{model.introductionText}</p> : null}
+          {model.recommendText ? <p>{model.recommendText}</p> : null}
+          {model.summaryText ? (
+            <div className={styles.sourceSeparated}>
+              <strong>掲載情報コメント</strong>
+              <p>{model.summaryText}</p>
+              <small>公開情報をもとに整理した文章で、ユーザー口コミではありません。</small>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       {model.prices.length > 0 ? (
-        <section id="shop-price" className={styles.section}>
+        <section id="prices" className={styles.section}>
           <SectionHeading en="PRICE">料金プラン</SectionHeading>
           <table className={styles.table}>
             <tbody>
@@ -64,40 +80,8 @@ export function ShopDetailSections({
         </section>
       ) : null}
 
-      {hasDescription ? (
-        <section className={styles.section}>
-          <SectionHeading en="ABOUT">この店舗について</SectionHeading>
-          {model.catchText ? <p className={styles.catch}>{model.catchText}</p> : null}
-          {model.introductionHtml ? (
-            <div
-              className={styles.richText}
-              dangerouslySetInnerHTML={{ __html: model.introductionHtml }}
-            />
-          ) : null}
-          {model.recommendText ? <p>{model.recommendText}</p> : null}
-          {model.summaryText ? (
-            <div className={styles.sourceSeparated}>
-              <strong>掲載情報コメント</strong>
-              <p>{model.summaryText}</p>
-              <small>公開情報をもとに整理した文章で、ユーザー口コミではありません。</small>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {model.featureNames.length > 0 ? (
-        <section className={styles.section}>
-          <SectionHeading en="FEATURES">特徴・設備</SectionHeading>
-          <ul className={styles.features}>
-            {model.featureNames.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       {model.infoRows.length > 0 ? (
-        <section id="shop-data" className={styles.section}>
+        <section id="hours-access" className={styles.section}>
           <SectionHeading en="ACCESS & INFO">アクセス・基本情報</SectionHeading>
           <table className={styles.infoTable}>
             <tbody>
@@ -133,7 +117,18 @@ export function ShopDetailSections({
         </section>
       ) : null}
 
-      <section id="shop-reviews" className={styles.section}>
+      {model.featureNames.length > 0 ? (
+        <section id="features" className={styles.section}>
+          <SectionHeading en="FEATURES">特徴・設備</SectionHeading>
+          <ul className={styles.features}>
+            {model.featureNames.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section id="reviews" className={styles.section}>
         <SectionHeading en="USER REVIEWS">ユーザー口コミ</SectionHeading>
         {reviews.length > 0 ? (
           <div className={styles.reviews}>

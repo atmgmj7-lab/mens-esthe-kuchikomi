@@ -32,8 +32,8 @@ const shopDetail = [
   read("components/shop-detail/ShopDetailSections.tsx")
 ].join("\n");
 assert.ok(
-  shopDetail.includes("同エリアランキング") && shopDetail.includes('`${areaPath}#ranking`'),
-  "shop detail top navigation must link to same-area ranking"
+  shopDetail.includes("ShopAreaHubLinks") && shopDetail.includes('id="nearby"'),
+  "shop detail must expose a real nearby anchor for same-area links"
 );
 assert.ok(
   shopDetail.includes("この店舗の口コミを投稿する") &&
@@ -42,11 +42,6 @@ assert.ok(
     shopDetail.includes("href={reviewSubmitUrl}"),
   "shop detail must link to review submission"
 );
-assert.ok(
-  shopDetail.includes("料金比較") && shopDetail.includes('`${areaPath}#price-table`'),
-  "shop detail top navigation must link back to same-area price comparison"
-);
-
 const shopAreaLinks = read("components/common/ShopAreaHubLinks.tsx");
 for (const href of ["#ranking", "#price-table", "#reviews"]) {
   assert.ok(shopAreaLinks.includes(href), `shop area related links must include ${href}`);
@@ -54,20 +49,20 @@ for (const href of ["#ranking", "#price-table", "#reviews"]) {
 
 const fullShopDetailHtml = shopDetailIntegrationEvidence.full.html;
 for (const href of [
-  'href="#shop-price"',
-  'href="#shop-data"',
-  'href="#shop-reviews"',
-  'href="/area/osaka/#ranking"',
-  'href="/area/osaka/#price-table"',
+  'href="#prices"',
+  'href="#hours-access"',
+  'href="#reviews"',
+  'href="#nearby"',
   'href="/reviews/submit/?shop=integration-shop"'
 ]) {
   assert.ok(fullShopDetailHtml.includes(href), `rendered full shop detail must include ${href}`);
 }
 
 const sparseShopDetailHtml = shopDetailIntegrationEvidence.sparse.html;
-assert.ok(!sparseShopDetailHtml.includes('href="#shop-price"'));
-assert.ok(!sparseShopDetailHtml.includes('href="#shop-data"'));
-assert.ok(sparseShopDetailHtml.includes('href="#shop-reviews"'));
+assert.ok(!sparseShopDetailHtml.includes('href="#prices"'));
+assert.ok(!sparseShopDetailHtml.includes('href="#hours-access"'));
+assert.ok(!sparseShopDetailHtml.includes('href="#reviews"'));
+assert.ok(!sparseShopDetailHtml.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailHtml.includes("#ranking"));
 assert.ok(!sparseShopDetailHtml.includes("#price-table"));
 assert.ok(

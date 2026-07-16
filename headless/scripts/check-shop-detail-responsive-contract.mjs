@@ -59,6 +59,11 @@ const componentClassContract = {
     "kicker",
     "ownerCta",
     "ownerHeading"
+  ],
+  "components/shop-detail/ShopSectionNav.tsx": [
+    "sectionNav",
+    "sectionNavLink",
+    "sectionNavList"
   ]
 };
 
@@ -67,7 +72,7 @@ const plannedLayoutClasses = [
   "shell",
   "visual",
   "visualAside",
-  "quickLinks"
+  "sectionNav"
 ];
 
 function escapeRegExp(value) {
@@ -742,7 +747,7 @@ captureContractFailure(accessibilityFailures, () => {
 for (const [selector, label, surfaceColor] of [
   [".primaryAction:focus-visible", "primary and fixed primary actions", "#ffffff"],
   [".secondaryAction:focus-visible", "secondary and fixed secondary actions", "#ffffff"],
-  [".quickLinks a:focus-visible", "quick links", "#ffffff"],
+  [".sectionNavLink:focus-visible", "section navigation links", "#ffffff"],
   [".infoTable a:focus-visible", "official information links", "#ffffff"],
   [".textLink:focus-visible", "review text links", "#ffffff"],
   [".ownerCta > a:focus-visible", "owner CTA link", green]
@@ -854,7 +859,7 @@ for (const [selectorPattern, label] of [
   [/\.secondaryAction/, "secondary action"],
   [/\.textLink/, "review text link"],
   [/\.infoTable\s+a/, "official information link"],
-  [/\.quickLinks\s+a/, "quick link"],
+  [/\.sectionNavLink/, "section navigation link"],
   [/\.ownerCta\s*>\s*a/, "owner CTA link"],
   [/\.fixedActions\s+a/, "fixed action"]
 ]) {
@@ -863,7 +868,6 @@ for (const [selectorPattern, label] of [
 
 for (const [selectorPattern, label] of [
   [/\.actions\s+a/, "action label"],
-  [/\.quickLinks\s+a/, "quick-link label"],
   [/\.table\s+(?:th|td)/, "price table value"],
   [/\.infoTable\s+(?:th|td)/, "information table value"],
   [/\.infoTable\s+a/, "long official URL"],
@@ -1079,7 +1083,7 @@ function enlargeFixedActionChild(source) {
 }
 
 function overrideFocusOutline(source) {
-  return `${source}\n.primaryAction:focus-visible,\n.secondaryAction:focus-visible,\n.quickLinks a:focus-visible,\n.infoTable a:focus-visible,\n.textLink:focus-visible,\n.ownerCta > a:focus-visible {\n  outline: none;\n  outline-width: 0;\n}\n`;
+  return `${source}\n.primaryAction:focus-visible,\n.secondaryAction:focus-visible,\n.sectionNavLink:focus-visible,\n.infoTable a:focus-visible,\n.textLink:focus-visible,\n.ownerCta > a:focus-visible {\n  outline: none;\n  outline-width: 0;\n}\n`;
 }
 
 function assertMutationsAreRejected(source) {
