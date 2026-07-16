@@ -404,3 +404,14 @@
 - 本番Supabaseはmigration `20260716003830`、RLS、匿名・authenticated拒否、service role権限を確認。Security Advisorはerror 0 / warning 0、Performance Advisorもerror 0 / warning 0。
 - Phase 4調査値は根拠付きの非公開候補として維持し、WordPress公開情報、Supabase公開view、公開参照先は変更していない。
 - 最終検証は全test、lint、typecheck、441ページbuild、High / Critical 0。残る依存監査は既存PostCSS由来のModerate 2件のみで、破壊的な強制更新は行っていない。
+
+## 2026-07-17 Eskomi 店舗一覧・店舗詳細 UX再構築 開始
+
+- ユーザー承認のA案で、軽微な崩れ修正後に一覧・詳細を段階再構築する設計を確定した。
+- `docs/superpowers/specs/2026-07-17-eskomi-portal-ux-rebuild-design.md` を作成し、2回の別担当レビュー後に実装ブロッカー0となった。
+- 可視英字表記だけをEskomiへ変更し、日本語名、ドメイン、URL、CSS/API/DBの内部識別子は維持する。
+- 公式参考構造は情報順、比率、文字階層、余白、ページ内移動、予約導線へ適用し、固有素材・文章・色・商標表現は複製しない。
+- ブランチ`codex/eskomi-portal-ux-rebuild`と分離worktree`.worktrees/eskomi-portal-ux-rebuild`を作成した。
+- 分離worktreeの`headless/`で依存導入と変更前の全30契約検査に成功した。
+- 実装計画を11タスクへ分割し、2回の別担当レビュー後にCritical 0 / Important 0で実装開始可能となった。
+- push、deploy、本番WordPress画像差し替えは未実施。
