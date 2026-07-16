@@ -436,6 +436,7 @@ const shopThumbSource = readHeadless("components/area/hub/ShopImageThumb.tsx");
 const homePageSource = readHeadless("components/HomePageContent.tsx");
 const shopCardSource = readHeadless("components/ShopCard.tsx");
 const areaShopCardSource = readHeadless("components/common/AreaShopCard.tsx");
+const areaShopCardImageSource = readHeadless("components/common/AreaShopCardImage.tsx");
 const areaShopCardViewModelSource = readHeadless("lib/area-shop-card-view-model.ts");
 const shopDetailGallerySource = readHeadless("components/shop-detail/ShopDetailGallery.tsx");
 const designConstantsSource = readHeadless("lib/design-constants.ts");
@@ -495,7 +496,7 @@ const fallbackImageContracts = [
   },
   {
     label: "AreaShopCard",
-    source: `${areaShopCardViewModelSource}\n${areaShopCardSource}`,
+    source: `${areaShopCardViewModelSource}\n${areaShopCardSource}\n${areaShopCardImageSource}`,
     required: [
       "const imageSrc = assetUrl(shop.imageUrl);",
       "? { src: imageSrc, alt: title, isFallback: false }",
@@ -503,10 +504,10 @@ const fallbackImageContracts = [
       "src={model.image.src}",
       "alt={model.image.alt}",
       "height={360}",
-      "style={model.image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}"
+      "style={fallbackApplied ? SHOP_FALLBACK_IMAGE_STYLE : undefined}"
     ],
     altMarker: ": { src: DEFAULT_SHOP_IMAGE, alt: SHOP_FALLBACK_IMAGE_ALT, isFallback: true }",
-    styleMarker: "style={model.image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
+    styleMarker: "style={fallbackApplied ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
     ratioMarker: "height={360}",
     wrongRatioMarker: "height={320}"
   },

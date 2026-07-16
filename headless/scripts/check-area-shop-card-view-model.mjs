@@ -18,6 +18,7 @@ function compileModule(path, requireMap = {}) {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
       esModuleInterop: true
     }
   }).outputText;
@@ -252,6 +253,113 @@ const duplicateActionUrls = buildAreaShopCardViewModel(
   { maxActions: 2 }
 );
 assert.deepEqual(Array.from(duplicateActionUrls.actions, (action) => action.kind), ["reservation", "line"]);
+
+const imageComponentSource = read("components/common/AreaShopCardImage.tsx");
+assert.ok(
+  imageComponentSource,
+  "AreaShopCard image load errors need a client-side onError handler"
+);
+
+const fallbackConstants = {
+  DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+  SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中",
+  SHOP_FALLBACK_IMAGE_STYLE: {
+    aspectRatio: "4 / 3",
+    objectFit: "contain",
+    height: "auto",
+    minHeight: "0",
+    maxHeight: "none"
+  }
+};
+const jsxRuntime = {
+  jsx: (type, props) => ({ type, props }),
+  jsxs: (type, props) => ({ type, props })
+};
+let fallbackStateInitialized = false;
+let fallbackState = false;
+const reactRuntime = {
+  useState: (initialValue) => {
+    if (!fallbackStateInitialized) {
+      fallbackState = initialValue;
+      fallbackStateInitialized = true;
+    }
+    return [
+      fallbackState,
+      (nextValue) => {
+        fallbackState = typeof nextValue === "function" ? nextValue(fallbackState) : nextValue;
+      }
+    ];
+  }
+};
+const shopDetailGalleryModule = compileModule("components/shop-detail/ShopDetailGallery.tsx", {
+  react: reactRuntime,
+  "react/jsx-runtime": jsxRuntime,
+  "@/lib/design-constants": fallbackConstants,
+  "./ShopDetail.module.css": {}
+});
+const areaShopCardImageModule = compileModule("components/common/AreaShopCardImage.tsx", {
+  react: reactRuntime,
+  "react/jsx-runtime": jsxRuntime,
+  "@/components/shop-detail/ShopDetailGallery": shopDetailGalleryModule,
+  "@/lib/design-constants": fallbackConstants,
+  "./AreaShopCard.module.css": {
+    image: "areaImage",
+    imageFallback: "areaImageFallback"
+  }
+});
+const { AreaShopCardImage } = areaShopCardImageModule;
+assert.equal(typeof AreaShopCardImage, "function");
+
+const imageProps = {
+  src: "https://images.example.test/returns-404.jpg",
+  alt: "実在形式の店舗画像",
+  isFallback: false
+};
+const initialImageElement = AreaShopCardImage(imageProps);
+assert.equal(initialImageElement.type, "img");
+assert.equal(initialImageElement.props.src, imageProps.src);
+assert.equal(initialImageElement.props.alt, imageProps.alt);
+assert.equal(initialImageElement.props.className, "areaImage");
+assert.equal(initialImageElement.props.style, undefined);
+assert.equal(typeof initialImageElement.props.onError, "function");
+
+const appliedClasses = new Set(["areaImage"]);
+let assignedSrc = imageProps.src;
+let srcAssignmentCount = 0;
+const brokenImage = {
+  dataset: {},
+  onerror: () => {},
+  alt: imageProps.alt,
+  style: {},
+  classList: {
+    add: (className) => appliedClasses.add(className)
+  },
+  get src() {
+    return assignedSrc;
+  },
+  set src(value) {
+    assignedSrc = value;
+    srcAssignmentCount += 1;
+  }
+};
+
+initialImageElement.props.onError({ currentTarget: brokenImage });
+assert.equal(assignedSrc, fallbackConstants.DEFAULT_SHOP_IMAGE);
+assert.equal(brokenImage.alt, fallbackConstants.SHOP_FALLBACK_IMAGE_ALT);
+assert.equal(brokenImage.dataset.fallbackApplied, "true");
+assert.equal(brokenImage.onerror, null);
+assert.equal(brokenImage.style.objectFit, "contain");
+assert.ok(appliedClasses.has("areaImageFallback"));
+assert.equal(fallbackState, true);
+
+initialImageElement.props.onError({ currentTarget: brokenImage });
+assert.equal(srcAssignmentCount, 1, "a fallback image error must not restart the replacement loop");
+
+const fallbackImageElement = AreaShopCardImage(imageProps);
+assert.equal(fallbackImageElement.props.src, fallbackConstants.DEFAULT_SHOP_IMAGE);
+assert.equal(fallbackImageElement.props.alt, fallbackConstants.SHOP_FALLBACK_IMAGE_ALT);
+assert.ok(fallbackImageElement.props.className.includes("areaImageFallback"));
+assert.equal(fallbackImageElement.props.style.objectFit, "contain");
 
 const viewModelSource = read("lib/area-shop-card-view-model.ts");
 const cardSource = read("components/common/AreaShopCard.tsx");

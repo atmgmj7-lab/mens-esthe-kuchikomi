@@ -1,8 +1,6 @@
 import Link from "next/link";
+import { AreaShopCardImage } from "@/components/common/AreaShopCardImage";
 import { ShopRankCell } from "@/components/common/ShopRankCell";
-import {
-  SHOP_FALLBACK_IMAGE_STYLE
-} from "@/lib/design-constants";
 import {
   buildAreaShopCardViewModel
 } from "@/lib/area-shop-card-view-model";
@@ -64,17 +62,10 @@ export function AreaShopCard({
       </header>
 
       <Link href={model.title.href} className={styles.media} aria-label={`${model.title.text}の詳細を見る`}>
-        <img
-          className={[styles.image, model.image.isFallback ? styles.imageFallback : ""]
-            .filter(Boolean)
-            .join(" ")}
+        <AreaShopCardImage
           src={model.image.src}
           alt={model.image.alt}
-          width={480}
-          height={360}
-          loading="lazy"
-          decoding="async"
-          style={model.image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}
+          isFallback={model.image.isFallback}
         />
       </Link>
 
