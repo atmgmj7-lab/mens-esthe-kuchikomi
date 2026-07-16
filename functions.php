@@ -1248,7 +1248,7 @@ $ai_update_log_file = get_stylesheet_directory() . '/ai-update-log.php';
 if ( file_exists( $ai_update_log_file ) && is_readable( $ai_update_log_file ) ) {
 	require_once $ai_update_log_file;
 } else {
-	$hint = '[Escomi] ai-update-log.php が読み込めません — REST escomi/v1/update は未定義になります — 対象パス: ' . $ai_update_log_file;
+	$hint = '[Eskomi] ai-update-log.php が読み込めません — REST escomi/v1/update は未定義になります — 対象パス: ' . $ai_update_log_file;
 	if ( function_exists( 'error_log' ) ) {
 		error_log( $hint );
 	}

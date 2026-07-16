@@ -398,7 +398,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\nEscomi Headless – URL パリティチェック");
+  console.log("\nEskomi Headless – URL パリティチェック");
   console.log(`現行（WP）: ${currentBase}`);
   console.log(`候補（Next）: ${candidateBase}`);
   console.log(`店舗サンプル数: ${args.sampleShops}\n`);

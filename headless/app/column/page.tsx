@@ -6,7 +6,7 @@ import { getLatestPosts } from "@/lib/wp/posts";
 
 export const metadata: Metadata = pageMetadata({
   title: "コラム一覧",
-  description: "Escomiの新着コラム・体験レポート一覧です。",
+  description: "Eskomiの新着コラム・体験レポート一覧です。",
   path: "/column/"
 });
 

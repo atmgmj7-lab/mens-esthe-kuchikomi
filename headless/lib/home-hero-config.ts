@@ -19,7 +19,7 @@ export type HomeHeroConfig = {
 };
 
 export const HOME_HERO_CONFIG: HomeHeroConfig = {
-  eyebrow: "ESCOMI GUIDE",
+  eyebrow: "ESKOMI GUIDE",
   title: "関西メンズエステを\n口コミ・料金・エリアで探す",
   lead: "大阪・日本橋・難波・梅田など、目的に合う店舗を比較できます。",
   pcImage: OSAKA_CITY_IMAGES.cityscape,

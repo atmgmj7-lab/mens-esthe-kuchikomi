@@ -122,7 +122,7 @@ export function validateContactPayload(body: unknown): ValidationResult {
 
 export function buildContactEmailText(data: ContactPayload, submittedAt: Date): string {
   const lines = [
-    "【Escomi お問い合わせフォーム】",
+    "【Eskomi お問い合わせフォーム】",
     "",
     `お問い合わせ種別: ${data.type}`,
     `お名前: ${data.name}`,

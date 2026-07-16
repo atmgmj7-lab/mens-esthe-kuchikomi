@@ -22,7 +22,7 @@ export function SiteHeader() {
       <div className="l-container escomi-final-site-header__inner">
         <Link className="l-header__logo hl-header__logo" href="/">
           <span className="escomi-final-site-header__brand-text">
-            Escomi<span aria-hidden="true">.</span>
+            Eskomi<span aria-hidden="true">.</span>
           </span>
           <span className="escomi-final-site-header__tagline">関西メンズエステ口コミナビ</span>
           <img

@@ -93,7 +93,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("\nEscomi Headless – パフォーマンス簡易チェック");
+  console.log("\nEskomi Headless – パフォーマンス簡易チェック");
   console.log(`対象: ${base}\n`);
 
   let failures = 0;

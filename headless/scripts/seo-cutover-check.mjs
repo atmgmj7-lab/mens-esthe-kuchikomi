@@ -181,7 +181,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\nEscomi Headless – SEO 切替チェック`);
+  console.log(`\nEskomi Headless – SEO 切替チェック`);
   console.log(`対象: ${base}\n`);
 
   let failures = 0;

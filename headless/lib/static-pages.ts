@@ -21,21 +21,21 @@ export const STATIC_PAGE_META: Record<StaticPageSlug, StaticPageMeta> = {
   contact: {
     title: "お問い合わせ",
     description:
-      "Escomi（エスコミ）へのお問い合わせページ。掲載希望・情報修正・ご意見などお気軽にご連絡ください。"
+      "Eskomi（エスコミ）へのお問い合わせページ。掲載希望・情報修正・ご意見などお気軽にご連絡ください。"
   },
   about: {
     title: "運営者情報",
     description:
-      "関西メンズエステ情報サイト「Escomi（エスコミ）」の運営方針・サイト概要・免責事項について。"
+      "関西メンズエステ情報サイト「Eskomi（エスコミ）」の運営方針・サイト概要・免責事項について。"
   },
   sitemap: {
     title: "サイトマップ",
-    description: "Escomi（エスコミ）の主要ページ一覧。エリア・店舗・コラムへの導線をまとめています。"
+    description: "Eskomi（エスコミ）の主要ページ一覧。エリア・店舗・コラムへの導線をまとめています。"
   },
   storelisting: {
     title: "掲載について",
     description:
-      "Escomi（エスコミ）への店舗掲載について。掲載のメリット・お問い合わせ方法をご案内します。"
+      "Eskomi（エスコミ）への店舗掲載について。掲載のメリット・お問い合わせ方法をご案内します。"
   },
   "osaka-nihonbashi": {
     title: "日本橋メンズエステで失敗しない選び方｜料金相場・口コミの見方を解説",
@@ -52,7 +52,7 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
   switch (slug) {
     case "contact":
       return `
-        <p>Escomi（エスコミ）へのお問い合わせは、下記よりご連絡ください。</p>
+        <p>Eskomi（エスコミ）へのお問い合わせは、下記よりご連絡ください。</p>
         <ul>
           <li>店舗掲載・情報更新のご相談</li>
           <li>掲載内容の修正依頼</li>
@@ -64,7 +64,7 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
       `;
     case "about":
       return `
-        <p>Escomi（エスコミ）は、関西エリアのメンズエステ情報を厳選して掲載する店舗情報ポータルです。</p>
+        <p>Eskomi（エスコミ）は、関西エリアのメンズエステ情報を厳選して掲載する店舗情報ポータルです。</p>
         <p>大阪・京都・神戸を中心に、エリア別の店舗一覧、料金、営業時間、投稿口コミを分けて整理し、来店前の比較検討をサポートします。</p>
         <h2>運営方針</h2>
         <ul>
@@ -75,7 +75,7 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
       `;
     case "sitemap":
       return `
-        <p>Escomi（エスコミ）の主要ページへのリンク一覧です。</p>
+        <p>Eskomi（エスコミ）の主要ページへのリンク一覧です。</p>
         <ul class="hl-sitemap-links">
           <li><a href="/">トップページ</a></li>
           <li><a href="/shops/">店舗一覧</a></li>
@@ -91,7 +91,7 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
       `;
     case "storelisting":
       return `
-        <p>Escomi（エスコミ）では、関西エリアのメンズエステ店舗様から、掲載情報の登録・修正申請を受け付けています。</p>
+        <p>Eskomi（エスコミ）では、関西エリアのメンズエステ店舗様から、掲載情報の登録・修正申請を受け付けています。</p>
         <p>公開情報や店舗の公式サイトなどで確認できる情報をもとに整理し、内容を運営が確認してから掲載します。申請内容がそのまま公開されることはありません。</p>
         <h2>掲載情報の方針</h2>
         <ul>

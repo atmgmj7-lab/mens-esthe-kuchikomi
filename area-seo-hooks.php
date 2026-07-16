@@ -246,7 +246,7 @@ function escomi_area_column_with_author() {
                 ✍️ この記事を書いた人
             </div>
             <div class="author-text" style="font-size: 13px; color: #ccc; line-height: 1.7;">
-                <p style="margin: 0; font-weight: 600; color: #fff;">Escomi編集部</p>
+                <p style="margin: 0; font-weight: 600; color: #fff;">Eskomi編集部</p>
                 <p style="margin: 4px 0 0; font-size: 12px;">メンズエステ業界歴5年以上のライター陣が、実際に店舗を取材・体験して執筆しています。</p>
             </div>
         </div>

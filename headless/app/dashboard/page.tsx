@@ -18,7 +18,7 @@ export default function DashboardPage() {
     <div className="dashboard-shell">
       <header className="dashboard-header">
         <div>
-          <p className="dashboard-eyebrow">Escomi Growth Command</p>
+          <p className="dashboard-eyebrow">Eskomi Growth Command</p>
           <h1 className="dashboard-title">エスコミ管理ダッシュボード</h1>
         </div>
         <Link

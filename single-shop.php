@@ -202,7 +202,7 @@ get_header();
                         <div class="ai-intel-header">
                             <span class="ai-intel-badge">
                                 <span class="ai-intel-icon" aria-hidden="true">🖋</span>
-                                Escomi編集部 Review
+                                Eskomi編集部 Review
                             </span>
                             <span class="ai-intel-update">更新：<?php echo esc_html($display_update_date); ?></span>
                         </div>
@@ -259,7 +259,7 @@ get_header();
                             </ul>
                         </div>
                         <?php endif; endif; ?>
-                        <p class="ai-intel-footer-note">※ Escomi編集部が独自の視点で店舗の魅力を分析しています。</p>
+                        <p class="ai-intel-footer-note">※ Eskomi編集部が独自の視点で店舗の魅力を分析しています。</p>
                     </div>
                 </section>
                 <?php endif; ?>

@@ -16,7 +16,7 @@ export function SiteFooter() {
         <div className="hl-profile-box escomi-final-site-footer__profile">
           <div>
             <p className="escomi-final-site-footer__brand">
-              Escomi<span aria-hidden="true">.</span>
+              Eskomi<span aria-hidden="true">.</span>
             </p>
             <p className="escomi-final-site-footer__tagline">関西メンズエステ口コミナビ</p>
           </div>

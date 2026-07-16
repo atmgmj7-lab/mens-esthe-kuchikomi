@@ -5,7 +5,7 @@ import { stripHtml } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const SITE_URL = "https://mens-esthe-kuchikomi.com";
-export const SITE_NAME = "Escomi | 関西メンズエステ口コミナビ";
+export const SITE_NAME = "Eskomi | 関西メンズエステ口コミナビ";
 export const SITE_DESCRIPTION =
   "関西メンズエステの店舗情報・口コミ投稿ポータル。エリア、料金、営業時間、出勤状況から店舗を探せます。";
 
@@ -40,7 +40,7 @@ export function pageMetadata({
       title,
       description,
       url: canonical,
-      siteName: "Escomi",
+      siteName: "Eskomi",
       locale: "ja_JP",
       type: "website"
     },
@@ -119,7 +119,7 @@ export function websiteJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "Escomi",
+    name: "Eskomi",
     alternateName: "関西メンズエステ口コミナビ エスコミ",
     url: canonicalUrl("/"),
     description: SITE_DESCRIPTION,
@@ -131,7 +131,7 @@ export function organizationJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Escomi",
+    name: "Eskomi",
     alternateName: "関西メンズエステ口コミナビ エスコミ",
     url: canonicalUrl("/"),
     logo: "https://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png"

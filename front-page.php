@@ -22,7 +22,7 @@ $total_shops = isset($shop_count_obj->publish) ? intval($shop_count_obj->publish
                         <p class="mep-hero-sub">関西メンズエステの口コミ情報サイト【エスコミ】</p>
                         
                         <h1 class="mep-hero-logo">
-                            <img src="http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png" alt="Escomi（エスコミ）| 関西メンズエステ口コミナビ" width="400" height="auto">
+                            <img src="http://mens-esthe-kuchikomi.com/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png" alt="Eskomi（エスコミ）| 関西メンズエステ口コミナビ" width="400" height="auto">
                         </h1>
                         
                         <div class="mep-hero-count-box">

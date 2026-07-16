@@ -7,7 +7,7 @@ import { getLatestPosts } from "@/lib/wp/posts";
 import { getLatestShops, getShopCount } from "@/lib/wp/shops";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Escomi | 関西メンズエステ口コミナビ",
+  title: "Eskomi | 関西メンズエステ口コミナビ",
   description:
     "関西メンズエステの店舗情報・口コミ投稿ポータル。エリア、料金、営業時間、出勤状況から店舗を探せます。",
   path: "/"

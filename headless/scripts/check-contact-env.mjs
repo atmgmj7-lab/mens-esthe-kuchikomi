@@ -91,7 +91,7 @@ function printRow(label, status, detail = "") {
 function main() {
   loadDotEnv();
 
-  console.log("\nEscomi Headless – お問い合わせ SMTP 環境変数チェック\n");
+  console.log("\nEskomi Headless – お問い合わせ SMTP 環境変数チェック\n");
 
   let failures = 0;
   let warnings = 0;

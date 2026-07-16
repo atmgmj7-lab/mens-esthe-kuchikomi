@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
   const submittedAt = new Date();
   const text = buildContactEmailText(validation.data, submittedAt);
-  const subject = `【Escomi】お問い合わせ: ${validation.data.type}（${validation.data.name}）`;
+  const subject = `【Eskomi】お問い合わせ: ${validation.data.type}（${validation.data.name}）`;
 
   if (isDryRun()) {
     console.info("[contact] DRY_RUN – email not sent", { subject, ip });

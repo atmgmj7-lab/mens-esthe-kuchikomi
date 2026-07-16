@@ -43,7 +43,7 @@ export function ShopImageThumb({
         decoding="async"
         className="shop-image-thumb__img"
       />
-      {!hasImage ? <span className="shop-image-thumb__badge">Escomi</span> : null}
+      {!hasImage ? <span className="shop-image-thumb__badge">Eskomi</span> : null}
     </div>
   );
 }

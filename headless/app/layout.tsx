@@ -15,7 +15,7 @@ const WP_THEME_STYLES = [
 export const metadata: Metadata = {
   title: {
     default: SITE_NAME,
-    template: "%s | Escomi"
+    template: "%s | Eskomi"
   },
   description: SITE_DESCRIPTION,
   metadataBase: new URL(SITE_URL),
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "ja_JP",
     url: canonicalUrl("/"),
-    siteName: "Escomi",
+    siteName: "Eskomi",
     title: SITE_NAME,
     description: SITE_DESCRIPTION
   },
