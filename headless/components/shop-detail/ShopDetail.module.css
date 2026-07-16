@@ -210,7 +210,7 @@
 .sectionNav {
   position: sticky;
   z-index: 20;
-  top: 0;
+  top: var(--shop-site-header-offset);
   margin-inline: -32px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -274,11 +274,11 @@
   min-width: 0;
   padding: 58px 0;
   border-bottom: 1px solid var(--line);
-  scroll-margin-top: 112px;
+  scroll-margin-top: var(--shop-section-scroll-offset);
 }
 
 .sectionAnchor {
-  scroll-margin-top: 112px;
+  scroll-margin-top: var(--shop-section-scroll-offset);
 }
 
 .section > :not(.sectionHeading) {

@@ -377,8 +377,56 @@ task8Contract("section-navigation-accessibility", () => {
   }
 });
 
+task8Contract("shared-responsive-sticky-offset", () => {
+  const navSource = readFileSync(join(root, "components/shop-detail/ShopSectionNav.tsx"), "utf8");
+  const detailSource = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
+  const cssSource = readFileSync(join(root, "components/shop-detail/ShopDetail.module.css"), "utf8");
+
+  assert.ok(detailSource.includes("data-shop-detail-root"), "shop detail rootを測定値の共有先にしてください");
+  assert.ok(navSource.includes(".escomi-final-site-header"), "実在SiteHeader classを測定してください");
+  assert.ok(navSource.includes("getBoundingClientRect"), "headerとnavの実寸を測定してください");
+  assert.ok(navSource.includes("ResizeObserver"), "2段headerの高さ変化を追跡してください");
+  assert.ok(navSource.includes('addEventListener("resize"'), "ResizeObserver未対応時もresize再測定してください");
+  assert.ok(navSource.includes('setProperty("--shop-site-header-offset"'), "header実測値をroot CSS変数へ共有してください");
+  assert.match(navSource, /setProperty\(\s*"--shop-section-scroll-offset"/, "section移動量をroot CSS変数へ共有してください");
+  assert.ok(navSource.includes("rootMargin: `-${sectionScrollOffset}px"), "Observerも共有section offsetを使ってください");
+  assert.match(
+    cssSource,
+    /\.sectionNav[^}]*top:\s*var\(--shop-site-header-offset\)/s,
+    "nav topはheader実測CSS変数を使ってください"
+  );
+  assert.match(
+    cssSource,
+    /\.section[^}]*scroll-margin-top:\s*var\(--shop-section-scroll-offset\)/s,
+    "section scroll marginは共有offsetを使ってください"
+  );
+  assert.match(
+    cssSource,
+    /\.sectionAnchor[^}]*scroll-margin-top:\s*var\(--shop-section-scroll-offset\)/s,
+    "nearby scroll marginも共有offsetを使ってください"
+  );
+  assert.equal(/\.sectionNav\s*\{[^}]*top:\s*0\s*;/s.test(cssSource), false, "nav top:0を残さないでください");
+  assert.equal(cssSource.includes("scroll-margin-top: 112px"), false, "固定112pxを残さないでください");
+  assert.equal(navSource.includes('rootMargin: "-112px'), false, "Observer固定112pxを残さないでください");
+});
+
+task8Contract("observer-fallback-and-cleanup", () => {
+  const navSource = readFileSync(join(root, "components/shop-detail/ShopSectionNav.tsx"), "utf8");
+  const emptyGuardIndex = navSource.indexOf("links.length === 0");
+  const observerCreationIndex = navSource.indexOf("new IntersectionObserver");
+
+  assert.ok(emptyGuardIndex >= 0 && emptyGuardIndex < observerCreationIndex, "links 0件ではObserverを作らないでください");
+  assert.match(navSource, /typeof IntersectionObserver\s*[!=]==?\s*"undefined"/, "IntersectionObserver未対応環境を分岐してください");
+  assert.ok(navSource.includes('addEventListener("hashchange"'), "hash fallbackを維持してください");
+  assert.ok(navSource.includes("onClick={() => setActiveId(link.id)}"), "clickで現在地を更新してください");
+  assert.ok(navSource.includes("resizeObserver?.disconnect()"), "ResizeObserverをcleanupしてください");
+  assert.ok(navSource.includes('removeEventListener("resize"'), "resize listenerをcleanupしてください");
+  assert.ok(navSource.includes('removeProperty("--shop-site-header-offset"'), "header CSS変数をcleanupしてください");
+  assert.ok(navSource.includes('removeProperty("--shop-section-scroll-offset"'), "section CSS変数をcleanupしてください");
+});
+
 if (task8Failures.length > 0) {
-  console.error(`shop detail task 8 check failed (${task8Failures.length}/4 contracts):`);
+  console.error(`shop detail task 8 check failed (${task8Failures.length}/6 contracts):`);
   for (const failure of task8Failures) console.error(`- ${failure}`);
   process.exit(1);
 }

@@ -80,6 +80,7 @@ export function ShopDetail({
   return (
     <main
       id="main_content"
+      data-shop-detail-root
       className={`l-mainContent hl-shop-page ${styles.page}`}
     >
       <script
