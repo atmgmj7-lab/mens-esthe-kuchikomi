@@ -390,5 +390,7 @@
 - Nodemailerを9.0.3へ固定し、独立レビューはCritical 0 / Important 0 / Minor 0で公開可判定となった。
 - 全test、lint、typecheck、441ページbuild、依存監査を再実行し、High / Critical 0を確認した。
 - Supabase CLIが別サービスのprojectを指していたため、書き込みを行わずリンクを解除した。
-- 正しいエスコミ本番Supabaseは接続済みChrome profileから確認する必要があり、Chrome利用許可前で停止した。
-- `main` push、Vercel本番環境変数、本番migration、本番deployは未実施。
+- 正しいエスコミ本番Supabase `goeagrxjsjcbbatpotbu` を接続済みChrome profileで照合した。
+- 店舗責任者申請migration `20260716003830` をtransaction適用し、履歴・RLS・匿名拒否・service role権限を検証した。
+- Vercel Productionへ `SUPABASE_URL`、server-only secret、rate limit secretを値非表示で登録した。
+- WordPress公開情報とSupabase公開viewは変更せず、`main` push・本番deploy前で進行記録を更新した。

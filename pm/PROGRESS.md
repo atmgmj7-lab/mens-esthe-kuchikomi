@@ -3104,5 +3104,7 @@ pm/PROGRESS.md
 - Nodemailerを9.0.3へ固定し、High advisoryを解消した。別担当の再レビューは全分類0件で公開可。
 - 全test、lint、typecheck、441ページbuildが成功し、npm監査はHigh / Critical 0件。
 - 誤接続していた別サービスのSupabase projectは書き込みなしでunlinkした。
-- 正しいエスコミ本番SupabaseへのmigrationとVercel Secret登録は、接続済みChrome profileの利用許可待ち。
-- `main` push、Vercel deploy、本番DB変更は未実施。
+- 正しいエスコミ本番Supabase `goeagrxjsjcbbatpotbu` を接続済みChrome profileで照合した。
+- 本番へmigration `20260716003830_shop_owner_requests.sql` をtransaction適用し、履歴、2テーブル、RLS、匿名・authenticated拒否、service role権限を確認した。
+- Vercel Productionへ `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`、`SHOP_OWNER_REQUEST_RATE_LIMIT_SECRET` を値非表示で登録した。
+- WordPress公開情報とSupabase公開viewは変更せず、`main` push・Vercel deploy前で進行記録を更新した。
