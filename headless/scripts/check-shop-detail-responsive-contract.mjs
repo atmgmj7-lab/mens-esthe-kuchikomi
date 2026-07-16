@@ -166,16 +166,16 @@ function extractTopLevelMedia(source) {
 
 const responsiveRegions = extractTopLevelMedia(css);
 const expectedMediaQueries = [
+  "(max-width:1024px)",
   "(max-width:900px)",
+  "(max-width:768px)",
   "(max-width:760px)",
-  "(max-width:360px)"
+  "(max-width:500px)",
+  "(max-width:390px)",
+  "(max-width:360px)",
+  "(max-width:320px)"
 ];
-
-assert.deepEqual(
-  [...responsiveRegions.media.keys()],
-  expectedMediaQueries,
-  "responsive CSS must expose the 900px, 760px, and 360px blocks in order"
-);
+const actualMediaQueries = [...responsiveRegions.media.keys()];
 
 const baseCss = responsiveRegions.base;
 const tabletCss = responsiveRegions.media.get("(max-width:900px)");
@@ -338,6 +338,201 @@ function captureContractFailure(failures, check) {
     failures.push(error instanceof Error ? error.message : String(error));
   }
 }
+
+const shopTitleFixtures = [
+  {
+    label: "long Latin, Japanese, and full-width-parentheses title",
+    value: "PREMIUM RELAXATION SALON大阪日本橋（全角括弧）",
+    wrapMode: "natural"
+  },
+  {
+    label: "unspaced Latin title",
+    value: "UNBROKENLATINSHOPNAMETOKEN",
+    wrapMode: "emergency"
+  }
+];
+
+const shopTitleViewportContract = [
+  [1440, 38],
+  [1280, 38],
+  [1024, 34],
+  [768, 30],
+  [500, 28],
+  [390, 27],
+  [375, 27],
+  [320, 24]
+];
+
+function maxWidthFromQuery(query) {
+  const match = query.match(/^\(max-width:(\d+)px\)$/);
+  assert.ok(match, `unsupported responsive query ${query}`);
+  return Number(match[1]);
+}
+
+function titleDeclarationLayersAtWidth(viewportWidth) {
+  const layers = [exactSelectorDeclarationsIn(baseCss, ".title")];
+
+  for (const [query, region] of responsiveRegions.media) {
+    if (viewportWidth <= maxWidthFromQuery(query)) {
+      layers.push(exactSelectorDeclarationsIn(region, ".title"));
+    }
+  }
+
+  return layers;
+}
+
+function fontSizeFromShorthand(fontValue) {
+  return (
+    fontValue.match(/clamp\([^)]*\)/)?.[0] ??
+    fontValue.match(/var\([^)]*\)/)?.[0] ??
+    fontValue.match(/\b\d*\.?\d+(?:px|rem|vw)\b/)?.[0]
+  );
+}
+
+function cssLengthToPixels(value, viewportWidth, customProperties) {
+  const normalizedValue = value.trim();
+  const variableMatch = normalizedValue.match(/^var\((--[a-z-]+)\)$/i);
+  if (variableMatch) {
+    const resolvedValue = customProperties.get(variableMatch[1]);
+    assert.ok(resolvedValue, `unresolved title size variable ${normalizedValue}`);
+    return cssLengthToPixels(resolvedValue, viewportWidth, customProperties);
+  }
+
+  const clampMatch = normalizedValue.match(/^clamp\((.*)\)$/i);
+  if (clampMatch) {
+    const parts = clampMatch[1].split(",").map((part) => part.trim());
+    assert.equal(parts.length, 3, `unsupported clamp value ${normalizedValue}`);
+    const [minimum, preferred, maximum] = parts.map((part) =>
+      cssLengthToPixels(part, viewportWidth, customProperties)
+    );
+    return Math.min(maximum, Math.max(minimum, preferred));
+  }
+
+  const lengthMatch = normalizedValue.match(/^(\d*\.?\d+)(px|rem|vw)$/i);
+  assert.ok(lengthMatch, `unsupported title font size ${normalizedValue}`);
+  const numericValue = Number(lengthMatch[1]);
+  const unit = lengthMatch[2].toLowerCase();
+  if (unit === "px") return numericValue;
+  if (unit === "rem") return numericValue * 16;
+  return (numericValue * viewportWidth) / 100;
+}
+
+function titleFontSizeAtWidth(viewportWidth) {
+  const customProperties = new Map();
+  let fontSizeValue;
+
+  for (const declarations of titleDeclarationLayersAtWidth(viewportWidth)) {
+    for (const match of declarations.matchAll(
+      /(?:^|;)\s*(--[a-z-]+)\s*:\s*([^;]+)/gi
+    )) {
+      customProperties.set(match[1], match[2].trim());
+    }
+
+    const explicitFontSize = lastDeclarationValue(declarations, "font-size");
+    if (explicitFontSize) fontSizeValue = explicitFontSize;
+
+    const fontShorthand = lastDeclarationValue(declarations, "font");
+    if (fontShorthand) {
+      fontSizeValue = fontSizeFromShorthand(fontShorthand);
+    }
+  }
+
+  assert.ok(fontSizeValue, `${viewportWidth}px title must declare a font size`);
+  return cssLengthToPixels(fontSizeValue, viewportWidth, customProperties);
+}
+
+const shopTitleContractFailures = [];
+captureContractFailure(shopTitleContractFailures, () => {
+  assert.deepEqual(
+    actualMediaQueries,
+    expectedMediaQueries,
+    "responsive CSS must expose the title and layout breakpoints in order"
+  );
+});
+
+const baseTitleDeclarations = exactSelectorDeclarationsIn(baseCss, ".title");
+const allTitleDeclarations = classDeclarations("title");
+for (const fixture of shopTitleFixtures) {
+  if (fixture.wrapMode === "natural") {
+    captureContractFailure(shopTitleContractFailures, () => {
+      assert.match(fixture.value, /[A-Za-z]+.*[\u3040-\u30ff\u3400-\u9fff]+.*（.+）/);
+    });
+    captureContractFailure(shopTitleContractFailures, () => {
+      assert.match(
+        baseTitleDeclarations,
+        /word-break:\s*normal/,
+        `${fixture.label} must keep normal word boundaries`
+      );
+    });
+    captureContractFailure(shopTitleContractFailures, () => {
+      assert.match(
+        baseTitleDeclarations,
+        /line-break:\s*strict/,
+        `${fixture.label} must use strict Japanese line breaking`
+      );
+    });
+    captureContractFailure(shopTitleContractFailures, () => {
+      assert.doesNotMatch(
+        allTitleDeclarations,
+        /overflow-wrap:\s*anywhere/,
+        `${fixture.label} must not allow arbitrary title breaks`
+      );
+    });
+  } else {
+    captureContractFailure(shopTitleContractFailures, () => {
+      assert.match(fixture.value, /^[A-Z]+$/);
+    });
+    captureContractFailure(shopTitleContractFailures, () => {
+      assert.match(
+        baseTitleDeclarations,
+        /overflow-wrap:\s*break-word/,
+        `${fixture.label} needs emergency wrapping for an unbroken token`
+      );
+    });
+  }
+}
+
+captureContractFailure(shopTitleContractFailures, () => {
+  assert.match(
+    baseTitleDeclarations,
+    /line-height:\s*1\.24(?:\s*;|\s*$)/,
+    "shop title line height must be 1.24"
+  );
+});
+
+for (const [viewportWidth, expectedFontSize] of shopTitleViewportContract) {
+  captureContractFailure(shopTitleContractFailures, () => {
+    const actualFontSize = titleFontSizeAtWidth(viewportWidth);
+    assert.ok(
+      Math.abs(actualFontSize - expectedFontSize) < 0.01,
+      `${viewportWidth}px title font size must be ${expectedFontSize}px; received ${actualFontSize.toFixed(2)}px`
+    );
+  });
+}
+
+captureContractFailure(shopTitleContractFailures, () => {
+  assert.match(
+    baseTitleDeclarations,
+    /min-width:\s*0/,
+    "shop title must be shrinkable inside its grid container"
+  );
+  assert.match(
+    baseTitleDeclarations,
+    /max-width:\s*100%/,
+    "shop title must stay inside its grid container"
+  );
+  assert.match(
+    ruleDeclarationsIn(baseCss, /\.titleRow\s*>\s*\*/),
+    /min-width:\s*0/,
+    "shop title container children must be shrinkable"
+  );
+});
+
+assert.equal(
+  shopTitleContractFailures.length,
+  0,
+  `shop title responsive contract failed:\n- ${shopTitleContractFailures.join("\n- ")}`
+);
 
 function resolveColorToken(colorToken, pageColors) {
   const variableMatch = colorToken.match(/^var\((--[a-z-]+)\)$/i);
@@ -564,7 +759,6 @@ for (const [selectorPattern, label] of [
 }
 
 for (const [selectorPattern, label] of [
-  [/\.title(?:\s|,|$)/, "long title"],
   [/\.actions\s+a/, "action label"],
   [/\.quickLinks\s+a/, "quick-link label"],
   [/\.table\s+(?:th|td)/, "price table value"],

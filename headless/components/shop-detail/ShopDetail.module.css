@@ -49,11 +49,18 @@
 }
 
 .title {
+  --shop-title-size: 38px;
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
-  font: 500 clamp(2.15rem, 4vw, 3.9rem) / 1.12 Georgia, "Yu Mincho",
-    serif;
+  font-family: Georgia, "Yu Mincho", serif;
+  font-size: var(--shop-title-size);
+  font-weight: 500;
+  line-height: 1.24;
   letter-spacing: -0.035em;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  line-break: strict;
+  overflow-wrap: break-word;
 }
 
 .verified,
@@ -459,6 +466,12 @@
   display: none;
 }
 
+@media (max-width: 1024px) {
+  .title {
+    --shop-title-size: 34px;
+  }
+}
+
 @media (max-width: 900px) {
   .titleRow,
   .visual,
@@ -490,6 +503,12 @@
   }
 }
 
+@media (max-width: 768px) {
+  .title {
+    --shop-title-size: 30px;
+  }
+}
+
 @media (max-width: 760px) {
   .shell {
     padding-inline: 16px;
@@ -503,11 +522,6 @@
   .titleRow {
     gap: 18px;
     padding-bottom: 22px;
-  }
-
-  .title {
-    font-size: clamp(2rem, 10vw, 2.7rem);
-    overflow-wrap: anywhere;
   }
 
   .actions {
@@ -599,6 +613,18 @@
   }
 }
 
+@media (max-width: 500px) {
+  .title {
+    --shop-title-size: 28px;
+  }
+}
+
+@media (max-width: 390px) {
+  .title {
+    --shop-title-size: 27px;
+  }
+}
+
 @media (max-width: 360px) {
   .actions,
   .facts {
@@ -609,5 +635,11 @@
   .facts > div:first-child,
   .facts > div:nth-child(2n) {
     border-right: 0;
+  }
+}
+
+@media (max-width: 320px) {
+  .title {
+    --shop-title-size: 24px;
   }
 }
