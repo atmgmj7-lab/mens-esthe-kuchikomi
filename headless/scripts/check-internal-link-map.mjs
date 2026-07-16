@@ -18,8 +18,12 @@ for (const href of ["#shop-list", "#price-table", "#late-night", "#reviews"]) {
 }
 
 const shopCardLuxury = read("components/area/hub/ShopCardLuxury.tsx");
+const areaShopCard = read("components/common/AreaShopCard.tsx");
+const areaShopCardViewModel = read("lib/area-shop-card-view-model.ts");
 assert.ok(
-  shopCardLuxury.includes("詳細を見る") && shopCardLuxury.includes('href={`/shops/${shop.slug}/`}'),
+  shopCardLuxury.includes("<AreaShopCard") &&
+    areaShopCard.includes("href={model.title.href}") &&
+    areaShopCardViewModel.includes('const shopPath = `/shops/${shop.slug}/`;'),
   "area detail shop cards must link to shop detail pages"
 );
 

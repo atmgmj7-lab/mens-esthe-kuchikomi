@@ -1,131 +1,121 @@
-import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import Link from "next/link";
-import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
+import { ShopRankCell } from "@/components/common/ShopRankCell";
 import {
-  DEFAULT_SHOP_IMAGE,
-  SHOP_FALLBACK_IMAGE_ALT,
   SHOP_FALLBACK_IMAGE_STYLE
 } from "@/lib/design-constants";
-import { PriceLabel } from "@/components/common/PriceLabel";
-import { RatingBadge } from "@/components/common/RatingBadge";
-import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
-import { getHubTemplateConfig } from "@/lib/area-hub-config";
 import {
-  buildEditorCommentShort,
+  buildAreaShopCardViewModel
+} from "@/lib/area-shop-card-view-model";
+import {
   groupShopsByRelation,
   primaryGroupTitle,
-  resolveShopLastVerifiedLabel,
-  resolveShopRelationLabel,
-  secondaryGroupTitle,
-  shopAreaLabel,
-  shopFeatureTags,
-  shopHoursText,
-  shopNearestStation,
-  shopReviewCountLabel
+  secondaryGroupTitle
 } from "@/lib/area-shop-utils";
-import { buildReviewSubmitUrl } from "@/lib/review-links";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import styles from "./AreaShopCard.module.css";
+
+type AreaShopCardProps = {
+  shop: ShopView;
+  targetArea: Pick<AreaView, "slug" | "name">;
+  rank?: number | null;
+  showRank?: boolean;
+};
 
 export function AreaShopCard({
   shop,
-  targetArea
-}: {
-  shop: ShopView;
-  targetArea: Pick<AreaView, "slug" | "name">;
-}) {
-  const hasImage = Boolean(shop.imageUrl);
-  const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;
-  const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;
-  const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;
-  const tags = shopFeatureTags(shop, targetArea);
-  const relationLabel =
-    getHubTemplateConfig(targetArea.slug)?.seo.relationCardLabel ?? "対象エリアとの関係";
+  targetArea,
+  rank = null,
+  showRank = Boolean(rank)
+}: AreaShopCardProps) {
+  const model = buildAreaShopCardViewModel(shop, targetArea, {
+    rank,
+    showRank,
+    summarySource: "wordpress-only",
+    maxActions: 2
+  });
+  const cardClassName = [styles.card, model.rank ? "" : styles.cardNoRank]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <article className="area-shop-card hl-card-hover">
-      <Link href={`/shops/${shop.slug}/`} className="area-shop-card__img-link">
+    <article className={cardClassName} data-area-shop-card="true">
+      <div className={styles.rankSlot}>
+        {model.rank ? <ShopRankCell rank={model.rank} className={styles.rank} /> : null}
+      </div>
+
+      <header className={styles.header}>
+        <h3 className={styles.title}>
+          <Link href={model.title.href} className={styles.titleLink}>
+            {model.title.text}
+          </Link>
+        </h3>
+        {model.tags.length > 0 ? (
+          <ul className={styles.tags} aria-label={`${model.title.text}の公開情報タグ`}>
+            {model.tags.map((tag) => (
+              <li
+                key={`${tag.kind}-${tag.label}`}
+                className={tag.kind === "promotion" ? styles.promotionTag : styles.tag}
+              >
+                {tag.label}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </header>
+
+      <Link href={model.title.href} className={styles.media} aria-label={`${model.title.text}の詳細を見る`}>
         <img
-          src={image}
-          alt={imageAlt}
-          width={320}
-          height={hasImage ? 213 : 240}
+          className={[styles.image, model.image.isFallback ? styles.imageFallback : ""]
+            .filter(Boolean)
+            .join(" ")}
+          src={model.image.src}
+          alt={model.image.alt}
+          width={480}
+          height={360}
           loading="lazy"
           decoding="async"
-          style={imageStyle}
+          style={model.image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}
         />
       </Link>
-      <div className="area-shop-card__body">
-        <h3 className="area-shop-card__title">
-          <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
-        </h3>
 
-        <dl className="area-shop-card__meta">
-          <div>
-            <dt>エリア</dt>
-            <dd>{shopAreaLabel(shop)}</dd>
-          </div>
-          <div>
-            <dt>{relationLabel}</dt>
-            <dd>{resolveShopRelationLabel(shop, targetArea)}</dd>
-          </div>
-          <div>
-            <dt>最寄駅・周辺</dt>
-            <dd>{shopNearestStation(shop)}</dd>
-          </div>
-          <div>
-            <dt>営業時間</dt>
-            <dd>{shopHoursText(shop)}</dd>
-          </div>
-          <div>
-            <dt>料金目安</dt>
-            <dd>
-              <PriceLabel shop={shop} />
-            </dd>
-          </div>
-          <div>
-            <dt>口コミ</dt>
-            <dd>{shopReviewCountLabel(shop)}</dd>
-          </div>
-          <div>
-            <dt>公式サイト</dt>
-            <dd>{shop.officialUrl ? "あり" : "未掲載"}</dd>
-          </div>
-        </dl>
+      <div className={styles.body}>
+        {model.summary ? <p className={styles.summary}>{model.summary}</p> : null}
+        {model.facts.length > 0 ? (
+          <dl className={styles.facts}>
+            {model.facts.map((fact) => (
+              <div key={fact.key} className={styles.fact}>
+                <dt>{fact.label}</dt>
+                <dd>{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {model.quickLinks.length > 0 ? (
+          <nav className={styles.quickLinks} aria-label={`${model.title.text}のページ内リンク`}>
+            {model.quickLinks.map((link) => (
+              <Link key={link.key} href={link.href} className={styles.quickLink}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        ) : null}
+      </div>
 
-        <ResponsiveTagList className="area-shop-card__tags" ariaLabel={`${shop.title}の特徴`}>
-          {tags.map((tag) => (
-            <ResponsiveTag className="area-shop-card__tag" key={tag} tone="teal">
-              {tag}
-            </ResponsiveTag>
-          ))}
-        </ResponsiveTagList>
-
-        <p className="area-shop-card__editor area-shop-card__editor--clamp">
-          {buildEditorCommentShort(shop, targetArea)}
-        </p>
-        <p className="area-shop-card__verified">確認 {resolveShopLastVerifiedLabel(shop)}</p>
-
-        <div className="area-shop-card__actions">
-          <Link href={`/shops/${shop.slug}/`} className="area-hub-btn area-hub-btn--primary">
-            店舗詳細を見る
-          </Link>
-          {shop.officialUrl ? (
-            <a
-              href={shop.officialUrl}
-              className="area-hub-btn area-hub-btn--outline"
-              target="_blank"
-              rel={outboundRelForPromotion(shop.ranking.promotion)}
-            >
-              公式サイトを見る
-            </a>
-          ) : null}
-          <Link
-            href={buildReviewSubmitUrl(shop.slug)}
-            className="area-hub-btn area-hub-btn--outline"
+      <div className={styles.actions}>
+        {model.actions.map((action) => (
+          <a
+            key={action.kind}
+            href={action.href}
+            className={action.primary ? styles.primaryAction : styles.secondaryAction}
+            target={action.external ? "_blank" : undefined}
+            rel={action.external ? action.rel : undefined}
+            data-shop-cta-kind={action.kind}
+            data-shop-cta-position="listing"
+            data-shop-slug={shop.slug}
           >
-            口コミを書く
-          </Link>
-        </div>
+            {action.label}
+          </a>
+        ))}
       </div>
     </article>
   );
@@ -147,7 +137,7 @@ export function AreaShopList({
           <h3 className="area-hub-shop-group__title">{primaryGroupTitle(targetArea)}</h3>
           <div className="area-hub-shop-group__list">
             {primary.map((shop) => (
-              <ShopCardLuxury key={shop.id} shop={shop} targetArea={targetArea} />
+              <AreaShopCard key={shop.id} shop={shop} targetArea={targetArea} />
             ))}
           </div>
         </div>
@@ -157,7 +147,7 @@ export function AreaShopList({
           <h3 className="area-hub-shop-group__title">{secondaryGroupTitle(targetArea)}</h3>
           <div className="area-hub-shop-group__list">
             {secondary.map((shop) => (
-              <ShopCardLuxury key={shop.id} shop={shop} targetArea={targetArea} />
+              <AreaShopCard key={shop.id} shop={shop} targetArea={targetArea} />
             ))}
           </div>
         </div>

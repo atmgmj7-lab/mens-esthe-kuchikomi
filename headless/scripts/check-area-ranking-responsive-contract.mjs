@@ -18,6 +18,7 @@ const packageJson = read("package.json");
 const shopRankCell = read("components/common/ShopRankCell.tsx");
 const shopRankCss = read("components/common/ShopRankCell.module.css");
 const shopCard = read("components/area/hub/ShopCardLuxury.tsx");
+const areaShopCard = read("components/common/AreaShopCard.tsx");
 const comparison = read("components/area/hub/RankingComparisonTable.tsx");
 const globalCss = read("app/globals.css");
 
@@ -39,8 +40,12 @@ check(
   "ShopRankCell props must keep rank required and className optional"
 );
 check(
-  /ShopRankCell/.test(shopCard) && /rank=\{rank\}/.test(shopCard),
-  "ShopCardLuxury must render the independent ShopRankCell"
+  /ShopRankCell/.test(areaShopCard) && /rank=\{model\.rank\}/.test(areaShopCard),
+  "the shared AreaShopCard must render the independent ShopRankCell"
+);
+check(
+  /AreaShopCard/.test(shopCard) && /rank=\{rank\}/.test(shopCard),
+  "ShopCardLuxury must pass its compatible rank prop to AreaShopCard"
 );
 check(
   !/className="shop-card-luxury__rank"|shop-card-luxury__rank-(?:num|label)/.test(shopCard),

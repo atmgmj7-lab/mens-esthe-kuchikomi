@@ -436,6 +436,7 @@ const shopThumbSource = readHeadless("components/area/hub/ShopImageThumb.tsx");
 const homePageSource = readHeadless("components/HomePageContent.tsx");
 const shopCardSource = readHeadless("components/ShopCard.tsx");
 const areaShopCardSource = readHeadless("components/common/AreaShopCard.tsx");
+const areaShopCardViewModelSource = readHeadless("lib/area-shop-card-view-model.ts");
 const shopDetailGallerySource = readHeadless("components/shop-detail/ShopDetailGallery.tsx");
 const designConstantsSource = readHeadless("lib/design-constants.ts");
 const seoSource = readHeadless("lib/seo.ts");
@@ -493,38 +494,21 @@ const fallbackImageContracts = [
     wrongRatioMarker: "height={hasImage ? 210 : 210}"
   },
   {
-    label: "ShopCard",
-    source: shopCardSource,
-    required: [
-      "const hasImage = Boolean(shop.imageUrl);",
-      "const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;",
-      "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
-      "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
-      "height={hasImage ? 100 : 75}",
-      "alt={imageAlt}",
-      "style={imageStyle}"
-    ],
-    altMarker: "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
-    styleMarker: "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
-    ratioMarker: "height={hasImage ? 100 : 75}",
-    wrongRatioMarker: "height={hasImage ? 100 : 100}"
-  },
-  {
     label: "AreaShopCard",
-    source: areaShopCardSource,
+    source: `${areaShopCardViewModelSource}\n${areaShopCardSource}`,
     required: [
-      "const hasImage = Boolean(shop.imageUrl);",
-      "const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;",
-      "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
-      "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
-      "height={hasImage ? 213 : 240}",
-      "alt={imageAlt}",
-      "style={imageStyle}"
+      "const imageSrc = assetUrl(shop.imageUrl);",
+      "? { src: imageSrc, alt: title, isFallback: false }",
+      ": { src: DEFAULT_SHOP_IMAGE, alt: SHOP_FALLBACK_IMAGE_ALT, isFallback: true }",
+      "src={model.image.src}",
+      "alt={model.image.alt}",
+      "height={360}",
+      "style={model.image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}"
     ],
-    altMarker: "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
-    styleMarker: "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
-    ratioMarker: "height={hasImage ? 213 : 240}",
-    wrongRatioMarker: "height={hasImage ? 213 : 213}"
+    altMarker: ": { src: DEFAULT_SHOP_IMAGE, alt: SHOP_FALLBACK_IMAGE_ALT, isFallback: true }",
+    styleMarker: "style={model.image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
+    ratioMarker: "height={360}",
+    wrongRatioMarker: "height={320}"
   },
   {
     label: "ShopDetailGallery",
@@ -561,6 +545,11 @@ const fallbackImageContracts = [
     wrongRatioMarker: "const imageHeight = hasImage ? height : Math.round(width * 0.66);"
   }
 ];
+
+assert.ok(
+  shopCardSource.includes("<AreaShopCard"),
+  "ShopCardはfallback分岐を持つ共通AreaShopCardへ委譲してください"
+);
 
 function fallbackContractViolations(source, contract) {
   return contract.required.filter((required) => !source.includes(required));
