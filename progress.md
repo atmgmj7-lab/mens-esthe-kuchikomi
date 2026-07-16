@@ -358,6 +358,7 @@
 - 店舗責任者申請はlocal Supabaseの非公開審査キューで検証済み。
 - WordPress公開情報とSupabase公開viewは変更していない。
 - 本番migration、Secret登録、本番申請保存、push、deployは未実施。
+
 # 2026-07-16 店舗詳細C案 Detail Task 4 完了
 
 - 店舗詳細専用CSSでPC最大1360px、スマホ左右16px、画像4:3、固定導線のsafe-area対応を契約化した。
@@ -382,3 +383,12 @@
 - 安全な店舗識別子だけを送り、電話予約の番号は`tel:`へ正規化して計測へ含めない。
 - focused実動作検査、型、lint、全18検査を実行し、独立レビューは問題0で承認。
 - 実GA送信、push、deploy、本番、WordPress、Supabaseへの書き込みは未実施。
+
+## 2026-07-16 本番反映準備
+
+- 実装コミット `990274a` と最新mainの統合コミット `5b0b8fd` を作成した。
+- Nodemailerを9.0.3へ固定し、独立レビューはCritical 0 / Important 0 / Minor 0で公開可判定となった。
+- 全test、lint、typecheck、441ページbuild、依存監査を再実行し、High / Critical 0を確認した。
+- Supabase CLIが別サービスのprojectを指していたため、書き込みを行わずリンクを解除した。
+- 正しいエスコミ本番Supabaseは接続済みChrome profileから確認する必要があり、Chrome利用許可前で停止した。
+- `main` push、Vercel本番環境変数、本番migration、本番deployは未実施。

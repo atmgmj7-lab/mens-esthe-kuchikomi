@@ -116,6 +116,17 @@ Phase 11 complete（店舗詳細C案と店舗責任者申請の全11タスク、
 - [x] DB lint、対象検査、全体検査、build、Git差分検査を実行し、本番適用前で停止する
 - **Status:** complete
 
+### Phase 14: 店舗詳細・Phase 4の本番反映
+- [x] 実装一式をコミットし、最新 `origin/main` を統合する
+- [x] NodemailerのHigh advisoryを9.0.3固定で解消し、独立レビューを完了する
+- [x] 全test、lint、typecheck、441ページbuild、High/Critical 0を再確認する
+- [x] 別サービスを指していたSupabase CLIリンクを解除する
+- [ ] 正しいエスコミ本番Supabaseへ店舗責任者申請migrationを適用する
+- [ ] Vercel ProductionへSupabase接続情報とrate limit secretを登録する
+- [ ] `main` へ反映し、GitHub ActionsとVercel本番を確認する
+- [ ] PC・スマホ・対象店舗・申請APIの本番確認を行う
+- **Status:** blocked（正しいSupabaseアカウントへ接続済みのChrome利用許可待ち）
+
 ## Key Questions
 
 1. 最小構成で、現在不足している本文・口コミ・出典・確認日を拡張できるか。

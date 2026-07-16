@@ -3097,3 +3097,12 @@ pm/PROGRESS.md
 - 店舗責任者申請はlocal Supabaseの非公開審査キューで検証済み。
 - WordPress公開情報とSupabase公開viewは変更していない。
 - 本番migration、Secret登録、本番申請保存、push、deployは未実施。
+
+## 2026-07-16 店舗詳細・Phase 4 本番反映準備
+
+- 実装一式をコミットし、最新 `origin/main` を競合解消して統合した。
+- Nodemailerを9.0.3へ固定し、High advisoryを解消した。別担当の再レビューは全分類0件で公開可。
+- 全test、lint、typecheck、441ページbuildが成功し、npm監査はHigh / Critical 0件。
+- 誤接続していた別サービスのSupabase projectは書き込みなしでunlinkした。
+- 正しいエスコミ本番SupabaseへのmigrationとVercel Secret登録は、接続済みChrome profileの利用許可待ち。
+- `main` push、Vercel deploy、本番DB変更は未実施。

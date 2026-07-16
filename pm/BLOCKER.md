@@ -2,6 +2,12 @@
 
 ## 対応中
 
+### [BLOCK-007] エスコミ本番SupabaseのCLI認証先が未接続
+- **起票日**: 2026-07-16
+- **影響**: 店舗責任者申請migrationとVercel Production用Secretを安全に確定できないため、`main` push前で停止
+- **確認内容**: 現在のSupabase CLIは別サービスのprojectを参照していた。書き込みは行わずunlink済み
+- **解除条件**: 正しいエスコミSupabaseへログイン済みのChrome profileを利用してprojectを照合し、migration・RLS・Secretを適用後に本番deployへ進む
+
 ### [BLOCK-005] ai-site-monitor 本番運用・品質面の未整備
 - **起票日**: 2026-04-05
 - **影響**: 監視・店舗データ自動更新パイプラインの一部が未整理
