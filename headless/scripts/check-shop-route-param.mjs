@@ -43,6 +43,10 @@ assert.equal(toShopRouteParam("%e3%81"), "");
 const pageSource = readFileSync(join(root, "app/shops/[slug]/page.tsx"), "utf8");
 assert.match(pageSource, /slug: toShopRouteParam\(shop\.slug\)/);
 assert.doesNotMatch(pageSource, /slug: shop\.slug/);
-assert.match(pageSource, /slug: "c-r-e-a-m（クリーム）"/);
+assert.match(
+  pageSource,
+  /slug: "__wp-build-fallback__"/,
+  "CI fallback must remain a non-public sentinel instead of a real non-ASCII shop slug",
+);
 
 console.log("shop route param check passed");

@@ -1,6 +1,12 @@
 # Blockers
 
-更新日: 2026-07-11
+更新日: 2026-07-15
+
+## 2026-07-15 公開状態
+
+- 重点5地域のSEO・視認性改善は `main` から本番公開済み。
+- 公開データの取得元はWordPress。Supabase公開切替とWordPress停止は未実施。
+- Vercel認証ブロッカー `BLOCK-006` は解除済み。現在の運用ブロッカーは `pm/BLOCKER.md` を正本とする。
 
 ## Active
 

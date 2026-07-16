@@ -8,11 +8,13 @@ const read = (file) => readFileSync(join(root, file), "utf8");
 
 const areaHubTemplate = read("components/area/AreaHubPageTemplate.tsx");
 assert.ok(
-  areaHubTemplate.includes("escomi-s40-area-link-map"),
-  "area hub pages must expose an S-40 internal link map"
+  areaHubTemplate.includes("AreaHubDecisionGuide"),
+  "area hub pages must expose the consolidated decision guide"
 );
-for (const href of ["#shop-list", "#ranking", "#price-table", "#beginner", "#related-areas"]) {
-  assert.ok(areaHubTemplate.includes(href), `area hub internal links must include ${href}`);
+
+const areaDecisionGuide = read("components/area/hub/AreaHubDecisionGuide.tsx");
+for (const href of ["#shop-list", "#price-table", "#late-night", "#reviews"]) {
+  assert.ok(areaDecisionGuide.includes(href), `area hub decision links must include ${href}`);
 }
 
 const shopCardLuxury = read("components/area/hub/ShopCardLuxury.tsx");
@@ -74,8 +76,8 @@ assert.equal(shopDetailIntegrationEvidence.sparse.captures.areaHubProps.length, 
 
 const css = read("app/globals.css");
 assert.ok(
-  css.includes("S-40 internal links"),
-  "S-40 internal link styles must be present"
+  css.includes("area-decision-guide__grid"),
+  "consolidated area decision link styles must be present"
 );
 
 console.log("internal link map checks passed");

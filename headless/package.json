@@ -13,7 +13,7 @@
     "perf:check": "node scripts/performance-check.mjs",
     "typecheck": "tsc --noEmit",
     "test:area-integrity": "node scripts/check-area-content-integrity.mjs",
-    "test": "npm run test:area-integrity && npm run test:price-normalization && npm run test:content-provenance && npm run test:review-rating && npm run test:promotion-disclosure && npm run test:q06-seo-metadata && npm run test:schema-output && npm run test:s10-sakaisujihonmachi-hub && npm run test:internal-links && npm run test:final-design-preservation && npm run test:wp-build-resilience && npm run test:supabase-content-schema && npm run test:wp-migration-audit && npm run test:content-source-config && npm run test:supabase-trial-import && npm run test:supabase-full-import && npm run test:sakaisujihonmachi-phase4-data && npm run test:sakaisujihonmachi-phase4-supabase-import && npm run test:shop-owner-schema && npm run test:shop-owner-api && npm run test:shop-owner-form && npm run test:shop-route-param && npm run test:shop-detail-view-model && npm run test:shop-detail-responsive && npm run test:shop-detail-click-tracking && npm run test:json-ld-serialization",
+    "test": "npm run test:area-integrity && npm run test:price-normalization && npm run test:content-provenance && npm run test:review-rating && npm run test:promotion-disclosure && npm run test:q06-seo-metadata && npm run test:schema-output && npm run test:s10-sakaisujihonmachi-hub && npm run test:internal-links && npm run test:final-design-preservation && npm run test:wp-build-resilience && npm run test:next-cache-tags && npm run test:five-area-decision-guide && npm run test:supabase-content-schema && npm run test:wp-migration-audit && npm run test:content-source-config && npm run test:supabase-trial-import && npm run test:supabase-full-import && npm run test:sakaisujihonmachi-phase4-data && npm run test:sakaisujihonmachi-phase4-supabase-import && npm run test:shop-owner-schema && npm run test:shop-owner-api && npm run test:shop-owner-form && npm run test:shop-route-param && npm run test:shop-detail-view-model && npm run test:shop-detail-responsive && npm run test:shop-detail-click-tracking && npm run test:json-ld-serialization && npm run test:nodemailer-security",
     "test:price-normalization": "node scripts/check-price-normalization.mjs",
     "test:content-provenance": "node scripts/check-content-provenance.mjs",
     "test:shop-owner-schema": "node scripts/check-shop-owner-request-schema.mjs",
@@ -44,11 +44,14 @@
     "render:sakaisujihonmachi-phase4-report": "node scripts/render-sakaisujihonmachi-phase4-report.mjs",
     "supabase:prepare-sakaisujihonmachi-phase4": "node scripts/prepare-sakaisujihonmachi-phase4-supabase-import.mjs",
     "supabase:prepare-30-shop-trial": "node scripts/prepare-supabase-30-shop-trial.mjs",
-    "supabase:prepare-full-import": "node scripts/prepare-supabase-full-import.mjs"
+    "supabase:prepare-full-import": "node scripts/prepare-supabase-full-import.mjs",
+    "test:next-cache-tags": "node scripts/check-next-non-ascii-cache-tags.mjs",
+    "test:five-area-decision-guide": "node scripts/check-five-area-decision-guide.mjs",
+    "test:nodemailer-security": "node scripts/check-nodemailer-security-contract.mjs"
   },
   "dependencies": {
-    "next": "16.2.6",
-    "nodemailer": "^7.0.13",
+    "next": "16.2.10",
+    "nodemailer": "9.0.3",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -58,7 +61,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.2.10",
     "typescript": "^5"
   }
 }

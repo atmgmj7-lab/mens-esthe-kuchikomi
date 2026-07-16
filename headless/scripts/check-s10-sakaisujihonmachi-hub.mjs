@@ -43,8 +43,14 @@ assert.ok(
   "Area hub template must render the local guide section"
 );
 assert.ok(
-  areaHubTemplate.includes("#local-guide"),
-  "Area hub navigation and internal links must include the local guide anchor"
+  areaHubTemplate.includes("AreaHubDecisionGuide"),
+  "Area hub template must render the consolidated decision guide"
+);
+
+const areaDecisionGuide = read("components/area/hub/AreaHubDecisionGuide.tsx");
+assert.ok(
+  areaDecisionGuide.includes('href: "#shop-list"'),
+  "Sakaisuji-Honmachi selection guidance must lead into the shop list"
 );
 
 const pkg = read("package.json");

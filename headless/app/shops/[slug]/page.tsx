@@ -19,7 +19,7 @@ export async function generateStaticParams() {
     (shop) => ({
       slug: toShopRouteParam(shop.slug)
     }),
-    [{ slug: "c-r-e-a-m（クリーム）" }]
+    [{ slug: "__wp-build-fallback__" }]
   );
 }
 

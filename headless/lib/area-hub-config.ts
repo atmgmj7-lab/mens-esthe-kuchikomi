@@ -18,6 +18,11 @@ export type AreaHubLocalGuideConfig = {
   items: AreaHubLocalGuideItem[];
 };
 
+export type AreaHubDecisionGuideConfig = {
+  selectionTitle: string;
+  intro: string;
+};
+
 export type AreaHubRelationLabelRule = {
   pattern: RegExp;
   label: string;
@@ -54,6 +59,7 @@ export type AreaHubSeoConfig = {
   faqFirstAnswer: string;
   relationCardLabel: string;
   shopLinks: AreaHubShopLinks;
+  decisionGuide?: AreaHubDecisionGuideConfig;
   localGuide?: AreaHubLocalGuideConfig;
   guidePath?: string;
   guideTitle?: string;
@@ -272,6 +278,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         priceLink: "堺筋本町メンズエステ料金比較表へ",
         stationLink: "駅近の堺筋本町メンズエステ一覧へ"
       },
+      decisionGuide: {
+        selectionTitle: "仕事帰り・出張前後から絞る",
+        intro:
+          "堺筋本町は本町・北浜・長堀橋まで徒歩圏として比較しやすく、仕事帰りや出張前後の候補を広げやすいエリアです。料金掲載、最終受付、駅からの案内、公式予約先を順に確認し、条件に合う店舗を絞り込んでください。"
+      },
       localGuide: {
         title: "堺筋本町・本町・北浜の使い分け",
         lead:
@@ -331,6 +342,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         compareLink: "新大阪メンズエステ店舗一覧（口コミ・料金比較）",
         priceLink: "新大阪メンズエステ料金比較表へ",
         stationLink: "駅近の新大阪メンズエステ一覧へ"
+      },
+      decisionGuide: {
+        selectionTitle: "出張前後と利用駅から絞る",
+        intro:
+          "新大阪は新幹線利用の前後に加え、東三国・西中島南方まで含めて比較しやすいエリアです。利用する駅、受付時間、店舗型・出張型の違い、掲載料金を確認し、移動しやすい候補から選んでください。"
       }
     },
     relation: SHINOSAKA_RELATION
@@ -363,6 +379,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         compareLink: "日本橋メンズエステ店舗一覧（口コミ・料金比較）",
         priceLink: "日本橋メンズエステ料金比較表へ",
         stationLink: "駅近の日本橋メンズエステ一覧へ"
+      },
+      decisionGuide: {
+        selectionTitle: "日本橋・なんばの徒歩圏で絞る",
+        intro:
+          "大阪日本橋は近鉄日本橋・なんば・黒門市場周辺まで候補が広がるエリアです。日本橋ど真ん中か徒歩圏かを確認したうえで、掲載料金、深夜帯の受付、承認済み口コミ、公式予約先を比較してください。"
       },
       guidePath: "/osaka-nihonbashi/",
       guideTitle: "日本橋で失敗しない選び方を詳しく読む",
@@ -430,6 +451,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         compareLink: "梅田メンズエステ店舗一覧（口コミ・料金比較）",
         priceLink: "梅田メンズエステ料金比較表へ",
         stationLink: "駅近の梅田メンズエステ一覧へ"
+      },
+      decisionGuide: {
+        selectionTitle: "大阪駅・東梅田・北新地から絞る",
+        intro:
+          "梅田は大阪駅・東梅田・西梅田・北新地で移動経路が大きく変わります。利用する出口や駅を先に決め、営業時間、掲載料金、公式予約先、承認済み口コミを確認すると候補を比較しやすくなります。"
       }
     },
     relation: UMEDA_RELATION
@@ -462,6 +488,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         compareLink: "堺・堺東メンズエステ店舗一覧（口コミ・料金比較）",
         priceLink: "堺・堺東メンズエステ料金比較表へ",
         stationLink: "駅近の堺・堺東メンズエステ一覧へ"
+      },
+      decisionGuide: {
+        selectionTitle: "堺東・堺駅の移動範囲で絞る",
+        intro:
+          "堺エリアは堺東・堺駅・三国ヶ丘・中百舌鳥で移動距離が変わります。利用する駅と店舗の対応地域を先に決め、掲載料金、営業時間、予約先を比較すると、堺市内の候補を無理なく絞り込めます。"
       }
     },
     relation: SAKAI_RELATION
