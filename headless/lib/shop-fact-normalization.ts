@@ -14,33 +14,67 @@ const UNKNOWN_DISPLAY_VALUES = new Set([
 const NAMED_HTML_ENTITIES: Record<string, string> = {
   amp: "&",
   apos: "'",
+  bull: "•",
+  cent: "¢",
+  copy: "©",
+  deg: "°",
+  divide: "÷",
+  emsp: " ",
+  ensp: " ",
+  euro: "€",
   gt: ">",
+  hellip: "…",
+  laquo: "«",
+  ldquo: "“",
+  lsquo: "‘",
   lt: "<",
+  mdash: "—",
+  middot: "·",
   nbsp: " ",
-  quot: '"'
+  ndash: "–",
+  plusmn: "±",
+  pound: "£",
+  quot: '"',
+  raquo: "»",
+  rdquo: "”",
+  reg: "®",
+  rsquo: "’",
+  shy: "",
+  thinsp: " ",
+  times: "×",
+  trade: "™",
+  yen: "¥"
 };
 
 function decodeHtmlEntity(entity: string, body: string): string {
   const lower = body.toLowerCase();
   if (lower.startsWith("#x")) {
     const codePoint = Number.parseInt(lower.slice(2), 16);
-    return decodeCodePoint(entity, codePoint);
+    return decodeCodePoint(codePoint);
   }
   if (lower.startsWith("#")) {
     const codePoint = Number.parseInt(lower.slice(1), 10);
-    return decodeCodePoint(entity, codePoint);
+    return decodeCodePoint(codePoint);
   }
   return NAMED_HTML_ENTITIES[lower] ?? entity;
 }
 
-function decodeCodePoint(entity: string, codePoint: number): string {
+function decodeCodePoint(codePoint: number): string {
+  const isControl = codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f);
+  const isSurrogate = codePoint >= 0xd800 && codePoint <= 0xdfff;
+  const isNonCharacter =
+    (codePoint >= 0xfdd0 && codePoint <= 0xfdef) ||
+    (codePoint & 0xffff) === 0xfffe ||
+    (codePoint & 0xffff) === 0xffff;
   if (
     !Number.isInteger(codePoint) ||
     codePoint <= 0 ||
     codePoint > 0x10ffff ||
-    (codePoint >= 0xd800 && codePoint <= 0xdfff)
+    isControl ||
+    isSurrogate ||
+    isNonCharacter
   ) {
-    return entity;
+    return "";
   }
   return String.fromCodePoint(codePoint);
 }
@@ -97,7 +131,10 @@ export function isConfirmedJapaneseStreetAddress(value: unknown): boolean {
     /駅|出口|徒歩|アクセス|周辺|付近|目印|受付|営業|時刻|予約|電話/.test(checkText) ||
     /\d{1,2}\s*[:：]\s*\d{2}/.test(checkText) ||
     /\d{1,2}\s*[-〜～~]\s*\d{1,2}\s*時/.test(checkText) ||
-    /\d{1,2}\s*時(?:\d{1,2}\s*分)?/.test(checkText);
+    /\d{1,2}\s*時(?:\d{1,2}\s*分)?/.test(checkText) ||
+    /\b(?:am|pm)\s*\d{1,2}(?::\d{2})?\b/i.test(checkText) ||
+    /\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/i.test(checkText) ||
+    /\b24\s*h(?:ours?)?\b/i.test(checkText);
   if (hasAccessOrBusinessTime) return false;
 
   const hasAdministrativeArea = /都|道|府|県|市|区|町|村/.test(checkText);

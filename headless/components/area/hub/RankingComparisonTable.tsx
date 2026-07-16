@@ -17,6 +17,7 @@ export function RankingComparisonTable({ shops }: { shops: ShopView[] }) {
         </div>
         <div className="ranking-comparison-table__body" role="rowgroup">
           {shops.map((shop) => {
+            const hours = shopHoursText(shop);
             const station = shopNearestStation(shop);
             return (
               <div className="ranking-comparison-table__row" role="row" data-comparison-row key={shop.id}>
@@ -33,7 +34,7 @@ export function RankingComparisonTable({ shops }: { shops: ShopView[] }) {
                 </div>
                 <div className="ranking-comparison-table__cell" role="cell">
                   <span className="ranking-comparison-table__cell-label">営業時間</span>
-                  <span>{shopHoursText(shop)}</span>
+                  {hours ? <span>{hours}</span> : null}
                 </div>
                 <div className="ranking-comparison-table__cell" role="cell">
                   <span className="ranking-comparison-table__cell-label">駅・徒歩案内</span>

@@ -397,12 +397,11 @@ export type RatingDisplay = {
 };
 
 export function shopHoursText(shop: ShopView): string {
-  const hours = safeText(shop.acf.shop_hours);
-  return hours || "店舗ページで確認";
+  return normalizeShopDisplayText(shop.acf.shop_hours);
 }
 
 export function isLateNightShop(shop: ShopView): boolean {
-  const hours = safeText(shop.acf.shop_hours);
+  const hours = shopHoursText(shop);
   if (!hours) return false;
   return /翌|24[:：]|25[:：]|26[:：]|27[:：]|28[:：]|29[:：]|30[:：]|深夜|23[:：]/.test(
     hours

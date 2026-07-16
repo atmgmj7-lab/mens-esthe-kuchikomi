@@ -43,7 +43,7 @@ export function RankingSpecialtyCards({
                 <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
               </h3>
 
-              {variant === "late-night" ? (
+              {variant === "late-night" && hours ? (
                 <p className="ranking-specialty-card__hours-badge" title={hours}>
                   {hours}
                 </p>
@@ -66,7 +66,9 @@ export function RankingSpecialtyCards({
                 <span>
                   <PriceLabel shop={shop} />
                 </span>
-                {variant !== "late-night" ? <span className="ranking-specialty-card__hours">{hours}</span> : null}
+                {variant !== "late-night" && hours ? (
+                  <span className="ranking-specialty-card__hours">{hours}</span>
+                ) : null}
               </div>
 
               <div className="ranking-specialty-card__actions">

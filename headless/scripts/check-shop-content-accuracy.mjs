@@ -90,6 +90,14 @@ const areaUtils = loadTsModule("lib/area-shop-utils.ts", (id) => {
   throw new Error(`Unexpected area utility require: ${id}`);
 });
 
+const areaListControls = loadTsModule("lib/area-shop-list-controls.ts", (id) => {
+  if (id === "@/lib/area-shop-utils") return areaUtils;
+  if (id === "@/lib/area-shop-ranking") {
+    return { orderShopsForAreaRanking: (shops) => shops };
+  }
+  throw new Error(`Unexpected area list control require: ${id}`);
+});
+
 const viewModel = loadTsModule("lib/shop-detail-view-model.ts", (id) => {
   if (id === "@/lib/design-constants") {
     return { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg" };
@@ -287,6 +295,50 @@ contract("html-entity-plain-text", () => {
   );
   assert.deepEqual(Array.from(entityModel.featureNames), ["初心者 向け&案内"]);
   assert.equal(entityModel.summaryText, "掲載情報&確認済み");
+  assert.equal(
+    factNormalization.normalizeShopFactText("ご案内&hellip;&ldquo;確認&rdquo;&copy;"),
+    "ご案内…“確認”©",
+    "公開WordPressで一般的なnamed entityを復号してください"
+  );
+  assert.equal(
+    factNormalization.normalizeShopFactText("A&#1;B&#x7f;C&#xFDD0;D&#x10FFFF;E&#x1F642;"),
+    "ABCDE🙂",
+    "control、surrogate、非文字のnumeric entityを可視文字へ通さないでください"
+  );
+});
+
+contract("normalized-shop-hours", () => {
+  for (const invalidHours of ["", "   ", "未確認", "<span>&nbsp;</span>"]) {
+    assert.equal(
+      areaUtils.shopHoursText({ ...baseShop, acf: { shop_hours: invalidHours } }),
+      "",
+      `無効な営業時間「${invalidHours}」から代替文を生成しないでください`
+    );
+  }
+
+  const lateNight = {
+    ...baseShop,
+    id: 601,
+    acf: { shop_hours: "<b>23&#58;00</b>&nbsp;まで" }
+  };
+  const daytime = {
+    ...baseShop,
+    id: 602,
+    acf: { shop_hours: "<span>10&#58;00</span>&nbsp;〜&nbsp;20&#58;00" }
+  };
+  assert.equal(areaUtils.shopHoursText(lateNight), "23:00 まで");
+  assert.equal(areaUtils.isLateNightShop(lateNight), true);
+  assert.equal(areaUtils.isLateNightShop(daytime), false);
+  assert.equal(areaListControls.matchesShopListFilters(lateNight, ["late-night"], targetArea), true);
+  assert.equal(areaListControls.matchesShopListFilters(daytime, ["late-night"], targetArea), false);
+  assert.equal(areaListControls.sortAreaShops([daytime, lateNight], "late-night", targetArea)[0].id, lateNight.id);
+
+  const comparison = read("components/area/hub/RankingComparisonTable.tsx");
+  const specialty = read("components/area/hub/RankingSpecialtyCards.tsx");
+  assert.match(comparison, /const hours = shopHoursText\(shop\)/);
+  assert.match(comparison, /hours \? <span>\{hours\}<\/span> : null/);
+  assert.match(specialty, /variant === "late-night" && hours/);
+  assert.match(specialty, /variant !== "late-night" && hours/);
 });
 
 contract("inferred-beginner", () => {
@@ -367,6 +419,21 @@ contract("access-text-street-address", () => {
     undefined,
     "住所候補に時刻案内が混在する場合もstreetAddressへ出力しないでください"
   );
+  const westernHourAddresses = [
+    "大阪府大阪市北区梅田1-2-3 AM10-PM8",
+    "大阪府大阪市北区梅田1-2-3 10AM-8PM",
+    "大阪府大阪市北区梅田1-2-3 24h"
+  ];
+  for (const shopAddress of westernHourAddresses) {
+    const shop = { ...baseShop, acf: { shop_address: shopAddress } };
+    assert.equal(
+      seo.shopLocalBusinessJsonLd(shop).address,
+      undefined,
+      `${shopAddress}の時刻案内をstreetAddressへ出力しないでください`
+    );
+    const model = viewModel.buildShopDetailViewModel(shop, "梅田");
+    assert.equal(model.infoRows.find((row) => row.key === "address")?.label, "アクセス案内");
+  }
   const numericOnly = { ...baseShop, acf: { shop_address: "梅田1-2-3" } };
   assert.equal(
     seo.shopLocalBusinessJsonLd(numericOnly).address,
