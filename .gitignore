@@ -28,3 +28,6 @@ supabase/imports/*.sql
 # エディタ
 .cursor/
 *.swp
+
+# Codex feature worktrees
+.worktrees/
