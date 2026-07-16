@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -427,6 +427,64 @@ assert.equal(
 assert.ok(
   packageJson.scripts.test.includes("npm run test:visible-eskomi-brand"),
   "可視ブランド検査をnpm testへ接続してください"
+);
+
+const oldWordPressLogoPath =
+  "/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png";
+const siteHeaderSource = readHeadless("components/SiteHeader.tsx");
+const shopThumbSource = readHeadless("components/area/hub/ShopImageThumb.tsx");
+const designConstantsSource = readHeadless("lib/design-constants.ts");
+const seoSource = readHeadless("lib/seo.ts");
+const frontPageSource = readRepository("front-page.php");
+
+assert.ok(!siteHeaderSource.includes(oldWordPressLogoPath), "ヘッダーは旧WordPressロゴURLを公開DOMへ出してはいけません");
+assert.ok(!siteHeaderSource.includes("HEADER_LOGO"), "ヘッダーから旧ロゴ定数を削除してください");
+assert.ok(!siteHeaderSource.includes("legacy-logo"), "ヘッダーからdisplay:noneの旧ロゴimgを削除してください");
+assert.ok(!frontPageSource.includes(oldWordPressLogoPath), "WordPress予備トップは旧WordPressロゴURLを参照してはいけません");
+assert.ok(
+  frontPageSource.includes("get_theme_file_uri('/assets/img/eskomi-logo.svg')"),
+  "WordPress予備トップはサイト所有のEskomi SVGを参照してください"
+);
+assert.ok(
+  designConstantsSource.includes('DEFAULT_SHOP_IMAGE = "/images/eskomi-shop-fallback.svg"'),
+  "店舗画像fallbackはサイト所有のEskomi SVGへ切り替えてください"
+);
+assert.ok(!designConstantsSource.includes("shop-default-image.webp"), "旧fallbackラスタの公開参照を削除してください");
+assert.ok(
+  seoSource.includes('logo: "https://mens-esthe-kuchikomi.com/images/eskomi-logo.svg"'),
+  "Organization schemaはサイト所有のEskomi SVGを参照してください"
+);
+assert.ok(!seoSource.includes(oldWordPressLogoPath), "Organization schemaに旧WordPressロゴURLを残してはいけません");
+assert.ok(
+  shopThumbSource.includes('alt={hasImage ? alt : "Eskomi 店舗画像準備中"}'),
+  "画像なし店舗のfallbackにはEskomiを含む読み上げ名が必要です"
+);
+assert.ok(shopThumbSource.includes('aspectRatio: "4 / 3"'), "画像なし店舗のfallbackは4:3を維持してください");
+assert.ok(shopThumbSource.includes('objectFit: "contain"'), "画像なし店舗のfallbackはcontain相当で表示してください");
+
+const svgAssets = [
+  ["headless/public/images/eskomi-logo.svg", "logo"],
+  ["headless/public/images/eskomi-shop-fallback.svg", "fallback"],
+  ["assets/img/eskomi-logo.svg", "WordPress logo"]
+];
+for (const [path, label] of svgAssets) {
+  const absolutePath = join(repositoryRoot, path);
+  assert.ok(existsSync(absolutePath), `${label} SVGが必要です: ${path}`);
+  const source = readFileSync(absolutePath, "utf8");
+  assert.ok(source.includes("Eskomi"), `${label} SVGに正確なEskomi文字が必要です`);
+  assert.ok(/<title[^>]*>[^<]*Eskomi/.test(source), `${label} SVGにEskomiの読み上げ名が必要です`);
+  assert.equal(/<script\b/i.test(source), false, `${label} SVGにscriptを含めてはいけません`);
+  assert.equal(/(?:href|xlink:href)\s*=/i.test(source), false, `${label} SVGに外部参照を含めてはいけません`);
+  assert.equal(/<image\b/i.test(source), false, `${label} SVGに外部画像を含めてはいけません`);
+}
+
+const fallbackSvg = readRepository("headless/public/images/eskomi-shop-fallback.svg");
+assert.ok(/viewBox="0 0 800 600"/.test(fallbackSvg), "店舗画像fallback SVGは4:3 viewBoxが必要です");
+assert.ok(fallbackSvg.includes("店舗画像準備中"), "店舗画像fallback SVGに読みやすい準備中ラベルが必要です");
+assert.equal(
+  existsSync(join(repositoryRoot, "headless/public/shop-default-image.webp")),
+  false,
+  "旧fallbackラスタをリポジトリから削除してください"
 );
 
 const allowedOccurrenceCount = allowed.reduce((sum, item) => sum + item.occurrenceCount, 0);

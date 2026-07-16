@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-const HEADER_LOGO = "/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png";
 const NAV_ITEMS = [
   { href: "/shops/", label: "店舗を探す" },
   { href: "/area/osaka/", label: "エリアから探す" },
@@ -25,16 +24,6 @@ export function SiteHeader() {
             Eskomi<span aria-hidden="true">.</span>
           </span>
           <span className="escomi-final-site-header__tagline">関西メンズエステ口コミナビ</span>
-          <img
-            className="escomi-final-site-header__legacy-logo"
-            src={HEADER_LOGO}
-            alt=""
-            width={120}
-            height={32}
-            loading="eager"
-            decoding="async"
-            aria-hidden="true"
-          />
         </Link>
         <nav className="escomi-final-site-header__nav" aria-label="メインナビゲーション">
           <ul className="c-gnav hl-gnav">

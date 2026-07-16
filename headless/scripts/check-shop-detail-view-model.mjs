@@ -20,7 +20,7 @@ const confirmedPrice = { status: "confirmed", amount: 14000 };
 const module = { exports: {} };
 const require = (id) => {
   if (id === "@/lib/design-constants") {
-    return { DEFAULT_SHOP_IMAGE: "/shop-default-image.webp" };
+    return { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg" };
   }
   if (id === "@/lib/price-normalization") {
     return {
@@ -107,7 +107,7 @@ assert.equal(sparse.facts.length, 0);
 assert.equal(sparse.infoRows.length, 0);
 assert.equal(sparse.actions.length, 0);
 assert.equal(sparse.images.length, 1);
-assert.equal(sparse.images[0].url, "/shop-default-image.webp");
+assert.equal(sparse.images[0].url, "/images/eskomi-shop-fallback.svg");
 assert.equal(sparse.images[0].isFallback, true);
 assert.equal(sparse.verifiedAt, null);
 assert.deepEqual(Array.from(sparse.featureNames), []);

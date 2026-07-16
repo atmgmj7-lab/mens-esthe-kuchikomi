@@ -7,8 +7,8 @@ export const COLORS = {
   turquoise: "#00a4a6"
 } as const;
 
-/** 店舗画像未設定時のフォールバック（public/shop-default-image.webp） */
-export const DEFAULT_SHOP_IMAGE = "/shop-default-image.webp";
+/** 店舗画像未設定時の4:3フォールバック */
+export const DEFAULT_SHOP_IMAGE = "/images/eskomi-shop-fallback.svg";
 
 export const AREA_HERO_IMAGES: Record<string, string> = {
   osaka: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",

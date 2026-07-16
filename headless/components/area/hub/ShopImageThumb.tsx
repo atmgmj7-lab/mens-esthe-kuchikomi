@@ -23,6 +23,7 @@ export function ShopImageThumb({
 }: Props) {
   const hasImage = Boolean(src);
   const imageSrc = src || DEFAULT_SHOP_IMAGE;
+  const imageHeight = hasImage ? height : Math.round(width * 0.75);
   const sizeClass =
     size === "compact"
       ? "shop-image-thumb--compact"
@@ -36,12 +37,13 @@ export function ShopImageThumb({
     >
       <img
         src={imageSrc}
-        alt={alt}
+        alt={hasImage ? alt : "Eskomi 店舗画像準備中"}
         width={width}
-        height={height}
+        height={imageHeight}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         className="shop-image-thumb__img"
+        style={hasImage ? undefined : { aspectRatio: "4 / 3", objectFit: "contain" }}
       />
       {!hasImage ? <span className="shop-image-thumb__badge">Eskomi</span> : null}
     </div>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="eskomi-fallback-title eskomi-fallback-description">
+  <title id="eskomi-fallback-title">Eskomi 店舗画像準備中</title>
+  <desc id="eskomi-fallback-description">店舗写真がない場合に表示するEskomiの代替画像</desc>
+  <rect width="800" height="600" fill="#f5ecd6"/>
+  <path d="M0 0H230L0 230Z" fill="#143d4d" opacity="0.08"/>
+  <path d="M800 600H570L800 370Z" fill="#143d4d" opacity="0.08"/>
+  <rect x="92" y="92" width="616" height="416" rx="34" fill="#143d4d"/>
+  <rect x="106" y="106" width="588" height="388" rx="26" fill="none" stroke="#d4af37" stroke-width="4"/>
+  <circle cx="615" cy="188" r="12" fill="#d4af37"/>
+  <text x="400" y="305" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="104" font-weight="700" letter-spacing="1" fill="#f5ecd6">Eskomi</text>
+  <path d="M282 334H518" fill="none" stroke="#d4af37" stroke-width="5" stroke-linecap="round"/>
+  <text x="400" y="402" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif" font-size="30" font-weight="700" letter-spacing="5" fill="#f5ecd6">店舗画像準備中</text>
+</svg>
