@@ -7,35 +7,44 @@ import type { ShopView } from "@/lib/wp/types";
 export function RankingComparisonTable({ shops }: { shops: ShopView[] }) {
   return (
     <div className="ranking-comparison-table-wrap">
-      <table className="ranking-comparison-table">
-        <thead>
-          <tr>
-            <th scope="col">店舗</th>
-            <th scope="col">60分目安</th>
-            <th scope="col">営業時間</th>
-            <th scope="col">最寄駅</th>
-            <th scope="col">口コミ</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="ranking-comparison-table" role="table" aria-label="店舗比較">
+        <div className="ranking-comparison-table__header" role="row">
+          <span role="columnheader">店舗</span>
+          <span role="columnheader">60分目安</span>
+          <span role="columnheader">営業時間</span>
+          <span role="columnheader">最寄駅</span>
+          <span role="columnheader">口コミ</span>
+        </div>
+        <div className="ranking-comparison-table__body" role="rowgroup">
           {shops.map((shop) => (
-            <tr key={shop.id}>
-              <td className="ranking-comparison-table__shop">
+            <div className="ranking-comparison-table__row" role="row" data-comparison-row key={shop.id}>
+              <div className="ranking-comparison-table__cell ranking-comparison-table__shop" role="cell">
+                <span className="ranking-comparison-table__cell-label">店舗</span>
                 <Link href={`/shops/${shop.slug}/`} className="ranking-comparison-table__shop-link">
                   <ShopImageThumb src={shop.imageUrl} alt="" size="table" className="ranking-comparison-table__thumb" />
                   <span>{shop.title}</span>
                 </Link>
-              </td>
-              <td className="ranking-comparison-table__price">
+              </div>
+              <div className="ranking-comparison-table__cell ranking-comparison-table__price" role="cell">
+                <span className="ranking-comparison-table__cell-label">60分目安</span>
                 <PriceLabel shop={shop} />
-              </td>
-              <td>{shopHoursText(shop)}</td>
-              <td>{shopNearestStation(shop)}</td>
-              <td>{shopReviewCountLabel(shop)}</td>
-            </tr>
+              </div>
+              <div className="ranking-comparison-table__cell" role="cell">
+                <span className="ranking-comparison-table__cell-label">営業時間</span>
+                <span>{shopHoursText(shop)}</span>
+              </div>
+              <div className="ranking-comparison-table__cell" role="cell">
+                <span className="ranking-comparison-table__cell-label">最寄駅</span>
+                <span>{shopNearestStation(shop)}</span>
+              </div>
+              <div className="ranking-comparison-table__cell" role="cell">
+                <span className="ranking-comparison-table__cell-label">口コミ</span>
+                <span>{shopReviewCountLabel(shop)}</span>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
   );
 }

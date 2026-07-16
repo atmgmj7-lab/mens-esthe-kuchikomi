@@ -1,0 +1,35 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 58px;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f8e49a 0%, #d6b957 48%, #af8424 100%);
+  color: #1f2f36;
+  box-shadow: 0 14px 32px rgba(94, 68, 18, 0.22);
+}
+
+.number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  line-height: 24px;
+  font-weight: 900;
+  font-family: var(--hl-serif);
+  font-size: 1.28rem;
+}
+
+.unit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  line-height: 24px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}

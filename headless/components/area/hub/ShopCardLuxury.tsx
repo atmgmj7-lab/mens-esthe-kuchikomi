@@ -8,6 +8,7 @@ import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";
 import { ShopInfoChips } from "@/components/area/hub/ShopInfoChips";
 import { PriceLabel } from "@/components/common/PriceLabel";
 import { RatingBadge } from "@/components/common/RatingBadge";
+import { ShopRankCell } from "@/components/common/ShopRankCell";
 import {
   buildEditorCommentShort,
   resolveShopLastVerifiedLabel,
@@ -33,13 +34,8 @@ export function ShopCardLuxury({
   const relationLabel = resolveShopRelationLabel(shop, targetArea);
 
   return (
-    <article className="shop-card-luxury hl-card-hover">
-      {rank ? (
-        <div className="shop-card-luxury__rank" aria-label={`おすすめランキング${rank}位`}>
-          <span className="shop-card-luxury__rank-num">{rank}</span>
-          <span className="shop-card-luxury__rank-label">位</span>
-        </div>
-      ) : null}
+    <article className={`shop-card-luxury hl-card-hover${rank ? " shop-card-luxury--ranked" : ""}`}>
+      {rank ? <ShopRankCell rank={rank} className="shop-card-luxury__rank-cell" /> : null}
       <Link href={`/shops/${shop.slug}/`} className="shop-card-luxury__media">
         <ShopImageThumb src={shop.imageUrl} alt={shop.title} size="card" />
       </Link>

@@ -85,7 +85,6 @@ body {
   background: #fff;
   color: #333;
   font-family: var(--hl-serif);
-  overflow-x: hidden;
 }
 
 a {
@@ -4083,34 +4082,24 @@ img {
   box-shadow: var(--shadow-luxury-card);
 }
 
-.shop-card-luxury__rank {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2px;
-  min-width: 58px;
-  min-height: 42px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 999px;
-  background: linear-gradient(135deg, #f8e49a 0%, #d6b957 48%, #af8424 100%);
-  color: #1f2f36;
-  box-shadow: 0 14px 32px rgba(94, 68, 18, 0.22);
+.shop-card-luxury--ranked {
+  grid-template-areas:
+    "rank"
+    "media"
+    "body";
 }
 
-.shop-card-luxury__rank-num {
-  font-family: var(--hl-serif);
-  font-size: 1.28rem;
-  font-weight: 900;
-  line-height: 1;
+.shop-card-luxury__rank-cell {
+  grid-area: rank;
+  justify-self: start;
 }
 
-.shop-card-luxury__rank-label {
-  font-size: 0.78rem;
-  font-weight: 900;
+.shop-card-luxury--ranked .shop-card-luxury__media {
+  grid-area: media;
+}
+
+.shop-card-luxury--ranked .shop-card-luxury__body {
+  grid-area: body;
 }
 
 .shop-card-luxury__media {
@@ -4308,7 +4297,6 @@ img {
 }
 
 .ranking-comparison-table-wrap {
-  overflow-x: auto;
   border-radius: var(--radius-card);
   background: var(--color-luxury-card);
   box-shadow: var(--shadow-luxury-card);
@@ -4316,28 +4304,45 @@ img {
 
 .ranking-comparison-table {
   width: 100%;
-  min-width: 640px;
-  border-collapse: collapse;
   font-size: 0.86rem;
 }
 
-.ranking-comparison-table th,
-.ranking-comparison-table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid rgba(20, 61, 77, 0.08);
-  text-align: left;
-  vertical-align: middle;
+.ranking-comparison-table__header,
+.ranking-comparison-table__row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.7fr) repeat(4, minmax(0, 1fr));
 }
 
-.ranking-comparison-table th {
+.ranking-comparison-table__header > *,
+.ranking-comparison-table__cell {
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.ranking-comparison-table__header {
   background: rgba(20, 61, 77, 0.05);
   color: var(--mep-navy);
   font-size: 0.78rem;
   font-weight: 700;
 }
 
+.ranking-comparison-table__row:not(:last-child) {
+  border-bottom: 1px solid rgba(20, 61, 77, 0.08);
+}
+
+.ranking-comparison-table__cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.ranking-comparison-table__cell-label {
+  display: none;
+}
+
 .ranking-comparison-table__shop-link {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 10px;
   color: var(--color-luxury-text);
@@ -4362,6 +4367,50 @@ img {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--color-luxury-gold);
+}
+
+@media (max-width: 760px) {
+  .ranking-comparison-table-wrap {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .ranking-comparison-table__header {
+    display: none;
+  }
+
+  .ranking-comparison-table__body {
+    display: grid;
+    gap: 12px;
+  }
+
+  .ranking-comparison-table__row {
+    grid-template-columns: 1fr;
+    padding: 6px 12px;
+    border: 1px solid rgba(20, 61, 77, 0.1);
+    border-radius: var(--radius-card);
+    background: var(--color-luxury-card);
+    box-shadow: var(--shadow-luxury-card);
+  }
+
+  .ranking-comparison-table__cell {
+    display: grid;
+    grid-template-columns: minmax(88px, 30%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(20, 61, 77, 0.08);
+  }
+
+  .ranking-comparison-table__cell:last-child {
+    border-bottom: 0;
+  }
+
+  .ranking-comparison-table__cell-label {
+    display: block;
+    color: var(--mep-navy);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
 }
 
 .ranking-tabs {
@@ -4582,6 +4631,16 @@ img {
     grid-template-columns: 220px 1fr;
     align-items: start;
     padding: 18px;
+  }
+
+  .shop-card-luxury--ranked {
+    grid-template-columns: 72px 220px minmax(0, 1fr);
+    grid-template-areas: "rank media body";
+  }
+
+  .shop-card-luxury__rank-cell {
+    align-self: center;
+    justify-self: center;
   }
 
   .ranking-specialty-cards {
