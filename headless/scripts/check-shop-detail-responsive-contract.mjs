@@ -1,16 +1,23 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import ts from "typescript";
 
 const cssPath =
   process.env.SHOP_DETAIL_CONTRACT_CSS ??
   "components/shop-detail/ShopDetail.module.css";
 const isMutationProbe =
   process.env.SHOP_DETAIL_CONTRACT_MUTATION_PROBE === "1";
+const isHeroTitleMutationProbe =
+  process.env.SHOP_DETAIL_HERO_TITLE_MUTATION_PROBE === "1";
 const css = readFileSync(cssPath, "utf8");
+const require = createRequire(import.meta.url);
 
 const componentClassContract = {
   "components/shop-detail/ShopDetailActions.tsx": [
@@ -351,6 +358,102 @@ const shopTitleFixtures = [
     wrapMode: "emergency"
   }
 ];
+
+function loadShopDetailHeroModule() {
+  const componentPath = "components/shop-detail/ShopDetailHero.tsx";
+  const originalSource = readFileSync(componentPath, "utf8");
+  const titleExpression = "{model.title}";
+  const source = isHeroTitleMutationProbe
+    ? originalSource.replace(titleExpression, '{"DISCONNECTED TITLE"}')
+    : originalSource;
+  if (isHeroTitleMutationProbe) {
+    assert.notEqual(
+      source,
+      originalSource,
+      "shop detail hero title mutation must disconnect model.title"
+    );
+  }
+
+  const result = ts.transpileModule(source, {
+    compilerOptions: {
+      esModuleInterop: true,
+      jsx: ts.JsxEmit.ReactJSX,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020
+    },
+    fileName: componentPath,
+    reportDiagnostics: true
+  });
+  const errors = (result.diagnostics ?? []).filter(
+    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error
+  );
+  assert.equal(
+    errors.length,
+    0,
+    `${componentPath} must transpile for rendered title checks`
+  );
+
+  const module = { exports: {} };
+  const localRequire = (specifier) => {
+    if (specifier === "@/components/shop-detail/ShopDetailActions") {
+      return { ShopDetailActions: () => null };
+    }
+    if (specifier === "./ShopDetail.module.css") {
+      return {
+        __esModule: true,
+        default: new Proxy({}, { get: (_target, property) => String(property) })
+      };
+    }
+    return require(specifier);
+  };
+  new Function("require", "module", "exports", result.outputText)(
+    localRequire,
+    module,
+    module.exports
+  );
+  return module.exports;
+}
+
+function renderShopTitleFixture(ShopDetailHero, fixture) {
+  const html = renderToStaticMarkup(
+    React.createElement(ShopDetailHero, {
+      model: {
+        areaName: "osaka",
+        facts: [],
+        title: fixture.value,
+        verifiedAt: null
+      },
+      rel: "nofollow sponsored noopener"
+    })
+  );
+  const titleMatch = html.match(/<h1 class="([^"]+)">([^<]*)<\/h1>/);
+  assert.ok(
+    titleMatch,
+    `${fixture.label} must render through the ShopDetailHero h1 path; received ${html}`
+  );
+  assert.equal(
+    titleMatch[2],
+    fixture.value,
+    `${fixture.label} must render the exact model.title value`
+  );
+  return { className: titleMatch[1], html };
+}
+
+const { ShopDetailHero } = loadShopDetailHeroModule();
+assert.equal(
+  typeof ShopDetailHero,
+  "function",
+  "ShopDetailHero must export a renderable component"
+);
+const renderedShopTitleFixtures = shopTitleFixtures.map((fixture) => ({
+  fixture,
+  ...renderShopTitleFixture(ShopDetailHero, fixture)
+}));
+assert.deepEqual(
+  [...new Set(renderedShopTitleFixtures.map(({ className }) => className))],
+  ["title"],
+  "all shop title fixtures must render through the same ShopDetailHero title class"
+);
 
 const shopTitleViewportContract = [
   [1440, 38],
@@ -1040,6 +1143,31 @@ function assertMutationsAreRejected(source) {
   );
 }
 
-if (!isMutationProbe) assertMutationsAreRejected(css);
+function assertDisconnectedHeroTitleIsRejected() {
+  const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url)], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      SHOP_DETAIL_HERO_TITLE_MUTATION_PROBE: "1"
+    }
+  });
+  const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+  assert.notEqual(
+    result.status,
+    0,
+    "disconnected ShopDetailHero model.title was incorrectly accepted"
+  );
+  assert.match(
+    output,
+    /must render the exact model\.title value/,
+    `disconnected ShopDetailHero title failed for an unexpected reason:\n${output.trim()}`
+  );
+}
+
+if (!isMutationProbe && !isHeroTitleMutationProbe) {
+  assertMutationsAreRejected(css);
+  assertDisconnectedHeroTitleIsRejected();
+}
 
 console.log("shop detail responsive contract passed");
