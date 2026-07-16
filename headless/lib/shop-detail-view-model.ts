@@ -4,6 +4,10 @@ import {
   resolveShopCoursePrices,
   resolveShopPrimaryPrice
 } from "@/lib/price-normalization";
+import {
+  normalizeShopAddress,
+  normalizeShopDisplayText
+} from "@/lib/shop-fact-normalization";
 import type { ShopView } from "@/lib/wp/types";
 
 export type ShopDetailFact = {
@@ -70,19 +74,6 @@ const VISUAL_KEYS = [
   "thumbnail"
 ] as const;
 
-const UNKNOWN_DISPLAY_VALUES = new Set([
-  "-",
-  "ー",
-  "—",
-  "null",
-  "undefined",
-  "未確認",
-  "不明",
-  "要確認",
-  "未掲載",
-  "非公開"
-]);
-
 function text(value: unknown): string {
   if (typeof value === "string") return value.trim();
   if (typeof value === "number" && Number.isFinite(value)) return String(value);
@@ -90,9 +81,7 @@ function text(value: unknown): string {
 }
 
 function displayText(value: unknown): string {
-  const valueText = text(value);
-  if (!valueText || /^0(?:\.0+)?$/.test(valueText)) return "";
-  return UNKNOWN_DISPLAY_VALUES.has(valueText.toLowerCase()) ? "" : valueText;
+  return normalizeShopDisplayText(value);
 }
 
 function firstText(acf: Record<string, unknown>, keys: readonly string[]): string {
@@ -129,7 +118,7 @@ function telUrl(value: unknown): string | null {
 }
 
 function verifiedDate(value: unknown): string | null {
-  const raw = text(value);
+  const raw = normalizeShopDisplayText(value);
   if (!raw) return null;
   const match =
     raw.match(/^(\d{4})-(\d{2})-(\d{2})$/) ||
@@ -195,19 +184,12 @@ function explicitFeatureNames(acf: Record<string, unknown>): string[] {
   return [...new Set(names)];
 }
 
-function isConfirmedStreetAddress(value: string): boolean {
-  if (!value || /駅|出口|徒歩|アクセス/.test(value)) return false;
-  const hasAdministrativeArea = /(?:都|道|府|県).*(?:市|区|町|村)/.test(value);
-  const hasStreetNumber = /\d+(?:丁目|番地|番|号|-\d)/.test(value);
-  return hasAdministrativeArea || hasStreetNumber;
-}
-
 export function buildShopDetailViewModel(shop: ShopView, areaName: string): ShopDetailViewModel {
   const acf = shop.acf;
   const primaryPrice = resolveShopPrimaryPrice(acf);
   const priceLabel = formatPriceForDisplay(primaryPrice, "〜");
   const station = firstText(acf, ["shop_station", "nearest_station", "station", "shop_access"]);
-  const address = firstText(acf, ["shop_address"]);
+  const address = normalizeShopAddress(acf.shop_address);
   const hours = firstText(acf, ["shop_hours"]);
   const bookingUrl =
     ["shop_booking_url", "booking_url", "reservation_url", "shop_reservation_url"]
@@ -242,8 +224,8 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
   if (address) {
     infoRows.push({
       key: "address",
-      label: isConfirmedStreetAddress(address) ? "住所" : "アクセス案内",
-      value: address
+      label: address.kind === "street-address" ? "住所" : "アクセス案内",
+      value: address.text
     });
   }
   for (const [key, label, value] of [

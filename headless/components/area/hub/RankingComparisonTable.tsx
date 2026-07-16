@@ -16,33 +16,36 @@ export function RankingComparisonTable({ shops }: { shops: ShopView[] }) {
           <span role="columnheader">口コミ</span>
         </div>
         <div className="ranking-comparison-table__body" role="rowgroup">
-          {shops.map((shop) => (
-            <div className="ranking-comparison-table__row" role="row" data-comparison-row key={shop.id}>
-              <div className="ranking-comparison-table__cell ranking-comparison-table__shop" role="cell">
-                <span className="ranking-comparison-table__cell-label">店舗</span>
-                <Link href={`/shops/${shop.slug}/`} className="ranking-comparison-table__shop-link">
-                  <ShopImageThumb src={shop.imageUrl} alt="" size="table" className="ranking-comparison-table__thumb" />
-                  <span>{shop.title}</span>
-                </Link>
+          {shops.map((shop) => {
+            const station = shopNearestStation(shop);
+            return (
+              <div className="ranking-comparison-table__row" role="row" data-comparison-row key={shop.id}>
+                <div className="ranking-comparison-table__cell ranking-comparison-table__shop" role="cell">
+                  <span className="ranking-comparison-table__cell-label">店舗</span>
+                  <Link href={`/shops/${shop.slug}/`} className="ranking-comparison-table__shop-link">
+                    <ShopImageThumb src={shop.imageUrl} alt="" size="table" className="ranking-comparison-table__thumb" />
+                    <span>{shop.title}</span>
+                  </Link>
+                </div>
+                <div className="ranking-comparison-table__cell ranking-comparison-table__price" role="cell">
+                  <span className="ranking-comparison-table__cell-label">60分目安</span>
+                  <PriceLabel shop={shop} />
+                </div>
+                <div className="ranking-comparison-table__cell" role="cell">
+                  <span className="ranking-comparison-table__cell-label">営業時間</span>
+                  <span>{shopHoursText(shop)}</span>
+                </div>
+                <div className="ranking-comparison-table__cell" role="cell">
+                  <span className="ranking-comparison-table__cell-label">駅・徒歩案内</span>
+                  {station ? <span>{station}</span> : null}
+                </div>
+                <div className="ranking-comparison-table__cell" role="cell">
+                  <span className="ranking-comparison-table__cell-label">口コミ</span>
+                  <span>{shopReviewCountLabel(shop)}</span>
+                </div>
               </div>
-              <div className="ranking-comparison-table__cell ranking-comparison-table__price" role="cell">
-                <span className="ranking-comparison-table__cell-label">60分目安</span>
-                <PriceLabel shop={shop} />
-              </div>
-              <div className="ranking-comparison-table__cell" role="cell">
-                <span className="ranking-comparison-table__cell-label">営業時間</span>
-                <span>{shopHoursText(shop)}</span>
-              </div>
-              <div className="ranking-comparison-table__cell" role="cell">
-                <span className="ranking-comparison-table__cell-label">駅・徒歩案内</span>
-                <span>{shopNearestStation(shop)}</span>
-              </div>
-              <div className="ranking-comparison-table__cell" role="cell">
-                <span className="ranking-comparison-table__cell-label">口コミ</span>
-                <span>{shopReviewCountLabel(shop)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

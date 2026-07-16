@@ -16,6 +16,10 @@ import {
 } from "@/lib/price-normalization";
 import { normalizeContentItems, type NormalizedContentItem } from "@/lib/content-provenance";
 import { resolveShopReviewSummary, shouldDisplayAggregateRating } from "@/lib/review-rating";
+import {
+  normalizeShopDisplayText,
+  normalizeShopFactText
+} from "@/lib/shop-fact-normalization";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 /** 対象エリアとの位置関係 */
@@ -177,18 +181,9 @@ function buildLocationHaystack(shop: ShopView): string {
   return `${address}${area}`;
 }
 
-function normalizeShopFactText(value: unknown): string {
-  return safeText(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 export function shopStationAccessText(shop: ShopView): string {
   for (const key of EXPLICIT_STATION_FIELDS) {
-    const value = normalizeShopFactText(shop.acf[key]);
+    const value = normalizeShopDisplayText(shop.acf[key]);
     if (value) return value;
   }
   return "";
@@ -203,9 +198,9 @@ export function shopExplicitFeatureNames(shop: ShopView): string[] {
   const names = [shop.acf.shop_features, shop.acf.features, shop.acf.shop_facilities]
     .flatMap((value) => (Array.isArray(value) ? value : []))
     .map((value) => {
-      if (typeof value === "string") return normalizeShopFactText(value);
+      if (typeof value === "string") return normalizeShopDisplayText(value);
       if (!value || typeof value !== "object") return "";
-      return normalizeShopFactText((value as Record<string, unknown>).name);
+      return normalizeShopDisplayText((value as Record<string, unknown>).name);
     })
     .filter((value): value is string => Boolean(value));
 
@@ -325,7 +320,7 @@ export function resolveShopRelationLabel(
 }
 
 export function shopNearestStation(shop: ShopView): string {
-  return shopStationAccessText(shop) || "未確認";
+  return shopStationAccessText(shop);
 }
 
 export type PriceDisplayStatus =
@@ -510,7 +505,7 @@ export function buildEditorCommentShort(
   shop: ShopView,
   _targetArea?: Pick<AreaView, "slug" | "name">
 ): string {
-  const summary = normalizeShopFactText(shop.acf.shop_ai_summary);
+  const summary = normalizeShopDisplayText(shop.acf.shop_ai_summary);
   if (!summary) return "";
   return summary.length > 90 ? `${summary.slice(0, 87)}...` : summary;
 }

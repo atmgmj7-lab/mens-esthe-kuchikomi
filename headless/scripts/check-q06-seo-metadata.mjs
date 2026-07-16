@@ -8,6 +8,16 @@ import vm from "node:vm";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (file) => readFileSync(join(root, file), "utf8");
 
+const factNormalizationCompiled = ts.transpileModule(read("lib/shop-fact-normalization.ts"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+}).outputText;
+const factNormalizationModule = { exports: {} };
+vm.runInNewContext(
+  factNormalizationCompiled,
+  { module: factNormalizationModule, exports: factNormalizationModule.exports },
+  { filename: "shop-fact-normalization.cjs" }
+);
+
 const stripHtml = (value) =>
   typeof value === "string"
     ? value
@@ -40,6 +50,7 @@ vm.runInNewContext(
           formatPriceForDisplay: () => null
         };
       }
+      if (id === "@/lib/shop-fact-normalization") return factNormalizationModule.exports;
       throw new Error(`Unsupported test require: ${id}`);
     }
   },

@@ -47,6 +47,10 @@ const stripHtml = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const factNormalization = loadTsModule("lib/shop-fact-normalization.ts", (id) => {
+  throw new Error(`Unexpected fact normalization require: ${id}`);
+});
+
 const areaUtils = loadTsModule("lib/area-shop-utils.ts", (id) => {
   if (id === "@/lib/area-hub-config") {
     return {
@@ -59,6 +63,7 @@ const areaUtils = loadTsModule("lib/area-shop-utils.ts", (id) => {
     };
   }
   if (id === "@/lib/wp/client") return { safeText };
+  if (id === "@/lib/shop-fact-normalization") return factNormalization;
   if (id === "@/lib/price-normalization") {
     return {
       formatPriceForDisplay: (price, suffix = "") =>
@@ -96,6 +101,7 @@ const viewModel = loadTsModule("lib/shop-detail-view-model.ts", (id) => {
       formatPriceForDisplay: () => null
     };
   }
+  if (id === "@/lib/shop-fact-normalization") return factNormalization;
   throw new Error(`Unexpected view model require: ${id}`);
 });
 
@@ -111,6 +117,7 @@ const seo = loadTsModule("lib/seo.ts", (id) => {
       formatPriceForDisplay: () => null
     };
   }
+  if (id === "@/lib/shop-fact-normalization") return factNormalization;
   throw new Error(`Unexpected SEO require: ${id}`);
 });
 
@@ -140,8 +147,10 @@ const baseShop = {
 const targetArea = { slug: "umeda", name: "梅田" };
 const failures = [];
 const passes = [];
+let contractCount = 0;
 
 function contract(name, run) {
+  contractCount += 1;
   try {
     run();
     passes.push(name);
@@ -193,7 +202,7 @@ contract("address-derived-station", () => {
   };
   assert.equal(
     areaUtils.shopNearestStation(addressOnly),
-    "未確認",
+    "",
     "shop_addressから最寄駅を生成しないでください"
   );
   assert.equal(
@@ -216,11 +225,13 @@ contract("address-derived-station", () => {
     "梅田駅 徒歩3分",
     "駅専用値はHTMLと余分な空白を除いて表示してください"
   );
-  assert.equal(
-    areaUtils.shopNearestStation({ ...baseShop, acf: { shop_station: "   " } }),
-    "未確認",
-    "空白だけの駅専用値は未確認として扱ってください"
-  );
+  for (const invalidStation of ["", "   ", "未確認", "不明", "<span>&nbsp;</span>"]) {
+    assert.equal(
+      areaUtils.shopNearestStation({ ...baseShop, acf: { shop_station: invalidStation } }),
+      "",
+      `無効な駅専用値「${invalidStation}」から代替文を生成しないでください`
+    );
+  }
   assert.equal(
     areaUtils.isStationNearShop(
       { ...baseShop, acf: { shop_station: "梅田駅 7番出口" } },
@@ -233,6 +244,49 @@ contract("address-derived-station", () => {
   const controls = read("lib/area-shop-list-controls.ts");
   assert.match(controls, /\{ id: "station", label: "駅名・徒歩案内あり" \}/);
   assert.match(controls, /ShopListSortId = "recommended" \| "updated" \| "price-asc" \| "late-night" \| "station"/);
+});
+
+contract("html-entity-plain-text", () => {
+  const entityStation = {
+    ...baseShop,
+    acf: { shop_station: "<b>梅田駅</b>&nbsp;徒歩&nbsp;&#x33;分" }
+  };
+  assert.equal(
+    areaUtils.shopNearestStation(entityStation),
+    "梅田駅 徒歩 3分",
+    "駅専用値はタグ除去、entity復号、空白正規化した文字列にしてください"
+  );
+  assert.equal(areaUtils.isStationNearShop(entityStation, targetArea), true);
+  assert.equal(
+    areaUtils.buildEditorCommentShort({
+      ...baseShop,
+      acf: { shop_ai_summary: "<p>案内&amp;確認&#33;</p>" }
+    }),
+    "案内&確認!",
+    "AI要約も同じplain text契約を通してください"
+  );
+
+  const entityModel = viewModel.buildShopDetailViewModel(
+    {
+      ...baseShop,
+      acf: {
+        shop_station: "<b>梅田駅</b>&nbsp;徒歩&#160;3分",
+        shop_address: "<span>大阪府大阪市北区梅田1丁目2番3号</span>",
+        shop_hours: "<b>10:00</b>&nbsp;〜&nbsp;24:00",
+        shop_features: [{ name: "初心者&nbsp;向け&amp;案内" }],
+        shop_ai_summary: "<p>掲載情報&amp;確認済み</p>"
+      }
+    },
+    "梅田"
+  );
+  assert.equal(entityModel.facts.find((fact) => fact.key === "station")?.value, "梅田駅 徒歩 3分");
+  assert.equal(entityModel.facts.find((fact) => fact.key === "hours")?.value, "10:00 〜 24:00");
+  assert.equal(
+    entityModel.infoRows.find((row) => row.key === "address")?.value,
+    "大阪府大阪市北区梅田1丁目2番3号"
+  );
+  assert.deepEqual(Array.from(entityModel.featureNames), ["初心者 向け&案内"]);
+  assert.equal(entityModel.summaryText, "掲載情報&確認済み");
 });
 
 contract("inferred-beginner", () => {
@@ -298,6 +352,37 @@ contract("access-text-street-address", () => {
   const accessSchema = seo.shopLocalBusinessJsonLd(accessOnly);
   assert.equal(accessSchema.address, undefined, "アクセス文をstreetAddressへ出力しないでください");
 
+  const receptionHours = { ...baseShop, acf: { shop_address: "受付時間 10-24時" } };
+  assert.equal(
+    seo.shopLocalBusinessJsonLd(receptionHours).address,
+    undefined,
+    "受付時間の数字範囲をstreetAddressへ出力しないでください"
+  );
+  const addressWithHours = {
+    ...baseShop,
+    acf: { shop_address: "大阪府大阪市北区梅田1-2-3 10時から24時" }
+  };
+  assert.equal(
+    seo.shopLocalBusinessJsonLd(addressWithHours).address,
+    undefined,
+    "住所候補に時刻案内が混在する場合もstreetAddressへ出力しないでください"
+  );
+  const numericOnly = { ...baseShop, acf: { shop_address: "梅田1-2-3" } };
+  assert.equal(
+    seo.shopLocalBusinessJsonLd(numericOnly).address,
+    undefined,
+    "行政区要素のない数字範囲だけでstreetAddressを確定しないでください"
+  );
+  const postalCodeOnly = {
+    ...baseShop,
+    acf: { shop_address: "〒530-0001 大阪府大阪市北区梅田" }
+  };
+  assert.equal(
+    seo.shopLocalBusinessJsonLd(postalCodeOnly).address,
+    undefined,
+    "郵便番号だけを街区番号としてstreetAddressを確定しないでください"
+  );
+
   const addressShop = {
     ...baseShop,
     acf: { shop_address: "大阪府大阪市北区梅田1-2-3" }
@@ -311,16 +396,28 @@ contract("access-text-street-address", () => {
     "アクセス案内",
     "住所形式を確認できないshop_addressは画面でアクセス案内と表示してください"
   );
+  const receptionModel = viewModel.buildShopDetailViewModel(receptionHours, "梅田");
+  assert.equal(
+    receptionModel.infoRows.find((row) => row.key === "address")?.label,
+    "アクセス案内",
+    "受付時間は画面でも住所と表示しないでください"
+  );
+  const addressWithHoursModel = viewModel.buildShopDetailViewModel(addressWithHours, "梅田");
+  assert.equal(addressWithHoursModel.infoRows.find((row) => row.key === "address")?.label, "アクセス案内");
+  const numericOnlyModel = viewModel.buildShopDetailViewModel(numericOnly, "梅田");
+  assert.equal(numericOnlyModel.infoRows.find((row) => row.key === "address")?.label, "アクセス案内");
+  const postalCodeOnlyModel = viewModel.buildShopDetailViewModel(postalCodeOnly, "梅田");
+  assert.equal(postalCodeOnlyModel.infoRows.find((row) => row.key === "address")?.label, "アクセス案内");
   const addressModel = viewModel.buildShopDetailViewModel(addressShop, "梅田");
   assert.equal(addressModel.infoRows.find((row) => row.key === "address")?.label, "住所");
 });
 
 if (failures.length > 0) {
-  console.error(`shop content accuracy check failed (${failures.length}/5 contracts):`);
+  console.error(`shop content accuracy check failed (${failures.length}/${contractCount} contracts):`);
   for (const failure of failures) {
     console.error(`- ${failure.name}: ${failure.message}`);
   }
   process.exit(1);
 }
 
-console.log(`shop content accuracy checks passed (${passes.length}/5 contracts)`);
+console.log(`shop content accuracy checks passed (${passes.length}/${contractCount} contracts)`);

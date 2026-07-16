@@ -15,6 +15,21 @@ const compiled = ts.transpileModule(source, {
   }
 }).outputText;
 
+const factNormalizationSource = readFileSync(join(root, "lib/shop-fact-normalization.ts"), "utf8");
+const factNormalizationCompiled = ts.transpileModule(factNormalizationSource, {
+  compilerOptions: {
+    module: ts.ModuleKind.CommonJS,
+    target: ts.ScriptTarget.ES2022,
+    esModuleInterop: true
+  }
+}).outputText;
+const factNormalizationModule = { exports: {} };
+vm.runInNewContext(
+  factNormalizationCompiled,
+  { module: factNormalizationModule, exports: factNormalizationModule.exports },
+  { filename: "shop-fact-normalization.cjs" }
+);
+
 const unknownPrice = { status: "unknown", amount: null };
 const confirmedPrice = { status: "confirmed", amount: 14000 };
 const module = { exports: {} };
@@ -33,6 +48,7 @@ const require = (id) => {
         price.amount == null ? null : `${price.amount.toLocaleString("ja-JP")}円${suffix}`
     };
   }
+  if (id === "@/lib/shop-fact-normalization") return factNormalizationModule.exports;
   throw new Error(`Unexpected require: ${id}`);
 };
 

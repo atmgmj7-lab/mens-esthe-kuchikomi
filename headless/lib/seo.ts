@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { resolveShopAreaTerm } from "@/lib/shop-contact";
 import { formatPriceForDisplay, resolveShopPrimaryPrice, shouldOutputPriceSchema } from "@/lib/price-normalization";
+import { normalizeShopAddress } from "@/lib/shop-fact-normalization";
 import { stripHtml } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -183,16 +184,9 @@ export function shopItemListJsonLd(
   };
 }
 
-function isConfirmedStreetAddress(value: string): boolean {
-  if (!value || /駅|出口|徒歩|アクセス/.test(value)) return false;
-  const hasAdministrativeArea = /(?:都|道|府|県).*(?:市|区|町|村)/.test(value);
-  const hasStreetNumber = /\d+(?:丁目|番地|番|号|-\d)/.test(value);
-  return hasAdministrativeArea || hasStreetNumber;
-}
-
 export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown> {
   const tel = stripHtml(shop.acf.shop_tel);
-  const address = stripHtml(shop.acf.shop_address);
+  const address = normalizeShopAddress(shop.acf.shop_address);
   const areaTerm = resolveShopAreaTerm(shop);
   const primaryPrice = resolveShopPrimaryPrice(shop.acf);
 
@@ -204,10 +198,10 @@ export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown>
   };
 
   if (tel) data.telephone = tel;
-  if (isConfirmedStreetAddress(address)) {
+  if (address?.kind === "street-address") {
     data.address = {
       "@type": "PostalAddress",
-      streetAddress: address,
+      streetAddress: address.text,
       addressCountry: "JP"
     };
   }

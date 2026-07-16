@@ -55,7 +55,7 @@ export function RankingSpecialtyCards({
                 </p>
               ) : null}
 
-              {variant === "station" ? (
+              {variant === "station" && station ? (
                 <div className="ranking-specialty-card__access">
                   <span className="ranking-specialty-card__station-badge">{station}</span>
                   <span className="ranking-specialty-card__relation">{relation}</span>
