@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
 import { AreaFilterChips } from "@/components/area/hub/AreaFilterChips";
 import { AreaSortTabs } from "@/components/area/hub/AreaSortTabs";
-import { areaRankForShop, type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
+import { AreaShopCard } from "@/components/common/AreaShopCard";
+import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
   getFilterRelaxationSuggestions,
   prepareAreaShopListView,
+  resolveAreaShopListCardRank,
   SHOP_LIST_FILTER_OPTIONS,
   SHOP_LIST_SORT_OPTIONS,
   type ShopListFilterId,
@@ -213,14 +214,23 @@ export function AreaShopList({
           <div className="area-hub-shop-group__list">
             {orderedShops.map((shop) => {
               const visible = visibleShops.some((item) => item.id === shop.id);
-              const rank = activeSort === "recommended" ? areaRankForShop(shop, orderedShops) : null;
+              const rank = resolveAreaShopListCardRank(shop, orderedShops, {
+                route: "hub",
+                sortId: activeSort,
+                page: legacyPage
+              });
               return (
                 <div
                   key={shop.id}
                   className={`area-shop-list-interactive__item${visible ? "" : " is-collapsed"}`}
                   hidden={!visible}
                 >
-                  <ShopCardLuxury shop={shop} targetArea={targetArea} rank={rank} />
+                  <AreaShopCard
+                    shop={shop}
+                    targetArea={targetArea}
+                    rank={rank}
+                    showRank={rank !== null}
+                  />
                 </div>
               );
             })}

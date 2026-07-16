@@ -2,15 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AreaQuickLinks } from "@/components/AreaQuickLinks";
+import { AreaShopCard } from "@/components/common/AreaShopCard";
 import { EmptyState } from "@/components/EmptyState";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
-import { ShopCard } from "@/components/ShopCard";
 import { ShopsSearchForm } from "@/components/ShopsSearchForm";
 import { pageMetadata } from "@/lib/seo";
 import { getAreas } from "@/lib/wp/areas";
 import { withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { filterShops, hasActiveShopFilters, type ShopFilterParams } from "@/lib/wp/shop-filter";
 import { getAllShopsForListing } from "@/lib/wp/shops";
+import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const metadata: Metadata = pageMetadata({
   title: "店舗一覧",
@@ -31,6 +32,14 @@ function describeFilters(params: ShopFilterParams, areas: { slug: string; name: 
   }
   if (params.available === "1") parts.push("出勤中");
   return parts.join(" · ");
+}
+
+function targetAreaForShop(shop: ShopView): Pick<AreaView, "slug" | "name"> {
+  const area = shop.terms.find((term) => term.parent !== 0) ?? shop.terms[0];
+  return {
+    slug: area?.slug ?? shop.areaSlug,
+    name: area?.name ?? ""
+  };
 }
 
 export default function ShopsPage({ searchParams }: Props) {
@@ -85,9 +94,15 @@ async function ShopsPageContent({ searchParams }: Props) {
             }
           />
         ) : (
-          <section className="wolfman-list-container">
+          <section className="wolfman-list-container area-shop-card-list">
             {filtered.map((shop) => (
-              <ShopCard key={shop.id} shop={shop} compact />
+              <AreaShopCard
+                key={shop.id}
+                shop={shop}
+                targetArea={targetAreaForShop(shop)}
+                rank={null}
+                showRank={false}
+              />
             ))}
           </section>
         )}

@@ -5,13 +5,13 @@ import { AreaSeoGuide } from "@/components/AreaSeoGuide";
 import { EmptyState } from "@/components/EmptyState";
 import { Pagination } from "@/components/Pagination";
 import { EsSectionTitle } from "@/components/SectionTitle";
-import { ShopCard } from "@/components/ShopCard";
+import { AreaShopCard } from "@/components/common/AreaShopCard";
 import { resolveMapEmbedUrl, type AreaFeatureItem } from "@/lib/design-constants";
 import {
-  areaRankForShop,
   orderShopsForAreaRanking,
   type AreaShopRankingEntry
 } from "@/lib/area-shop-ranking";
+import { resolveAreaShopListCardRank } from "@/lib/area-shop-list-controls";
 import { safeText } from "@/lib/wp/client";
 import { areaBreadcrumbJsonLd, asFaqRows, faqJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
@@ -152,15 +152,23 @@ export function AreaPageView({
           <EsSectionTitle en="SHOP LIST" ja={`${area.name}の店舗一覧`} large />
           {shops.length > 0 ? (
             <>
-              <div className="wolfman-list-container">
-                {rankedShops.map((shop) => (
-                  <ShopCard
-                    key={shop.id}
-                    shop={shop}
-                    compact
-                    rank={currentPage === 1 ? areaRankForShop(shop, rankedShops) : null}
-                  />
-                ))}
+              <div className="wolfman-list-container area-shop-card-list">
+                {rankedShops.map((shop) => {
+                  const rank = resolveAreaShopListCardRank(shop, rankedShops, {
+                    route: "area",
+                    sortId: "recommended",
+                    page: currentPage
+                  });
+                  return (
+                    <AreaShopCard
+                      key={shop.id}
+                      shop={shop}
+                      targetArea={area}
+                      rank={rank}
+                      showRank={rank !== null}
+                    />
+                  );
+                })}
               </div>
               <Pagination
                 currentPage={currentPage}

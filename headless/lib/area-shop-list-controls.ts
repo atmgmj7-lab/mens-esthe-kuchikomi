@@ -10,7 +10,11 @@ import {
   shopUpdatedTimestamp,
   sortShopsForRanking
 } from "@/lib/area-shop-utils";
-import { orderShopsForAreaRanking, type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
+import {
+  areaRankForShop,
+  orderShopsForAreaRanking,
+  type AreaShopRankingEntry
+} from "@/lib/area-shop-ranking";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const HUB_SHOP_LIST_INITIAL_COUNT = 12;
@@ -26,6 +30,7 @@ export type ShopListFilterId =
   | "reviews";
 
 export type ShopListSortId = "recommended" | "updated" | "price-asc" | "late-night" | "station";
+export type AreaShopListRoute = "hub" | "area" | "shops";
 
 export const SHOP_LIST_FILTER_OPTIONS: Array<{ id: ShopListFilterId; label: string }> = [
   { id: "late-night", label: "深夜営業" },
@@ -44,6 +49,23 @@ export const SHOP_LIST_SORT_OPTIONS: Array<{ id: ShopListSortId; label: string }
   { id: "late-night", label: "深夜営業" },
   { id: "station", label: "駅名・徒歩案内あり" }
 ];
+
+export function resolveAreaShopListCardRank(
+  shop: ShopView,
+  orderedShops: ShopView[],
+  {
+    route,
+    sortId = "recommended",
+    page = 1
+  }: {
+    route: AreaShopListRoute;
+    sortId?: ShopListSortId;
+    page?: number;
+  }
+): number | null {
+  if (route === "shops" || sortId !== "recommended" || page !== 1) return null;
+  return areaRankForShop(shop, orderedShops);
+}
 
 function isDispatchShop(shop: ShopView, targetArea: Pick<AreaView, "slug" | "name">): boolean {
   return classifyShopRelation(shop, targetArea) === "dispatch";
