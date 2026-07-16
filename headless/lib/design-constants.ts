@@ -9,6 +9,14 @@ export const COLORS = {
 
 /** 店舗画像未設定時の4:3フォールバック */
 export const DEFAULT_SHOP_IMAGE = "/images/eskomi-shop-fallback.svg";
+export const SHOP_FALLBACK_IMAGE_ALT = "Eskomi 店舗画像準備中";
+export const SHOP_FALLBACK_IMAGE_STYLE = {
+  aspectRatio: "4 / 3",
+  objectFit: "contain",
+  height: "auto",
+  minHeight: "0",
+  maxHeight: "none"
+} as const;
 
 export const AREA_HERO_IMAGES: Record<string, string> = {
   osaka: "/wp-content/uploads/2026/01/photo-1590559899731-a382839e5549.jpeg",

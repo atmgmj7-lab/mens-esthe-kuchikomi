@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
-import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
+import {
+  DEFAULT_SHOP_IMAGE,
+  SHOP_FALLBACK_IMAGE_ALT,
+  SHOP_FALLBACK_IMAGE_STYLE
+} from "@/lib/design-constants";
 import { resolvePriceDisplay } from "@/lib/area-shop-utils";
 import { safeText } from "@/lib/wp/client";
 import type { ShopView } from "@/lib/wp/types";
@@ -26,7 +30,10 @@ export function ShopCard({
   const basicTime = safeText(shop.acf.basic_time);
   const catchText = safeText(shop.acf.shop_catch, shop.excerpt);
   const onDuty = safeText(shop.acf.shop_availability) === "出勤中" || Boolean(shop.acf.shop_today_analysis);
-  const image = shop.imageUrl || DEFAULT_SHOP_IMAGE;
+  const hasImage = Boolean(shop.imageUrl);
+  const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;
+  const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;
+  const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;
 
   if (compact) {
     return (
@@ -40,11 +47,12 @@ export function ShopCard({
           <img
             className="shop-thumb"
             src={image}
-            alt={shop.title}
+            alt={imageAlt}
             width={100}
-            height={100}
+            height={hasImage ? 100 : 75}
             loading="lazy"
             decoding="async"
+            style={imageStyle}
           />
         </Link>
         <div className="shop-row-info">
@@ -79,11 +87,12 @@ export function ShopCard({
             <img
               className="shop-card__image"
               src={image}
-              alt={shop.title}
+              alt={imageAlt}
               width={400}
               height={300}
               loading="lazy"
               decoding="async"
+              style={imageStyle}
             />
             <span className="mep-badge mep-badge--new">NEW</span>
           </div>
@@ -105,11 +114,12 @@ export function ShopCard({
           <img
             className="shop-card__image"
             src={image}
-            alt={shop.title}
+            alt={imageAlt}
             width={400}
             height={300}
             loading="lazy"
             decoding="async"
+            style={imageStyle}
           />
         </div>
       </Link>

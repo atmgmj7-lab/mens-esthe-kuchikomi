@@ -4036,8 +4036,8 @@ img {
 }
 
 .shop-image-thumb--placeholder .shop-image-thumb__img {
-  opacity: 0.35;
-  mix-blend-mode: soft-light;
+  opacity: 1;
+  mix-blend-mode: normal;
 }
 
 .shop-image-thumb__badge {

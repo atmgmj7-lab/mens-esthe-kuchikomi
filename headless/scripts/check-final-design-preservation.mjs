@@ -324,7 +324,7 @@ assert.ok(
   "main image fallback must update the caption state"
 );
 assert.ok(
-  detailGallery.includes('alt={mainImageFallback ? "画像準備中" : mainImage.alt}'),
+  detailGallery.includes("alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}"),
   "main image alt must remain tied to runtime fallback state after rerender"
 );
 assert.ok(
@@ -424,13 +424,24 @@ assert.ok(!telActionHtml.includes('target="_blank"'), "telephone action must sta
 assert.ok(!telActionHtml.includes(" rel="), "telephone action must not receive external-link rel");
 
 const { replaceBrokenShopImage } = loadTsxModule("components/shop-detail/ShopDetailGallery.tsx", {
-  "@/lib/design-constants": { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg" }
+  "@/lib/design-constants": {
+    DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+    SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中",
+    SHOP_FALLBACK_IMAGE_STYLE: {
+      aspectRatio: "4 / 3",
+      objectFit: "contain",
+      height: "auto",
+      minHeight: "0",
+      maxHeight: "none"
+    }
+  }
 });
 const brokenImage = {
   alt: "確認対象店舗",
   dataset: {},
   onerror: () => {},
-  src: "https://images.example.test/broken.webp"
+  src: "https://images.example.test/broken.webp",
+  style: {}
 };
 let mainFallbackCallbacks = 0;
 const recordMainFallback = () => {
@@ -438,7 +449,9 @@ const recordMainFallback = () => {
 };
 replaceBrokenShopImage({ currentTarget: brokenImage }, recordMainFallback);
 assert.equal(brokenImage.src, "/images/eskomi-shop-fallback.svg", "broken image must switch to the approved fallback");
-assert.equal(brokenImage.alt, "画像準備中", "runtime image fallback must replace the stale image alt");
+assert.equal(brokenImage.alt, "Eskomi 店舗画像準備中", "runtime image fallback must replace the stale image alt");
+assert.equal(brokenImage.style.aspectRatio, "4 / 3", "runtime image fallback must switch to 4:3");
+assert.equal(brokenImage.style.objectFit, "contain", "runtime image fallback must stay fully visible");
 assert.equal(brokenImage.onerror, null, "broken image must clear its native error handler");
 assert.equal(mainFallbackCallbacks, 1, "main image fallback must notify caption state once");
 brokenImage.src = "fallback-failed";

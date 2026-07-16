@@ -1,7 +1,11 @@
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import Link from "next/link";
 import { ShopCardLuxury } from "@/components/area/hub/ShopCardLuxury";
-import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
+import {
+  DEFAULT_SHOP_IMAGE,
+  SHOP_FALLBACK_IMAGE_ALT,
+  SHOP_FALLBACK_IMAGE_STYLE
+} from "@/lib/design-constants";
 import { PriceLabel } from "@/components/common/PriceLabel";
 import { RatingBadge } from "@/components/common/RatingBadge";
 import { ResponsiveTag, ResponsiveTagList } from "@/components/common/ResponsiveTag";
@@ -29,7 +33,10 @@ export function AreaShopCard({
   shop: ShopView;
   targetArea: Pick<AreaView, "slug" | "name">;
 }) {
-  const image = shop.imageUrl || DEFAULT_SHOP_IMAGE;
+  const hasImage = Boolean(shop.imageUrl);
+  const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;
+  const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;
+  const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;
   const tags = shopFeatureTags(shop, targetArea);
   const relationLabel =
     getHubTemplateConfig(targetArea.slug)?.seo.relationCardLabel ?? "対象エリアとの関係";
@@ -39,11 +46,12 @@ export function AreaShopCard({
       <Link href={`/shops/${shop.slug}/`} className="area-shop-card__img-link">
         <img
           src={image}
-          alt={shop.title}
+          alt={imageAlt}
           width={320}
-          height={213}
+          height={hasImage ? 213 : 240}
           loading="lazy"
           decoding="async"
+          style={imageStyle}
         />
       </Link>
       <div className="area-shop-card__body">

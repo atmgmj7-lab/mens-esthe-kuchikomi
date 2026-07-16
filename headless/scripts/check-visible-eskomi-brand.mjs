@@ -433,8 +433,13 @@ const oldWordPressLogoPath =
   "/wp-content/uploads/2026/01/8f838967-4eb4-4f6d-a847-23979ce77873.png";
 const siteHeaderSource = readHeadless("components/SiteHeader.tsx");
 const shopThumbSource = readHeadless("components/area/hub/ShopImageThumb.tsx");
+const homePageSource = readHeadless("components/HomePageContent.tsx");
+const shopCardSource = readHeadless("components/ShopCard.tsx");
+const areaShopCardSource = readHeadless("components/common/AreaShopCard.tsx");
+const shopDetailGallerySource = readHeadless("components/shop-detail/ShopDetailGallery.tsx");
 const designConstantsSource = readHeadless("lib/design-constants.ts");
 const seoSource = readHeadless("lib/seo.ts");
+const globalCssSource = readHeadless("app/globals.css");
 const frontPageSource = readRepository("front-page.php");
 
 assert.ok(!siteHeaderSource.includes(oldWordPressLogoPath), "ヘッダーは旧WordPressロゴURLを公開DOMへ出してはいけません");
@@ -451,16 +456,151 @@ assert.ok(
 );
 assert.ok(!designConstantsSource.includes("shop-default-image.webp"), "旧fallbackラスタの公開参照を削除してください");
 assert.ok(
+  designConstantsSource.includes('SHOP_FALLBACK_IMAGE_ALT = "Eskomi 店舗画像準備中"'),
+  "fallbackの読み上げ名を全消費経路で共有してください"
+);
+for (const expected of [
+  'aspectRatio: "4 / 3"',
+  'objectFit: "contain"',
+  'height: "auto"',
+  'minHeight: "0"',
+  'maxHeight: "none"'
+]) {
+  assert.ok(
+    designConstantsSource.includes(expected),
+    `fallback専用styleに ${expected} が必要です`
+  );
+}
+assert.ok(
   seoSource.includes('logo: "https://mens-esthe-kuchikomi.com/images/eskomi-logo.svg"'),
   "Organization schemaはサイト所有のEskomi SVGを参照してください"
 );
 assert.ok(!seoSource.includes(oldWordPressLogoPath), "Organization schemaに旧WordPressロゴURLを残してはいけません");
-assert.ok(
-  shopThumbSource.includes('alt={hasImage ? alt : "Eskomi 店舗画像準備中"}'),
-  "画像なし店舗のfallbackにはEskomiを含む読み上げ名が必要です"
+const fallbackImageContracts = [
+  {
+    label: "HomePageContent",
+    source: homePageSource,
+    required: [
+      "const hasImage = Boolean(shop.imageUrl);",
+      "src={hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE}",
+      "alt={hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT}",
+      "height={hasImage ? 210 : 270}",
+      "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}"
+    ],
+    altMarker: "alt={hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT}",
+    styleMarker: "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}",
+    ratioMarker: "height={hasImage ? 210 : 270}",
+    wrongRatioMarker: "height={hasImage ? 210 : 210}"
+  },
+  {
+    label: "ShopCard",
+    source: shopCardSource,
+    required: [
+      "const hasImage = Boolean(shop.imageUrl);",
+      "const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;",
+      "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
+      "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
+      "height={hasImage ? 100 : 75}",
+      "alt={imageAlt}",
+      "style={imageStyle}"
+    ],
+    altMarker: "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
+    styleMarker: "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
+    ratioMarker: "height={hasImage ? 100 : 75}",
+    wrongRatioMarker: "height={hasImage ? 100 : 100}"
+  },
+  {
+    label: "AreaShopCard",
+    source: areaShopCardSource,
+    required: [
+      "const hasImage = Boolean(shop.imageUrl);",
+      "const image = hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE;",
+      "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
+      "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
+      "height={hasImage ? 213 : 240}",
+      "alt={imageAlt}",
+      "style={imageStyle}"
+    ],
+    altMarker: "const imageAlt = hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT;",
+    styleMarker: "const imageStyle = hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE;",
+    ratioMarker: "height={hasImage ? 213 : 240}",
+    wrongRatioMarker: "height={hasImage ? 213 : 213}"
+  },
+  {
+    label: "ShopDetailGallery",
+    source: shopDetailGallerySource,
+    required: [
+      "image.alt = SHOP_FALLBACK_IMAGE_ALT;",
+      "Object.assign(image.style, SHOP_FALLBACK_IMAGE_STYLE);",
+      "alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}",
+      "style={mainImageFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
+      "alt={image.isFallback ? SHOP_FALLBACK_IMAGE_ALT : image.alt}",
+      "style={image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
+      "width={960}",
+      "height={720}",
+      "width={240}",
+      "height={180}"
+    ],
+    altMarker: "alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}",
+    styleMarker: "style={mainImageFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
+    ratioMarker: "height={720}",
+    wrongRatioMarker: "height={640}"
+  },
+  {
+    label: "ShopImageThumb",
+    source: shopThumbSource,
+    required: [
+      "const hasImage = Boolean(src);",
+      "alt={hasImage ? alt : SHOP_FALLBACK_IMAGE_ALT}",
+      "const imageHeight = hasImage ? height : Math.round(width * 0.75);",
+      "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}"
+    ],
+    altMarker: "alt={hasImage ? alt : SHOP_FALLBACK_IMAGE_ALT}",
+    styleMarker: "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}",
+    ratioMarker: "const imageHeight = hasImage ? height : Math.round(width * 0.75);",
+    wrongRatioMarker: "const imageHeight = hasImage ? height : Math.round(width * 0.66);"
+  }
+];
+
+function fallbackContractViolations(source, contract) {
+  return contract.required.filter((required) => !source.includes(required));
+}
+
+let rejectedFallbackMutationCount = 0;
+for (const contract of fallbackImageContracts) {
+  assert.deepEqual(
+    fallbackContractViolations(contract.source, contract),
+    [],
+    `${contract.label} は実写真を維持しfallbackだけ4:3/contain/Eskomi altへ切り替える必要があります`
+  );
+
+  for (const [mutation, marker, replacement] of [
+    ["old alt", contract.altMarker, contract.altMarker.replace("SHOP_FALLBACK_IMAGE_ALT", '"画像準備中"')],
+    [
+      "cover",
+      contract.styleMarker,
+      contract.styleMarker.replace(
+        "SHOP_FALLBACK_IMAGE_STYLE",
+        '{ aspectRatio: "4 / 3", objectFit: "cover" }'
+      )
+    ],
+    ["wrong ratio", contract.ratioMarker, contract.wrongRatioMarker]
+  ]) {
+    const mutatedSource = contract.source.replace(marker, replacement);
+    assert.notEqual(mutatedSource, contract.source, `${contract.label} ${mutation} mutationを適用できる必要があります`);
+    assert.ok(
+      fallbackContractViolations(mutatedSource, contract).length > 0,
+      `${contract.label} の${mutation} mutationを契約検査が拒否する必要があります`
+    );
+    rejectedFallbackMutationCount += 1;
+  }
+}
+
+assert.match(
+  globalCssSource,
+  /\.shop-image-thumb--placeholder \.shop-image-thumb__img\s*\{[^}]*opacity:\s*1;[^}]*mix-blend-mode:\s*normal;[^}]*\}/s,
+  "ShopImageThumb fallbackだけを不透明・通常合成で表示してください"
 );
-assert.ok(shopThumbSource.includes('aspectRatio: "4 / 3"'), "画像なし店舗のfallbackは4:3を維持してください");
-assert.ok(shopThumbSource.includes('objectFit: "contain"'), "画像なし店舗のfallbackはcontain相当で表示してください");
 
 const svgAssets = [
   ["headless/public/images/eskomi-logo.svg", "logo"],
@@ -499,5 +639,5 @@ const allowedCategoryCounts = Object.fromEntries(
     ])
 );
 console.log(
-  `visible Eskomi brand checks passed (${sourceFiles.length} source files; ${allowedOccurrenceCount} strictly allowed legacy occurrences across ${allowed.length} lines; ${JSON.stringify(allowedCategoryCounts)})`
+  `visible Eskomi brand checks passed (${sourceFiles.length} source files; ${allowedOccurrenceCount} strictly allowed legacy occurrences across ${allowed.length} lines; ${rejectedFallbackMutationCount} fallback mutations rejected; ${JSON.stringify(allowedCategoryCounts)})`
 );

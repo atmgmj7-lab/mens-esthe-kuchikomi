@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, type SyntheticEvent } from "react";
-import { DEFAULT_SHOP_IMAGE } from "@/lib/design-constants";
+import {
+  DEFAULT_SHOP_IMAGE,
+  SHOP_FALLBACK_IMAGE_ALT,
+  SHOP_FALLBACK_IMAGE_STYLE
+} from "@/lib/design-constants";
 import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import styles from "./ShopDetail.module.css";
 
@@ -14,8 +18,9 @@ export function replaceBrokenShopImage(
 
   image.dataset.fallbackApplied = "true";
   image.onerror = null;
-  image.alt = "画像準備中";
+  image.alt = SHOP_FALLBACK_IMAGE_ALT;
   image.src = DEFAULT_SHOP_IMAGE;
+  Object.assign(image.style, SHOP_FALLBACK_IMAGE_STYLE);
   onFallback?.();
 }
 
@@ -28,7 +33,7 @@ export function ShopDetailGallery({ model }: { model: ShopDetailViewModel }) {
       <div className={styles.mainImage}>
         <img
           src={mainImage.url}
-          alt={mainImageFallback ? "画像準備中" : mainImage.alt}
+          alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}
           width={960}
           height={720}
           loading="eager"
@@ -37,6 +42,7 @@ export function ShopDetailGallery({ model }: { model: ShopDetailViewModel }) {
           onError={(event) =>
             replaceBrokenShopImage(event, () => setMainImageFallback(true))
           }
+          style={mainImageFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}
         />
       </div>
 
@@ -46,12 +52,13 @@ export function ShopDetailGallery({ model }: { model: ShopDetailViewModel }) {
             <div className={styles.thumbnail} key={image.url}>
               <img
                 src={image.url}
-                alt={image.alt}
+                alt={image.isFallback ? SHOP_FALLBACK_IMAGE_ALT : image.alt}
                 width={240}
                 height={180}
                 loading="lazy"
                 decoding="async"
                 onError={replaceBrokenShopImage}
+                style={image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}
               />
             </div>
           ))}
