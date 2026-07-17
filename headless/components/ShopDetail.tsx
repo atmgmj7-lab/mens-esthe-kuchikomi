@@ -99,20 +99,11 @@ export function ShopDetail({
           ) : null}
           <span>{shop.title}</span>
         </nav>
-        <article className={styles.detailGrid}>
-          <ShopDetailHero model={model} rel={officialRel} />
-          <aside className={styles.visualAside}>
-            <p className={styles.kicker}>AT A GLANCE</p>
-            <h2>先に知りたい情報を、迷わず確認。</h2>
-            <ShopDetailActions
-              model={model}
-              rel={officialRel}
-              position="body"
-            />
-          </aside>
+        <article className={styles.detailGrid} data-shop-profile-grid="true">
           <section className={styles.visual} aria-label="店舗画像">
             <ShopDetailGallery model={model} />
           </section>
+          <ShopDetailHero model={model} rel={officialRel} />
           <div className={styles.detailContent}>
             <ShopSectionNav links={sectionLinks} />
             <ShopDetailSections

@@ -121,7 +121,20 @@ function renderShopDetailIntegrationFixture({
     "@/components/shop-detail/ShopDetailHero": {
       ShopDetailHero: (props) => {
         captures.heroProps.push(props);
-        return React.createElement("header", { "data-shop-integration": "hero" }, props.model.title);
+        captures.actionProps.push({
+          model: props.model,
+          rel: props.rel,
+          position: "hero"
+        });
+        return React.createElement(
+          "header",
+          { "data-shop-integration": "hero" },
+          props.model.title,
+          React.createElement("div", {
+            "data-shop-integration": "actions-hero",
+            "data-fixed": "false"
+          })
+        );
       }
     },
     "@/components/shop-detail/ShopDetailSections": {
@@ -172,7 +185,6 @@ function renderShopDetailIntegrationFixture({
       page: "shop-detail-page",
       shell: "shop-detail-shell",
       visual: "shop-detail-visual",
-      visualAside: "shop-detail-visual-aside",
       kicker: "shop-detail-kicker",
       sectionAnchor: "shop-detail-section-anchor"
     },
@@ -332,9 +344,35 @@ assert.ok(!shopDetail.includes("age_18_19"));
 const detailHero = read("components/shop-detail/ShopDetailHero.tsx");
 const detailGallery = read("components/shop-detail/ShopDetailGallery.tsx");
 const detailActions = read("components/shop-detail/ShopDetailActions.tsx");
+const detailCss = read("components/shop-detail/ShopDetail.module.css");
 const ownerCta = read("components/shop-detail/ShopOwnerCta.tsx");
 assert.ok(detailHero.includes("model.facts.map"), "shop detail hero must render only model facts");
 assert.ok(!detailHero.includes("OPEN"), "shop detail hero must not claim live open status");
+assert.equal(
+  shopDetail.match(/<ShopDetailActions/g)?.length ?? 0,
+  1,
+  "shop detail root must own only the fixed action group"
+);
+assert.match(
+  shopDetail,
+  /<ShopDetailActions[\s\S]*position="fixed"[\s\S]*fixed/,
+  "shop detail root action group must be fixed"
+);
+assert.equal(
+  detailHero.match(/<ShopDetailActions/g)?.length ?? 0,
+  1,
+  "shop detail hero must own one desktop action group"
+);
+assert.match(detailHero, /<ShopDetailActions[\s\S]*position="hero"/);
+assert.match(detailCss, /\.fixedActions\s*\{\s*display:\s*none/);
+assert.match(
+  detailCss,
+  /@media \(max-width:\s*760px\)[\s\S]*\.hero \.actions\s*\{\s*display:\s*none/
+);
+assert.match(
+  detailCss,
+  /@media \(max-width:\s*760px\)[\s\S]*\.fixedActions\s*\{[\s\S]*display:\s*grid/
+);
 assert.ok(detailGallery.startsWith('"use client";'), "shop detail gallery fallback must stay client-side");
 assert.ok(detailGallery.includes("model.images"), "shop detail gallery must use model images");
 assert.ok(detailGallery.includes("width={960}"), "shop detail main image must keep 4:3 intrinsic width");
@@ -864,13 +902,13 @@ for (const [label, fixture] of [
   assert.equal(fixture.captures.galleryProps.length, 1, `${label} must compose Gallery exactly once`);
   assert.equal(fixture.captures.sectionsProps.length, 1, `${label} must compose Sections exactly once`);
   assert.equal(fixture.captures.ownerProps.length, 1, `${label} must compose Owner CTA exactly once`);
-  assert.equal(fixture.captures.actionProps.length, 2, `${label} must compose body and fixed Actions once each`);
+  assert.equal(fixture.captures.actionProps.length, 2, `${label} must compose hero and fixed Actions once each`);
   assert.deepEqual(
     fixture.captures.actionProps.map((props) => props.position),
-    ["body", "fixed"],
-    `${label} actions must keep body then fixed placement`
+    ["hero", "fixed"],
+    `${label} actions must keep hero then fixed placement`
   );
-  assert.equal(fixture.captures.actionProps[0].fixed, undefined, `${label} body actions must not be fixed`);
+  assert.equal(fixture.captures.actionProps[0].fixed, undefined, `${label} hero actions must not be fixed`);
   assert.equal(fixture.captures.actionProps[1].fixed, true, `${label} fixed actions must be explicitly fixed`);
   assert.equal(fixture.captures.areaQuickProps.length, 1, `${label} must compose area quick links once`);
   assert.equal(fixture.captures.modelBuilds.length, 1, `${label} must build one view model`);
@@ -972,8 +1010,9 @@ assertMarkupOrder(
   [
     'type="application/ld+json"',
     'aria-label="パンくず"',
-    'data-shop-integration="hero"',
     'data-shop-integration="gallery"',
+    'data-shop-integration="hero"',
+    'data-shop-integration="actions-hero"',
     'data-shop-integration="section-nav"',
     'data-shop-integration="sections"',
     'data-shop-integration="owner"',
@@ -987,8 +1026,9 @@ assertMarkupOrder(
   [
     'type="application/ld+json"',
     'aria-label="パンくず"',
-    'data-shop-integration="hero"',
     'data-shop-integration="gallery"',
+    'data-shop-integration="hero"',
+    'data-shop-integration="actions-hero"',
     'data-shop-integration="sections"',
     'data-shop-integration="owner"',
     'data-shop-integration="area-quick"'

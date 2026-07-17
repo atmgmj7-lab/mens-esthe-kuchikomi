@@ -73,7 +73,6 @@ const plannedLayoutClasses = [
   "page",
   "shell",
   "visual",
-  "visualAside",
   "sectionNav"
 ];
 
@@ -524,14 +523,16 @@ assert.deepEqual(
 );
 
 const shopTitleViewportContract = [
-  [1440, 38],
-  [1280, 38],
-  [1024, 34],
+  [1440, 34],
+  [1280, 34],
+  [1024, 30],
   [768, 30],
-  [500, 28],
-  [390, 27],
-  [375, 27],
-  [320, 24]
+  [760, 26],
+  [500, 26],
+  [390, 26],
+  [375, 26],
+  [360, 23],
+  [320, 23]
 ];
 
 function maxWidthFromQuery(query) {
@@ -914,8 +915,14 @@ assertClassDeclarationIn(baseCss, "shell", /padding-inline:\s*24px/, "desktop de
 assertClassDeclarationIn(
   baseCss,
   "detailGrid",
+  /grid-template-areas:\s*"visual hero"\s*"content content"/,
+  "desktop detail grid must place the gallery beside the hero before full-width content"
+);
+assertClassDeclarationIn(
+  baseCss,
+  "detailGrid",
   /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+320px/,
-  "desktop detail grid must reserve a fixed 320px supplementary column"
+  "desktop detail grid must reserve a fixed 320px profile column"
 );
 assertClassDeclarationIn(
   baseCss,
@@ -934,6 +941,12 @@ for (const [viewportWidth, expectedShellWidth, expectedMainWidth] of [
   assert.equal(mainWidth, expectedMainWidth, `${viewportWidth}px main column must be ${expectedMainWidth}px`);
 }
 
+assertClassDeclarationIn(
+  compactCss,
+  "detailGrid",
+  /grid-template-areas:\s*"hero"\s*"visual"\s*"content"/,
+  "1024px and below must order hero, gallery, then content"
+);
 assertClassDeclarationIn(
   compactCss,
   "detailGrid",
@@ -986,23 +999,27 @@ for (const selectorPattern of [/\.mainImage\s+img/, /\.thumbnail\s+img/]) {
 assertClassDeclarationIn(
   baseCss,
   "facts",
-  /grid-template-columns:\s*repeat\(var\(--fact-count\),\s*minmax\(0,\s*1fr\)\)/,
-  "base desktop facts must follow --fact-count"
+  /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+  "desktop profile facts must use two columns"
 );
 for (const [label, region] of [
   ["900px", tabletCss],
-  ["760px", mobileCss],
-  ["360px", narrowCss]
+  ["760px", mobileCss]
 ]) {
   assertClassDoesNotDeclareIn(
     region,
     "facts",
-    /var\(--fact-count\)/,
-    `desktop --fact-count declaration must not leak into the ${label} block`
+    /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
+    `the ${label} facts must inherit the base two-column contract`
   );
 }
 assertSelectorDeclaration(/\.facts\s*>\s*div/, /min-width:\s*0/, "fact columns must be shrinkable");
 assertSelectorDeclaration(/\.facts\s+dd/, /overflow-wrap:\s*anywhere/, "long fact values must wrap");
+assertSelectorDeclaration(
+  /\.facts\s+dd/,
+  /font:\s*500\s+18px\s*\/\s*1\.4/,
+  "profile fact values must not exceed 18px"
+);
 
 for (const [selectorPattern, label] of [
   [/\.primaryAction/, "primary action"],
@@ -1110,26 +1127,12 @@ const nearbyImageSource = readFileSync("components/common/AreaShopCardImage.tsx"
 assert.match(nearbyImageSource, /loading="lazy"/, "nearby shop images must remain lazy");
 assert.match(nearbyImageSource, /width=\{480\}[\s\S]*height=\{360\}/, "nearby shop images must keep 4:3 intrinsic dimensions");
 
-assertClassDeclarationIn(
-  mobileCss,
-  "facts",
-  /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-  "760px facts must use two columns"
-);
-for (const [label, region] of [
-  ["base", baseCss],
-  ["900px", tabletCss],
-  ["360px", narrowCss]
-]) {
-  assertClassDoesNotDeclareIn(
-    region,
-    "facts",
-    /repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-    `two-column facts must only be declared in the 760px block, not ${label}`
-  );
-}
-
 assertClassDeclarationIn(mobileCss, "fixedActions", /display:\s*grid/, "760px fixed actions must be visible");
+assert.match(
+  exactSelectorDeclarationsIn(mobileCss, ".hero .actions"),
+  /display:\s*none/,
+  "760px hero actions must be hidden while fixed actions are visible"
+);
 for (const [label, region] of [
   ["base", baseCss],
   ["900px", tabletCss],

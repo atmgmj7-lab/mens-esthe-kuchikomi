@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { ShopDetailActions } from "@/components/shop-detail/ShopDetailActions";
 import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import styles from "./ShopDetail.module.css";
@@ -22,10 +21,7 @@ export function ShopDetailHero({ model, rel }: ShopDetailHeroProps) {
       </div>
 
       {model.facts.length > 0 ? (
-        <dl
-          className={styles.facts}
-          style={{ "--fact-count": model.facts.length } as CSSProperties}
-        >
+        <dl className={styles.facts}>
           {model.facts.map((fact) => (
             <div key={fact.key}>
               <dt>{fact.label}</dt>
