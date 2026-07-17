@@ -4,6 +4,8 @@
   --line: #d8dedb;
   --green: #17372e;
   --gold: #806425;
+  --shop-fixed-action-height: 64px;
+  --shop-fixed-action-clearance: 28px;
   width: 100%;
   min-width: 0;
   color: var(--ink);
@@ -15,19 +17,37 @@
 }
 
 .shell {
-  width: 100%;
+  width: calc(100% - 80px);
   max-width: 1360px;
   margin-inline: auto;
-  padding-inline: 32px;
+  padding-inline: 24px;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-areas:
+    "hero aside"
+    "visual aside"
+    "content aside";
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0 32px;
+  align-items: start;
+  min-width: 0;
+}
+
+.detailContent {
+  grid-area: content;
+  min-width: 0;
 }
 
 .hero {
+  grid-area: hero;
   padding: 24px 0 0;
 }
 
 .titleRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   align-items: end;
   padding-bottom: 28px;
@@ -110,7 +130,7 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
@@ -159,9 +179,8 @@
 }
 
 .visual {
-  display: grid;
-  grid-template-columns: minmax(0, 1.42fr) minmax(300px, 0.58fr);
-  gap: 42px;
+  grid-area: visual;
+  min-width: 0;
   padding: 42px 0 50px;
   border-bottom: 1px solid var(--line);
 }
@@ -203,15 +222,20 @@
 }
 
 .visualAside {
+  grid-area: aside;
   min-width: 0;
-  align-self: center;
+  align-self: start;
+  margin-top: 24px;
+  padding: 24px 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--line);
 }
 
 .sectionNav {
   position: sticky;
   z-index: 20;
   top: var(--shop-site-header-offset);
-  margin-inline: -32px;
+  margin-inline: -24px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.97);
@@ -221,7 +245,7 @@
 .sectionNavList {
   display: flex;
   min-width: 0;
-  padding-inline: 32px;
+  padding-inline: 24px;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
@@ -501,11 +525,23 @@
   .title {
     --shop-title-size: 34px;
   }
+
+  .detailGrid {
+    grid-template-areas:
+      "hero"
+      "aside"
+      "visual"
+      "content";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .visualAside {
+    margin-top: 28px;
+  }
 }
 
 @media (max-width: 900px) {
   .titleRow,
-  .visual,
   .section,
   .ownerCta {
     grid-template-columns: minmax(0, 1fr);
@@ -535,6 +571,10 @@
 }
 
 @media (max-width: 768px) {
+  .shell {
+    width: calc(100% - 64px);
+  }
+
   .title {
     --shop-title-size: 30px;
   }
@@ -542,8 +582,12 @@
 
 @media (max-width: 760px) {
   .shell {
-    padding-inline: 16px;
-    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    width: calc(100% - 32px);
+    padding-inline: 0;
+    padding-bottom: calc(
+      var(--shop-fixed-action-height) + var(--shop-fixed-action-clearance) +
+        env(safe-area-inset-bottom)
+    );
   }
 
   .hero {
@@ -597,6 +641,10 @@
     padding: 24px 0 34px;
   }
 
+  .visualAside {
+    display: none;
+  }
+
   .thumbnails {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -635,7 +683,7 @@
     gap: 6px;
     width: auto;
     max-width: 100%;
-    min-height: 64px;
+    min-height: var(--shop-fixed-action-height);
     padding: 7px 16px calc(7px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--line);
     background: #fff;

@@ -68,6 +68,8 @@ const componentClassContract = {
 };
 
 const plannedLayoutClasses = [
+  "detailGrid",
+  "detailContent",
   "page",
   "shell",
   "visual",
@@ -190,6 +192,7 @@ const expectedMediaQueries = [
 const actualMediaQueries = [...responsiveRegions.media.keys()];
 
 const baseCss = responsiveRegions.base;
+const compactCss = responsiveRegions.media.get("(max-width:1024px)");
 const tabletCss = responsiveRegions.media.get("(max-width:900px)");
 const mobileCss = responsiveRegions.media.get("(max-width:760px)");
 const narrowCss = responsiveRegions.media.get("(max-width:360px)");
@@ -444,6 +447,66 @@ function renderShopTitleFixture(ShopDetailHero, fixture) {
   return { className: titleMatch[1], html };
 }
 
+function loadShopDetailActionsModule() {
+  const componentPath = "components/shop-detail/ShopDetailActions.tsx";
+  const source = readFileSync(componentPath, "utf8");
+  const result = ts.transpileModule(source, {
+    compilerOptions: {
+      esModuleInterop: true,
+      jsx: ts.JsxEmit.ReactJSX,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020
+    },
+    fileName: componentPath,
+    reportDiagnostics: true
+  });
+  const errors = (result.diagnostics ?? []).filter(
+    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error
+  );
+  assert.equal(errors.length, 0, `${componentPath} must transpile for action checks`);
+
+  const module = { exports: {} };
+  const localRequire = (specifier) => {
+    if (specifier === "@/lib/shop-slug") {
+      return { normalizePublicShopSlug: (slug) => slug };
+    }
+    if (specifier === "./ShopDetail.module.css") {
+      return {
+        __esModule: true,
+        default: new Proxy({}, { get: (_target, property) => String(property) })
+      };
+    }
+    return require(specifier);
+  };
+  new Function("require", "module", "exports", result.outputText)(
+    localRequire,
+    module,
+    module.exports
+  );
+  return module.exports;
+}
+
+function renderedActionKinds(ShopDetailActions, actions, options = {}) {
+  const html = renderToStaticMarkup(
+    React.createElement(ShopDetailActions, {
+      model: { actions, slug: "action-contract-shop" },
+      position: options.fixed ? "fixed" : "hero",
+      fixed: options.fixed,
+      rel: "nofollow sponsored noopener"
+    })
+  );
+  return {
+    html,
+    classes: [...html.matchAll(/<a[^>]*class="([^"]+)"/g)].map(
+      (match) => match[1]
+    ),
+    kinds: [...html.matchAll(/data-shop-cta-kind="([^"]+)"/g)].map(
+      (match) => match[1]
+    ),
+    hrefs: [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1])
+  };
+}
+
 const { ShopDetailHero } = loadShopDetailHeroModule();
 assert.equal(
   typeof ShopDetailHero,
@@ -642,6 +705,58 @@ assert.equal(
   `shop title responsive contract failed:\n- ${shopTitleContractFailures.join("\n- ")}`
 );
 
+const { ShopDetailActions } = loadShopDetailActionsModule();
+const unorderedActions = [
+  { kind: "tel", label: "電話予約", href: "tel:0612345678", external: false },
+  { kind: "line", label: "LINE予約", href: "https://line.example.test/", external: true },
+  { kind: "official", label: "公式サイト", href: "https://official.example.test/", external: true },
+  { kind: "reservation", label: "Web予約", href: "https://booking.example.test/", external: true },
+  { kind: "line", label: "別のLINE", href: "https://line-duplicate.example.test/", external: true }
+];
+const topActions = renderedActionKinds(ShopDetailActions, unorderedActions);
+assert.deepEqual(
+  topActions.kinds,
+  ["reservation", "official", "line", "tel"],
+  "shop detail top actions must follow Web reservation, official, LINE, telephone and stop at four"
+);
+
+const duplicateUrlActions = renderedActionKinds(ShopDetailActions, [
+  { kind: "official", label: "公式サイト", href: "https://shared.example.test/", external: true },
+  { kind: "reservation", label: "Web予約", href: "https://shared.example.test/", external: true },
+  { kind: "line", label: "LINE予約", href: "https://line.example.test/", external: true },
+  { kind: "tel", label: "電話予約", href: "tel:0612345678", external: false }
+]);
+assert.deepEqual(
+  duplicateUrlActions.kinds,
+  ["reservation", "line", "tel"],
+  "same action URL must keep only the earliest action in the priority order"
+);
+assert.equal(
+  new Set(duplicateUrlActions.hrefs).size,
+  duplicateUrlActions.hrefs.length,
+  "shop detail actions must not render the same URL twice in one group"
+);
+
+const fixedActions = renderedActionKinds(ShopDetailActions, unorderedActions, {
+  fixed: true
+});
+assert.deepEqual(
+  fixedActions.kinds,
+  ["reservation", "official"],
+  "mobile fixed actions must contain one primary and one secondary action"
+);
+
+const fixedWithoutOfficial = renderedActionKinds(
+  ShopDetailActions,
+  unorderedActions.filter((action) => action.kind !== "official"),
+  { fixed: true }
+);
+assert.deepEqual(
+  fixedWithoutOfficial.classes,
+  ["primaryAction", "secondaryAction"],
+  "mobile fixed actions must style only the first available action as primary"
+);
+
 function resolveColorToken(colorToken, pageColors) {
   const variableMatch = colorToken.match(/^var\((--[a-z-]+)\)$/i);
   if (variableMatch) {
@@ -789,7 +904,42 @@ assert.equal(
 
 assertClassDeclarationIn(baseCss, "page", /width:\s*100%/, "base page must stay within its containing block");
 assertClassDeclarationIn(baseCss, "shell", /max-width:\s*1360px/, "base desktop shell must stop at 1360px");
-assertClassDeclarationIn(baseCss, "shell", /padding-inline:\s*32px/, "base desktop shell needs 32px gutters");
+assertClassDeclarationIn(
+  baseCss,
+  "shell",
+  /width:\s*calc\(\s*100%\s*-\s*80px\s*\)/,
+  "desktop shell must keep 40px outer margins at 1440, 1280, and 1024"
+);
+assertClassDeclarationIn(baseCss, "shell", /padding-inline:\s*24px/, "desktop detail grid needs 24px inner gutters");
+assertClassDeclarationIn(
+  baseCss,
+  "detailGrid",
+  /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+320px/,
+  "desktop detail grid must reserve a fixed 320px supplementary column"
+);
+assertClassDeclarationIn(
+  baseCss,
+  "detailGrid",
+  /(?:gap:\s*(?:0\s+)?32px|column-gap:\s*32px)/,
+  "desktop detail columns need a 32px gap"
+);
+
+for (const [viewportWidth, expectedShellWidth, expectedMainWidth] of [
+  [1440, 1360, 960],
+  [1280, 1200, 800]
+]) {
+  const shellWidth = Math.min(1360, viewportWidth - 80);
+  const mainWidth = shellWidth - 24 - 32 - 320 - 24;
+  assert.equal(shellWidth, expectedShellWidth, `${viewportWidth}px shell width must be ${expectedShellWidth}px`);
+  assert.equal(mainWidth, expectedMainWidth, `${viewportWidth}px main column must be ${expectedMainWidth}px`);
+}
+
+assertClassDeclarationIn(
+  compactCss,
+  "detailGrid",
+  /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  "1024px and below must collapse the detail grid to one column"
+);
 for (const [label, region] of [
   ["900px", tabletCss],
   ["760px", mobileCss],
@@ -798,8 +948,8 @@ for (const [label, region] of [
   assertClassDoesNotDeclareIn(
     region,
     "shell",
-    /padding-inline:\s*32px/,
-    `desktop 32px gutters must not be redeclared in the ${label} block`
+    /padding-inline:\s*24px/,
+    `desktop 24px inner gutters must not be redeclared in the ${label} block`
   );
 }
 
@@ -898,7 +1048,13 @@ assertClassDeclarationIn(
   "900px block must collapse the title row"
 );
 
-assertClassDeclarationIn(mobileCss, "shell", /padding-inline:\s*16px/, "760px shell needs 16px gutters");
+assertClassDeclarationIn(
+  mobileCss,
+  "shell",
+  /width:\s*calc\(\s*100%\s*-\s*32px\s*\)/,
+  "760px shell must keep 16px outer margins"
+);
+assertClassDeclarationIn(mobileCss, "shell", /padding-inline:\s*0/, "760px shell must not add inner gutters beyond its 16px margins");
 for (const [label, region] of [
   ["base", baseCss],
   ["900px", tabletCss],
@@ -907,10 +1063,52 @@ for (const [label, region] of [
   assertClassDoesNotDeclareIn(
     region,
     "shell",
-    /padding-inline:\s*16px/,
-    `mobile 16px gutters must only be declared in the 760px block, not ${label}`
+    /width:\s*calc\(\s*100%\s*-\s*32px\s*\)/,
+    `mobile 16px outer margins must only be declared in the 760px block, not ${label}`
   );
 }
+
+const gallerySource = readFileSync("components/shop-detail/ShopDetailGallery.tsx", "utf8");
+assert.equal(
+  gallerySource.match(/loading="eager"/g)?.length ?? 0,
+  1,
+  "only the main shop image may load eagerly"
+);
+assert.equal(
+  gallerySource.match(/fetchPriority="high"/g)?.length ?? 0,
+  1,
+  "only the main shop image may receive high fetch priority"
+);
+assert.match(gallerySource, /width=\{960\}[\s\S]*height=\{720\}[\s\S]*sizes=/, "main image must declare 4:3 intrinsic size and responsive sizes");
+assert.match(gallerySource, /width=\{240\}[\s\S]*height=\{180\}[\s\S]*loading="lazy"[\s\S]*sizes=/, "thumbnails must declare 4:3 intrinsic size, lazy loading, and responsive sizes");
+for (const expectedSize of [
+  "(max-width: 760px) calc(100vw - 32px)",
+  "(max-width: 768px) calc(100vw - 112px)",
+  "(max-width: 1024px) calc(100vw - 128px)",
+  "(max-width: 1440px) calc(100vw - 480px)",
+  "960px"
+]) {
+  assert.ok(
+    gallerySource.includes(expectedSize),
+    `main image sizes must include ${expectedSize}`
+  );
+}
+for (const expectedSize of [
+  "(max-width: 760px) calc((100vw - 48px) / 3)",
+  "(max-width: 768px) calc((100vw - 128px) / 3)",
+  "(max-width: 1024px) calc((100vw - 144px) / 3)",
+  "(max-width: 1440px) calc((100vw - 496px) / 3)",
+  "calc((960px - 16px) / 3)"
+]) {
+  assert.ok(
+    gallerySource.includes(expectedSize),
+    `thumbnail sizes must include ${expectedSize}`
+  );
+}
+
+const nearbyImageSource = readFileSync("components/common/AreaShopCardImage.tsx", "utf8");
+assert.match(nearbyImageSource, /loading="lazy"/, "nearby shop images must remain lazy");
+assert.match(nearbyImageSource, /width=\{480\}[\s\S]*height=\{360\}/, "nearby shop images must keep 4:3 intrinsic dimensions");
 
 assertClassDeclarationIn(
   mobileCss,
@@ -960,9 +1158,11 @@ const mobileFixedLinkDeclarations = exactSelectorDeclarationsIn(
   ".fixedActions a"
 );
 const shellBottomMatch = mobileShellDeclarations.match(
-  /padding-bottom:\s*calc\(\s*(\d+)px\s*\+\s*env\(safe-area-inset-bottom\)\s*\)/
+  /padding-bottom:\s*calc\(\s*var\(--shop-fixed-action-height\)\s*\+\s*var\(--shop-fixed-action-clearance\)\s*\+\s*env\(safe-area-inset-bottom\)\s*\)/
 );
-const fixedHeightMatch = mobileFixedDeclarations.match(/min-height:\s*(\d+)px/);
+const fixedHeightMatch = mobileFixedDeclarations.match(
+  /min-height:\s*var\(--shop-fixed-action-height\)/
+);
 const fixedPaddingMatch = mobileFixedDeclarations.match(
   /padding:\s*(\d+)px\s+\d+px\s+calc\(\s*(\d+)px\s*\+\s*env\(safe-area-inset-bottom\)\s*\)/
 );
@@ -985,12 +1185,9 @@ assert.match(
   "760px fixed-action child links must declare an effective pixel min-height"
 );
 assert.ok(
-  Number(shellBottomMatch[1]) >=
-    Number(fixedPaddingMatch[1]) +
-      Number(fixedPaddingMatch[2]) +
-      Number.parseInt(fixedLinkMinHeight, 10) +
-      16,
-  "shell base bottom space must exceed fixed-action content and spacing by at least 16px"
+  /--shop-fixed-action-height:\s*\d+px/.test(basePageDeclarations) &&
+    /--shop-fixed-action-clearance:\s*\d+px/.test(basePageDeclarations),
+  "fixed action body height and content clearance must use shared page variables"
 );
 for (const [label, region] of [
   ["base", baseCss],
@@ -1062,24 +1259,13 @@ function moveAspectRatioToNarrow(source) {
   );
 }
 
-function enlargeFixedActionChild(source) {
-  const selector = ".fixedActions a {";
-  const selectorIndex = source.indexOf(selector);
-  assert.notEqual(
-    selectorIndex,
-    -1,
-    "fixed-action mutation must find the child-link rule"
+function disconnectFixedActionHeightVariable(source) {
+  const declaration = "min-height: var(--shop-fixed-action-height);";
+  assert.ok(
+    source.includes(declaration),
+    "fixed-action mutation must find the shared height variable"
   );
-  const ruleEnd = source.indexOf("}", selectorIndex);
-  assert.notEqual(ruleEnd, -1, "fixed-action child-link rule must close");
-  const rule = source.slice(selectorIndex, ruleEnd);
-  const mutatedRule = rule.replace(/min-height:\s*\d+px;/, "min-height: 140px;");
-  assert.notEqual(
-    mutatedRule,
-    rule,
-    "fixed-action mutation must find the child min-height"
-  );
-  return source.slice(0, selectorIndex) + mutatedRule + source.slice(ruleEnd);
+  return source.replace(declaration, "min-height: 140px;");
 }
 
 function overrideFocusOutline(source) {
@@ -1094,10 +1280,9 @@ function assertMutationsAreRejected(source) {
       expectedFailure: "base .mainImage must be 4:3"
     },
     {
-      name: "fixed-action-child-too-tall",
-      mutate: enlargeFixedActionChild,
-      expectedFailure:
-        "shell base bottom space must exceed fixed-action content and spacing by at least 16px"
+      name: "fixed-action-height-variable-disconnected",
+      mutate: disconnectFixedActionHeightVariable,
+      expectedFailure: "760px fixed actions must declare their minimum body height"
     },
     {
       name: "focus-outline-overridden",

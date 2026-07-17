@@ -36,6 +36,7 @@ export function ShopDetailGallery({ model }: { model: ShopDetailViewModel }) {
           alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}
           width={960}
           height={720}
+          sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 768px) calc(100vw - 112px), (max-width: 1024px) calc(100vw - 128px), (max-width: 1440px) calc(100vw - 480px), 960px"
           loading="eager"
           fetchPriority="high"
           decoding="async"
@@ -56,6 +57,7 @@ export function ShopDetailGallery({ model }: { model: ShopDetailViewModel }) {
                 width={240}
                 height={180}
                 loading="lazy"
+                sizes="(max-width: 760px) calc((100vw - 48px) / 3), (max-width: 768px) calc((100vw - 128px) / 3), (max-width: 1024px) calc((100vw - 144px) / 3), (max-width: 1440px) calc((100vw - 496px) / 3), calc((960px - 16px) / 3)"
                 decoding="async"
                 onError={replaceBrokenShopImage}
                 style={image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}

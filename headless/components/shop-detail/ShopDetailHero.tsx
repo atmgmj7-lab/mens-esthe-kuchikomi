@@ -19,7 +19,6 @@ export function ShopDetailHero({ model, rel }: ShopDetailHeroProps) {
             <p className={styles.verified}>掲載情報の確認日 {model.verifiedAt}</p>
           ) : null}
         </div>
-        <ShopDetailActions model={model} rel={rel} position="hero" />
       </div>
 
       {model.facts.length > 0 ? (
@@ -35,6 +34,7 @@ export function ShopDetailHero({ model, rel }: ShopDetailHeroProps) {
           ))}
         </dl>
       ) : null}
+      <ShopDetailActions model={model} rel={rel} position="hero" />
     </header>
   );
 }

@@ -99,42 +99,41 @@ export function ShopDetail({
           ) : null}
           <span>{shop.title}</span>
         </nav>
-        <article>
+        <article className={styles.detailGrid}>
           <ShopDetailHero model={model} rel={officialRel} />
-          <section
-            className={styles.visual}
-            aria-label="店舗画像と予約案内"
-          >
+          <aside className={styles.visualAside}>
+            <p className={styles.kicker}>AT A GLANCE</p>
+            <h2>先に知りたい情報を、迷わず確認。</h2>
+            <ShopDetailActions
+              model={model}
+              rel={officialRel}
+              position="body"
+            />
+          </aside>
+          <section className={styles.visual} aria-label="店舗画像">
             <ShopDetailGallery model={model} />
-            <aside className={styles.visualAside}>
-              <p className={styles.kicker}>AT A GLANCE</p>
-              <h2>先に知りたい情報を、迷わず確認。</h2>
-              <ShopDetailActions
-                model={model}
-                rel={officialRel}
-                position="body"
-              />
-            </aside>
           </section>
-          <ShopSectionNav links={sectionLinks} />
-          <ShopDetailSections
-            model={model}
-            reviews={userReviews}
-            reviewSubmitUrl={reviewSubmitUrl}
-            rel={officialRel}
-          />
-          <ShopOwnerCta shop={shop} />
-          {shopAreaForHub ? (
-            <div id="nearby" className={styles.sectionAnchor}>
-              <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
-            </div>
-          ) : null}
-          <AreaQuickLinks
-            areas={allAreas}
-            current={areaSlugForNav}
-            title="エリアから探す"
-            className="u-mt-50"
-          />
+          <div className={styles.detailContent}>
+            <ShopSectionNav links={sectionLinks} />
+            <ShopDetailSections
+              model={model}
+              reviews={userReviews}
+              reviewSubmitUrl={reviewSubmitUrl}
+              rel={officialRel}
+            />
+            <ShopOwnerCta shop={shop} />
+            {shopAreaForHub ? (
+              <div id="nearby" className={styles.sectionAnchor}>
+                <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
+              </div>
+            ) : null}
+            <AreaQuickLinks
+              areas={allAreas}
+              current={areaSlugForNav}
+              title="エリアから探す"
+              className="u-mt-50"
+            />
+          </div>
         </article>
       </div>
       <ShopDetailActions

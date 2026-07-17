@@ -211,41 +211,47 @@ const shopCtaCases = [
 ];
 
 for (const testCase of shopCtaCases) {
-  withClickHarness("/shops/path-shop/", ({ click }) => {
-    const events = click({
-      ...testCase,
-      ctaPosition: "fixed",
-      shopSlug: "safe-shop",
-      text: "requesterEmail=private@example.com"
-    });
-    assert.equal(events.length, 1, `${testCase.ctaKind} CTA must emit exactly once`);
-    assert.equal(events[0].eventName, testCase.eventName);
-    assert.deepEqual(Object.keys(events[0].params).sort(), [
-      "cta_kind",
-      "cta_position",
-      "link_url",
-      "page_path",
-      "shop_slug"
-    ]);
-    if (testCase.ctaKind === "tel") {
-      const serializedParams = JSON.stringify(events[0].params);
-      assert.ok(
-        !serializedParams.includes("08000000000"),
-        "tel CTA params must not contain the phone number"
+  for (const ctaPosition of ["hero", "body", "fixed"]) {
+    withClickHarness("/shops/path-shop/", ({ click }) => {
+      const events = click({
+        ...testCase,
+        ctaPosition,
+        shopSlug: "safe-shop",
+        text: "requesterEmail=private@example.com"
+      });
+      assert.equal(
+        events.length,
+        1,
+        `${testCase.ctaKind} CTA at ${ctaPosition} must emit exactly once`
       );
-      assert.ok(
-        !events[0].params.link_url.includes("08000000000"),
-        "tel CTA link_url must not contain the phone number"
-      );
-    }
-    assert.deepEqual(events[0].params, {
-      shop_slug: "safe-shop",
-      cta_kind: testCase.ctaKind,
-      cta_position: "fixed",
-      link_url: testCase.expectedLinkUrl ?? testCase.href,
-      page_path: "/shops/path-shop/"
+      assert.equal(events[0].eventName, testCase.eventName);
+      assert.deepEqual(Object.keys(events[0].params).sort(), [
+        "cta_kind",
+        "cta_position",
+        "link_url",
+        "page_path",
+        "shop_slug"
+      ]);
+      if (testCase.ctaKind === "tel") {
+        const serializedParams = JSON.stringify(events[0].params);
+        assert.ok(
+          !serializedParams.includes("08000000000"),
+          "tel CTA params must not contain the phone number"
+        );
+        assert.ok(
+          !events[0].params.link_url.includes("08000000000"),
+          "tel CTA link_url must not contain the phone number"
+        );
+      }
+      assert.deepEqual(events[0].params, {
+        shop_slug: "safe-shop",
+        cta_kind: testCase.ctaKind,
+        cta_position: ctaPosition,
+        link_url: testCase.expectedLinkUrl ?? testCase.href,
+        page_path: "/shops/path-shop/"
+      });
     });
-  });
+  }
 }
 
 withClickHarness("/shops/path-shop/", ({ click }) => {
