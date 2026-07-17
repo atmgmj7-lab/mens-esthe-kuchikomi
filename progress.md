@@ -477,10 +477,18 @@
 
 ## 2026-07-18 Phase 16 一覧・店舗詳細の精密再調整 完了
 
-- **Status:** complete（Task 1〜3、fresh全検証、独立最終レビューを完了。push・deploy・本番変更前で停止）
+- **Status:** complete（Task 1〜3、fresh全検証、独立最終レビュー、main反映、本番全幅QAまで完了）
 - Task 1 `0c40101`で順位badgeをmediaWrap内overlayへ移し、順位有無で共通の3列cardにした。
 - Task 2 `3398593`で店舗詳細上部をPCの画像/hero 2列へ整理し、予約・公式情報groupをPC/SPそれぞれ表示中1つにした。
 - Task 3では旧browser検査をTask 1・2後へ当て、4,971/15,377 failuresのREDを確認した。旧`visualAside`、article直下media、独立rank列の期待が原因だった。
 - browser検査を新DOMへ更新し、順位badgeのmediaWrap包含、順位あり/なしmedia・title x差2px以内、可視予約group 1、H1 PC 34px/SP 26px以下、facts 18px以下、横はみ出し0、CTA 44px以上を実寸確認する。
 - fresh検証は`npm test` 35/35、lint、typecheck、441/441 build、build直後のheadless browser 56/56 scenarios・89,836 assertions・32 screenshots・failures 0、High/Critical 0、`git diff --check`がすべて終了コード0。
-- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。WordPressを公開データ元として維持し、WordPress/Supabase書込、push、PR、deploy、本番公開は行っていない。
+- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。WordPressを公開データ元として維持し、WordPress/Supabase書込は行っていない。
+
+## 2026-07-18 Phase 16 本番反映完了
+
+- ユーザー承認後、実装と検証記録を含むcommit `ddddb33` までを`main`へpushした。
+- GitHub ActionsのVercel run `29617521724`は、通常CI build、prebuilt build、本番deploy、SEO cutover checkをすべて通過し、`https://mens-esthe-kuchikomi.com`へ反映した。
+- トップ、堺筋本町、大阪エリア、店舗一覧、milk tea店舗詳細の5 URLがHTTP 200であることを確認した。
+- 本番headless QAは4経路×14条件=56 scenarios、90,112 assertions、32 screenshots、failures 0。PC、スマホ、760/761・900/901・1024/1025境界、320×568、スマホ横向きを通過した。
+- 今回はheadless配下だけの変更なのでXserver workflowは対象外。WordPressを公開データ元として維持し、WordPress/Supabaseへの書き込みや公開参照先の切替は行っていない。

@@ -8,7 +8,10 @@
 - 旧browser検査をTask 1・2後へ当て、4,971 failuresのREDを確認した。原因は旧`visualAside`、article直下media、独立rank列を検査側が固定していたことだった。
 - 新browser検査はmediaWrap内の順位包含、順位あり/なしmedia・title x差2px以内、可視予約group 1、H1 PC 34px/SP 26px以下、facts 18px以下、横はみ出し0、CTA 44px以上を数値確認する。
 - fresh検証は通常test 35/35、lint、typecheck、441/441 build、headless 56/56 scenarios・89,836 assertions・32 screenshots・failures 0、High/Critical 0、差分検査0。
-- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。WordPress公開データ元を維持し、WordPress/Supabase書込、push、PR、deploy、本番公開は行わず、ローカルcommit後に停止する。
+- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。WordPress公開データ元を維持し、WordPress/Supabase書込は行っていない。
+- ユーザー承認後、commit `ddddb33` までを`main`へpushした。Vercel run `29617521724`は通常CI build、prebuilt build、本番deploy、SEO cutover checkをすべて通過し、`https://mens-esthe-kuchikomi.com`へ反映した。
+- 本番5 URLはHTTP 200。本番headless QAは4経路×14条件=56 scenarios、90,112 assertions、32 screenshots、failures 0で、PC・スマホ・切替境界・横向きを通過した。
+- headless配下だけの変更なのでXserver workflowは対象外。WordPress/Supabaseへの書き込みや公開参照先の切替は行っていない。
 
 ### 2026-07-17 Eskomi UX再構築 本番反映完了
 

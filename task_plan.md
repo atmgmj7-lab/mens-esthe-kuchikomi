@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調整し、headless全幅QAと独立レビューを完了。push・deploy前で停止）
+Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調整し、main反映・Vercel本番公開・本番全幅QAまで完了）
 
 ## Phases
 
@@ -151,6 +151,7 @@ Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調
 - [x] WordPressに存在する情報だけで詳細セクションを整理し、推測情報を追加しない
 - [x] PC/SPと切替境界を非表示ブラウザで検証し、独立レビューを通す
 - [x] `progress.md` と `pm/PROGRESS.md` を更新し、push・本番公開前で停止する
+- [x] ユーザー承認後に`main`へpushし、Vercel本番公開と本番全幅QAを完了する
 - **Status:** complete
 
 ## Key Questions
