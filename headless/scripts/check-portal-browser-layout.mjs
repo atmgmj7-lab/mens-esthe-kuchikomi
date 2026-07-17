@@ -1,0 +1,676 @@
+import { spawn } from "node:child_process";
+import fs from "node:fs/promises";
+import net from "node:net";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+import { chromium } from "@playwright/test";
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const defaultBaseUrl = "http://127.0.0.1:3100";
+const baseUrl = (process.env.PORTAL_BASE_URL || defaultBaseUrl).replace(/\/$/, "");
+if (new URL(baseUrl).port === "5000") {
+  throw new Error("PORTAL_BASE_URL must not target the existing out-of-scope port 5000 server");
+}
+const shopPath =
+  "/shops/milk-tea%ef%bc%88%e3%83%9f%e3%83%ab%e3%82%af%e3%83%86%e3%82%a3%e3%83%bc%ef%bc%89/";
+const reportDir = path.join(projectRoot, "reports", "portal-ux-2026-07-17");
+const routes = [
+  { name: "shop-milk-tea", path: shopPath, kind: "shop" },
+  { name: "area-sakaisujihonmachi", path: "/area/sakaisujihonmachi/", kind: "hub" },
+  { name: "area-osaka", path: "/area/osaka/", kind: "area" },
+  { name: "shops", path: "/shops/", kind: "shops" }
+];
+const standardViewports = [
+  { name: "1440", width: 1440, height: 1000, screenshot: true },
+  { name: "1280", width: 1280, height: 900, screenshot: true },
+  { name: "1024", width: 1024, height: 900, screenshot: true },
+  { name: "768", width: 768, height: 1024, screenshot: true },
+  { name: "500", width: 500, height: 900, screenshot: true },
+  { name: "390", width: 390, height: 844, screenshot: true },
+  { name: "375", width: 375, height: 812, screenshot: true },
+  { name: "320x568", width: 320, height: 568, screenshot: true }
+];
+const boundaryViewports = [
+  { name: "760-boundary", width: 760, height: 900 },
+  { name: "761-boundary", width: 761, height: 900 },
+  { name: "900-boundary", width: 900, height: 900 },
+  { name: "901-boundary", width: 901, height: 900 },
+  { name: "1025-boundary", width: 1025, height: 900 },
+  { name: "phone-landscape", width: 667, height: 375 }
+];
+const viewports = [...standardViewports, ...boundaryViewports];
+const expectedTitleSizes = new Map([
+  [1440, 38], [1280, 38], [1024, 34], [768, 30],
+  [500, 28], [390, 27], [375, 27], [320, 24]
+]);
+
+function isPortOpen(port) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: "127.0.0.1", port });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+    socket.setTimeout(500, () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+async function startServer() {
+  if (process.env.PORTAL_BASE_URL) return null;
+  if (await isPortOpen(3100)) {
+    throw new Error("127.0.0.1:3100 is already in use; refusing to reuse an unknown server");
+  }
+
+  const child = spawn(
+    "npm",
+    ["run", "start", "--", "--hostname", "127.0.0.1", "--port", "3100"],
+    {
+      cwd: projectRoot,
+      detached: process.platform !== "win32",
+      stdio: ["ignore", "pipe", "pipe"]
+    }
+  );
+  let startupLog = "";
+  const remember = (chunk) => {
+    startupLog = `${startupLog}${chunk}`.slice(-4000);
+  };
+  child.stdout.on("data", remember);
+  child.stderr.on("data", remember);
+
+  try {
+    const deadline = Date.now() + 45_000;
+    while (Date.now() < deadline) {
+      if (child.exitCode !== null) {
+        throw new Error(`portal server exited before ready\n${startupLog}`);
+      }
+      try {
+        const response = await fetch(`${defaultBaseUrl}${shopPath}`, {
+          signal: AbortSignal.timeout(2_000)
+        });
+        if (response.ok) return child;
+      } catch {
+        // The dedicated production server is still starting.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    throw new Error(`portal server was not ready within 45 seconds\n${startupLog}`);
+  } catch (error) {
+    await stopServer(child);
+    throw error;
+  }
+}
+
+async function stopServer(child) {
+  if (!child || child.exitCode !== null) return;
+  const signal = (name) => {
+    try {
+      if (process.platform === "win32") child.kill(name);
+      else process.kill(-child.pid, name);
+    } catch (error) {
+      if (error?.code !== "ESRCH") throw error;
+    }
+  };
+  signal("SIGTERM");
+  await Promise.race([
+    new Promise((resolve) => child.once("exit", resolve)),
+    new Promise((resolve) => setTimeout(resolve, 3_000))
+  ]);
+  if (child.exitCode === null) {
+    signal("SIGKILL");
+    await Promise.race([
+      new Promise((resolve) => child.once("exit", resolve)),
+      new Promise((resolve) => setTimeout(resolve, 2_000))
+    ]);
+  }
+}
+
+const failures = [];
+let assertionCount = 0;
+let screenshotCount = 0;
+
+function check(condition, label, details = {}) {
+  assertionCount += 1;
+  if (!condition) failures.push({ label, details });
+}
+
+function approximately(actual, expected, tolerance) {
+  return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+}
+
+async function waitForStableLayout(page) {
+  await page.locator("main").first().waitFor({ state: "visible", timeout: 10_000 });
+  await page.addStyleTag({
+    content:
+      "*,*::before,*::after{animation-duration:0s!important;transition-duration:0s!important;}html{scroll-behavior:auto!important;}"
+  });
+  await page.locator("img").evaluateAll((images) => {
+    for (const image of images) image.loading = "eager";
+  });
+  await page.evaluate(async () => {
+    await Promise.race([
+      Promise.all([...document.images].map((image) => image.decode().catch(() => undefined))),
+      new Promise((resolve) => setTimeout(resolve, 4_000))
+    ]);
+    await document.fonts.ready;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+}
+
+async function collectMetrics(page) {
+  return page.evaluate(() => {
+    const rect = (element) => {
+      if (!element) return null;
+      const box = element.getBoundingClientRect();
+      return {
+        x: box.x,
+        y: box.y,
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+        width: box.width,
+        height: box.height
+      };
+    };
+    const isVisible = (element) => {
+      if (!element) return false;
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return box.width > 0 && box.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+    };
+    const shopRoot = document.querySelector("main[data-shop-detail-root]");
+    const shell = shopRoot?.querySelector(":scope > div");
+    const detailArticle = shell?.querySelector(":scope > article");
+    const title = shopRoot?.querySelector("h1");
+    const hero = detailArticle?.querySelector(":scope > header");
+    const aside = detailArticle?.querySelector(":scope > aside");
+    const mainImage = shopRoot?.querySelector('section[aria-label="店舗画像"] figure > div');
+    const imageSelector = [
+      'main[data-shop-detail-root] section[aria-label="店舗画像"] img',
+      'article[data-area-shop-card="true"] img',
+      '[role="table"][aria-label="店舗比較"] img'
+    ].join(",");
+    const images = [...document.querySelectorAll(imageSelector)]
+      .filter(isVisible)
+      .map((image) => ({
+        alt: image.getAttribute("alt") || "",
+        box: rect(image)
+      }));
+    const ctas = [...document.querySelectorAll("[data-shop-cta-kind]")]
+      .filter(isVisible)
+      .map((cta) => ({
+        kind: cta.getAttribute("data-shop-cta-kind"),
+        position: cta.getAttribute("data-shop-cta-position"),
+        box: rect(cta)
+      }));
+    const cards = [...document.querySelectorAll('article[data-area-shop-card="true"]')]
+      .filter(isVisible)
+      .slice(0, 3)
+      .map((card) => {
+        const children = [...card.children];
+        const rank = card.querySelector('[aria-label^="おすすめランキング"]');
+        const rankSlot = rank?.parentElement;
+        const rankParts = rank ? [...rank.children] : [];
+        const media = card.querySelector('a[aria-label$="の詳細を見る"]');
+        const header = card.querySelector(":scope > header");
+        const actions = children.find((child) =>
+          child.querySelector(':scope > [data-shop-cta-position="listing"]')
+        );
+        const body = children.find(
+          (child) => child.tagName === "DIV" && child !== rankSlot && child !== actions
+        );
+        return {
+          box: rect(card),
+          rank: rect(rank),
+          rankSlot: rect(rankSlot),
+          rankNumber: rect(rankParts[0]),
+          rankUnit: rect(rankParts[1]),
+          media: rect(media),
+          header: rect(header),
+          body: rect(body),
+          actions: rect(actions)
+        };
+      });
+    const comparison = document.querySelector('[role="table"][aria-label="店舗比較"]');
+    const comparisonHeader = comparison?.querySelector('[role="row"]');
+    const comparisonRow = comparison?.querySelector('[data-comparison-row]');
+    const groups = [...document.querySelectorAll('[role="group"][aria-label="予約・公式情報"]')];
+    const fixedGroup = groups.at(-1);
+
+    return {
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      dpr: window.devicePixelRatio,
+      scale: window.visualViewport?.scale ?? 1,
+      h1: title?.textContent?.trim() || "",
+      titleSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : null,
+      shop: shopRoot
+        ? {
+            shell: rect(shell),
+            title: rect(title),
+            hero: rect(hero),
+            aside: rect(aside),
+            mainImage: rect(mainImage),
+            fixedGroup: rect(fixedGroup),
+            fixedDisplay: fixedGroup ? getComputedStyle(fixedGroup).display : null
+          }
+        : null,
+      images,
+      ctas,
+      cards,
+      comparison: comparison
+        ? {
+            box: rect(comparison),
+            headerDisplay: comparisonHeader ? getComputedStyle(comparisonHeader).display : null,
+            row: rect(comparisonRow),
+            rowColumns: comparisonRow ? getComputedStyle(comparisonRow).gridTemplateColumns : null
+          }
+        : null
+    };
+  });
+}
+
+function assertShopGeometry(metrics, viewport, label) {
+  const shop = metrics.shop;
+  check(Boolean(shop?.shell && shop?.title && shop?.mainImage), `${label} shop geometry exists`);
+  if (!shop?.shell || !shop.title || !shop.mainImage) return;
+
+  const expectedWidth = viewport.width <= 760
+    ? viewport.width - 32
+    : viewport.width <= 768
+      ? viewport.width - 64
+      : Math.min(viewport.width - 80, 1360);
+  const expectedLeft = (viewport.width - expectedWidth) / 2;
+  const innerPadding = viewport.width <= 760 ? 0 : 24;
+  const expectedInnerLeft = expectedLeft + innerPadding;
+
+  check(approximately(shop.shell.x, expectedLeft, 2), `${label} shop shell start`, {
+    actual: shop.shell.x,
+    expected: expectedLeft
+  });
+  check(approximately(shop.shell.width, expectedWidth, 2), `${label} shop shell width`, {
+    actual: shop.shell.width,
+    expected: expectedWidth
+  });
+  check(approximately(shop.title.x, expectedInnerLeft, 2), `${label} shop title start`, {
+    actual: shop.title.x,
+    expected: expectedInnerLeft
+  });
+  check(approximately(shop.mainImage.x, expectedInnerLeft, 2), `${label} shop image start`, {
+    actual: shop.mainImage.x,
+    expected: expectedInnerLeft
+  });
+
+  const titleSize = expectedTitleSizes.get(viewport.width);
+  if (titleSize) {
+    check(approximately(metrics.titleSize, titleSize, 0.2), `${label} shop title size`, {
+      actual: metrics.titleSize,
+      expected: titleSize
+    });
+  }
+
+  if (viewport.width > 1024 && shop.hero && shop.aside) {
+    check(approximately(shop.aside.width, 320, 2), `${label} shop aside width`, {
+      actual: shop.aside.width,
+      expected: 320
+    });
+    check(approximately(shop.aside.x - shop.hero.right, 32, 4), `${label} shop column gap`, {
+      actual: shop.aside.x - shop.hero.right,
+      expected: 32
+    });
+  }
+
+  if (viewport.width <= 760) {
+    check(shop.fixedDisplay !== "none" && shop.fixedGroup?.height >= 64, `${label} fixed actions visible`, {
+      display: shop.fixedDisplay,
+      box: shop.fixedGroup
+    });
+    if (shop.fixedGroup) {
+      check(approximately(shop.fixedGroup.bottom, viewport.height, 2), `${label} fixed actions bottom`, {
+        actual: shop.fixedGroup.bottom,
+        expected: viewport.height
+      });
+    }
+  } else {
+    check(shop.fixedDisplay === "none", `${label} fixed actions hidden above 760`, {
+      display: shop.fixedDisplay
+    });
+  }
+}
+
+function assertCardGeometry(metrics, viewport, label) {
+  for (const [index, card] of metrics.cards.entries()) {
+    const cardLabel = `${label} card ${index + 1}`;
+    if (card.rankNumber && card.rankUnit) {
+      check(
+        Math.abs(card.rankNumber.top - card.rankUnit.top) <= 2,
+        `${cardLabel} rank alignment`,
+        { numberTop: card.rankNumber.top, unitTop: card.rankUnit.top }
+      );
+    }
+    if (!card.box || !card.media || !card.header) continue;
+
+    if (viewport.width > 900) {
+      const gap = viewport.width <= 1024 ? 20 : 24;
+      const mediaWidth = viewport.width <= 1280 ? 220 : 240;
+      const actionWidth = viewport.width <= 1024 ? 148 : 164;
+      const rankWidth = viewport.width <= 1024 ? 56 : 64;
+      const expectedMediaStart = card.box.x + (card.rank ? rankWidth + gap : 0);
+      check(approximately(card.media.x, expectedMediaStart, 2), `${cardLabel} media start`, {
+        actual: card.media.x,
+        expected: expectedMediaStart
+      });
+      check(approximately(card.media.width, mediaWidth, 2), `${cardLabel} media width`, {
+        actual: card.media.width,
+        expected: mediaWidth
+      });
+      check(approximately(card.header.x - card.media.right, gap, 4), `${cardLabel} media-info gap`, {
+        actual: card.header.x - card.media.right,
+        expected: gap
+      });
+      if (card.actions?.width > 0) {
+        check(approximately(card.actions.width, actionWidth, 2), `${cardLabel} action width`, {
+          actual: card.actions.width,
+          expected: actionWidth
+        });
+        check(approximately(card.actions.right, card.box.right, 2), `${cardLabel} action end`, {
+          actual: card.actions.right,
+          expected: card.box.right
+        });
+      }
+    } else {
+      check(approximately(card.media.x, card.box.x, 2), `${cardLabel} stacked media start`, {
+        actual: card.media.x,
+        expected: card.box.x
+      });
+      check(approximately(card.media.width, card.box.width, 2), `${cardLabel} stacked media width`, {
+        actual: card.media.width,
+        expected: card.box.width
+      });
+      if (card.actions?.width > 0) {
+        check(approximately(card.actions.x, card.box.x, 2), `${cardLabel} stacked action start`, {
+          actual: card.actions.x,
+          expected: card.box.x
+        });
+        check(approximately(card.actions.width, card.box.width, 2), `${cardLabel} stacked action width`, {
+          actual: card.actions.width,
+          expected: card.box.width
+        });
+      }
+    }
+
+    if (viewport.width <= 760) {
+      check(card.box.x >= 15 && card.box.right <= viewport.width - 15, `${cardLabel} mobile gutters`, {
+        box: card.box,
+        viewportWidth: viewport.width
+      });
+    }
+  }
+}
+
+function assertRuntimeGeometry(metrics, route, viewport) {
+  const label = `${route.name} ${viewport.name}`;
+  check(metrics.scrollWidth === metrics.clientWidth, `${label} document scroll width`, {
+    scrollWidth: metrics.scrollWidth,
+    clientWidth: metrics.clientWidth
+  });
+  check(metrics.bodyScrollWidth <= metrics.clientWidth, `${label} body scroll width`, {
+    bodyScrollWidth: metrics.bodyScrollWidth,
+    clientWidth: metrics.clientWidth
+  });
+  check(metrics.dpr === 1, `${label} DPR 1`, { actual: metrics.dpr });
+  check(metrics.scale === 1, `${label} zoom 100`, { actual: metrics.scale });
+
+  for (const [index, image] of metrics.images.entries()) {
+    const ratio = image.box.width / image.box.height;
+    check(Math.abs(ratio - 4 / 3) / (4 / 3) <= 0.005, `${label} image ${index + 1} ratio 4:3`, {
+      alt: image.alt,
+      width: image.box.width,
+      height: image.box.height,
+      ratio
+    });
+  }
+  for (const [index, cta] of metrics.ctas.entries()) {
+    check(cta.box.height >= 44, `${label} CTA ${index + 1} height`, {
+      kind: cta.kind,
+      position: cta.position,
+      height: cta.box.height
+    });
+  }
+
+  if (route.kind === "shop") {
+    check(metrics.h1.includes("milk tea"), `${label} real milk-tea title`, { actual: metrics.h1 });
+    assertShopGeometry(metrics, viewport, label);
+  } else {
+    assertCardGeometry(metrics, viewport, label);
+  }
+
+  if (route.kind === "hub") {
+    check(Boolean(metrics.comparison), `${label} comparison exists`);
+    if (metrics.comparison) {
+      const mobile = viewport.width <= 760;
+      check(
+        mobile ? metrics.comparison.headerDisplay === "none" : metrics.comparison.headerDisplay !== "none",
+        `${label} comparison switches at 760`,
+        { display: metrics.comparison.headerDisplay }
+      );
+      if (mobile && metrics.comparison.row) {
+        check(
+          metrics.comparison.row.width <= metrics.comparison.box.width + 2,
+          `${label} comparison card contained`,
+          { row: metrics.comparison.row, table: metrics.comparison.box }
+        );
+      }
+    }
+  }
+}
+
+async function checkLongTitle(page, viewport, label) {
+  const fixtures = [
+    { name: "natural", value: "PREMIUM RELAXATION SALON大阪日本橋（全角括弧）" },
+    { name: "unbroken", value: "UNBROKENLATINSHOPNAMETOKEN" }
+  ];
+  const results = await page.evaluate((titleFixtures) => {
+    const title = document.querySelector("main[data-shop-detail-root] h1");
+    const shell = document.querySelector("main[data-shop-detail-root] > div");
+    if (!title || !shell) return null;
+    const original = title.textContent;
+    const measured = titleFixtures.map((fixture) => {
+      title.textContent = fixture.value;
+      const titleBox = title.getBoundingClientRect();
+      const shellBox = shell.getBoundingClientRect();
+      return {
+        ...fixture,
+        documentScrollWidth: document.documentElement.scrollWidth,
+        documentClientWidth: document.documentElement.clientWidth,
+        titleScrollWidth: title.scrollWidth,
+        titleClientWidth: title.clientWidth,
+        titleRight: titleBox.right,
+        shellRight: shellBox.right,
+        lines: Math.round(titleBox.height / Number.parseFloat(getComputedStyle(title).lineHeight))
+      };
+    });
+    title.textContent = original;
+    return measured;
+  }, fixtures);
+  check(Boolean(results), `${label} long title fixtures exist`);
+  if (!results) return;
+  for (const result of results) {
+    const fixtureLabel = `${label} ${result.name} title`;
+    check(result.documentScrollWidth === result.documentClientWidth, `${fixtureLabel} document containment`, result);
+    check(result.titleScrollWidth <= result.titleClientWidth + 1, `${fixtureLabel} box containment`, result);
+    check(result.titleRight <= result.shellRight + 2, `${fixtureLabel} shell containment`, result);
+    check(result.lines >= 1 && result.lines <= 3, `${fixtureLabel} uses at most 3 lines`, result);
+  }
+}
+
+async function checkShopInteractions(page, viewport) {
+  const label = `shop-milk-tea ${viewport.name} interactions`;
+  const menu = page.getByRole("navigation", { name: "店舗詳細のページ内メニュー" });
+  const firstLink = menu.getByRole("link").first();
+  check((await firstLink.count()) === 1, `${label} menu anchor exists`);
+  if ((await firstLink.count()) !== 1) return;
+
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    window.scrollTo(0, 0);
+  });
+  let keyboardFocused = false;
+  let outline = null;
+  for (let index = 0; index < 100; index += 1) {
+    await page.keyboard.press("Tab");
+    const focusState = await page.evaluate(() => {
+      const active = document.activeElement;
+      const inMenu = Boolean(active?.closest('nav[aria-label="店舗詳細のページ内メニュー"]'));
+      if (!inMenu || !(active instanceof HTMLElement)) return { inMenu, outline: null };
+      const style = getComputedStyle(active);
+      return { inMenu, outline: `${style.outlineStyle} ${style.outlineWidth}` };
+    });
+    if (focusState.inMenu) {
+      keyboardFocused = true;
+      outline = focusState.outline;
+      break;
+    }
+  }
+  check(keyboardFocused, `${label} keyboard reaches menu`);
+  check(Boolean(outline && !outline.startsWith("none") && !outline.endsWith("0px")), `${label} focus visible`, {
+    outline
+  });
+
+  const href = await firstLink.getAttribute("href");
+  check(Boolean(href?.startsWith("#")), `${label} menu uses internal anchor`, { href });
+  if (href?.startsWith("#")) {
+    await firstLink.click();
+    await page.waitForFunction((hash) => window.location.hash === hash, href);
+    const anchorGeometry = await page.evaluate((id) => {
+      const target = document.getElementById(id.slice(1));
+      const header = document.querySelector(".escomi-final-site-header");
+      const nav = document.querySelector('nav[aria-label="店舗詳細のページ内メニュー"]');
+      const targetBox = target?.getBoundingClientRect();
+      const headingBox = target?.querySelector("h2")?.getBoundingClientRect();
+      return {
+        targetTop: targetBox?.top ?? null,
+        headingTop: headingBox?.top ?? targetBox?.top ?? null,
+        stickyBottom:
+          (header?.getBoundingClientRect().height ?? 0) + (nav?.getBoundingClientRect().height ?? 0)
+      };
+    }, href);
+    check(
+      anchorGeometry.targetTop !== null && anchorGeometry.targetTop >= anchorGeometry.stickyBottom - 2,
+      `${label} anchor target not hidden`,
+      anchorGeometry
+    );
+    check(
+      anchorGeometry.headingTop !== null && anchorGeometry.headingTop >= anchorGeometry.stickyBottom - 2,
+      `${label} heading not hidden`,
+      anchorGeometry
+    );
+  }
+
+  await page.route("**/__portal-qa-broken-image__", (route) =>
+    route.fulfill({ status: 404, contentType: "image/png", body: "" })
+  );
+  const mainImage = page.locator('main[data-shop-detail-root] section[aria-label="店舗画像"] img').first();
+  await mainImage.evaluate((image) => {
+    image.src = "/__portal-qa-broken-image__";
+  });
+  await page.waitForFunction(
+    () =>
+      document.querySelector('main[data-shop-detail-root] section[aria-label="店舗画像"] img')
+        ?.getAttribute("data-fallback-applied") === "true"
+  );
+  const fallback = await mainImage.evaluate((image) => ({
+    src: image.getAttribute("src"),
+    alt: image.getAttribute("alt"),
+    ratio: image.getBoundingClientRect().width / image.getBoundingClientRect().height
+  }));
+  check(fallback.src === "/images/eskomi-shop-fallback.svg", `${label} broken image fallback source`, fallback);
+  check(fallback.alt === "Eskomi 店舗画像準備中", `${label} broken image fallback alt`, fallback);
+  check(Math.abs(fallback.ratio - 4 / 3) / (4 / 3) <= 0.005, `${label} broken image fallback ratio`, fallback);
+}
+
+let server = null;
+let browser = null;
+let cleanupError = null;
+try {
+  await fs.mkdir(reportDir, { recursive: true });
+  server = await startServer();
+  browser = await chromium.launch({ headless: false });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    deviceScaleFactor: 1,
+    locale: "ja-JP",
+    timezoneId: "Asia/Tokyo",
+    reducedMotion: "reduce"
+  });
+  const page = await context.newPage();
+
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    for (const route of routes) {
+      const response = await page.goto(`${baseUrl}${route.path}`, { waitUntil: "domcontentloaded" });
+      check(response?.ok() === true, `${route.name} ${viewport.name} HTTP 200`, {
+        status: response?.status() ?? null
+      });
+      await waitForStableLayout(page);
+      const metrics = await collectMetrics(page);
+      assertRuntimeGeometry(metrics, route, viewport);
+
+      if (viewport.screenshot) {
+        await page.screenshot({
+          path: path.join(reportDir, `${route.name}-${viewport.name}.png`),
+          fullPage: true
+        });
+        screenshotCount += 1;
+      }
+
+      if (route.kind === "shop" && [500, 390, 320].includes(viewport.width)) {
+        await checkLongTitle(page, viewport, `${route.name} ${viewport.name}`);
+      }
+      if (route.kind === "shop" && viewport.width === 390 && viewport.height === 844) {
+        await checkShopInteractions(page, viewport);
+      }
+      console.log(`checked ${route.name} at ${viewport.name}`);
+    }
+  }
+} finally {
+  try {
+    await browser?.close();
+    await stopServer(server);
+    if (!process.env.PORTAL_BASE_URL && (await isPortOpen(3100))) {
+      throw new Error("dedicated portal server still owns 127.0.0.1:3100 after cleanup");
+    }
+  } catch (error) {
+    cleanupError = error;
+  }
+}
+
+if (cleanupError) failures.push({ label: "process cleanup", details: { message: cleanupError.message } });
+const summary = {
+  routes: routes.length,
+  standardWidths: standardViewports.length,
+  measuredViewports: viewports.length,
+  measuredScenarios: routes.length * viewports.length,
+  assertions: assertionCount,
+  screenshots: screenshotCount,
+  failures
+};
+await fs.writeFile(path.join(reportDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
+
+if (failures.length > 0) {
+  const lines = failures.slice(0, 80).map(
+    (failure) => `- ${failure.label}: ${JSON.stringify(failure.details)}`
+  );
+  throw new Error(
+    `portal browser layout check failed (${failures.length}/${assertionCount})\n${lines.join("\n")}`
+  );
+}
+
+console.log(
+  `portal browser layout check passed (${assertionCount} assertions, ${screenshotCount} screenshots, ${routes.length * viewports.length} scenarios)`
+);

@@ -28,6 +28,7 @@
     "test:shop-detail-view-model": "node scripts/check-shop-detail-view-model.mjs",
     "test:shop-detail-responsive": "node scripts/check-shop-detail-responsive-contract.mjs",
     "test:shop-detail-click-tracking": "node scripts/check-shop-detail-click-tracking.mjs",
+    "test:portal-browser-layout": "node scripts/check-portal-browser-layout.mjs",
     "test:json-ld-serialization": "node scripts/check-json-ld-serialization.mjs",
     "test:review-rating": "node scripts/check-review-rating.mjs",
     "test:promotion-disclosure": "node scripts/check-promotion-disclosure.mjs",
@@ -61,6 +62,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@types/node": "^20",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
