@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 15 complete（Eskomi店舗一覧・店舗詳細UX再構築の全11タスク、headless全幅QA、最終横断レビュー修正、独立再レビューまで完了。push・本番公開前で停止）
+Phase 15 complete（Eskomi店舗一覧・店舗詳細UX再構築の全11タスク、headless全幅QA、最終横断レビュー修正、main反映、本番公開確認まで完了）
 
 ## Phases
 
@@ -140,6 +140,7 @@ Phase 15 complete（Eskomi店舗一覧・店舗詳細UX再構築の全11タス�
 - [x] 8画面幅と切替境界で幾何計測・スクリーンショット・アクセシビリティを確認する
 - [x] lint、typecheck、全test、production build、独立最終レビューを完了する
 - [x] `progress.md` と `pm/PROGRESS.md` を更新し、push・本番公開前で停止する
+- [x] ユーザー承認後に`main`へpushし、Xserver・Vercel・SEO確認・本番全幅QAを完了する
 - **Status:** complete
 
 ## Key Questions

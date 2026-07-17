@@ -2,6 +2,17 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-17 Eskomi UX再構築 本番反映完了
+
+- 完成済み23コミットを`main`へpushし、Xserver run `29571208433`はFTP反映・OPcache削除・REST確認まで成功した。
+- 初回Vercel run `29571208457`は、ローカルprebuilt時の秘匿環境値が有効URLとして扱えず、WordPress取得がNext.jsの50秒cache上限へ到達して失敗した。本番deploy前で止まったため、不完全なVercel公開は発生していない。
+- テスト先行でWordPress API/公開baseを絶対HTTP(S) URLだけに限定し、不正・相対・秘匿placeholderは既定originへ戻した。native fetchへ総時間制限を追加し、URL末尾slash・userinfo・query・hashとtimeout異常値も正規化した。
+- 修正commitは`10a4d12`と`936462c`。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。
+- 再実行Vercel run `29572387927`は通常CI build、prebuilt build、本番deploy、SEO cutover checkがすべて成功し、`https://mens-esthe-kuchikomi.com`へ反映した。
+- 本番トップ、堺筋本町、大阪エリア、店舗一覧、milk tea店舗詳細はすべてHTTP 200。トップはEskomi表記、固定件数・固定日付なし、有効な`filter=price`、旧画像参照なしを確認した。
+- 本番をheadless Chromiumで4経路×14条件確認し、56 scenarios・81,761 assertions・32 screenshots・failures 0。PC、スマホ、760/761・900/901・1024/1025境界、横向きを通過した。
+- browser QAは画面非表示で実行し、通常Chromeを操作していない。WordPressを公開データ元として維持し、Supabase公開切替・公開データ書き込みは行っていない。
+
 ### 2026-07-17 Eskomi 店舗一覧・店舗詳細 UX再構築 完了
 
 #### 完了したこと

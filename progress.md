@@ -457,3 +457,14 @@
 
 - browser QAはheadless既定で、可視化は`PORTAL_QA_HEADED=1`明示時だけ。最終検証では未設定で、通常ChromeとPlaywright MCPを操作・終了していない。
 - WordPressを公開データ元として維持した。Supabase公開接続・書き込み、WordPress書き込み、push、PR、deploy、本番公開は実施していない。
+
+## 2026-07-17 Eskomi UX再構築 本番反映完了
+
+- ユーザー承認後、完成済み23コミットを`main`へpushした。Xserver run `29571208433`はFTP反映、OPcache削除、REST確認まで成功した。
+- 初回Vercel run `29571208457`はprebuilt buildで`USE_CACHE_TIMEOUT`となり、本番deploy前に停止した。原因はVercelローカルbuildの不正・秘匿placeholder URLと、native WordPress fetchに総時間制限がなかった組合せだった。
+- `10a4d12 fix: bound WordPress build fetches`で環境URL検証とnative fetch timeoutを追加し、`936462c fix: normalize WordPress runtime config`で末尾slash、userinfo、query、hash、timeout範囲を正規化した。
+- 通常build 441/441とplaceholder再現build 27/27 fallbackを成功させ、独立再レビューはCritical 0、Important 0、Minor 0、Ready: Yesだった。
+- 再push後のVercel run `29572387927`は通常CI build、prebuilt build、本番deploy、SEO cutover checkがすべて成功し、`https://mens-esthe-kuchikomi.com`へ公開した。
+- 本番5 URLはHTTP 200。トップでEskomi表記、固定件数・固定日付なし、`filter=price`、旧画像参照なしを確認した。
+- 本番headless QAは4経路×14条件=56 scenarios、81,761 assertions、32 screenshots、failures 0。標準PC・スマホ幅と760/761、900/901、1024/1025、スマホ横向きを通過した。
+- 検査は画面非表示で、通常Chromeには触れていない。WordPressを公開データ元として維持し、Supabase公開切替・公開データ書き込みは行っていない。
