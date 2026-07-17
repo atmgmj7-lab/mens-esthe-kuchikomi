@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 15 complete（Eskomi店舗一覧・店舗詳細UX再構築の全11タスク、headless全幅QA、最終横断レビュー修正、main反映、本番公開確認まで完了）
+Phase 16 in progress（ランキング付き一覧カードと店舗詳細の情報密度・CTA重複を再調整中。WordPress公開データ元と現行カラーは維持）
 
 ## Phases
 
@@ -142,6 +142,16 @@ Phase 15 complete（Eskomi店舗一覧・店舗詳細UX再構築の全11タス�
 - [x] `progress.md` と `pm/PROGRESS.md` を更新し、push・本番公開前で停止する
 - [x] ユーザー承認後に`main`へpushし、Xserver・Vercel・SEO確認・本番全幅QAを完了する
 - **Status:** complete
+
+### Phase 16: 一覧ランキング・店舗詳細の精密再調整
+- [ ] 添付スクリーンショットと本番表示を再現し、順位・CTA重複・文字密度の根本原因を特定する
+- [ ] 失敗する契約検査を追加し、順位バッジをカード内オーバーレイへ統合する
+- [ ] 店舗詳細の予約導線を役割別に一意化し、同一CTAの二重表示をなくす
+- [ ] 見出し・数値・本文・余白を情報ポータル向け密度へ再調整する
+- [ ] WordPressに存在する情報だけで詳細セクションを整理し、推測情報を追加しない
+- [ ] PC/SPと切替境界を非表示ブラウザで検証し、独立レビューを通す
+- [ ] `progress.md` と `pm/PROGRESS.md` を更新し、push・本番公開前で停止する
+- **Status:** in_progress
 
 ## Key Questions
 
