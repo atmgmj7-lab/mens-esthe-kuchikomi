@@ -179,6 +179,7 @@ Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調
 | Task 1 focused検査が旧`rankSlot`・4列仕様を固定して新設計と衝突 | 1 | 旧契約検査自体をTask 1対象へ追加し、順位オーバーレイ・共通3列契約へ更新する |
 | Task 1計画とエラー表を1patchで更新し、別ファイルの行を同一ファイルに探して失敗 | 1 | 対象ファイルごとの正確な行を`rg -n`で確認し、別hunkとして更新した |
 | Task 2 focused検査2本が旧`visualAside`・旧文字サイズ・旧CTA配置を固定して新設計と衝突 | 1 | 旧契約検査2本をTask 2対象へ追加し、新しい上部2列・画面幅別CTA一意性へ更新する |
+| push前のrange差分検査で新規Markdownの行末空白8件を検出 | 1 | 文書の行末空白と末尾の余分な空行を削除し、`origin/main..HEAD`の差分検査を再実行する |
 | Task 3 browser GREENが760pxで非表示のhero CTAを先頭待機してtimeout | 1 | 表示中のCTAを待つselectorへ限定し、同じ56 scenariosを再実行してfailure 0を確認する |
 | `docs/ai-skills.md` が存在しない | 1 | AGENTS.mdのルールと利用可能なSupabase手順を直接適用し、不在を進行ログへ記録する |
 | `../pm/DECISIONS.md` と `../docs/design/...` を誤った相対位置で読もうとして失敗 | 1 | リポジトリルート基準の `pm/...` と `docs/...` に直して再確認する |

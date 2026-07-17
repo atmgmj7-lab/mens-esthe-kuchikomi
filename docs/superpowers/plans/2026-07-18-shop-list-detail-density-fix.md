@@ -48,7 +48,7 @@ assert.match(areaShopCardCss, /\.rankOverlay\s*\{[^}]*position:\s*absolute/s);
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npm run test:area-ranking-responsive`  
+Run: `npm run test:area-ranking-responsive`
 Expected: `rankSlot`または`cardNoRank`が残っているためFAIL。
 
 - [ ] **Step 3: Implement the invariant layout**
@@ -68,7 +68,7 @@ PCの列は `240px minmax(0, 1fr) 164px`、1280px以下は `220px minmax(0, 1fr)
 
 - [ ] **Step 4: Run focused tests**
 
-Run: `npm run test:area-ranking-responsive && npm run test:area-shop-card-view-model && npm run test:area-list-route-contract`  
+Run: `npm run test:area-ranking-responsive && npm run test:area-shop-card-view-model && npm run test:area-list-route-contract`
 Expected: 3検査すべてPASS。
 
 - [ ] **Step 5: Commit**
@@ -111,7 +111,7 @@ assert.match(cssSource, /@media \(max-width:\s*760px\)[\s\S]*\.hero \.actions\s*
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `node scripts/check-shop-detail-density-contract.mjs`  
+Run: `node scripts/check-shop-detail-density-contract.mjs`
 Expected: `data-shop-profile-grid`欠落、`visualAside`残存、CTA重複によりFAIL。
 
 - [ ] **Step 3: Rebuild the top profile layout**
@@ -141,7 +141,7 @@ PCは`visual hero`、`content content`の2列、1024px以下は`hero`→`visual`
 
 - [ ] **Step 5: Run focused tests**
 
-Run: `node scripts/check-shop-detail-density-contract.mjs && npm run test:shop-detail-responsive && npm run test:final-design-preservation && npm run test:shop-detail-click-tracking`  
+Run: `node scripts/check-shop-detail-density-contract.mjs && npm run test:shop-detail-responsive && npm run test:final-design-preservation && npm run test:shop-detail-click-tracking`
 Expected: 4検査すべてPASSし、クリック分類は変更なし。
 
 - [ ] **Step 6: Commit**
