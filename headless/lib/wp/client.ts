@@ -1,4 +1,4 @@
-import { requestWpOrigin } from "@/lib/wp/origin-request";
+import { requestWpOrigin, resolveWpOriginTimeoutMs } from "@/lib/wp/origin-request";
 import { usesWpOriginIp } from "@/lib/wp/origin";
 
 const DEFAULT_WP_API_BASE = "http://85.131.213.108/wp-json";
@@ -6,8 +6,22 @@ const DEFAULT_WP_BASE = "https://mens-esthe-kuchikomi.com";
 
 export { WP_ORIGIN_IP, wpOriginBaseUrl, wpOriginHost } from "@/lib/wp/origin";
 
-export const wpApiBase = process.env.WP_API_BASE_URL || DEFAULT_WP_API_BASE;
-export const wpBase = process.env.NEXT_PUBLIC_WP_BASE_URL || DEFAULT_WP_BASE;
+function resolveAbsoluteHttpUrl(value: string | undefined, fallback: string): string {
+  const candidate = value?.trim();
+  if (!candidate || !/^https?:\/\//i.test(candidate)) {
+    return fallback;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? candidate : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export const wpApiBase = resolveAbsoluteHttpUrl(process.env.WP_API_BASE_URL, DEFAULT_WP_API_BASE);
+export const wpBase = resolveAbsoluteHttpUrl(process.env.NEXT_PUBLIC_WP_BASE_URL, DEFAULT_WP_BASE);
 
 function toOriginPath(url: string): string {
   const parsed = new URL(url);
@@ -45,8 +59,14 @@ async function wpRequest(path: string, init?: RequestInit): Promise<Response> {
     });
   }
 
+  const timeoutSignal = AbortSignal.timeout(resolveWpOriginTimeoutMs());
+  const signal = init?.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal;
+
   return fetch(url, {
     ...init,
+    signal,
     next: { ...(init?.next || {}) }
   });
 }

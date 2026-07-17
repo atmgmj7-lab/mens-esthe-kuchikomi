@@ -22,7 +22,7 @@ type OriginRequestOptions = {
 
 const DEFAULT_WP_ORIGIN_TIMEOUT_MS = 10_000;
 
-function resolveTimeoutMs(timeoutMs?: number): number {
+export function resolveWpOriginTimeoutMs(timeoutMs?: number): number {
   const candidate = timeoutMs ?? Number(process.env.WP_ORIGIN_TIMEOUT_MS);
   if (Number.isFinite(candidate) && candidate > 0) {
     return candidate;
@@ -54,7 +54,7 @@ export function requestWpOrigin(
 ): Promise<Response> {
   const method = (options?.method || "GET").toUpperCase();
   const path = pathWithSearch.startsWith("/") ? pathWithSearch : `/${pathWithSearch}`;
-  const timeoutMs = resolveTimeoutMs(options?.timeoutMs);
+  const timeoutMs = resolveWpOriginTimeoutMs(options?.timeoutMs);
 
   const reqHeaders: Record<string, string> = {
     Host: wpOriginHost

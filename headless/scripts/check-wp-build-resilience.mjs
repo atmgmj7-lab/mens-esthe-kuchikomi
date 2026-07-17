@@ -54,6 +54,7 @@ async function assertOriginRequestTimesOut() {
       Buffer,
       Headers,
       Response,
+      URL,
       clearTimeout,
       console,
       exports: module.exports,
@@ -82,6 +83,178 @@ async function assertOriginRequestTimesOut() {
 }
 
 await assertOriginRequestTimesOut();
+
+function loadWpClient({
+  fetchImpl = () => Promise.reject(new Error("unexpected native fetch")),
+  timeoutMs = "5",
+  apiBase = "https://wp.example.test/wp-json",
+  publicBase = "https://www.example.test"
+}) {
+  const source = read("lib/wp/client.ts");
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      esModuleInterop: true
+    }
+  }).outputText;
+
+  const module = { exports: {} };
+  vm.runInNewContext(
+    compiled,
+    {
+      AbortController,
+      AbortSignal,
+      Blob,
+      Headers,
+      Response,
+      URL,
+      clearTimeout,
+      console,
+      exports: module.exports,
+      fetch: fetchImpl,
+      module,
+      process: {
+        env: {
+          NEXT_PUBLIC_WP_BASE_URL: publicBase,
+          WP_API_BASE_URL: apiBase,
+          WP_ORIGIN_TIMEOUT_MS: timeoutMs
+        }
+      },
+      require(id) {
+        if (id === "@/lib/wp/origin-request") {
+          return {
+            requestWpOrigin() {
+              throw new Error("native fetch test must not use the direct IP request path");
+            },
+            resolveWpOriginTimeoutMs(value) {
+              const candidate = value ?? Number(timeoutMs);
+              return Number.isFinite(candidate) && candidate > 0 ? candidate : 10_000;
+            }
+          };
+        }
+        if (id === "@/lib/wp/origin") {
+          return {
+            WP_ORIGIN_IP: "127.0.0.1",
+            usesWpOriginIp: () => false,
+            wpOriginBaseUrl: "http://127.0.0.1",
+            wpOriginHost: "wp.example.test"
+          };
+        }
+        throw new Error(`Unexpected import in wp client test: ${id}`);
+      },
+      setTimeout
+    },
+    { filename: "wp-client.cjs" }
+  );
+
+  return module.exports;
+}
+
+function assertWpApiBaseValidation() {
+  const defaultApiBase = "http://85.131.213.108/wp-json";
+  const defaultPublicBase = "https://mens-esthe-kuchikomi.com";
+
+  for (const invalidPublicBase of ["", "[SENSITIVE]", "/", "not a URL", "javascript:alert(1)"]) {
+    const client = loadWpClient({ publicBase: invalidPublicBase });
+    assert.equal(
+      client.wpBase,
+      defaultPublicBase,
+      `invalid public WordPress base must use the site fallback: ${invalidPublicBase}`
+    );
+  }
+
+  const validPublicBase = "https://www.example.test";
+  const publicClient = loadWpClient({ publicBase: validPublicBase });
+  assert.equal(
+    publicClient.wpBase,
+    validPublicBase,
+    "valid absolute public WordPress base must be preserved"
+  );
+
+  for (const invalidApiBase of ["", "[SENSITIVE]", "/wp-json", "not a URL", "ftp://wp.example.test"]) {
+    const client = loadWpClient({ apiBase: invalidApiBase });
+    assert.equal(
+      client.wpApiBase,
+      defaultApiBase,
+      `invalid WordPress API base must use the direct origin fallback: ${invalidApiBase}`
+    );
+  }
+
+  const validApiBase = "https://cms.example.test/wp-json";
+  const client = loadWpClient({ apiBase: validApiBase });
+  assert.equal(client.wpApiBase, validApiBase, "valid absolute WordPress API base must be preserved");
+}
+
+function createHangingFetch(onRequest) {
+  return (_url, init) => {
+    onRequest?.(init);
+    return new Promise((_resolve, reject) => {
+      const signal = init?.signal;
+      if (signal?.aborted) {
+        reject(signal.reason);
+        return;
+      }
+      signal?.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+  };
+}
+
+async function assertNativeFetchTimesOutIntoFallback() {
+  let requestInit;
+  const client = loadWpClient({
+    fetchImpl: createHangingFetch((init) => {
+      requestInit = init;
+    })
+  });
+
+  const result = await Promise.race([
+    client
+      .wpFetch("/wp/v2/pages?slug=about", {
+        next: { revalidate: 300, tags: ["wp", "pages"] }
+      })
+      .then(() => ({ status: "resolved" }))
+      .catch((error) => ({ status: "fallback", error })),
+    new Promise((resolve) => setTimeout(() => resolve({ status: "pending" }), 100))
+  ]);
+
+  assert.equal(
+    result.status,
+    "fallback",
+    "native WordPress fetch must reject in time for the build fallback"
+  );
+  assert.ok(requestInit?.signal, "native WordPress fetch must receive an abort signal");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(requestInit.next)),
+    { revalidate: 300, tags: ["wp", "pages"] },
+    "native WordPress fetch must preserve Next.js cache options"
+  );
+}
+
+async function assertNativeFetchPreservesCallerAbort() {
+  const caller = new AbortController();
+  const client = loadWpClient({
+    fetchImpl: createHangingFetch(),
+    timeoutMs: "1000"
+  });
+  const request = client
+    .wpFetch("/wp/v2/pages?slug=about", { signal: caller.signal })
+    .then(() => ({ status: "resolved" }))
+    .catch((error) => ({ status: "rejected", error }));
+
+  caller.abort(new Error("caller cancelled"));
+  const result = await Promise.race([
+    request,
+    new Promise((resolve) => setTimeout(() => resolve({ status: "pending" }), 100))
+  ]);
+
+  assert.equal(result.status, "rejected", "caller abort must still cancel the native fetch");
+  assert.match(String(result.error?.message || result.error), /caller cancelled/);
+}
+
+assertWpApiBaseValidation();
+await assertNativeFetchTimesOutIntoFallback();
+await assertNativeFetchPreservesCallerAbort();
 
 const originRequest = read("lib/wp/origin-request.ts");
 assert.ok(originRequest.includes("timeoutMs"), "origin request must expose timeoutMs option");
