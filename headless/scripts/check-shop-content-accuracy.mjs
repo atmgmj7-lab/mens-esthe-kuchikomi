@@ -129,6 +129,27 @@ const seo = loadTsModule("lib/seo.ts", (id) => {
   throw new Error(`Unexpected SEO require: ${id}`);
 });
 
+const areaCardViewModel = loadTsModule("lib/area-shop-card-view-model.ts", (id) => {
+  if (id === "@/lib/design-constants") {
+    return {
+      DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+      SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中"
+    };
+  }
+  if (id === "@/lib/price-normalization") {
+    return {
+      resolveShopPrimaryPrice: () => ({ status: "unknown", amount: null }),
+      resolveShopCoursePrices: () => [],
+      formatPriceForDisplay: () => null
+    };
+  }
+  if (id === "@/lib/promotion-disclosure") {
+    return { outboundRelForPromotion: () => "noreferrer" };
+  }
+  if (id === "@/lib/shop-fact-normalization") return factNormalization;
+  throw new Error(`Unexpected area card view model require: ${id}`);
+});
+
 const baseShop = {
   id: 501,
   slug: "accuracy-fixture",
@@ -396,6 +417,112 @@ contract("generated-editor-comment", () => {
     }),
     "WordPressにある 編集コメント",
     "編集コメントはshop_ai_summaryだけを表示してください"
+  );
+});
+
+contract("area-card-editorial-provenance", () => {
+  const editorialOnly = areaCardViewModel.buildAreaShopCardViewModel(
+    {
+      ...baseShop,
+      acf: { shop_ai_summary: "AI編集コメントだけの店舗紹介" }
+    },
+    targetArea,
+    { summarySource: "wordpress-only" }
+  );
+  assert.equal(
+    editorialOnly.summary,
+    null,
+    "shop_ai_summaryを出自ラベルのない通常紹介として表示しないでください"
+  );
+
+  const wordpressIntroduction = areaCardViewModel.buildAreaShopCardViewModel(
+    {
+      ...baseShop,
+      contentHtml: "<p>WordPress本文の店舗紹介</p>",
+      acf: { shop_ai_summary: "本文より後のAI編集コメント" }
+    },
+    targetArea,
+    { summarySource: "wordpress-only" }
+  );
+  assert.equal(
+    wordpressIntroduction.summary,
+    "WordPress本文の店舗紹介",
+    "通常紹介はWordPress本文を引き続き表示してください"
+  );
+});
+
+contract("home-verified-facts-only", () => {
+  const home = read("components/HomePageContent.tsx");
+  for (const unverifiedFact of [
+    "214店舗",
+    "1,048件",
+    "2026.07.11",
+    "96店舗",
+    "173店舗",
+    "88店舗",
+    "167店舗",
+    "241店舗",
+    "07.11"
+  ]) {
+    assert.equal(
+      home.includes(unverifiedFact),
+      false,
+      `トップへ未確認の固定情報「${unverifiedFact}」を表示しないでください`
+    );
+  }
+  assert.doesNotMatch(
+    home,
+    /const UPDATE_BADGES|UPDATE_BADGES\[/,
+    "先頭5件へ循環する更新種別を付けないでください"
+  );
+  assert.doesNotMatch(
+    home,
+    /count:\s*["'][\d,]+店舗["']|condition\.count/,
+    "条件別の算出不能な固定件数を持たせないでください"
+  );
+  assert.match(
+    home,
+    /<strong>\{totalShopCount\}<\/strong>/,
+    "WordPress取得結果から算出できる掲載店舗数は維持してください"
+  );
+});
+
+contract("home-price-filter-link", () => {
+  const home = read("components/HomePageContent.tsx");
+  const priceCard = home.match(
+    /label:\s*["'](?:料金確認済み|料金掲載あり)["'][\s\S]*?href:\s*["']([^"']+)["']/
+  );
+  assert.ok(priceCard, "トップの料金条件リンクを維持してください");
+
+  const priceUrl = new URL(priceCard[1], "https://mens-esthe-kuchikomi.com");
+  const rawFilters = priceUrl.searchParams.get("filters") ?? priceUrl.searchParams.get("filter") ?? "";
+  const linkedFilters = rawFilters.split(",").filter(Boolean);
+  assert.deepEqual(
+    linkedFilters,
+    ["price"],
+    "トップの料金条件リンクは有効なpriceフィルターを指定してください"
+  );
+  assert.ok(
+    areaListControls.SHOP_LIST_FILTER_OPTIONS.some(({ id }) => id === linkedFilters[0]),
+    "トップの料金条件IDは店舗一覧の有効IDに含めてください"
+  );
+  assert.equal(
+    areaListControls.matchesShopListFilters(
+      { ...baseShop, acf: { basic_price: "12000" } },
+      linkedFilters,
+      targetArea
+    ),
+    true,
+    "トップの料金条件から料金掲載店舗を実際に絞り込めるようにしてください"
+  );
+  assert.equal(
+    areaListControls.matchesShopListFilters(
+      { ...baseShop, acf: {} },
+      linkedFilters,
+      targetArea
+    ),
+    false,
+    "トップの料金条件から料金未掲載店舗を除外してください"
   );
 });
 

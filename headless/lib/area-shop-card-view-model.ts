@@ -138,8 +138,7 @@ function summaryText(shop: ShopView, source: "wordpress-only"): string | null {
     shop.contentHtml,
     shop.excerpt,
     shop.acf.shop_catch,
-    shop.acf.recommend_text,
-    shop.acf.shop_ai_summary
+    shop.acf.recommend_text
   ];
   for (const candidate of candidates) {
     const value = normalizeShopDisplayText(candidate);

@@ -437,6 +437,7 @@ const homePageSource = readHeadless("components/HomePageContent.tsx");
 const shopCardSource = readHeadless("components/ShopCard.tsx");
 const areaShopCardSource = readHeadless("components/common/AreaShopCard.tsx");
 const areaShopCardImageSource = readHeadless("components/common/AreaShopCardImage.tsx");
+const sharedShopImageSource = readHeadless("components/common/ShopImageWithFallback.tsx");
 const areaShopCardViewModelSource = readHeadless("lib/area-shop-card-view-model.ts");
 const shopDetailGallerySource = readHeadless("components/shop-detail/ShopDetailGallery.tsx");
 const designConstantsSource = readHeadless("lib/design-constants.ts");
@@ -481,22 +482,24 @@ assert.ok(!seoSource.includes(oldWordPressLogoPath), "Organization schemaに旧W
 const fallbackImageContracts = [
   {
     label: "HomePageContent",
-    source: homePageSource,
+    source: `${homePageSource}\n${sharedShopImageSource}`,
     required: [
       "const hasImage = Boolean(shop.imageUrl);",
-      "src={hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE}",
-      "alt={hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT}",
+      "<ShopImageWithFallback",
+      "src={shop.imageUrl}",
+      "alt={shop.title}",
       "height={hasImage ? 210 : 270}",
-      "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}"
+      "alt={fallbackApplied ? SHOP_FALLBACK_IMAGE_ALT : alt}",
+      "style={fallbackApplied ? { ...style, ...SHOP_FALLBACK_IMAGE_STYLE } : style}"
     ],
-    altMarker: "alt={hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT}",
-    styleMarker: "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}",
+    altMarker: "alt={fallbackApplied ? SHOP_FALLBACK_IMAGE_ALT : alt}",
+    styleMarker: "style={fallbackApplied ? { ...style, ...SHOP_FALLBACK_IMAGE_STYLE } : style}",
     ratioMarker: "height={hasImage ? 210 : 270}",
     wrongRatioMarker: "height={hasImage ? 210 : 210}"
   },
   {
     label: "AreaShopCard",
-    source: `${areaShopCardViewModelSource}\n${areaShopCardSource}\n${areaShopCardImageSource}`,
+    source: `${areaShopCardViewModelSource}\n${areaShopCardSource}\n${areaShopCardImageSource}\n${sharedShopImageSource}`,
     required: [
       "const imageSrc = assetUrl(shop.imageUrl);",
       "? { src: imageSrc, alt: title, isFallback: false }",
@@ -504,10 +507,12 @@ const fallbackImageContracts = [
       "src={model.image.src}",
       "alt={model.image.alt}",
       "height={360}",
-      "style={fallbackApplied ? SHOP_FALLBACK_IMAGE_STYLE : undefined}"
+      "fallbackClassName={styles.imageFallback}",
+      "alt={fallbackApplied ? SHOP_FALLBACK_IMAGE_ALT : alt}",
+      "style={fallbackApplied ? { ...style, ...SHOP_FALLBACK_IMAGE_STYLE } : style}"
     ],
-    altMarker: ": { src: DEFAULT_SHOP_IMAGE, alt: SHOP_FALLBACK_IMAGE_ALT, isFallback: true }",
-    styleMarker: "style={fallbackApplied ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
+    altMarker: "alt={fallbackApplied ? SHOP_FALLBACK_IMAGE_ALT : alt}",
+    styleMarker: "style={fallbackApplied ? { ...style, ...SHOP_FALLBACK_IMAGE_STYLE } : style}",
     ratioMarker: "height={360}",
     wrongRatioMarker: "height={320}"
   },
@@ -533,15 +538,18 @@ const fallbackImageContracts = [
   },
   {
     label: "ShopImageThumb",
-    source: shopThumbSource,
+    source: `${shopThumbSource}\n${sharedShopImageSource}`,
     required: [
       "const hasImage = Boolean(src);",
-      "alt={hasImage ? alt : SHOP_FALLBACK_IMAGE_ALT}",
+      "<ShopImageWithFallback",
+      "src={src}",
+      "alt={alt}",
       "const imageHeight = hasImage ? height : Math.round(width * 0.75);",
-      "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}"
+      "alt={fallbackApplied ? SHOP_FALLBACK_IMAGE_ALT : alt}",
+      "style={fallbackApplied ? { ...style, ...SHOP_FALLBACK_IMAGE_STYLE } : style}"
     ],
-    altMarker: "alt={hasImage ? alt : SHOP_FALLBACK_IMAGE_ALT}",
-    styleMarker: "style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}",
+    altMarker: "alt={fallbackApplied ? SHOP_FALLBACK_IMAGE_ALT : alt}",
+    styleMarker: "style={fallbackApplied ? { ...style, ...SHOP_FALLBACK_IMAGE_STYLE } : style}",
     ratioMarker: "const imageHeight = hasImage ? height : Math.round(width * 0.75);",
     wrongRatioMarker: "const imageHeight = hasImage ? height : Math.round(width * 0.66);"
   }

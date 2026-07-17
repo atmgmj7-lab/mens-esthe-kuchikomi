@@ -291,17 +291,20 @@ const reactRuntime = {
     ];
   }
 };
-const shopDetailGalleryModule = compileModule("components/shop-detail/ShopDetailGallery.tsx", {
+const sharedImageSource = read("components/common/ShopImageWithFallback.tsx");
+assert.ok(
+  sharedImageSource,
+  "top, ranking thumbs, and area cards need one shared client image fallback"
+);
+const areaCardSharedImageModule = compileModule("components/common/ShopImageWithFallback.tsx", {
   react: reactRuntime,
   "react/jsx-runtime": jsxRuntime,
-  "@/lib/design-constants": fallbackConstants,
-  "./ShopDetail.module.css": {}
+  "@/lib/design-constants": fallbackConstants
 });
 const areaShopCardImageModule = compileModule("components/common/AreaShopCardImage.tsx", {
   react: reactRuntime,
   "react/jsx-runtime": jsxRuntime,
-  "@/components/shop-detail/ShopDetailGallery": shopDetailGalleryModule,
-  "@/lib/design-constants": fallbackConstants,
+  "@/components/common/ShopImageWithFallback": areaCardSharedImageModule,
   "./AreaShopCard.module.css": {
     image: "areaImage",
     imageFallback: "areaImageFallback"
@@ -315,7 +318,9 @@ const imageProps = {
   alt: "実在形式の店舗画像",
   isFallback: false
 };
-const initialImageElement = AreaShopCardImage(imageProps);
+const areaCardImageElement = AreaShopCardImage(imageProps);
+assert.equal(areaCardImageElement.type, areaCardSharedImageModule.ShopImageWithFallback);
+const initialImageElement = areaCardImageElement.type(areaCardImageElement.props);
 assert.equal(initialImageElement.type, "img");
 assert.equal(initialImageElement.props.src, imageProps.src);
 assert.equal(initialImageElement.props.alt, imageProps.alt);
@@ -355,11 +360,103 @@ assert.equal(fallbackState, true);
 initialImageElement.props.onError({ currentTarget: brokenImage });
 assert.equal(srcAssignmentCount, 1, "a fallback image error must not restart the replacement loop");
 
-const fallbackImageElement = AreaShopCardImage(imageProps);
+const fallbackImageElement = areaCardImageElement.type(areaCardImageElement.props);
 assert.equal(fallbackImageElement.props.src, fallbackConstants.DEFAULT_SHOP_IMAGE);
 assert.equal(fallbackImageElement.props.alt, fallbackConstants.SHOP_FALLBACK_IMAGE_ALT);
 assert.ok(fallbackImageElement.props.className.includes("areaImageFallback"));
 assert.equal(fallbackImageElement.props.style.objectFit, "contain");
+
+let sharedFallbackStateInitialized = false;
+let sharedFallbackState = false;
+const sharedReactRuntime = {
+  useState: (initialValue) => {
+    if (!sharedFallbackStateInitialized) {
+      sharedFallbackState = initialValue;
+      sharedFallbackStateInitialized = true;
+    }
+    return [
+      sharedFallbackState,
+      (nextValue) => {
+        sharedFallbackState =
+          typeof nextValue === "function" ? nextValue(sharedFallbackState) : nextValue;
+      }
+    ];
+  }
+};
+const sharedImageModule = compileModule("components/common/ShopImageWithFallback.tsx", {
+  react: sharedReactRuntime,
+  "react/jsx-runtime": jsxRuntime,
+  "@/lib/design-constants": fallbackConstants
+});
+const { ShopImageWithFallback } = sharedImageModule;
+assert.equal(typeof ShopImageWithFallback, "function");
+
+const sharedImageProps = {
+  src: "https://images.example.test/shared-404.jpg",
+  alt: "共有画像fallback検査",
+  className: "sharedImage",
+  fallbackClassName: "sharedImageFallback",
+  width: 400,
+  height: 300
+};
+const sharedImageElement = ShopImageWithFallback(sharedImageProps);
+assert.equal(sharedImageElement.type, "img");
+assert.equal(sharedImageElement.props.src, sharedImageProps.src);
+assert.equal(sharedImageElement.props.alt, sharedImageProps.alt);
+assert.equal(typeof sharedImageElement.props.onError, "function");
+
+let sharedAssignedSrc = sharedImageProps.src;
+let sharedSrcAssignmentCount = 0;
+const sharedClasses = new Set(["sharedImage"]);
+const sharedBrokenImage = {
+  dataset: {},
+  onerror: () => {},
+  alt: sharedImageProps.alt,
+  style: {},
+  classList: { add: (className) => sharedClasses.add(className) },
+  get src() {
+    return sharedAssignedSrc;
+  },
+  set src(value) {
+    sharedAssignedSrc = value;
+    sharedSrcAssignmentCount += 1;
+  }
+};
+
+sharedImageElement.props.onError({ currentTarget: sharedBrokenImage });
+assert.equal(sharedAssignedSrc, fallbackConstants.DEFAULT_SHOP_IMAGE);
+assert.equal(sharedBrokenImage.alt, fallbackConstants.SHOP_FALLBACK_IMAGE_ALT);
+assert.equal(sharedBrokenImage.dataset.fallbackApplied, "true");
+assert.equal(sharedBrokenImage.onerror, null);
+assert.equal(sharedBrokenImage.style.aspectRatio, "4 / 3");
+assert.equal(sharedBrokenImage.style.objectFit, "contain");
+assert.ok(sharedClasses.has("sharedImageFallback"));
+assert.equal(sharedFallbackState, true);
+
+sharedImageElement.props.onError({ currentTarget: sharedBrokenImage });
+assert.equal(
+  sharedSrcAssignmentCount,
+  1,
+  "shared fallback must replace a broken URL only once"
+);
+
+const sharedFallbackElement = ShopImageWithFallback(sharedImageProps);
+assert.equal(sharedFallbackElement.props.src, fallbackConstants.DEFAULT_SHOP_IMAGE);
+assert.equal(sharedFallbackElement.props.alt, fallbackConstants.SHOP_FALLBACK_IMAGE_ALT);
+assert.ok(sharedFallbackElement.props.className.includes("sharedImageFallback"));
+assert.equal(sharedFallbackElement.props.style.aspectRatio, "4 / 3");
+assert.equal(sharedFallbackElement.props.style.objectFit, "contain");
+
+for (const [label, source] of [
+  ["area card", read("components/common/AreaShopCardImage.tsx")],
+  ["ranking thumbnail", read("components/area/hub/ShopImageThumb.tsx")],
+  ["home updated shop", read("components/HomePageContent.tsx")]
+]) {
+  assert.ok(
+    source.includes("ShopImageWithFallback"),
+    `${label} must use the shared client image fallback`
+  );
+}
 
 const viewModelSource = read("lib/area-shop-card-view-model.ts");
 const cardSource = read("components/common/AreaShopCard.tsx");

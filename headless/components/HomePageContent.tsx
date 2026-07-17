@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { AreaFeatureSection } from "@/components/AreaFeatureSection";
 import { KansaiAreaGrid } from "@/components/KansaiAreaGrid";
-import {
-  DEFAULT_SHOP_IMAGE,
-  SHOP_FALLBACK_IMAGE_ALT,
-  SHOP_FALLBACK_IMAGE_STYLE,
-  type AreaFeatureItem
-} from "@/lib/design-constants";
+import { ShopImageWithFallback } from "@/components/common/ShopImageWithFallback";
+import type { AreaFeatureItem } from "@/lib/design-constants";
 import type { AreaView, BlogPostView, ShopView } from "@/lib/wp/types";
 
 type HomePageDataState = {
@@ -18,43 +14,37 @@ type HomePageDataState = {
 
 const CONDITION_CARDS = [
   {
-    label: "料金確認済み",
-    count: "214店舗",
+    label: "料金掲載あり",
     tone: "price",
-    description: "料金目安を確認済み",
-    href: "/area/nihonbashi/?filter=price-confirmed"
+    description: "料金情報がある店舗",
+    href: "/area/nihonbashi/?filter=price"
   },
   {
     label: "深夜営業",
-    count: "96店舗",
     tone: "night",
     description: "夜の利用候補",
     href: "/area/nihonbashi/?filter=late-night"
   },
   {
-    label: "駅近（徒歩5分）",
-    count: "173店舗",
+    label: "駅名・徒歩案内あり",
     tone: "station",
-    description: "移動しやすい店舗",
+    description: "駅名と徒歩案内を確認",
     href: "/area/nihonbashi/?filter=station"
   },
   {
     label: "初心者向け",
-    count: "88店舗",
     tone: "beginner",
     description: "初回でも選びやすい",
     href: "/area/nihonbashi/?filter=beginner"
   },
   {
     label: "口コミあり",
-    count: "167店舗",
     tone: "reviews",
     description: "利用者投稿を確認",
     href: "/area/nihonbashi/?filter=reviews"
   },
   {
     label: "公式サイトあり",
-    count: "241店舗",
     tone: "official",
     description: "公式情報へ移動可能",
     href: "/area/nihonbashi/?filter=official"
@@ -67,8 +57,6 @@ const INFORMATION_LABELS = [
   { label: "店舗提供情報", text: "店舗から提供された情報。提供元を明示します。", tone: "official" },
   { label: "PR", text: "有料掲載。自然な検索結果・ランキングとは分離して表示。", tone: "pr" }
 ] as const;
-
-const UPDATE_BADGES = ["新規掲載", "料金更新", "営業時間更新", "公式情報確認", "店舗情報更新"] as const;
 
 const HERO_BACKGROUND_SLIDES = [
   {
@@ -119,7 +107,7 @@ export function HomePageContent({
   dataState?: HomePageDataState;
 }) {
   const totalShopCount = dataState.shopCountFailed ? null : shopCount || shops.length;
-  const updatedShops = shops.slice(0, 5);
+  const listedShops = shops.slice(0, 5);
 
   return (
     <main id="main_content" className="l-mainContent escomi-home-final-v2">
@@ -186,20 +174,6 @@ export function HomePageContent({
                   <strong>{totalShopCount}</strong>
                   <span>店舗</span>
                 </div>
-                <dl>
-                  <div>
-                    <dt>料金確認済み</dt>
-                    <dd>214店舗</dd>
-                  </div>
-                  <div>
-                    <dt>承認済み口コミ</dt>
-                    <dd>1,048件</dd>
-                  </div>
-                  <div>
-                    <dt>最終更新</dt>
-                    <dd>2026.07.11</dd>
-                  </div>
-                </dl>
                 <p>口コミは承認済みのユーザー投稿のみを集計。編集部コメント・店舗提供情報・PRは口コミに含めません。</p>
               </>
             )}
@@ -224,7 +198,7 @@ export function HomePageContent({
         <div className="escomi-home-container-v2">
           <div className="escomi-home-section-head-v2">
             <h2 id="home-condition-title">条件から探す</h2>
-            <p>料金確認済み・深夜営業・駅近など、希望に近い条件から店舗一覧へ進めます。</p>
+            <p>料金掲載あり・深夜営業・駅名と徒歩案内ありなど、希望に近い条件から店舗一覧へ進めます。</p>
           </div>
           <div className="escomi-condition-grid-v2">
             {CONDITION_CARDS.map((condition) => (
@@ -237,7 +211,6 @@ export function HomePageContent({
                 <span className="escomi-condition-card-v2__body">
                   <strong>{condition.label}</strong>
                   <small>{condition.description}</small>
-                  <em>{condition.count}</em>
                 </span>
               </Link>
             ))}
@@ -249,36 +222,34 @@ export function HomePageContent({
         <div className="escomi-home-container-v2">
           <div className="escomi-home-section-head-v2 escomi-home-section-head-v2--split">
             <div>
-              <h2 id="home-updated-title">情報が更新された店舗</h2>
-              <p>新着だけでなく、料金・営業時間・公式情報の確認日を重視して表示します。</p>
+              <h2 id="home-updated-title">掲載店舗</h2>
+              <p>WordPressで公開中の店舗情報から表示しています。</p>
             </div>
-            <Link href="/shops/">更新履歴をもっと見る →</Link>
+            <Link href="/shops/">店舗一覧を見る →</Link>
           </div>
           <div className="escomi-updated-grid-v2">
-            {dataState.shopsFailed || updatedShops.length === 0 ? (
+            {dataState.shopsFailed || listedShops.length === 0 ? (
               <div className="escomi-home-empty-state-v2">
-                <strong>{dataState.shopsFailed ? "更新情報を読み込めませんでした" : "直近の更新情報はありません"}</strong>
-                <p>{dataState.shopsFailed ? "時間をおいて再読み込みしてください。" : "新しい更新が入るまで、エリアから店舗を探せます。"}</p>
+                <strong>{dataState.shopsFailed ? "店舗情報を読み込めませんでした" : "表示できる店舗情報はありません"}</strong>
+                <p>{dataState.shopsFailed ? "時間をおいて再読み込みしてください。" : "エリア一覧から別の地域を探せます。"}</p>
                 <Link href="/area/">エリアから店舗を探す →</Link>
               </div>
             ) : (
-              updatedShops.map((shop, index) => {
+              listedShops.map((shop) => {
                 const hasImage = Boolean(shop.imageUrl);
                 return (
                   <Link className="escomi-updated-card-v2" href={`/shops/${shop.slug}/`} key={shop.id}>
-                    <img
+                    <ShopImageWithFallback
                       className="escomi-updated-card-v2__image"
-                      src={hasImage ? shop.imageUrl : DEFAULT_SHOP_IMAGE}
-                      alt={hasImage ? shop.title : SHOP_FALLBACK_IMAGE_ALT}
+                      src={shop.imageUrl}
+                      alt={shop.title}
                       width={360}
                       height={hasImage ? 210 : 270}
                       loading="eager"
                       decoding="async"
-                      style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}
                     />
-                    <span>{UPDATE_BADGES[index % UPDATE_BADGES.length]}</span>
+                    <span>{shopAreaName(shop, areas)}</span>
                     <strong>{shop.title}</strong>
-                    <em>{shopAreaName(shop, areas)} ・ 07.11</em>
                   </Link>
                 );
               })

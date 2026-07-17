@@ -1,8 +1,4 @@
-import {
-  DEFAULT_SHOP_IMAGE,
-  SHOP_FALLBACK_IMAGE_ALT,
-  SHOP_FALLBACK_IMAGE_STYLE
-} from "@/lib/design-constants";
+import { ShopImageWithFallback } from "@/components/common/ShopImageWithFallback";
 
 type ThumbSize = "card" | "compact" | "table";
 
@@ -26,7 +22,6 @@ export function ShopImageThumb({
   priority = false
 }: Props) {
   const hasImage = Boolean(src);
-  const imageSrc = src || DEFAULT_SHOP_IMAGE;
   const imageHeight = hasImage ? height : Math.round(width * 0.75);
   const sizeClass =
     size === "compact"
@@ -39,15 +34,14 @@ export function ShopImageThumb({
     <div
       className={`shop-image-thumb ${sizeClass} ${hasImage ? "" : "shop-image-thumb--placeholder"} ${className}`.trim()}
     >
-      <img
-        src={imageSrc}
-        alt={hasImage ? alt : SHOP_FALLBACK_IMAGE_ALT}
+      <ShopImageWithFallback
+        src={src}
+        alt={alt}
         width={width}
         height={imageHeight}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         className="shop-image-thumb__img"
-        style={hasImage ? undefined : SHOP_FALLBACK_IMAGE_STYLE}
       />
       {!hasImage ? <span className="shop-image-thumb__badge">Eskomi</span> : null}
     </div>
