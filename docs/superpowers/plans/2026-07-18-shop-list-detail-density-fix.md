@@ -28,6 +28,7 @@
 - Modify: `headless/components/common/AreaShopCard.module.css`
 - Modify only if centering needs correction: `headless/components/common/ShopRankCell.module.css`
 - Modify: `headless/scripts/check-area-ranking-responsive-contract.mjs`
+- Modify: `headless/scripts/check-area-shop-card-view-model.mjs`
 
 **Interfaces:**
 - Consumes: `AreaShopCard({ shop, targetArea, rank, showRank })` と `ShopRankCell({ rank })`
@@ -73,7 +74,7 @@ Expected: 3検査すべてPASS。
 - [ ] **Step 5: Commit**
 
 ```bash
-git add headless/components/common/AreaShopCard.tsx headless/components/common/AreaShopCard.module.css headless/components/common/ShopRankCell.module.css headless/scripts/check-area-ranking-responsive-contract.mjs
+git add headless/components/common/AreaShopCard.tsx headless/components/common/AreaShopCard.module.css headless/components/common/ShopRankCell.module.css headless/scripts/check-area-ranking-responsive-contract.mjs headless/scripts/check-area-shop-card-view-model.mjs
 git commit -m "fix: stabilize ranked shop cards"
 ```
 
@@ -84,6 +85,8 @@ git commit -m "fix: stabilize ranked shop cards"
 - Modify: `headless/components/shop-detail/ShopDetailHero.tsx`
 - Modify: `headless/components/shop-detail/ShopDetail.module.css`
 - Create: `headless/scripts/check-shop-detail-density-contract.mjs`
+- Modify: `headless/scripts/check-shop-detail-responsive-contract.mjs`
+- Modify: `headless/scripts/check-final-design-preservation.mjs`
 - Modify: `headless/package.json`
 
 **Interfaces:**
@@ -144,7 +147,7 @@ Expected: 4検査すべてPASSし、クリック分類は変更なし。
 - [ ] **Step 6: Commit**
 
 ```bash
-git add headless/components/ShopDetail.tsx headless/components/shop-detail/ShopDetailHero.tsx headless/components/shop-detail/ShopDetail.module.css headless/scripts/check-shop-detail-density-contract.mjs headless/package.json
+git add headless/components/ShopDetail.tsx headless/components/shop-detail/ShopDetailHero.tsx headless/components/shop-detail/ShopDetail.module.css headless/scripts/check-shop-detail-density-contract.mjs headless/scripts/check-shop-detail-responsive-contract.mjs headless/scripts/check-final-design-preservation.mjs headless/package.json
 git commit -m "fix: densify shop detail profile"
 ```
 
@@ -217,4 +220,3 @@ git commit -m "docs: record shop layout refinement"
 - 4経路×既存14条件のheadless QAが成功。
 - WordPress-only、SEO、クリック計測、推測情報なしを維持。
 - push・deploy・本番変更前で停止。
-
