@@ -2,6 +2,14 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-18 Phase 16 一覧・店舗詳細の精密再調整 完了
+
+- 順位badgeを画像内overlayへ移して順位有無のcardを共通3列にし、店舗詳細上部をPCの画像/hero 2列へ整理した。予約・公式情報groupは各画面幅で表示中1つだけにした。
+- 旧browser検査をTask 1・2後へ当て、4,971 failuresのREDを確認した。原因は旧`visualAside`、article直下media、独立rank列を検査側が固定していたことだった。
+- 新browser検査はmediaWrap内の順位包含、順位あり/なしmedia・title x差2px以内、可視予約group 1、H1 PC 34px/SP 26px以下、facts 18px以下、横はみ出し0、CTA 44px以上を数値確認する。
+- fresh検証は通常test 35/35、lint、typecheck、441/441 build、headless 56/56 scenarios・89,836 assertions・32 screenshots・failures 0、High/Critical 0、差分検査0。
+- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。WordPress公開データ元を維持し、WordPress/Supabase書込、push、PR、deploy、本番公開は行わず、ローカルcommit後に停止する。
+
 ### 2026-07-17 Eskomi UX再構築 本番反映完了
 
 - 完成済み23コミットを`main`へpushし、Xserver run `29571208433`はFTP反映・OPcache削除・REST確認まで成功した。

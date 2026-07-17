@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 16 in progress（ランキング付き一覧カードと店舗詳細の情報密度・CTA重複を再調整中。WordPress公開データ元と現行カラーは維持）
+Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調整し、headless全幅QAと独立レビューを完了。push・deploy前で停止）
 
 ## Phases
 
@@ -144,14 +144,14 @@ Phase 16 in progress（ランキング付き一覧カードと店舗詳細の情
 - **Status:** complete
 
 ### Phase 16: 一覧ランキング・店舗詳細の精密再調整
-- [ ] 添付スクリーンショットと本番表示を再現し、順位・CTA重複・文字密度の根本原因を特定する
-- [ ] 失敗する契約検査を追加し、順位バッジをカード内オーバーレイへ統合する
-- [ ] 店舗詳細の予約導線を役割別に一意化し、同一CTAの二重表示をなくす
-- [ ] 見出し・数値・本文・余白を情報ポータル向け密度へ再調整する
-- [ ] WordPressに存在する情報だけで詳細セクションを整理し、推測情報を追加しない
-- [ ] PC/SPと切替境界を非表示ブラウザで検証し、独立レビューを通す
-- [ ] `progress.md` と `pm/PROGRESS.md` を更新し、push・本番公開前で停止する
-- **Status:** in_progress
+- [x] 添付スクリーンショットと本番表示を再現し、順位・CTA重複・文字密度の根本原因を特定する
+- [x] 失敗する契約検査を追加し、順位バッジをカード内オーバーレイへ統合する
+- [x] 店舗詳細の予約導線を役割別に一意化し、同一CTAの二重表示をなくす
+- [x] 見出し・数値・本文・余白を情報ポータル向け密度へ再調整する
+- [x] WordPressに存在する情報だけで詳細セクションを整理し、推測情報を追加しない
+- [x] PC/SPと切替境界を非表示ブラウザで検証し、独立レビューを通す
+- [x] `progress.md` と `pm/PROGRESS.md` を更新し、push・本番公開前で停止する
+- **Status:** complete
 
 ## Key Questions
 
@@ -179,6 +179,7 @@ Phase 16 in progress（ランキング付き一覧カードと店舗詳細の情
 | Task 1 focused検査が旧`rankSlot`・4列仕様を固定して新設計と衝突 | 1 | 旧契約検査自体をTask 1対象へ追加し、順位オーバーレイ・共通3列契約へ更新する |
 | Task 1計画とエラー表を1patchで更新し、別ファイルの行を同一ファイルに探して失敗 | 1 | 対象ファイルごとの正確な行を`rg -n`で確認し、別hunkとして更新した |
 | Task 2 focused検査2本が旧`visualAside`・旧文字サイズ・旧CTA配置を固定して新設計と衝突 | 1 | 旧契約検査2本をTask 2対象へ追加し、新しい上部2列・画面幅別CTA一意性へ更新する |
+| Task 3 browser GREENが760pxで非表示のhero CTAを先頭待機してtimeout | 1 | 表示中のCTAを待つselectorへ限定し、同じ56 scenariosを再実行してfailure 0を確認する |
 | `docs/ai-skills.md` が存在しない | 1 | AGENTS.mdのルールと利用可能なSupabase手順を直接適用し、不在を進行ログへ記録する |
 | `../pm/DECISIONS.md` と `../docs/design/...` を誤った相対位置で読もうとして失敗 | 1 | リポジトリルート基準の `pm/...` と `docs/...` に直して再確認する |
 | Docker daemonが起動しておらず、SupabaseローカルDBへ接続できない | 1 | Docker Desktopを起動し、専用portで実DB適用・reset・lintまで成功した |

@@ -474,3 +474,13 @@
 - 既存の隔離worktree `codex/eskomi-portal-ux-rebuild` を継続利用し、`main` 直下の古い作業状態には触れない。
 - 現行カラー、WordPress公開データ元、推測値・架空口コミを追加しない条件を維持する。
 - 次は本番とローカルのDOM/CSSを再現し、契約検査を失敗させてから修正する。
+
+## 2026-07-18 Phase 16 一覧・店舗詳細の精密再調整 完了
+
+- **Status:** complete（Task 1〜3、fresh全検証、独立最終レビューを完了。push・deploy・本番変更前で停止）
+- Task 1 `0c40101`で順位badgeをmediaWrap内overlayへ移し、順位有無で共通の3列cardにした。
+- Task 2 `3398593`で店舗詳細上部をPCの画像/hero 2列へ整理し、予約・公式情報groupをPC/SPそれぞれ表示中1つにした。
+- Task 3では旧browser検査をTask 1・2後へ当て、4,971/15,377 failuresのREDを確認した。旧`visualAside`、article直下media、独立rank列の期待が原因だった。
+- browser検査を新DOMへ更新し、順位badgeのmediaWrap包含、順位あり/なしmedia・title x差2px以内、可視予約group 1、H1 PC 34px/SP 26px以下、facts 18px以下、横はみ出し0、CTA 44px以上を実寸確認する。
+- fresh検証は`npm test` 35/35、lint、typecheck、441/441 build、build直後のheadless browser 56/56 scenarios・89,836 assertions・32 screenshots・failures 0、High/Critical 0、`git diff --check`がすべて終了コード0。
+- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。WordPressを公開データ元として維持し、WordPress/Supabase書込、push、PR、deploy、本番公開は行っていない。

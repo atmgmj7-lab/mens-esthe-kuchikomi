@@ -43,10 +43,6 @@ const headed = process.env.PORTAL_QA_HEADED === "1";
 const summaryFileName = testHook === "smoke" ? "summary-headless-smoke.json" : "summary.json";
 const runViewports = testHook ? viewports.slice(0, 1) : viewports;
 const runRoutes = testHook ? routes.slice(0, 1) : routes;
-const expectedTitleSizes = new Map([
-  [1440, 38], [1280, 38], [1024, 34], [768, 30],
-  [500, 28], [390, 27], [375, 27], [320, 24]
-]);
 
 function isPortOpen(port) {
   return new Promise((resolve) => {
@@ -239,7 +235,7 @@ async function waitForRouteReady(page, route) {
         page.locator("main[data-shop-detail-root] h1"),
         page.locator('main[data-shop-detail-root] section[aria-label="店舗画像"] img'),
         page.getByRole("navigation", { name: "店舗詳細のページ内メニュー" }),
-        page.locator("main[data-shop-detail-root] [data-shop-cta-kind]")
+        page.locator("main[data-shop-detail-root] [data-shop-cta-kind]:visible")
       ]
     : [
         page.locator('article[data-area-shop-card="true"]'),
@@ -283,11 +279,17 @@ async function collectMetrics(page) {
     const shopRoots = document.querySelectorAll("main[data-shop-detail-root]");
     const shopRoot = shopRoots[0];
     const shell = shopRoot?.querySelector(":scope > div");
-    const detailArticle = shell?.querySelector(":scope > article");
+    const detailArticle = shell?.querySelector(':scope > article[data-shop-profile-grid="true"]');
     const title = shopRoot?.querySelector("h1");
     const hero = detailArticle?.querySelector(":scope > header");
-    const aside = detailArticle?.querySelector(":scope > aside");
-    const mainImage = shopRoot?.querySelector('section[aria-label="店舗画像"] figure > div');
+    const visual = detailArticle?.querySelector(':scope > section[aria-label="店舗画像"]');
+    const mainImage = visual?.querySelector("figure > div");
+    const factValues = [...(hero?.querySelectorAll("dl dd") ?? [])]
+      .filter(isVisible)
+      .map((value) => ({
+        text: value.textContent?.trim() || "",
+        size: Number.parseFloat(getComputedStyle(value).fontSize)
+      }));
     const imageSelector = [
       'main[data-shop-detail-root] section[aria-label="店舗画像"] img',
       'article[data-area-shop-card="true"] img',
@@ -306,22 +308,39 @@ async function collectMetrics(page) {
         position: cta.getAttribute("data-shop-cta-position"),
         box: rect(cta)
       }));
-    const cards = [...document.querySelectorAll('article[data-area-shop-card="true"]')]
-      .filter(isVisible)
+    const cardElements = [...document.querySelectorAll('article[data-area-shop-card="true"]')]
+      .filter(isVisible);
+    const cardListOwner = (card) => {
+      let ancestor = card.parentElement;
+      while (ancestor && ancestor !== document.body) {
+        const visibleCards = [...ancestor.querySelectorAll('article[data-area-shop-card="true"]')]
+          .filter(isVisible);
+        if (visibleCards.length > 1) return ancestor;
+        ancestor = ancestor.parentElement;
+      }
+      return card.parentElement;
+    };
+    const cardParents = [...new Set(cardElements.map(cardListOwner))];
+    const cards = cardElements
       .map((card) => {
         const children = [...card.children];
         const rank = card.querySelector('[aria-label^="おすすめランキング"]');
-        const rankSlot = rank?.parentElement;
         const rankParts = rank ? [...rank.children] : [];
-        const media = card.querySelector('a[aria-label$="の詳細を見る"]');
         const header = card.querySelector(":scope > header");
-        const mediaIndex = children.indexOf(media);
-        const body = mediaIndex >= 0 ? children[mediaIndex + 1] : null;
-        const actionSlot = mediaIndex >= 0 ? children[mediaIndex + 2] : null;
+        const title = header?.querySelector(":scope > h3");
+        const mediaWrap = children.find((child) =>
+          child.querySelector(':scope > a[aria-label$="の詳細を見る"]')
+        );
+        const media = mediaWrap?.querySelector(':scope > a[aria-label$="の詳細を見る"]');
+        const mediaWrapIndex = children.indexOf(mediaWrap);
+        const body = mediaWrapIndex >= 0 ? children[mediaWrapIndex + 1] : null;
+        const actionSlot = mediaWrapIndex >= 0 ? children[mediaWrapIndex + 2] : null;
         const cardImages = media?.querySelectorAll(":scope > img") ?? [];
         const cardCtas = card.querySelectorAll('[data-shop-cta-position="listing"]');
         return {
+          listIndex: cardParents.indexOf(cardListOwner(card)),
           box: rect(card),
+          mediaWrapCount: mediaWrap ? 1 : 0,
           mediaCount: media ? 1 : 0,
           headerCount: header ? 1 : 0,
           bodyCount: body?.tagName === "DIV" ? 1 : 0,
@@ -329,11 +348,13 @@ async function collectMetrics(page) {
           actionSlotCount: actionSlot?.tagName === "DIV" ? 1 : 0,
           ctaCount: cardCtas.length,
           rank: rect(rank),
-          rankSlot: rect(rankSlot),
+          rankParentIsMediaWrap: Boolean(rank && rank.parentElement === mediaWrap),
           rankNumber: rect(rankParts[0]),
           rankUnit: rect(rankParts[1]),
+          mediaWrap: rect(mediaWrap),
           media: rect(media),
           header: rect(header),
+          title: rect(title),
           body: rect(body),
           image: rect(cardImages[0]),
           actions: rect(actionSlot)
@@ -344,7 +365,10 @@ async function collectMetrics(page) {
     const comparisonHeader = comparison?.querySelector('[role="row"]');
     const comparisonRow = comparison?.querySelector('[data-comparison-row]');
     const groups = [...document.querySelectorAll('[role="group"][aria-label="予約・公式情報"]')];
-    const fixedGroup = groups.at(-1);
+    const visibleGroups = groups.filter(isVisible);
+    const fixedGroup = groups.find((group) =>
+      group.querySelector('[data-shop-cta-position="fixed"]')
+    );
 
     return {
       clientWidth: document.documentElement.clientWidth,
@@ -354,8 +378,11 @@ async function collectMetrics(page) {
       scale: window.visualViewport?.scale ?? 1,
       h1: title?.textContent?.trim() || "",
       titleSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : null,
+      factValues,
       requiredDom: {
         shopRootCount: shopRoots.length,
+        shopProfileGridCount:
+          shopRoot?.querySelectorAll('article[data-shop-profile-grid="true"]').length ?? 0,
         shopTitleCount: shopRoot?.querySelectorAll(":scope h1").length ?? 0,
         shopMainImageCount:
           shopRoot?.querySelectorAll('section[aria-label="店舗画像"] figure > div > img').length ?? 0,
@@ -363,6 +390,8 @@ async function collectMetrics(page) {
           shopRoot?.querySelectorAll('nav[aria-label="店舗詳細のページ内メニュー"]').length ?? 0,
         shopCtaCount: shopRoot?.querySelectorAll("[data-shop-cta-kind]").length ?? 0,
         visibleCardCount: cards.length,
+        visibleRankedCardCount: cards.filter((card) => card.rank).length,
+        visibleUnrankedCardCount: cards.filter((card) => !card.rank).length,
         comparisonCount: comparisons.length,
         comparisonRowCount: comparison?.querySelectorAll("[data-comparison-row]").length ?? 0,
         visibleRouteCtaCount: ctas.length
@@ -370,12 +399,20 @@ async function collectMetrics(page) {
       shop: shopRoot
         ? {
             shell: rect(shell),
+            profileGrid: rect(detailArticle),
             title: rect(title),
             hero: rect(hero),
-            aside: rect(aside),
+            visual: rect(visual),
             mainImage: rect(mainImage),
             fixedGroup: rect(fixedGroup),
-            fixedDisplay: fixedGroup ? getComputedStyle(fixedGroup).display : null
+            fixedDisplay: fixedGroup ? getComputedStyle(fixedGroup).display : null,
+            visibleActionGroupCount: visibleGroups.length,
+            visibleActionGroups: visibleGroups.map((group) => ({
+              box: rect(group),
+              positions: [...group.querySelectorAll("[data-shop-cta-position]")].map((cta) =>
+                cta.getAttribute("data-shop-cta-position")
+              )
+            }))
           }
         : null,
       images,
@@ -395,8 +432,13 @@ async function collectMetrics(page) {
 
 function assertShopGeometry(metrics, viewport, label) {
   const shop = metrics.shop;
-  check(Boolean(shop?.shell && shop?.title && shop?.mainImage), `${label} shop geometry exists`);
-  if (!shop?.shell || !shop.title || !shop.mainImage) return;
+  check(
+    Boolean(shop?.shell && shop?.profileGrid && shop?.title && shop?.hero && shop?.visual && shop?.mainImage),
+    `${label} shop geometry exists`
+  );
+  if (!shop?.shell || !shop.profileGrid || !shop.title || !shop.hero || !shop.visual || !shop.mainImage) {
+    return;
+  }
 
   const expectedWidth = viewport.width <= 760
     ? viewport.width - 32
@@ -406,6 +448,7 @@ function assertShopGeometry(metrics, viewport, label) {
   const expectedLeft = (viewport.width - expectedWidth) / 2;
   const innerPadding = viewport.width <= 760 ? 0 : 24;
   const expectedInnerLeft = expectedLeft + innerPadding;
+  const expectedInnerWidth = expectedWidth - innerPadding * 2;
 
   check(approximately(shop.shell.x, expectedLeft, 2), `${label} shop shell start`, {
     actual: shop.shell.x,
@@ -415,31 +458,56 @@ function assertShopGeometry(metrics, viewport, label) {
     actual: shop.shell.width,
     expected: expectedWidth
   });
-  check(approximately(shop.title.x, expectedInnerLeft, 2), `${label} shop title start`, {
-    actual: shop.title.x,
+  check(approximately(shop.profileGrid.x, expectedInnerLeft, 2), `${label} shop profile start`, {
+    actual: shop.profileGrid.x,
     expected: expectedInnerLeft
+  });
+  check(approximately(shop.profileGrid.width, expectedInnerWidth, 2), `${label} shop profile width`, {
+    actual: shop.profileGrid.width,
+    expected: expectedInnerWidth
   });
   check(approximately(shop.mainImage.x, expectedInnerLeft, 2), `${label} shop image start`, {
     actual: shop.mainImage.x,
     expected: expectedInnerLeft
   });
 
-  const titleSize = expectedTitleSizes.get(viewport.width);
-  if (titleSize) {
-    check(approximately(metrics.titleSize, titleSize, 0.2), `${label} shop title size`, {
-      actual: metrics.titleSize,
-      expected: titleSize
+  const maxTitleSize = viewport.width <= 760 ? 26 : 34;
+  check(metrics.titleSize <= maxTitleSize + 0.2, `${label} shop title size upper bound`, {
+    actual: metrics.titleSize,
+    maximum: maxTitleSize
+  });
+  check(metrics.factValues.length >= 1, `${label} shop fact values exist`, {
+    count: metrics.factValues.length
+  });
+  for (const [index, fact] of metrics.factValues.entries()) {
+    check(fact.size <= 18.2, `${label} shop fact ${index + 1} size upper bound`, {
+      text: fact.text,
+      actual: fact.size,
+      maximum: 18
     });
   }
+  check(shop.visibleActionGroupCount === 1, `${label} one visible booking group`, {
+    count: shop.visibleActionGroupCount,
+    groups: shop.visibleActionGroups
+  });
 
-  if (viewport.width > 1024 && shop.hero && shop.aside) {
-    check(approximately(shop.aside.width, 320, 2), `${label} shop aside width`, {
-      actual: shop.aside.width,
+  if (viewport.width > 1024) {
+    check(approximately(shop.hero.width, 320, 2), `${label} shop hero width`, {
+      actual: shop.hero.width,
       expected: 320
     });
-    check(approximately(shop.aside.x - shop.hero.right, 32, 4), `${label} shop column gap`, {
-      actual: shop.aside.x - shop.hero.right,
+    check(approximately(shop.hero.x - shop.visual.right, 32, 4), `${label} shop column gap`, {
+      actual: shop.hero.x - shop.visual.right,
       expected: 32
+    });
+    check(approximately(shop.title.x, shop.hero.x, 2), `${label} shop title in hero column`, {
+      titleX: shop.title.x,
+      heroX: shop.hero.x
+    });
+  } else {
+    check(approximately(shop.title.x, expectedInnerLeft, 2), `${label} shop title start`, {
+      actual: shop.title.x,
+      expected: expectedInnerLeft
     });
   }
 
@@ -464,6 +532,9 @@ function assertShopGeometry(metrics, viewport, label) {
 function assertCardGeometry(metrics, viewport, label) {
   for (const [index, card] of metrics.cards.entries()) {
     const cardLabel = `${label} card ${index + 1}`;
+    check(card.mediaWrapCount === 1, `${cardLabel} required media wrapper`, {
+      count: card.mediaWrapCount
+    });
     check(card.mediaCount === 1, `${cardLabel} required media`, { count: card.mediaCount });
     check(card.headerCount === 1, `${cardLabel} required header`, { count: card.headerCount });
     check(card.bodyCount === 1, `${cardLabel} required body`, { count: card.bodyCount });
@@ -479,18 +550,36 @@ function assertCardGeometry(metrics, viewport, label) {
         { numberTop: card.rankNumber.top, unitTop: card.rankUnit.top }
       );
     }
-    const hasGeometryParts = Boolean(card.box && card.media && card.header && card.body && card.image);
+    if (card.rank) {
+      check(card.rankParentIsMediaWrap, `${cardLabel} rank belongs to media wrapper`);
+      check(
+        Boolean(
+          card.mediaWrap &&
+            card.rank.top >= card.mediaWrap.top - 2 &&
+            card.rank.right <= card.mediaWrap.right + 2 &&
+            card.rank.bottom <= card.mediaWrap.bottom + 2 &&
+            card.rank.x >= card.mediaWrap.x - 2
+        ),
+        `${cardLabel} rank contained by media wrapper`,
+        { rank: card.rank, mediaWrap: card.mediaWrap }
+      );
+    }
+    const hasGeometryParts = Boolean(
+      card.box && card.mediaWrap && card.media && card.header && card.title && card.body && card.image
+    );
     check(hasGeometryParts, `${cardLabel} required geometry parts`);
 
     if (hasGeometryParts && viewport.width > 900) {
       const gap = viewport.width <= 1024 ? 20 : 24;
       const mediaWidth = viewport.width <= 1280 ? 220 : 240;
       const actionWidth = viewport.width <= 1024 ? 148 : 164;
-      const rankWidth = viewport.width <= 1024 ? 56 : 64;
-      const expectedMediaStart = card.box.x + (card.rank ? rankWidth + gap : 0);
-      check(approximately(card.media.x, expectedMediaStart, 2), `${cardLabel} media start`, {
+      check(approximately(card.mediaWrap.x, card.box.x, 2), `${cardLabel} media wrapper start`, {
+        actual: card.mediaWrap.x,
+        expected: card.box.x
+      });
+      check(approximately(card.media.x, card.box.x, 2), `${cardLabel} media start`, {
         actual: card.media.x,
-        expected: expectedMediaStart
+        expected: card.box.x
       });
       check(approximately(card.media.width, mediaWidth, 2), `${cardLabel} media width`, {
         actual: card.media.width,
@@ -538,6 +627,31 @@ function assertCardGeometry(metrics, viewport, label) {
       });
     }
   }
+
+  const cardsByList = new Map();
+  for (const card of metrics.cards) {
+    const listCards = cardsByList.get(card.listIndex) ?? [];
+    listCards.push(card);
+    cardsByList.set(card.listIndex, listCards);
+  }
+  for (const [listIndex, cards] of cardsByList) {
+    const rankedCards = cards.filter((card) => card.rank && card.media && card.title);
+    const unrankedCards = cards.filter((card) => !card.rank && card.media && card.title);
+    if (rankedCards.length === 0 || unrankedCards.length === 0) continue;
+    const comparableCards = [...rankedCards, ...unrankedCards];
+    const mediaXs = comparableCards.map((card) => card.media.x);
+    const titleXs = comparableCards.map((card) => card.title.x);
+    check(
+      Math.max(...mediaXs) - Math.min(...mediaXs) <= 2,
+      `${label} list ${listIndex + 1} ranked and unranked media x parity`,
+      { mediaXs }
+    );
+    check(
+      Math.max(...titleXs) - Math.min(...titleXs) <= 2,
+      `${label} list ${listIndex + 1} ranked and unranked title x parity`,
+      { titleXs }
+    );
+  }
 }
 
 function assertRequiredRouteDom(metrics, route, label) {
@@ -545,6 +659,9 @@ function assertRequiredRouteDom(metrics, route, label) {
   if (route.kind === "shop") {
     check(dom.shopRootCount === 1, `${label} requires one shop root`, {
       count: dom.shopRootCount
+    });
+    check(dom.shopProfileGridCount === 1, `${label} requires one shop profile grid`, {
+      count: dom.shopProfileGridCount
     });
     check(dom.shopTitleCount === 1, `${label} requires one shop title`, {
       count: dom.shopTitleCount
@@ -570,6 +687,15 @@ function assertRequiredRouteDom(metrics, route, label) {
   check(dom.visibleRouteCtaCount >= 1, `${label} requires a real route CTA`, {
     count: dom.visibleRouteCtaCount
   });
+
+  if (route.kind === "hub" || route.kind === "area") {
+    check(dom.visibleRankedCardCount >= 1, `${label} requires ranked shop cards`, {
+      count: dom.visibleRankedCardCount
+    });
+    check(dom.visibleUnrankedCardCount >= 1, `${label} requires unranked shop cards`, {
+      count: dom.visibleUnrankedCardCount
+    });
+  }
 
   if (route.kind === "hub") {
     check(dom.comparisonCount === 1, `${label} requires one comparison`, {
