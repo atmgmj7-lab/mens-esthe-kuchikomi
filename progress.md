@@ -433,3 +433,27 @@
 - 初回は検査側でTask 1の正本より長い70文字超の単一英字列を使ったため、500/390/320pxの3件だけ4〜5行として失敗した。Task 1の既存fixtureへ正確に揃えて再検査し、表示用CSS/TSXの修正なしで全件成功した。
 - `npm test`の通常34検査、lint、typecheck、441/441ページbuild、その直後のbrowser検査が成功した。High/Critical依存問題は0で、既存Next.js経由のModerate 2件は継続する。
 - スクリーンショットとsummaryは`headless/reports/portal-ux-2026-07-17/`へGit除外で保存した。push、deploy、本番WordPress・Supabase変更は行っていない。
+
+## 2026-07-17 Eskomi UX Task 11 全体検証・最終レビュー
+
+- **Status:** complete（全11タスク、最終横断レビュー修正、独立再レビューを完了。push・PR・deploy・本番公開前で停止）
+- 軽微修正 → ブランド・ロゴ → 表示の正確性 → 共通店舗一覧 → 店舗詳細shell → headless実ブラウザQA → 最終横断レビューの順で、11タスクを個別レビュー付きで完了した。
+- 最終横断レビュー初回はCritical 0、Important 4。固定の未確認件数・日付・循環更新ラベル、無効な料金filter、出自ラベルなしのAI要約、画像404時の共通fallback不足を検出した。
+- `1654f3b fix: remove unverified portal facts`で4件を修正した。固定件数・日付・循環更新ラベルを削除し、料金filterを有効な`price`へ変更し、`shop_ai_summary`の無ラベル通常紹介をやめ、トップ・共通一覧・ランキング画像へ共通404 fallbackを適用した。
+- 修正後の独立再レビューはCritical 0、Important 0、Minor 0、Ready: Yes。構造上の非ブロッカーとして、`check-shop-content-accuracy.mjs` 617行と`check-area-shop-card-view-model.mjs` 527行は、今後検査を増やす場合のfixture/helper分離候補として残した。
+
+### 最新コードHEAD `1654f3b` の最終検証
+
+- `npm test`: 34/34、終了コード0。
+- `npm run lint`: 終了コード0。
+- `npm run typecheck`: 終了コード0。
+- `npm run build`: 441/441ページ、終了コード0。
+- build直後の`npm run test:portal-browser-layout`: headless、56 scenarios、81,557 assertions、32 screenshots、failures 0、終了コード0。
+- `npm audit --audit-level=high`: Critical 0 / High 0 / Moderate 2（既知のPostCSS）、終了コード0。
+- `git diff --check`成功、`next-env.d.ts`差分なし、3100 listener・検査script・検査用Chromium残存0。
+- 既知warningはmiddleware名称の非推奨、WordPress timeout時のfallback、`useSearchParams`のclient rendering。いずれもfailureなし。
+
+### 画面占有と停止位置
+
+- browser QAはheadless既定で、可視化は`PORTAL_QA_HEADED=1`明示時だけ。最終検証では未設定で、通常ChromeとPlaywright MCPを操作・終了していない。
+- WordPressを公開データ元として維持した。Supabase公開接続・書き込み、WordPress書き込み、push、PR、deploy、本番公開は実施していない。

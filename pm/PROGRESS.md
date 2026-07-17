@@ -2,6 +2,32 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-17 Eskomi 店舗一覧・店舗詳細 UX再構築 完了
+
+#### 完了したこと
+
+- 軽微修正 → ブランド・ロゴ → 表示の正確性 → 共通店舗一覧 → 店舗詳細shell → headless実ブラウザQA → 最終横断レビューの順で、計画した11タスクを個別レビュー付きで完了した。
+- 店舗名改行、順位位置、比較表見切れ、可視ブランドとロゴ、推定・固定情報、一覧3経路の共通カード、詳細の条件付きメニューと2列shell、予約導線を設計書どおり再構築した。
+- 固定件数・固定日付・循環更新ラベルを削除した。料金条件は有効な`price` filterへ直し、`shop_ai_summary`を出自ラベルなしの通常紹介として表示せず、画像404はトップ・共通一覧・ランキングでEskomi共通fallbackへ切り替える。
+- 最終横断レビュー初回はCritical 0 / Important 4。上記4件を`1654f3b fix: remove unverified portal facts`で修正し、独立再レビューはCritical 0 / Important 0 / Minor 0、Ready: Yesとなった。
+- 構造レビューでは`check-shop-content-accuracy.mjs` 617行と`check-area-shop-card-view-model.mjs` 527行を、今後検査を追加するときのfixture/helper分離候補とした。今回の完了を妨げる問題ではない。
+
+#### 最終検証
+
+- `npm test`: 34/34、終了コード0。
+- `npm run lint`: 終了コード0。
+- `npm run typecheck`: 終了コード0。
+- `npm run build`: 441/441ページ、終了コード0。
+- build直後の`npm run test:portal-browser-layout`: headless、56 scenarios、81,557 assertions、32 screenshots、failures 0、終了コード0。
+- `npm audit --audit-level=high`: Critical 0 / High 0 / Moderate 2（既知PostCSS）、終了コード0。
+- `git diff --check`成功、`next-env.d.ts`差分なし、3100 listener・検査script・検査用Chromium残存0。
+- middleware名称非推奨、WordPress timeout fallback、`useSearchParams` client renderingの既知warningは残るが、検査・buildのfailureは0。
+
+#### 画面占有と停止位置
+
+- browser QAはheadless既定で、`PORTAL_QA_HEADED=1`明示時だけ可視Chromiumを使う。最終検証では未設定で、通常ChromeとPlaywright MCPを操作・終了していない。
+- WordPressを公開データ元として維持した。Supabase公開接続・書き込み、WordPress書き込み、push、PR、deploy、本番公開は実施していない。
+
 ### 2026-07-16 店舗詳細C案のローカル実装・全幅QA
 
 #### 最終横断レビュー修正（独立再レビュー承認済み）
