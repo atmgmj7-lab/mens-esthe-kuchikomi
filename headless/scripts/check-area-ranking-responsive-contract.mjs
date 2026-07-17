@@ -19,6 +19,7 @@ const shopRankCell = read("components/common/ShopRankCell.tsx");
 const shopRankCss = read("components/common/ShopRankCell.module.css");
 const shopCard = read("components/area/hub/ShopCardLuxury.tsx");
 const areaShopCard = read("components/common/AreaShopCard.tsx");
+const areaShopCardCss = read("components/common/AreaShopCard.module.css");
 const comparison = read("components/area/hub/RankingComparisonTable.tsx");
 const globalCss = read("app/globals.css");
 
@@ -42,6 +43,51 @@ check(
 check(
   /ShopRankCell/.test(areaShopCard) && /rank=\{model\.rank\}/.test(areaShopCard),
   "the shared AreaShopCard must render the independent ShopRankCell"
+);
+const mediaWrapIndex = areaShopCard.indexOf("className={styles.mediaWrap}");
+check(
+  mediaWrapIndex >= 0 && areaShopCard.indexOf("<ShopRankCell", mediaWrapIndex) > mediaWrapIndex,
+  "AreaShopCard must render ShopRankCell inside the media wrapper"
+);
+check(
+  !areaShopCard.includes("styles.rankSlot") && !areaShopCardCss.includes(".rankSlot"),
+  "AreaShopCard must not reserve an independent rank column"
+);
+check(
+  !areaShopCard.includes("styles.cardNoRank") && !areaShopCardCss.includes(".cardNoRank"),
+  "ranked and unranked AreaShopCards must share one column structure"
+);
+check(
+  /\.mediaWrap\s*\{[^}]*position:\s*relative/s.test(areaShopCardCss),
+  "AreaShopCard media wrapper must establish the rank overlay containing block"
+);
+check(
+  /\.rankOverlay\s*\{[^}]*position:\s*absolute/s.test(areaShopCardCss),
+  "AreaShopCard rank badge must be positioned as an image overlay"
+);
+check(
+  /\.card\s*\{[^}]*grid-template-columns:\s*240px minmax\(0,\s*1fr\) 164px/s.test(
+    areaShopCardCss
+  ),
+  "AreaShopCard desktop columns must be media, content, and actions"
+);
+check(
+  /@media \(max-width:\s*1280px\)[\s\S]*?\.card\s*\{[^}]*grid-template-columns:\s*220px minmax\(0,\s*1fr\) 164px/s.test(
+    areaShopCardCss
+  ),
+  "AreaShopCard columns must use the 220px media width at 1280px and narrower"
+);
+check(
+  /@media \(max-width:\s*1024px\)[\s\S]*?\.card\s*\{[^}]*grid-template-columns:\s*220px minmax\(0,\s*1fr\) 148px/s.test(
+    areaShopCardCss
+  ),
+  "AreaShopCard columns must use the 148px action width at 1024px and narrower"
+);
+check(
+  /@media \(max-width:\s*900px\)[\s\S]*?\.card\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)[^}]*grid-template-areas:\s*"header"\s*"media"\s*"body"\s*"actions"/s.test(
+    areaShopCardCss
+  ),
+  "AreaShopCard must stack title, media, body, and actions in one column at 900px and narrower"
 );
 check(
   /AreaShopCard/.test(shopCard) && /rank=\{rank\}/.test(shopCard),

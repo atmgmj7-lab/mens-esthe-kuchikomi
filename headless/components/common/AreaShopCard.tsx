@@ -31,16 +31,9 @@ export function AreaShopCard({
     summarySource: "wordpress-only",
     maxActions: 2
   });
-  const cardClassName = [styles.card, model.rank ? "" : styles.cardNoRank]
-    .filter(Boolean)
-    .join(" ");
 
   return (
-    <article className={cardClassName} data-area-shop-card="true">
-      <div className={styles.rankSlot}>
-        {model.rank ? <ShopRankCell rank={model.rank} className={styles.rank} /> : null}
-      </div>
-
+    <article className={styles.card} data-area-shop-card="true">
       <header className={styles.header}>
         <h3 className={styles.title}>
           <Link href={model.title.href} className={styles.titleLink}>
@@ -61,13 +54,20 @@ export function AreaShopCard({
         ) : null}
       </header>
 
-      <Link href={model.title.href} className={styles.media} aria-label={`${model.title.text}の詳細を見る`}>
-        <AreaShopCardImage
-          src={model.image.src}
-          alt={model.image.alt}
-          isFallback={model.image.isFallback}
-        />
-      </Link>
+      <div className={styles.mediaWrap}>
+        <Link
+          href={model.title.href}
+          className={styles.media}
+          aria-label={`${model.title.text}の詳細を見る`}
+        >
+          <AreaShopCardImage
+            src={model.image.src}
+            alt={model.image.alt}
+            isFallback={model.image.isFallback}
+          />
+        </Link>
+        {model.rank ? <ShopRankCell rank={model.rank} className={styles.rankOverlay} /> : null}
+      </div>
 
       <div className={styles.body}>
         {model.summary ? <p className={styles.summary}>{model.summary}</p> : null}

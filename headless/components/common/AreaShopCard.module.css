@@ -1,39 +1,16 @@
 .card {
   display: grid;
-  grid-template-columns: 64px 240px minmax(0, 1fr) 164px;
+  grid-template-columns: 240px minmax(0, 1fr) 164px;
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
-    "rank media header actions"
-    "rank media body actions";
+    "media header actions"
+    "media body actions";
   gap: 24px;
   align-items: start;
   min-width: 0;
   padding: 24px 0;
   border-bottom: 1px solid rgba(20, 61, 77, 0.18);
   color: #1a2830;
-}
-
-.cardNoRank {
-  grid-template-columns: 240px minmax(0, 1fr) 164px;
-  grid-template-areas:
-    "media header actions"
-    "media body actions";
-}
-
-.cardNoRank .rankSlot {
-  display: none;
-}
-
-.rankSlot {
-  grid-area: rank;
-  display: flex;
-  justify-content: center;
-  min-width: 0;
-  padding-top: 2px;
-}
-
-.rank {
-  flex: 0 0 auto;
 }
 
 .header {
@@ -93,14 +70,27 @@
   color: #5b4515;
 }
 
-.media {
+.mediaWrap {
   grid-area: media;
+  position: relative;
+  min-width: 0;
+}
+
+.media {
   display: block;
   width: 100%;
   min-width: 0;
   overflow: hidden;
   border-radius: 6px;
   background: #f7f4ee;
+}
+
+.rankOverlay {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  pointer-events: none;
 }
 
 .image {
@@ -227,22 +217,14 @@
 
 @media (max-width: 1280px) {
   .card {
-    grid-template-columns: 64px 220px minmax(0, 1fr) 164px;
-  }
-
-  .cardNoRank {
     grid-template-columns: 220px minmax(0, 1fr) 164px;
   }
 }
 
 @media (max-width: 1024px) {
   .card {
-    grid-template-columns: 56px 220px minmax(0, 1fr) 148px;
-    gap: 20px;
-  }
-
-  .cardNoRank {
     grid-template-columns: 220px minmax(0, 1fr) 148px;
+    gap: 20px;
   }
 
   .facts {
@@ -251,31 +233,16 @@
 }
 
 @media (max-width: 900px) {
-  .card,
-  .cardNoRank {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: auto;
-    grid-template-areas:
-      "rank header"
-      "media media"
-      "body body"
-      "actions actions";
-    gap: 16px;
-    padding: 20px 0;
-  }
-
-  .cardNoRank {
+  .card {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
     grid-template-areas:
       "header"
       "media"
       "body"
       "actions";
-  }
-
-  .rankSlot {
-    align-self: start;
-    padding-top: 0;
+    gap: 16px;
+    padding: 20px 0;
   }
 
   .actions {

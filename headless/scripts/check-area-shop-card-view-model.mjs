@@ -487,17 +487,25 @@ assert.ok(packageJson.scripts.test.includes("npm run test:area-shop-card-view-mo
 assert.ok(cardSource.includes('data-area-shop-card="true"'), "AreaShopCard needs one measurable shared DOM");
 assert.equal((cardSource.match(/<article\b/g) ?? []).length, 1, "AreaShopCard must have one card DOM");
 assert.ok(cardSource.includes("ShopRankCell"), "AreaShopCard must reuse ShopRankCell");
-assert.ok(cardSource.includes("styles.rankSlot"), "rank must use an independent card column");
+const mediaWrapIndex = cardSource.indexOf("className={styles.mediaWrap}");
+assert.ok(
+  mediaWrapIndex >= 0 && cardSource.indexOf("<ShopRankCell", mediaWrapIndex) > mediaWrapIndex,
+  "rank must render inside the media wrapper"
+);
+assert.ok(!cardSource.includes("styles.rankSlot"), "rank must not reserve an independent card column");
+assert.ok(!cardSource.includes("styles.cardNoRank"), "ranked and unranked cards must share one layout");
 assert.ok(cardSource.includes("model.quickLinks.map"), "card must render only view-model quick links");
 assert.ok(cardSource.includes("model.actions.map"), "card must render at most the view-model actions");
 
 for (const exactLayout of [
-  "64px 240px minmax(0, 1fr) 164px",
-  "64px 220px minmax(0, 1fr) 164px",
-  "56px 220px minmax(0, 1fr) 148px"
+  "240px minmax(0, 1fr) 164px",
+  "220px minmax(0, 1fr) 164px",
+  "220px minmax(0, 1fr) 148px"
 ]) {
   assert.ok(cardCss.includes(exactLayout), `responsive columns must include ${exactLayout}`);
 }
+assert.match(cardCss, /\.mediaWrap\s*\{[^}]*position:\s*relative/s);
+assert.match(cardCss, /\.rankOverlay\s*\{[^}]*position:\s*absolute/s);
 assert.ok(cardCss.includes("gap: 24px"), "1440/1280 layout needs a 24px gap");
 assert.ok(cardCss.includes("gap: 20px"), "1024 layout needs a 20px gap");
 assert.ok(cardCss.includes("@media (max-width: 900px)"), "the shared DOM must stack at 900px");
