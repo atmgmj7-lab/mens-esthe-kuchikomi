@@ -421,9 +421,15 @@
 - `@playwright/test` 1.61.1を完全固定し、通常の`npm test`と分離した`test:portal-browser-layout`を追加した。
 - 最新production buildを専用`127.0.0.1:3100`で起動し、既存5000番を使わず、終了時にserver process treeとChromiumを停止する再実行可能な検査にした。
 - 店舗詳細`milk-tea（ミルクティー）`実slug、堺筋本町、通常の大阪エリア、店舗一覧の4経路を、標準8幅と760/761・900/901・1024/1025・320×568・スマホ横向きで測定した。
-- 最終結果は4経路×14表示条件=56条件、13,850 assertion、標準8幅×4経路=32枚のスクリーンショットで失敗0だった。
+- レビュー指摘を受け、経路ごとの必須部品数と表示中の全店舗カードの画像・見出し・本文・操作欄を省略なく検査するよう強化した。予約情報がない店舗には架空のボタンを足さず、操作欄自体と経路内の実在ボタンを必須にした。
+- Next.jsが裏で準備する非表示要素を表示済みと誤認した30件を検査側の問題として特定し、必須部品が実際に見えるまで待つよう修正した。画面側CSS/TSXの修正は不要だった。
+- ページ移動前から`console.error`と画面内JavaScript errorを収集する。許可は任意faviconと意図的な壊れ画像検査の完全一致404だけで、広い除外は追加していない。
+- summaryは開始時に前回成功を`running`で無効化し、予期しない失敗でも`failed`を必ず保存する。スクリーンショットは実行ID別に分離し、成功時だけ`passed`にする。
+- DOM欠落、`console.error`、画面内JavaScript error、server起動後の強制例外、接続拒否を注入し、すべて終了コード1・`failed` summary・process残存なしとなることを確認した。
+- 検査用Chromiumは画面非表示を既定にし、`PORTAL_QA_HEADED=1`を明示した場合だけ表示する。通常ChromeやPlaywright MCPには触れず、画面非表示の1経路×1幅smokeは29 assertion、画像1枚、失敗0だった。
+- 最終結果は4経路×14表示条件=56条件、81,515 assertion、標準8幅×4経路=32枚のスクリーンショットで失敗0だった。
 - 横スクロール、順位数字と「位」の上下差、主要開始位置、余白、4:3画像、44px以上CTA、比較表示の760px境界、見出し非隠蔽を実寸で確認した。
 - キーボードフォーカス、ページ内メニュー移動、スマホ固定操作、画像読込失敗時のEskomi代替画像、Task 1と同じ2種類の長い店舗名を操作・計測した。外部予約リンクはクリックしていない。
 - 初回は検査側でTask 1の正本より長い70文字超の単一英字列を使ったため、500/390/320pxの3件だけ4〜5行として失敗した。Task 1の既存fixtureへ正確に揃えて再検査し、表示用CSS/TSXの修正なしで全件成功した。
-- `npm test`の通常34検査、lint、typecheck、441/441ページbuild、その直後のbrowser検査、`git diff --check`が成功した。High/Critical依存問題は0で、既存Next.js経由のModerate 2件は継続する。
+- `npm test`の通常34検査、lint、typecheck、441/441ページbuild、その直後のbrowser検査が成功した。High/Critical依存問題は0で、既存Next.js経由のModerate 2件は継続する。
 - スクリーンショットとsummaryは`headless/reports/portal-ux-2026-07-17/`へGit除外で保存した。push、deploy、本番WordPress・Supabase変更は行っていない。

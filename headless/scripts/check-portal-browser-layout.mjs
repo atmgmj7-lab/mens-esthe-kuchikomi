@@ -9,9 +9,6 @@ import { chromium } from "@playwright/test";
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const defaultBaseUrl = "http://127.0.0.1:3100";
 const baseUrl = (process.env.PORTAL_BASE_URL || defaultBaseUrl).replace(/\/$/, "");
-if (new URL(baseUrl).port === "5000") {
-  throw new Error("PORTAL_BASE_URL must not target the existing out-of-scope port 5000 server");
-}
 const shopPath =
   "/shops/milk-tea%ef%bc%88%e3%83%9f%e3%83%ab%e3%82%af%e3%83%86%e3%82%a3%e3%83%bc%ef%bc%89/";
 const reportDir = path.join(projectRoot, "reports", "portal-ux-2026-07-17");
@@ -40,6 +37,12 @@ const boundaryViewports = [
   { name: "phone-landscape", width: 667, height: 375 }
 ];
 const viewports = [...standardViewports, ...boundaryViewports];
+// Test-only review and smoke hooks keep focused probes fast and are inert in normal runs.
+const testHook = process.env.PORTAL_QA_TEST_HOOK || "";
+const headed = process.env.PORTAL_QA_HEADED === "1";
+const summaryFileName = testHook === "smoke" ? "summary-headless-smoke.json" : "summary.json";
+const runViewports = testHook ? viewports.slice(0, 1) : viewports;
+const runRoutes = testHook ? routes.slice(0, 1) : routes;
 const expectedTitleSizes = new Map([
   [1440, 38], [1280, 38], [1024, 34], [768, 30],
   [500, 28], [390, 27], [375, 27], [320, 24]
@@ -132,14 +135,83 @@ async function stopServer(child) {
 const failures = [];
 let assertionCount = 0;
 let screenshotCount = 0;
+let completedScenarios = 0;
+const screenshotFiles = [];
+const startedAt = new Date().toISOString();
+const runId = `${startedAt.replace(/[:.]/g, "-")}-${process.pid}`;
+const runScreenshotDir = path.join(reportDir, "runs", runId);
 
 function check(condition, label, details = {}) {
   assertionCount += 1;
   if (!condition) failures.push({ label, details });
 }
 
+function fail(label, details = {}) {
+  assertionCount += 1;
+  failures.push({ label, details });
+}
+
 function approximately(actual, expected, tolerance) {
   return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+}
+
+function sanitizeRuntimeText(value) {
+  return String(value ?? "")
+    .replaceAll(baseUrl, "<PORTAL_BASE_URL>")
+    .replace(/\u001b\[[0-9;]*m/g, "")
+    .replace(/\bsb_secret_[A-Za-z0-9_-]+\b/g, "<REDACTED_SECRET>")
+    .replace(/\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b/g, "<REDACTED_JWT>")
+    .slice(0, 2000);
+}
+
+function errorDetails(error) {
+  return {
+    name: sanitizeRuntimeText(error?.name || "Error"),
+    message: sanitizeRuntimeText(error?.message || error)
+  };
+}
+
+function isAllowedConsoleError(message) {
+  const locationUrl = message.location().url;
+  const text = message.text();
+  const resourceNotFound =
+    text === "Failed to load resource: the server responded with a status of 404 (Not Found)";
+  // Chromium automatically requests this optional icon. The app has no favicon route;
+  // its exact 404 does not affect page JavaScript, layout, navigation, or screenshots.
+  if (locationUrl.endsWith("/favicon.ico") && resourceNotFound) return true;
+  // This exact 404 is created by the intentional broken-image fallback probe.
+  // No application/runtime console errors are otherwise allowlisted.
+  return (
+    locationUrl.endsWith("/__portal-qa-broken-image__") &&
+    resourceNotFound
+  );
+}
+
+function summaryFor(status) {
+  return {
+    status,
+    runId,
+    startedAt,
+    completedAt: status === "running" ? null : new Date().toISOString(),
+    routes: runRoutes.length,
+    standardWidths: standardViewports.length,
+    measuredViewports: runViewports.length,
+    expectedScenarios: runRoutes.length * runViewports.length,
+    completedScenarios,
+    assertions: assertionCount,
+    screenshots: screenshotCount,
+    browserMode: headed ? "headed" : "headless",
+    screenshotDirectory: path.relative(reportDir, runScreenshotDir),
+    screenshotFiles,
+    failures: status === "running" ? [] : failures
+  };
+}
+
+async function writeSummary(status) {
+  await fs.writeFile(
+    path.join(reportDir, summaryFileName),
+    `${JSON.stringify(summaryFor(status), null, 2)}\n`
+  );
 }
 
 async function waitForStableLayout(page) {
@@ -159,6 +231,32 @@ async function waitForStableLayout(page) {
     await document.fonts.ready;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
+}
+
+async function waitForRouteReady(page, route) {
+  const required = route.kind === "shop"
+    ? [
+        page.locator("main[data-shop-detail-root] h1"),
+        page.locator('main[data-shop-detail-root] section[aria-label="店舗画像"] img'),
+        page.getByRole("navigation", { name: "店舗詳細のページ内メニュー" }),
+        page.locator("main[data-shop-detail-root] [data-shop-cta-kind]")
+      ]
+    : [
+        page.locator('article[data-area-shop-card="true"]'),
+        page.locator('[data-shop-cta-position="listing"]')
+      ];
+  if (route.kind === "hub") {
+    required.push(
+      page.getByRole("table", { name: "店舗比較" }),
+      page.locator('[role="table"][aria-label="店舗比較"] [data-comparison-row]')
+    );
+  }
+  await Promise.all(
+    // Cache Components streams the completed route into a hidden container before
+    // replacing the visible fallback. `attached` would accept that hidden payload
+    // and measure the still-empty fallback, so every required part must be visible.
+    required.map((locator) => locator.first().waitFor({ state: "visible", timeout: 15_000 }))
+  );
 }
 
 async function collectMetrics(page) {
@@ -182,7 +280,8 @@ async function collectMetrics(page) {
       const style = getComputedStyle(element);
       return box.width > 0 && box.height > 0 && style.display !== "none" && style.visibility !== "hidden";
     };
-    const shopRoot = document.querySelector("main[data-shop-detail-root]");
+    const shopRoots = document.querySelectorAll("main[data-shop-detail-root]");
+    const shopRoot = shopRoots[0];
     const shell = shopRoot?.querySelector(":scope > div");
     const detailArticle = shell?.querySelector(":scope > article");
     const title = shopRoot?.querySelector("h1");
@@ -209,7 +308,6 @@ async function collectMetrics(page) {
       }));
     const cards = [...document.querySelectorAll('article[data-area-shop-card="true"]')]
       .filter(isVisible)
-      .slice(0, 3)
       .map((card) => {
         const children = [...card.children];
         const rank = card.querySelector('[aria-label^="おすすめランキング"]');
@@ -217,14 +315,19 @@ async function collectMetrics(page) {
         const rankParts = rank ? [...rank.children] : [];
         const media = card.querySelector('a[aria-label$="の詳細を見る"]');
         const header = card.querySelector(":scope > header");
-        const actions = children.find((child) =>
-          child.querySelector(':scope > [data-shop-cta-position="listing"]')
-        );
-        const body = children.find(
-          (child) => child.tagName === "DIV" && child !== rankSlot && child !== actions
-        );
+        const mediaIndex = children.indexOf(media);
+        const body = mediaIndex >= 0 ? children[mediaIndex + 1] : null;
+        const actionSlot = mediaIndex >= 0 ? children[mediaIndex + 2] : null;
+        const cardImages = media?.querySelectorAll(":scope > img") ?? [];
+        const cardCtas = card.querySelectorAll('[data-shop-cta-position="listing"]');
         return {
           box: rect(card),
+          mediaCount: media ? 1 : 0,
+          headerCount: header ? 1 : 0,
+          bodyCount: body?.tagName === "DIV" ? 1 : 0,
+          imageCount: cardImages.length,
+          actionSlotCount: actionSlot?.tagName === "DIV" ? 1 : 0,
+          ctaCount: cardCtas.length,
           rank: rect(rank),
           rankSlot: rect(rankSlot),
           rankNumber: rect(rankParts[0]),
@@ -232,10 +335,12 @@ async function collectMetrics(page) {
           media: rect(media),
           header: rect(header),
           body: rect(body),
-          actions: rect(actions)
+          image: rect(cardImages[0]),
+          actions: rect(actionSlot)
         };
       });
-    const comparison = document.querySelector('[role="table"][aria-label="店舗比較"]');
+    const comparisons = document.querySelectorAll('[role="table"][aria-label="店舗比較"]');
+    const comparison = comparisons[0];
     const comparisonHeader = comparison?.querySelector('[role="row"]');
     const comparisonRow = comparison?.querySelector('[data-comparison-row]');
     const groups = [...document.querySelectorAll('[role="group"][aria-label="予約・公式情報"]')];
@@ -249,6 +354,19 @@ async function collectMetrics(page) {
       scale: window.visualViewport?.scale ?? 1,
       h1: title?.textContent?.trim() || "",
       titleSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : null,
+      requiredDom: {
+        shopRootCount: shopRoots.length,
+        shopTitleCount: shopRoot?.querySelectorAll(":scope h1").length ?? 0,
+        shopMainImageCount:
+          shopRoot?.querySelectorAll('section[aria-label="店舗画像"] figure > div > img').length ?? 0,
+        shopMenuCount:
+          shopRoot?.querySelectorAll('nav[aria-label="店舗詳細のページ内メニュー"]').length ?? 0,
+        shopCtaCount: shopRoot?.querySelectorAll("[data-shop-cta-kind]").length ?? 0,
+        visibleCardCount: cards.length,
+        comparisonCount: comparisons.length,
+        comparisonRowCount: comparison?.querySelectorAll("[data-comparison-row]").length ?? 0,
+        visibleRouteCtaCount: ctas.length
+      },
       shop: shopRoot
         ? {
             shell: rect(shell),
@@ -346,6 +464,14 @@ function assertShopGeometry(metrics, viewport, label) {
 function assertCardGeometry(metrics, viewport, label) {
   for (const [index, card] of metrics.cards.entries()) {
     const cardLabel = `${label} card ${index + 1}`;
+    check(card.mediaCount === 1, `${cardLabel} required media`, { count: card.mediaCount });
+    check(card.headerCount === 1, `${cardLabel} required header`, { count: card.headerCount });
+    check(card.bodyCount === 1, `${cardLabel} required body`, { count: card.bodyCount });
+    check(card.imageCount === 1, `${cardLabel} required image`, { count: card.imageCount });
+    check(card.actionSlotCount === 1, `${cardLabel} required action slot`, {
+      count: card.actionSlotCount,
+      ctaCount: card.ctaCount
+    });
     if (card.rankNumber && card.rankUnit) {
       check(
         Math.abs(card.rankNumber.top - card.rankUnit.top) <= 2,
@@ -353,9 +479,10 @@ function assertCardGeometry(metrics, viewport, label) {
         { numberTop: card.rankNumber.top, unitTop: card.rankUnit.top }
       );
     }
-    if (!card.box || !card.media || !card.header) continue;
+    const hasGeometryParts = Boolean(card.box && card.media && card.header && card.body && card.image);
+    check(hasGeometryParts, `${cardLabel} required geometry parts`);
 
-    if (viewport.width > 900) {
+    if (hasGeometryParts && viewport.width > 900) {
       const gap = viewport.width <= 1024 ? 20 : 24;
       const mediaWidth = viewport.width <= 1280 ? 220 : 240;
       const actionWidth = viewport.width <= 1024 ? 148 : 164;
@@ -383,7 +510,7 @@ function assertCardGeometry(metrics, viewport, label) {
           expected: card.box.right
         });
       }
-    } else {
+    } else if (hasGeometryParts) {
       check(approximately(card.media.x, card.box.x, 2), `${cardLabel} stacked media start`, {
         actual: card.media.x,
         expected: card.box.x
@@ -413,8 +540,50 @@ function assertCardGeometry(metrics, viewport, label) {
   }
 }
 
+function assertRequiredRouteDom(metrics, route, label) {
+  const dom = metrics.requiredDom;
+  if (route.kind === "shop") {
+    check(dom.shopRootCount === 1, `${label} requires one shop root`, {
+      count: dom.shopRootCount
+    });
+    check(dom.shopTitleCount === 1, `${label} requires one shop title`, {
+      count: dom.shopTitleCount
+    });
+    check(dom.shopMainImageCount === 1, `${label} requires one shop main image`, {
+      count: dom.shopMainImageCount
+    });
+    check(dom.shopMenuCount === 1, `${label} requires one shop section menu`, {
+      count: dom.shopMenuCount
+    });
+    check(dom.shopCtaCount >= 1, `${label} requires shop CTA`, {
+      count: dom.shopCtaCount
+    });
+    return;
+  }
+
+  check(dom.visibleCardCount >= 1, `${label} requires visible shop cards`, {
+    count: dom.visibleCardCount
+  });
+  // Sparse WordPress records intentionally render zero per-card actions; the shared
+  // AreaShopCard action slot remains mandatory and each representative route must
+  // still expose at least one real, non-invented CTA across its visible cards.
+  check(dom.visibleRouteCtaCount >= 1, `${label} requires a real route CTA`, {
+    count: dom.visibleRouteCtaCount
+  });
+
+  if (route.kind === "hub") {
+    check(dom.comparisonCount === 1, `${label} requires one comparison`, {
+      count: dom.comparisonCount
+    });
+    check(dom.comparisonRowCount >= 1, `${label} requires comparison rows`, {
+      count: dom.comparisonRowCount
+    });
+  }
+}
+
 function assertRuntimeGeometry(metrics, route, viewport) {
   const label = `${route.name} ${viewport.name}`;
+  assertRequiredRouteDom(metrics, route, label);
   check(metrics.scrollWidth === metrics.clientWidth, `${label} document scroll width`, {
     scrollWidth: metrics.scrollWidth,
     clientWidth: metrics.clientWidth
@@ -596,11 +765,23 @@ async function checkShopInteractions(page, viewport) {
 
 let server = null;
 let browser = null;
-let cleanupError = null;
+await fs.mkdir(reportDir, { recursive: true });
+await fs.mkdir(runScreenshotDir, { recursive: true });
+// Invalidate any prior passed result before launch, navigation, or server work.
+await writeSummary("running");
+
 try {
-  await fs.mkdir(reportDir, { recursive: true });
+  const parsedBaseUrl = new URL(baseUrl);
+  if (parsedBaseUrl.port === "5000") {
+    throw new Error("PORTAL_BASE_URL must not target the existing out-of-scope port 5000 server");
+  }
   server = await startServer();
-  browser = await chromium.launch({ headless: false });
+  if (testHook === "force-after-server-start") {
+    throw new Error("PORTAL_QA_TEST_HOOK force-after-server-start");
+  }
+  // Headless is the safe default so QA does not steal focus or interfere with
+  // the user's Mac. A visible browser is opt-in for an attended visual review.
+  browser = await chromium.launch({ headless: !headed });
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     deviceScaleFactor: 1,
@@ -608,59 +789,109 @@ try {
     timezoneId: "Asia/Tokyo",
     reducedMotion: "reduce"
   });
-  const page = await context.newPage();
 
-  for (const viewport of viewports) {
-    await page.setViewportSize({ width: viewport.width, height: viewport.height });
-    for (const route of routes) {
-      const response = await page.goto(`${baseUrl}${route.path}`, { waitUntil: "domcontentloaded" });
-      check(response?.ok() === true, `${route.name} ${viewport.name} HTTP 200`, {
-        status: response?.status() ?? null
-      });
-      await waitForStableLayout(page);
-      const metrics = await collectMetrics(page);
-      assertRuntimeGeometry(metrics, route, viewport);
-
-      if (viewport.screenshot) {
-        await page.screenshot({
-          path: path.join(reportDir, `${route.name}-${viewport.name}.png`),
-          fullPage: true
+  for (const viewport of runViewports) {
+    for (const route of runRoutes) {
+      const scenarioLabel = `${route.name} ${viewport.name}`;
+      const runtimeIssues = [];
+      const page = await context.newPage();
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      const onPageError = (error) => {
+        runtimeIssues.push({ type: "pageerror", ...errorDetails(error) });
+      };
+      const onConsole = (message) => {
+        if (message.type() !== "error" || isAllowedConsoleError(message)) return;
+        runtimeIssues.push({
+          type: "console.error",
+          message: sanitizeRuntimeText(message.text()),
+          location: sanitizeRuntimeText(message.location().url)
         });
-        screenshotCount += 1;
-      }
+      };
 
-      if (route.kind === "shop" && [500, 390, 320].includes(viewport.width)) {
-        await checkLongTitle(page, viewport, `${route.name} ${viewport.name}`);
+      // Attach before the first navigation so hydration and resource errors cannot escape.
+      page.on("pageerror", onPageError);
+      page.on("console", onConsole);
+      try {
+        const response = await page.goto(`${baseUrl}${route.path}`, { waitUntil: "domcontentloaded" });
+        check(response?.ok() === true, `${scenarioLabel} HTTP 200`, {
+          status: response?.status() ?? null
+        });
+        await waitForStableLayout(page);
+        await waitForRouteReady(page, route);
+        if (testHook === "missing-shop-menu") {
+          await page.evaluate(() =>
+            document.querySelector('nav[aria-label="店舗詳細のページ内メニュー"]')?.remove()
+          );
+        }
+        if (testHook === "console-error") {
+          await page.evaluate(() => console.error("PORTAL_QA_TEST_HOOK console-error"));
+        }
+        if (testHook === "page-error") {
+          await page.evaluate(() =>
+            queueMicrotask(() => {
+              throw new Error("PORTAL_QA_TEST_HOOK page-error");
+            })
+          );
+          await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
+        }
+        const metrics = await collectMetrics(page);
+        assertRuntimeGeometry(metrics, route, viewport);
+
+        if (viewport.screenshot) {
+          const screenshotPath = path.join(
+            runScreenshotDir,
+            `${route.name}-${viewport.name}.png`
+          );
+          // The 320px listing screenshot includes every current WordPress card and
+          // can be hundreds of thousands of pixels tall. Keep the complete evidence
+          // instead of truncating it at Playwright's 30-second action default.
+          await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 120_000 });
+          screenshotCount += 1;
+          screenshotFiles.push(path.relative(reportDir, screenshotPath));
+        }
+
+        if (route.kind === "shop" && [500, 390, 320].includes(viewport.width)) {
+          await checkLongTitle(page, viewport, scenarioLabel);
+        }
+        if (route.kind === "shop" && viewport.width === 390 && viewport.height === 844) {
+          await checkShopInteractions(page, viewport);
+        }
+        completedScenarios += 1;
+        console.log(`checked ${route.name} at ${viewport.name}`);
+      } finally {
+        page.off("pageerror", onPageError);
+        page.off("console", onConsole);
+        for (const issue of runtimeIssues) {
+          check(false, `${scenarioLabel} browser ${issue.type}`, issue);
+        }
+        try {
+          await page.close();
+        } catch (error) {
+          fail(`${scenarioLabel} page cleanup`, errorDetails(error));
+        }
       }
-      if (route.kind === "shop" && viewport.width === 390 && viewport.height === 844) {
-        await checkShopInteractions(page, viewport);
-      }
-      console.log(`checked ${route.name} at ${viewport.name}`);
     }
   }
+} catch (error) {
+  fail("unexpected runtime failure", errorDetails(error));
 } finally {
   try {
     await browser?.close();
-    await stopServer(server);
-    if (!process.env.PORTAL_BASE_URL && (await isPortOpen(3100))) {
-      throw new Error("dedicated portal server still owns 127.0.0.1:3100 after cleanup");
-    }
   } catch (error) {
-    cleanupError = error;
+    fail("browser cleanup", errorDetails(error));
   }
+  try {
+    await stopServer(server);
+  } catch (error) {
+    fail("server cleanup", errorDetails(error));
+  }
+  if (!process.env.PORTAL_BASE_URL && (await isPortOpen(3100))) {
+    fail("process cleanup", {
+      message: "dedicated portal server still owns 127.0.0.1:3100 after cleanup"
+    });
+  }
+  await writeSummary(failures.length > 0 ? "failed" : "passed");
 }
-
-if (cleanupError) failures.push({ label: "process cleanup", details: { message: cleanupError.message } });
-const summary = {
-  routes: routes.length,
-  standardWidths: standardViewports.length,
-  measuredViewports: viewports.length,
-  measuredScenarios: routes.length * viewports.length,
-  assertions: assertionCount,
-  screenshots: screenshotCount,
-  failures
-};
-await fs.writeFile(path.join(reportDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
 
 if (failures.length > 0) {
   const lines = failures.slice(0, 80).map(
@@ -672,5 +903,5 @@ if (failures.length > 0) {
 }
 
 console.log(
-  `portal browser layout check passed (${assertionCount} assertions, ${screenshotCount} screenshots, ${routes.length * viewports.length} scenarios)`
+  `portal browser layout check passed (${assertionCount} assertions, ${screenshotCount} screenshots, ${completedScenarios} scenarios)`
 );
