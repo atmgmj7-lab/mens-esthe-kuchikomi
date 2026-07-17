@@ -14,7 +14,20 @@ function resolveAbsoluteHttpUrl(value: string | undefined, fallback: string): st
 
   try {
     const parsed = new URL(candidate);
-    return parsed.protocol === "http:" || parsed.protocol === "https:" ? candidate : fallback;
+    if (
+      (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+      parsed.username ||
+      parsed.password ||
+      candidate.includes("?") ||
+      candidate.includes("#") ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      return fallback;
+    }
+
+    const pathname = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
+    return `${parsed.origin}${pathname}`;
   } catch {
     return fallback;
   }

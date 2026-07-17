@@ -21,10 +21,15 @@ type OriginRequestOptions = {
 };
 
 const DEFAULT_WP_ORIGIN_TIMEOUT_MS = 10_000;
+const MAX_WP_ORIGIN_TIMEOUT_MS = 2_147_483_647;
 
 export function resolveWpOriginTimeoutMs(timeoutMs?: number): number {
   const candidate = timeoutMs ?? Number(process.env.WP_ORIGIN_TIMEOUT_MS);
-  if (Number.isFinite(candidate) && candidate > 0) {
+  if (
+    Number.isSafeInteger(candidate) &&
+    candidate > 0 &&
+    candidate <= MAX_WP_ORIGIN_TIMEOUT_MS
+  ) {
     return candidate;
   }
   return DEFAULT_WP_ORIGIN_TIMEOUT_MS;

@@ -80,9 +80,29 @@ async function assertOriginRequestTimesOut() {
   );
   assert.equal(result.status, "rejected", "origin timeout must reject instead of resolving");
   assert.match(String(result.error?.message || result.error), /timed out/i);
+
+  return module.exports;
 }
 
-await assertOriginRequestTimesOut();
+const originRequestModule = await assertOriginRequestTimesOut();
+
+function assertOriginTimeoutValidation() {
+  for (const invalidTimeout of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648]) {
+    assert.equal(
+      originRequestModule.resolveWpOriginTimeoutMs(invalidTimeout),
+      10_000,
+      `invalid WordPress timeout must use the safe default: ${invalidTimeout}`
+    );
+  }
+
+  for (const validTimeout of [1, 10_000, 2_147_483_647]) {
+    assert.equal(
+      originRequestModule.resolveWpOriginTimeoutMs(validTimeout),
+      validTimeout,
+      `safe WordPress timeout must be preserved: ${validTimeout}`
+    );
+  }
+}
 
 function loadWpClient({
   fetchImpl = () => Promise.reject(new Error("unexpected native fetch")),
@@ -184,6 +204,74 @@ function assertWpApiBaseValidation() {
   const validApiBase = "https://cms.example.test/wp-json";
   const client = loadWpClient({ apiBase: validApiBase });
   assert.equal(client.wpApiBase, validApiBase, "valid absolute WordPress API base must be preserved");
+
+  const nestedApiBase = "https://cms.example.test/subdir/wp-json/";
+  const nestedClient = loadWpClient({ apiBase: nestedApiBase });
+  assert.equal(
+    nestedClient.wpApiBase,
+    "https://cms.example.test/subdir/wp-json",
+    "WordPress API base must preserve its path and remove the trailing slash"
+  );
+
+  const rootClient = loadWpClient({ publicBase: "https://www.example.test/" });
+  assert.equal(rootClient.wpBase, "https://www.example.test", "origin root slash must be normalized");
+
+  for (const unsafeApiBase of [
+    "https://user:password@cms.example.test/wp-json",
+    "https://cms.example.test/wp-json?",
+    "https://cms.example.test/wp-json?preview=1",
+    "https://cms.example.test/wp-json#",
+    "https://cms.example.test/wp-json#preview"
+  ]) {
+    const unsafeClient = loadWpClient({ apiBase: unsafeApiBase });
+    assert.equal(
+      unsafeClient.wpApiBase,
+      defaultApiBase,
+      "WordPress API base must reject credentials, query strings, and fragments"
+    );
+  }
+
+  for (const unsafePublicBase of [
+    "https://user:password@www.example.test",
+    "https://www.example.test?",
+    "https://www.example.test?preview=1",
+    "https://www.example.test#",
+    "https://www.example.test#preview"
+  ]) {
+    const unsafeClient = loadWpClient({ publicBase: unsafePublicBase });
+    assert.equal(
+      unsafeClient.wpBase,
+      defaultPublicBase,
+      "public WordPress base must reject credentials, query strings, and fragments"
+    );
+  }
+}
+
+async function assertNormalizedUrlsAreUsed() {
+  let requestedUrl;
+  const client = loadWpClient({
+    apiBase: "https://cms.example.test/subdir/wp-json/",
+    publicBase: "https://www.example.test/wordpress/",
+    fetchImpl: async (url) => {
+      requestedUrl = url;
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  await client.wpFetch("/wp/v2/pages?slug=about");
+  assert.equal(
+    requestedUrl,
+    "https://cms.example.test/subdir/wp-json/wp/v2/pages?slug=about",
+    "WordPress request URL must preserve the configured path without a double slash"
+  );
+  assert.equal(
+    client.absoluteUrl("/wp-content/uploads/image.jpg"),
+    "https://www.example.test/wordpress/wp-content/uploads/image.jpg",
+    "public WordPress URL must preserve the configured path without a double slash"
+  );
 }
 
 function createHangingFetch(onRequest) {
@@ -253,6 +341,8 @@ async function assertNativeFetchPreservesCallerAbort() {
 }
 
 assertWpApiBaseValidation();
+await assertNormalizedUrlsAreUsed();
+assertOriginTimeoutValidation();
 await assertNativeFetchTimesOutIntoFallback();
 await assertNativeFetchPreservesCallerAbort();
 
