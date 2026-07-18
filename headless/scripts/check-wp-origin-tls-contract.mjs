@@ -11,6 +11,10 @@ const read = (file) => readFileSync(join(root, file), "utf8");
 
 const originRequestSource = read("lib/wp/origin-request.ts");
 const originSource = read("lib/wp/origin.ts");
+const cutoverChecklist = readFileSync(
+  join(root, "../pm/HEADLESS-CUTOVER-CHECKLIST.md"),
+  "utf8"
+);
 
 assert.match(originRequestSource, /from ["']node:https["']/, "origin transport must use node:https");
 assert.doesNotMatch(originRequestSource, /from ["']node:http["']/, "origin transport must not import node:http");
@@ -20,6 +24,11 @@ assert.doesNotMatch(
   "TLS certificate verification must never be disabled"
 );
 assert.match(originSource, /`https:\/\/\$\{WP_ORIGIN_IP\}`/, "origin base URL must be HTTPS");
+assert.match(cutoverChecklist, /https:\/\/85\.131\.213\.108\/wp-json/);
+assert.doesNotMatch(cutoverChecklist, /WP_API_BASE_URL[^\n]+http:\/\/85\.131\.213\.108/);
+assert.match(cutoverChecklist, /85\.131\.213\.108:443/);
+assert.match(cutoverChecklist, /TLS SNI/);
+assert.match(cutoverChecklist, /rejectUnauthorized/);
 
 let capturedOptions;
 let writtenBody;

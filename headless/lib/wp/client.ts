@@ -33,7 +33,12 @@ function resolveAbsoluteHttpUrl(value: string | undefined, fallback: string): st
   }
 }
 
-export const wpApiBase = resolveAbsoluteHttpUrl(process.env.WP_API_BASE_URL, DEFAULT_WP_API_BASE);
+function resolveAbsoluteHttpsUrl(value: string | undefined, fallback: string): string {
+  const resolved = resolveAbsoluteHttpUrl(value, fallback);
+  return resolved.startsWith("https://") ? resolved : fallback;
+}
+
+export const wpApiBase = resolveAbsoluteHttpsUrl(process.env.WP_API_BASE_URL, DEFAULT_WP_API_BASE);
 export const wpBase = resolveAbsoluteHttpUrl(process.env.NEXT_PUBLIC_WP_BASE_URL, DEFAULT_WP_BASE);
 
 function toOriginPath(url: string): string {

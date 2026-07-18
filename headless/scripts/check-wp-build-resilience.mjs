@@ -106,6 +106,7 @@ function assertOriginTimeoutValidation() {
 
 function loadWpClient({
   fetchImpl = () => Promise.reject(new Error("unexpected native fetch")),
+  originRequestImpl,
   timeoutMs = "5",
   apiBase = "https://wp.example.test/wp-json",
   publicBase = "https://www.example.test"
@@ -144,7 +145,8 @@ function loadWpClient({
       require(id) {
         if (id === "@/lib/wp/origin-request") {
           return {
-            requestWpOrigin() {
+            requestWpOrigin(...args) {
+              if (originRequestImpl) return originRequestImpl(...args);
               throw new Error("native fetch test must not use the direct IP request path");
             },
             resolveWpOriginTimeoutMs(value) {
@@ -156,7 +158,8 @@ function loadWpClient({
         if (id === "@/lib/wp/origin") {
           return {
             WP_ORIGIN_IP: "127.0.0.1",
-            usesWpOriginIp: () => false,
+            usesWpOriginIp: (value) =>
+              value.includes("85.131.213.108") || value.includes("127.0.0.1"),
             wpOriginBaseUrl: "https://127.0.0.1",
             wpOriginHost: "wp.example.test"
           };
@@ -169,6 +172,47 @@ function loadWpClient({
   );
 
   return module.exports;
+}
+
+async function assertPlaintextWpApiConfigCannotReceiveAuthorization() {
+  let nativeFetchCalled = false;
+  let originRequest;
+  const client = loadWpClient({
+    apiBase: "http://cms.example.test/wp-json",
+    fetchImpl: async () => {
+      nativeFetchCalled = true;
+      return new Response("[]", { status: 200 });
+    },
+    originRequestImpl: async (path, init) => {
+      originRequest = { path, init };
+      return new Response("[]", {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  });
+
+  await client.wpFetch("/wp/v2/shop/42", {
+    method: "POST",
+    headers: {
+      Authorization: "Basic test-only-credential",
+      "Content-Type": "application/json"
+    },
+    body: "{}"
+  });
+
+  assert.equal(
+    client.wpApiBase,
+    "https://85.131.213.108/wp-json",
+    "plaintext WordPress API configuration must fall back to the verified TLS origin"
+  );
+  assert.equal(nativeFetchCalled, false, "Authorization must never be sent with native HTTP fetch");
+  assert.equal(originRequest?.path, "/wp-json/wp/v2/shop/42");
+  assert.equal(
+    new Headers(originRequest?.init?.headers).get("authorization"),
+    "Basic test-only-credential",
+    "Authorization may be forwarded only through the verified TLS origin helper"
+  );
 }
 
 function assertWpApiBaseValidation() {
@@ -341,6 +385,7 @@ async function assertNativeFetchPreservesCallerAbort() {
 }
 
 assertWpApiBaseValidation();
+await assertPlaintextWpApiConfigCannotReceiveAuthorization();
 await assertNormalizedUrlsAreUsed();
 assertOriginTimeoutValidation();
 await assertNativeFetchTimesOutIntoFallback();
