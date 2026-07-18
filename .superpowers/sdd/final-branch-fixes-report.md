@@ -67,3 +67,10 @@
 - 1店舗だけの日次更新疎通試験
 
 上記2件が成功するまでrelease完了とは判定しない。
+
+## Minor follow-up
+
+- `pm/PROGRESS.md`冒頭の古い停止状態を現在の正本へ統一した。
+- 旧password候補はprovider拒否で無効かつ再発行しない。専用SSH key設定、SSH workflow実装・独立レビュー、push・deploy承認は完了済みとして記録した。
+- 未完了は初回main deployと1店舗疎通試験だけで、両方成功までrelease完了と判定しない。
+- コード変更、test再実行、push、deploy、本番操作は行っていない。

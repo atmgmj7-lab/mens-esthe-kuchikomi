@@ -8,7 +8,8 @@
 - HTTPの`WP_API_BASE_URL`が設定されても固定HTTPS originへ戻し、Authorization/CookieをHTTP native fetchへ渡さない回帰検査を追加。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。
 - WordPress専用user・専用capability・新Application Passwordを本番へ作成し、HTTPS認証200、Vercel Production登録、管理者旧Application Password残数0を確認。GitHubの旧WordPress secretsも削除した。
 - Geminiはサービスアカウント紐付け型へ交換してAPI 200。旧キーは削除またはGoogle漏えい検出403で利用不能。日次proxy secretもGitHub/Vercelへ登録済み。
-- Xserverの旧FTP/サーバーパスワード再発行、GitHub再設定、1店舗疎通試験が未完了のため、push/deployは停止中。
+- Xserverの旧FTP/サーバーpassword候補はproviderから拒否され無効で、再発行しない。デプロイ専用SSH keyは外部設定済みで、SSH workflowの実装・独立レビューも完了した。
+- push・deployはユーザー承認済み。残りは初回main deployと1店舗疎通試験で、両方が成功するまでrelease完了とは判定しない。
 
 ### 2026-07-18 Phase 16 一覧・店舗詳細の精密再調整 完了
 
