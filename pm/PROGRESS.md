@@ -2,14 +2,15 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
-### 2026-07-18 認証経路修正・認証情報ローテーション 進行中
+### 2026-07-18〜19 Phase 17本番反映・認証経路修正 完了
 
 - 06/12以降の401は資格情報の一斉失効ではなく、headless切替後にWordPress Application PasswordをHTTP originへ送る経路になったことが主因。HTTPS:443、正しいHost/TLS SNI、証明書検証、redirect非追従へ修正した。
 - HTTPの`WP_API_BASE_URL`が設定されても固定HTTPS originへ戻し、Authorization/CookieをHTTP native fetchへ渡さない回帰検査を追加。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。
 - WordPress専用user・専用capability・新Application Passwordを本番へ作成し、HTTPS認証200、Vercel Production登録、管理者旧Application Password残数0を確認。GitHubの旧WordPress secretsも削除した。
 - Geminiはサービスアカウント紐付け型へ交換してAPI 200。旧キーは削除またはGoogle漏えい検出403で利用不能。日次proxy secretもGitHub/Vercelへ登録済み。
 - Xserverの旧FTP/サーバーpassword候補はproviderから拒否され無効で、再発行しない。デプロイ専用SSH keyは外部設定済みで、SSH workflowの実装・独立レビューも完了した。
-- push・deployはユーザー承認済み。残りは初回main deployと1店舗疎通試験で、両方が成功するまでrelease完了とは判定しない。
+- mainへpushし、Vercel本番、国内SSH経由のXserver本番、24店舗の出典35件、対象外温泉2店舗のdraft、投稿ID1221の1店舗日次更新成功まで確認した。Phase 17のrelease gateは完了した。
+- GitHub ActionsからXserverへのSSHだけは国外接続制限で認証前に切断される。現在の本番は国内SSHで反映済み。将来自動反映の運用課題としてBLOCK-001へ分離した。
 
 ### 2026-07-18 Phase 16 一覧・店舗詳細の精密再調整 完了
 
@@ -3288,3 +3289,11 @@ pm/PROGRESS.md
 - SSH workflow実装・独立レビューは完了。初回mainデプロイと1店舗疎通だけをBLOCK-001へ残し、両方成功までrelease完了と判定しない。
 - focused RED/Green、全test、lint、typecheck、旧dashboard 5/5・Headless 824/824 build、PHP/YAML/bash構文、差分検査を実行した。画面表示コードの変更がないためbrowser QAは省略した。
 - push、deploy、本番WordPress/Supabase操作、認証情報の取得・表示は行っていない。
+
+## 2026-07-19 Phase 17 本番反映・1店舗疎通 完了
+
+- main `bf9346b`までpush。Vercel run `29663069657`成功。XserverはGitHub標準runnerの国外SSH制限を確認し、同一stageを国内SSHから反映してPHP構文・dashboard生成物を検証した。
+- WordPress正本へ出典35件／24店舗を登録し、未確認82件・順位0件は非反映。温泉2店舗（1259、1255）はdraftへ移行した。
+- 日次更新はcanonical `/wp-json/escomi/v1/update/`へ統一し、指定店舗・保存0件failの検証モードを追加。run `29663074388`で1221を1件更新し、成功1・失敗0を確認した。
+- 本番10条件（5route×PC/SP）はHTTP 200・横はみ出し0。店舗詳細の可視電話予約は各幅1つ、対象外2店舗404、GA PHP origin 404、dashboard未認証401を確認した。
+- 全test、lint、typecheck、日次8 unit、workflow契約、YAML、差分検査が成功。独立レビュー0件。旧FTP GitHub secretsは全削除し、WordPressを公開データ元として維持した。

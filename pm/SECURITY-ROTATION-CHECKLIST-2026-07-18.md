@@ -1,8 +1,8 @@
 # WordPress日次更新 認証情報ローテーション確認表
 
-Status: `in_progress`（初回mainデプロイ・1店舗疎通試験待ち）
+Status: `in_progress`（1店舗疎通と本番反映は完了。GitHub ActionsからXserverへの国外SSH制限だけ対応待ち）
 
-SSHデプロイ処理の実装と独立レビューは完了している。push・deployはユーザー承認済みだが、初回mainデプロイと1店舗疎通試験が成功するまでrelease完了とは判定しない。認証情報そのものは、この文書・issue・ログ・スクリーンショットへ記録しない。
+Phase 17のpush・Vercel本番・国内SSH経由のXserver本番・1店舗疎通は完了した。GitHub標準runnerからのSSHはXserverの国外制限で認証前に切断されるため、自動反映だけ継続課題とする。認証情報そのものは、この文書・issue・ログ・スクリーンショットへ記録しない。
 
 | 完了 | 確認項目 | 実施者 | 確認時刻（JST） | 証跡URL |
 |---|---|---|---|---|
@@ -19,7 +19,7 @@ SSHデプロイ処理の実装と独立レビューは完了している。push�
 | [x] | デプロイ専用SSH keyを外部環境へ設定する | 外部確認 | 2026-07-19 | 外部設定完了（秘密鍵・値は非表示） |
 | [x] | GitHub Actionsのデプロイ処理をFTPからSSHへ移行する | Codex | 2026-07-19 | `.github/workflows/deploy.yml`とSSH deploy契約検査 |
 | [x] | SSHデプロイ処理の独立レビューを完了する | Codex | 2026-07-19 | 最終横断レビューと修正契約検査 |
-| [ ] | SSHへ移行した処理で初回デプロイを行い、成功を確認する |  |  |  |
+| [ ] | GitHub ActionsのSSH処理で初回自動デプロイ成功を確認する | Codex | 2026-07-19 | run 29663069664は国外SSH制限でexit 255。国内SSHによる同一stageの本番反映・PHP検証は成功 |
 | [x] | GitHubの旧`WP_USER` secretを削除する | Codex | 2026-07-18 18:47 | https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/settings/secrets/actions |
 | [x] | GitHubの旧`WP_APP_PASSWORD` secretを削除する | Codex | 2026-07-18 18:47 | https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/settings/secrets/actions |
 | [x] | 日次更新専用WordPress userを1名作成する | Codex | 2026-07-18 18:44 | Xserver WP-CLI |
@@ -27,13 +27,13 @@ SSHデプロイ処理の実装と独立レビューは完了している。push�
 | [x] | 専用user用の新Application Passwordを発行する | Codex | 2026-07-18 18:46 | Xserver WP-CLI（値は非表示） |
 | [x] | Vercelへ日次更新専用のWordPress認証設定を登録する | Codex | 2026-07-18 18:46 | https://vercel.com/narikiyos-projects/escomi-headless/settings/environment-variables |
 | [x] | GitHubへ`DAILY_UPDATE_PROXY_SECRET`を登録する | Codex | 2026-07-18 18:21 | https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/settings/secrets/actions |
-| [ ] | 1店舗だけを対象に日次更新の疎通試験を行う |  |  |  |
+| [x] | 1店舗だけを対象に日次更新の疎通試験を行う | Codex | 2026-07-19 | https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/actions/runs/29663074388（1221、更新成功1・失敗0） |
 
 ## 判定
 
-- 現在: `in_progress`（SSHデプロイ処理の実装・独立レビューは完了。初回mainデプロイと1店舗疎通試験は未完了）
+- 現在: `in_progress`（Phase 17 releaseと1店舗疎通は完了。GitHub ActionsのXserver自動SSHだけ未完了）
 - 完了条件: 全項目がチェック済みで、実施者・確認時刻・証跡URLが記入されていること
-- release判定: 承認済みpush・deployを進めても、初回mainデプロイと1店舗疎通試験が成功するまではrelease完了としない
+- release判定: Phase 17本番releaseは完了。Xserver自動反映の運用改善はBLOCK-001で継続する
 - 禁止事項: 承認範囲を越える本番WordPress更新、本番Supabase更新、認証情報の取得・表示
 
 ## 2026-07-18 補足
@@ -47,4 +47,4 @@ SSHデプロイ処理の実装と独立レビューは完了している。push�
 
 - 旧Xserver SFTP/FTP password候補は提供元で拒否され、無効である。旧候補は再発行せず、FTP方式を廃止する。
 - デプロイ専用SSH keyの外部設定は完了している。鍵の値はこの文書・ログへ記録しない。
-- GitHub ActionsのSSH移行と独立レビューは完了した。移行後の初回mainデプロイと1店舗だけの日次更新疎通試験は未完了である。
+- GitHub ActionsのSSH移行と独立レビュー、国内SSHによる本番反映、1店舗日次更新は完了した。GitHub標準runnerはXserverの国外SSH制限で認証前に切断されるため、自動反映だけ未完了である。

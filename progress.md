@@ -1,14 +1,15 @@
 # Progress Log
 
-## Session: 2026-07-18（認証経路修正・ローテーション進行中）
+## Session: 2026-07-18〜19（Phase 17本番反映・日次更新疎通完了）
 
-- **Status:** in progress（Xserver password再発行・GitHub再設定・1店舗疎通試験・push/deploy待ち）
+- **Status:** complete（Phase 17本番反映・本番QA・1店舗疎通完了。GitHub ActionsからXserverへのSSHだけ国外接続制限で別ブロッカー）
 - 06/12以降の日次更新401は、複数資格情報の同時失効ではなく、headless切替でWordPress originがHTTP:80になりApplication Password認証が拒否されたことが主因と特定した。
 - `5f5cb90`と`c9b3bc6`でWordPress originを証明書検証付きHTTPS:443へ固定し、HTTP設定でもAuthorization/Cookieを平文送信しない契約テストを追加した。独立再レビューはCritical/Important/Minor 0、Ready: Yes。
 - WordPress日次更新専用userを作成し、専用capability保持者1名、新Application PasswordのHTTPS認証200、Vercel Production登録を確認した。管理者の旧Application Passwordは残数0、GitHubの旧`WP_USER`/`WP_APP_PASSWORD`も削除した。
 - Geminiは専用サービスアカウント紐付け型キーへ交換し、API 200とGitHub secret更新を確認した。旧キーは削除、またはGoogle側の漏えい検出403で利用不能を確認した。
 - `DAILY_UPDATE_PROXY_SECRET`はGitHubとVercel Productionへ同値登録済み。`.env`と`.vscode/sftp.json`はGit追跡外・ignore対象。
-- 残りの本番前ゲートは、Xserverの旧FTP/サーバーパスワード再発行、新値のGitHub secret登録、1店舗疎通試験。その完了まではpush/deployしない。
+- mainへpushし、Vercel本番、国内SSH経由のXserver本番、24店舗の出典35件、対象外温泉2店舗のdraft、投稿ID1221の1店舗日次更新成功まで確認した。旧FTP GitHub secretsは全削除した。
+- GitHub標準runnerはXserverの国外SSH制限で認証前に切断される。現在の本番反映は成功済みだが、将来自動反映のためXserver側を「すべてのアクセスを許可」にするか国内runnerへ移す必要がある。
 
 ## Session: 2026-07-16
 
@@ -637,3 +638,12 @@
 - security確認表とBLOCK-001はSSH実装・独立レビュー完了へ更新し、残作業を初回mainデプロイと1店舗疎通だけにした。承認済みpush自体を禁止せず、両方成功までrelease完了としない。
 - focused RED/Green、全`npm test`、両画面lint、型、旧5/5・Headless 824/824 build、PHP/YAML/bash構文、差分検査を実行した。表示コードを変更していないためbrowser QAは不要と判定した。
 - 認証情報の取得・表示、push、deploy、本番WordPress/Supabase操作は行っていない。
+
+## 2026-07-19 Phase 17 本番反映・実データ・疎通完了
+
+- `586cc38`をmainへpushし、Vercel run `29662339283`を成功させた。Xserver Actionsは国外SSH制限でexit 255になったため、同じ検証済みstageを国内回線から依存PHP先行・`functions.php`最後の順で反映し、主要PHP構文とdashboard出力を本番で確認した。
+- 堺筋本町30店舗を再照合し、公開値hashが一次情報と一致した35件を24店舗の`shop_fact_provenance`へ登録した。未確認82件と順位0件は反映していない。`あしぎぬ温泉`（1259）と`天然温泉 ひなたの湯`（1255）は復元可能なdraftへ移した。
+- 日次更新の308を正規末尾slash URLへ直し、手動target指定・保存0件failを追加した。run `29663074388`でRiru cheri（1221）1店舗だけを処理し、WordPress更新成功1件・失敗0件、401/400 preflight成功を確認した。空の出勤情報は推測で補っていない。
+- 最終mainは`bf9346b`。Vercel run `29663069657`は成功。PC 1440pxとSP 390pxで5routeずつ計10条件を本番確認し、HTTP 200、H1、main、横はみ出し0、店舗詳細の可視電話予約1件を確認した。対象外2店舗は404、旧GA PHP originは404。
+- 全`npm test`、lint、typecheck、日次8 unit、SSH deploy契約、YAML、差分検査が成功。独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。
+- 旧`FTP_PASSWORD`、`FTP_HOST`、`FTP_USERNAME`、`FTP_PATH` GitHub secretsは削除済み。公開データ元はWordPressのままで、Supabase公開切替は行っていない。

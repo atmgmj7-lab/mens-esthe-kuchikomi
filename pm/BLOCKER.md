@@ -2,13 +2,15 @@
 
 ## 対応中
 
-### [BLOCK-001] 初回SSHデプロイ・1店舗疎通確認待ち
+### [BLOCK-001] GitHub ActionsからXserverへの国外SSH制限
 - **再起票日**: 2026-07-19（旧FTP運用は2026-05-09に一度解決）
-- **影響**: SSH workflowの実装・独立レビューは完了。初回mainデプロイと1店舗疎通が成功するまでrelease完了とは判定しない
+- **影響**: 現在の本番は国内SSHで反映済み。将来のmain push時にXserverテーマだけ自動反映できない
 - **場所**: GitHub Actionsのデプロイ処理、XserverのSSH設定
 - **外部設定**: デプロイ専用SSH keyは設定済み（値は非表示）。旧password候補は再発行しない
 - **承認状態**: push・deployはユーザー承認済み
-- **残タスク**: 初回mainデプロイ、1店舗だけの日次更新疎通試験
+- **確認済み**: Vercel本番成功、国内SSH本番成功、1店舗日次更新成功1・失敗0
+- **原因**: GitHub標準runnerをXserverが国外接続として認証前に切断する。鍵・known_hosts・host・portの失効ではない
+- **残タスク**: Xserver SSH設定を「すべてのアクセスを許可」にしてrunを再実行するか、国内self-hosted runnerへ移す
 
 ---
 
@@ -16,7 +18,7 @@
 - **起票日**: 2026-04-05
 - **影響**: 監視・店舗データ自動更新パイプラインの一部が未整理
 - **場所**: 子テーマ `ai-site-monitor/` および `mens-esthe-seo-tools` リポジトリ
-- **残タスク例**: 本番での `ai_auto_updater.py` 試験、`.env.example` の Gemini 追記、`crawl4ai` 未使用なら requirements 整理
+- **残タスク例**: `.env.example` の Gemini 追記、`crawl4ai` 未使用なら requirements 整理
 
 ---
 

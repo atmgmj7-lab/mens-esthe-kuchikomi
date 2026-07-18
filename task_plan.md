@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 17 in_progress（Task 1〜6は独立レビュー0件で完了。ユーザー指定のTask 3〜6完了位置で停止）
+Phase 17 complete（Task 1〜8の実装・独立レビュー・本番反映・本番QA・1店舗更新疎通まで完了。XserverのGitHub Actions国外SSH制限は運用ブロッカーとして分離）
 
 ## Phases
 
@@ -174,7 +174,8 @@ Phase 17 in_progress（Task 1〜6は独立レビュー0件で完了。ユーザ�
 - Task 6: `ba7c33b`、独立レビュー Critical 0 / Important 0 / Minor 0
 - Task 7: `e7f3a48..c3133e5`、独立再レビュー Critical 0 / Important 0 / Minor 0
 - Task 8: `39d4e82`と`1bb8c76`で全幅QA・検証記録・初回レビュー指摘を保存。再レビューのfixture幅指摘も、本番6階層・computed grid・公開実route同値比較へ修正した。
-- **Status:** in_progress（Task 1〜8のローカル実装・レビュー指摘修正完了、Task 8の独立再確認と本番反映判断は未実施）
+- Release: `586cc38`、`cb83de6`、`bf9346b`をmainへ反映。Vercel本番、国内SSH経由のXserver本番、WordPress実データ、1店舗日次更新を検証した。
+- **Status:** complete（Task 1〜8、独立レビュー、本番PC/SP QA、出典35件、対象外2店舗draft、1店舗更新成功まで完了）
 
 ### Phase 18: AI一括取込・管理画面
 - [ ] Phase 0として匿名debug、REST認証全体解除、任意meta更新、認証header転送、cache fail-openを先に解消する
