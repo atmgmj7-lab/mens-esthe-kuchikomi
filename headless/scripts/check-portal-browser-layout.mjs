@@ -1,11 +1,15 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
+import { createRequire } from "node:module";
 import net from "node:net";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import ts from "typescript";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const defaultBaseUrl = "http://127.0.0.1:3100";
@@ -46,9 +50,93 @@ const viewports = [...standardViewports, ...boundaryViewports];
 const testHook = process.env.PORTAL_QA_TEST_HOOK || "";
 const headed = process.env.PORTAL_QA_HEADED === "1";
 const summaryFileName = testHook === "smoke" ? "summary-headless-smoke.json" : "summary.json";
-const runViewports = testHook ? viewports.slice(0, 1) : viewports;
-const runRoutes = testHook ? routes.slice(0, 1) : routes;
+const graphFixtureHook = testHook === "graph-fixture" || testHook === "graph-fixture-all";
+const runViewports = testHook === "graph-fixture-all" ? viewports : testHook ? viewports.slice(0, 1) : viewports;
+const runGraphFixture = !testHook || graphFixtureHook;
+const runRoutes = graphFixtureHook ? [] : testHook ? routes.slice(0, 1) : routes;
 const runDashboardRoutes = testHook ? [] : dashboardRoutes;
+const require = createRequire(import.meta.url);
+
+async function renderReviewGraphFixture() {
+  const componentFile = path.join(
+    projectRoot,
+    "components",
+    "shop-detail",
+    "ShopReviewDashboard.tsx"
+  );
+  const cssFile = path.join(
+    projectRoot,
+    "components",
+    "shop-detail",
+    "ShopDetail.module.css"
+  );
+  const [componentSource, productionCss] = await Promise.all([
+    fs.readFile(componentFile, "utf8"),
+    fs.readFile(cssFile, "utf8")
+  ]);
+  const result = ts.transpileModule(componentSource, {
+    compilerOptions: {
+      esModuleInterop: true,
+      jsx: ts.JsxEmit.ReactJSX,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020
+    },
+    fileName: componentFile,
+    reportDiagnostics: true
+  });
+  const errors = (result.diagnostics ?? []).filter(
+    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error
+  );
+  if (errors.length > 0) {
+    throw new Error("ShopReviewDashboard.tsx did not transpile for browser QA");
+  }
+
+  const module = { exports: {} };
+  const cssIdentity = new Proxy(
+    {},
+    {
+      get: (_target, property) =>
+        property === "__esModule" ? false : String(property)
+    }
+  );
+  const localRequire = (specifier) => {
+    if (specifier === "./ShopDetail.module.css") return cssIdentity;
+    return require(specifier);
+  };
+  new Function("require", "module", "exports", result.outputText)(
+    localRequire,
+    module,
+    module.exports
+  );
+  const { ShopReviewDashboard } = module.exports;
+  const model = {
+    status: "available",
+    totalApproved: 5,
+    showGraph: true,
+    aggregateRating: 4.6,
+    aggregateRatingCount: 3,
+    metrics: [
+      { key: "total", label: "総合評価", value: 4.6, count: 3 },
+      { key: "price", label: "料金満足度", value: 4.4, count: 4 },
+      { key: "service", label: "接客満足度", value: 4.7, count: 3 },
+      { key: "cleanliness", label: "清潔感", value: 4.8, count: 5 }
+    ],
+    latest: [],
+    dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
+  };
+  const markup = renderToStaticMarkup(
+    React.createElement(ShopReviewDashboard, { model })
+  );
+  const fixtureCss = `
+    :root { --ink: #14221c; --sub: #5f6d67; --green: #176b4d; --line: #dce3df; --gold: #aa7a21; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; max-width: 100%; margin: 0; }
+    body { padding: 16px; color: var(--ink); background: #fff; font-family: system-ui, sans-serif; }
+    main { width: 100%; max-width: 960px; min-width: 0; margin: 0 auto; }
+    ${productionCss}
+  `;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${fixtureCss}</style></head><body><main data-review-graph-fixture="true">${markup}</main></body></html>`;
+}
 
 function dashboardCredentials() {
   if (!process.env.PORTAL_BASE_URL) {
@@ -219,15 +307,18 @@ function isAllowedConsoleError(message) {
 }
 
 function summaryFor(status) {
+  const fixtureCount = runGraphFixture ? 1 : 0;
   return {
     status,
     runId,
     startedAt,
     completedAt: status === "running" ? null : new Date().toISOString(),
     routes: runRoutes.length + runDashboardRoutes.length,
+    fixtures: fixtureCount,
     standardWidths: standardViewports.length,
     measuredViewports: runViewports.length,
-    expectedScenarios: (runRoutes.length + runDashboardRoutes.length) * runViewports.length,
+    expectedScenarios:
+      (runRoutes.length + runDashboardRoutes.length + fixtureCount) * runViewports.length,
     completedScenarios,
     assertions: assertionCount,
     screenshots: screenshotCount,
@@ -496,6 +587,7 @@ async function collectMetrics(page) {
             reviewSectionCount: reviewSection ? 1 : 0,
             reviewGraphCount: reviewGraph ? 1 : 0,
             reviewFallbackCount: reviewFallback ? 1 : 0,
+            reviewFallbackText: reviewFallback?.textContent?.trim() ?? null,
             graphText,
             visibleActionGroups: visibleGroups.map((group) => ({
               box: rect(group),
@@ -599,12 +691,21 @@ function assertShopGeometry(metrics, viewport, label) {
   });
   check(
     shop.reviewGraphCount + shop.reviewFallbackCount === 1,
-    `${label} shop review graph or explicit threshold state exists`,
+    `${label} public review state is explicit`,
     {
       graphCount: shop.reviewGraphCount,
       fallbackCount: shop.reviewFallbackCount
     }
   );
+  if (shop.reviewFallbackCount === 1) {
+    check(
+      shop.reviewFallbackText === "評価グラフは承認済み評価3件以上で表示します。" ||
+        shop.reviewFallbackText ===
+          "口コミ情報を現在取得できません。時間をおいて再度ご確認ください。",
+      `${label} public unavailable or threshold state is accurate`,
+      { text: shop.reviewFallbackText }
+    );
+  }
   if (shop.reviewGraphCount === 1) {
     check(shop.graphText.length >= 3, `${label} shop review graph exposes measurable text`, {
       count: shop.graphText.length
@@ -1021,31 +1122,170 @@ function basicAuthorization(username, password) {
 }
 
 async function checkDashboardAuthentication() {
-  const request = async (authorization) => {
-    const headers = authorization ? { Authorization: authorization } : undefined;
-    return fetch(`${baseUrl}/dashboard/`, {
-      headers,
-      redirect: "manual",
-      signal: AbortSignal.timeout(10_000)
+  for (const route of dashboardRoutes) {
+    const request = async (authorization) => {
+      const headers = authorization ? { Authorization: authorization } : undefined;
+      return fetch(`${baseUrl}${route.path}`, {
+        headers,
+        redirect: "manual",
+        signal: AbortSignal.timeout(10_000)
+      });
+    };
+    const label = `${route.name} ${route.path}`;
+
+    const unauthenticated = await request(null);
+    check(unauthenticated.status === 401, `${label} unauthenticated request is rejected`, {
+      status: unauthenticated.status
     });
-  };
 
-  const unauthenticated = await request(null);
-  check(unauthenticated.status === 401, "dashboard unauthenticated request is rejected", {
-    status: unauthenticated.status
+    const invalid = await request(basicAuthorization("invalid-qa-user", "invalid-qa-password"));
+    check(invalid.status === 401, `${label} invalid authentication is rejected`, {
+      status: invalid.status
+    });
+
+    const authenticated = await request(
+      basicAuthorization(qaDashboardCredentials.username, qaDashboardCredentials.password)
+    );
+    check(authenticated.status === 200, `${label} QA authentication is accepted`, {
+      status: authenticated.status
+    });
+  }
+}
+
+async function collectReviewGraphFixtureMetrics(page) {
+  return page.evaluate(() => {
+    const graph = document.querySelector(
+      '[role="group"][aria-label="承認済み口コミの評価グラフ"]'
+    );
+    const fallback = [...document.querySelectorAll("p")].find((paragraph) =>
+      /評価グラフは|口コミ情報を現在取得できません/.test(paragraph.textContent ?? "")
+    );
+    const rect = (box) => ({
+      x: box.x,
+      y: box.y,
+      top: box.top,
+      left: box.left,
+      right: box.right,
+      bottom: box.bottom,
+      width: box.width,
+      height: box.height
+    });
+    const graphBox = graph ? graph.getBoundingClientRect() : null;
+    const textRanges = [];
+    if (graph) {
+      const walker = document.createTreeWalker(graph, NodeFilter.SHOW_TEXT);
+      let node = walker.nextNode();
+      while (node) {
+        const text = node.data.trim();
+        if (text) {
+          node.parentElement?.scrollIntoView({ block: "center", inline: "nearest" });
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          textRanges.push({
+            text,
+            box: rect(range.getBoundingClientRect()),
+            graphBox: rect(graph.getBoundingClientRect())
+          });
+        }
+        node = walker.nextNode();
+      }
+    }
+    return {
+      graphCount: graph ? 1 : 0,
+      fallbackCount: fallback ? 1 : 0,
+      graphBox: graphBox ? rect(graphBox) : null,
+      graphClientWidth: graph?.clientWidth ?? null,
+      graphScrollWidth: graph?.scrollWidth ?? null,
+      svgBoxes: [...(graph?.querySelectorAll("svg") ?? [])].map((svg) => {
+        svg.scrollIntoView({ block: "center", inline: "nearest" });
+        return {
+          box: rect(svg.getBoundingClientRect()),
+          graphBox: rect(graph.getBoundingClientRect())
+        };
+      }),
+      textRanges,
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth
+    };
   });
+}
 
-  const invalid = await request(basicAuthorization("invalid-qa-user", "invalid-qa-password"));
-  check(invalid.status === 401, "dashboard invalid authentication is rejected", {
-    status: invalid.status
+function assertReviewGraphFixtureMetrics(metrics, viewport) {
+  const label = `review-graph-fixture ${viewport.name}`;
+  check(metrics.graphCount === 1, `${label} renders production graph`, {
+    count: metrics.graphCount
   });
+  check(metrics.fallbackCount === 0, `${label} does not accept threshold fallback`, {
+    count: metrics.fallbackCount
+  });
+  check(Boolean(metrics.graphBox), `${label} graph rectangle exists`);
+  if (!metrics.graphBox) return;
 
-  const authenticated = await request(
-    basicAuthorization(qaDashboardCredentials.username, qaDashboardCredentials.password)
+  const contained = (box, graphBox) =>
+    box.width > 0 &&
+    box.height > 0 &&
+    box.left >= graphBox.left - 1 &&
+    box.right <= graphBox.right + 1 &&
+    box.top >= graphBox.top - 1 &&
+    box.bottom <= graphBox.bottom + 1 &&
+    box.left >= -1 &&
+    box.right <= viewport.width + 1 &&
+    box.top >= -1 &&
+    box.bottom <= viewport.height + 1;
+  check(
+    metrics.graphScrollWidth <= metrics.graphClientWidth,
+    `${label} graph horizontal overflow is zero`,
+    { scrollWidth: metrics.graphScrollWidth, clientWidth: metrics.graphClientWidth }
   );
-  check(authenticated.status === 200, "dashboard QA authentication is accepted", {
-    status: authenticated.status
+  check(metrics.scrollWidth === metrics.clientWidth, `${label} document horizontal overflow is zero`, {
+    scrollWidth: metrics.scrollWidth,
+    clientWidth: metrics.clientWidth
   });
+  check(metrics.bodyScrollWidth <= metrics.clientWidth, `${label} body horizontal overflow is zero`, {
+    bodyScrollWidth: metrics.bodyScrollWidth,
+    clientWidth: metrics.clientWidth
+  });
+  check(metrics.svgBoxes.length === 1, `${label} has one rating SVG`, {
+    count: metrics.svgBoxes.length
+  });
+  for (const [index, svg] of metrics.svgBoxes.entries()) {
+    check(
+      contained(svg.box, svg.graphBox),
+      `${label} SVG ${index + 1} has a contained actual rectangle`,
+      svg
+    );
+  }
+
+  const expectedText = [
+    "4.6",
+    "/ 5.0",
+    "総合評価",
+    "3件の有効回答",
+    "料金満足度",
+    "4.4",
+    "4件",
+    "接客満足度",
+    "4.7",
+    "3件",
+    "清潔感",
+    "4.8",
+    "5件"
+  ];
+  for (const text of expectedText) {
+    check(
+      metrics.textRanges.some((range) => range.text === text),
+      `${label} renders expected graph text: ${text}`,
+      { actual: metrics.textRanges.map((range) => range.text) }
+    );
+  }
+  for (const [index, range] of metrics.textRanges.entries()) {
+    check(
+      contained(range.box, range.graphBox),
+      `${label} text Range ${index + 1} is nonzero and contained`,
+      range
+    );
+  }
 }
 
 async function waitForDashboardReady(page) {
@@ -1182,6 +1422,7 @@ try {
         httpCredentials: qaDashboardCredentials
       })
     : null;
+  const reviewGraphFixtureMarkup = runGraphFixture ? await renderReviewGraphFixture() : null;
 
   for (const viewport of runViewports) {
     for (const route of runRoutes) {
@@ -1251,6 +1492,58 @@ try {
         }
         completedScenarios += 1;
         console.log(`checked ${route.name} at ${viewport.name}`);
+      } finally {
+        page.off("pageerror", onPageError);
+        page.off("console", onConsole);
+        for (const issue of runtimeIssues) {
+          check(false, `${scenarioLabel} browser ${issue.type}`, issue);
+        }
+        try {
+          await page.close();
+        } catch (error) {
+          fail(`${scenarioLabel} page cleanup`, errorDetails(error));
+        }
+      }
+    }
+  }
+
+  if (reviewGraphFixtureMarkup) {
+    for (const viewport of runViewports) {
+      const scenarioLabel = `review-graph-fixture ${viewport.name}`;
+      const runtimeIssues = [];
+      const page = await publicContext.newPage();
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      const onPageError = (error) => {
+        runtimeIssues.push({ type: "pageerror", ...errorDetails(error) });
+      };
+      const onConsole = (message) => {
+        if (message.type() !== "error") return;
+        runtimeIssues.push({
+          type: "console.error",
+          message: sanitizeRuntimeText(message.text()),
+          location: sanitizeRuntimeText(message.location().url)
+        });
+      };
+      page.on("pageerror", onPageError);
+      page.on("console", onConsole);
+
+      try {
+        await page.setContent(reviewGraphFixtureMarkup, { waitUntil: "domcontentloaded" });
+        await waitForStableLayout(page);
+        const metrics = await collectReviewGraphFixtureMetrics(page);
+        assertReviewGraphFixtureMetrics(metrics, viewport);
+
+        if (viewport.screenshot) {
+          const screenshotPath = path.join(
+            runScreenshotDir,
+            `review-graph-fixture-${viewport.name}.png`
+          );
+          await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 120_000 });
+          screenshotCount += 1;
+          screenshotFiles.push(path.relative(reportDir, screenshotPath));
+        }
+        completedScenarios += 1;
+        console.log(`checked review-graph-fixture at ${viewport.name}`);
       } finally {
         page.off("pageerror", onPageError);
         page.off("console", onConsole);

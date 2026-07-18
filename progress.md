@@ -612,3 +612,11 @@
 - 最終は`npm test`、lint、typecheck、824/824 build（build ID `JOV17sh0ZfpTYYlPc4yXr`）、headless 84 scenarios・90,155 assertions・48 screenshots・failures 0、performance 6対象、High/Critical 0、`git diff --check`がexit 0。
 - security確認表の旧Xserver password再発行2項目と1店舗疎通は未完了のまま。旧FTP方式は廃止し、外部設定済みの専用SSH鍵・known_hosts・GitHub variablesを使うdeploy workflow移行を次taskで行う。未完了項目を完了扱いにしていない。
 - Task 8の独立横断レビュー、AI非公開staging、セラピスト・出勤連動は未実施。通常Chromeは操作せず、認証値をlog、summary、screenshot名へ出さず、push、deploy、本番WordPress/Supabase操作は行っていない。
+
+## 2026-07-19 Phase 17 Task 8 レビュー指摘修正
+
+- `/dashboard/`と`/dashboard/analytics/`の両方で、認証なし401、不正認証401、QA認証200を個別確認するようbrowser QAを修正した。
+- 本番`ShopReviewDashboard.tsx`をTypeScript変換し、本番`ShopDetail.module.css`をidentity class mappingで適用する非公開fixtureを追加した。`showGraph=true`の固定modelで、SVGと全label・数値・件数をRange実寸計測し、graph内・viewport内・横はみ出し0を14条件で確認する。公開routeの取得不能/3件未満表示は正確な状態表示として別確認し、graph実測の代用にしない。
+- 修正前は認証route網羅、graph fixture、認証表、BLOCK-001の4 source assertionが失敗した。初回全browserはCSS module identityの誤りでSVG 4条件が失敗し、正しいclass mappingへ直した後にgraph専用14/14と全browser 98/98を成功させた。検査条件は緩めていない。
+- 最終確認は`npm test`、lint、typecheck、824/824 build（build ID `4mQkXziAHjCL6rhR1Wu6g`）、headless 98 scenarios・90,648 assertions・56 screenshots・failures 0、performance 6対象、High/Critical 0、`git diff --check`が成功した。
+- 認証情報確認表とBLOCKERの矛盾を解消した。旧Xserver password候補は提供元で拒否され無効、再発行しない。専用SSH keyは外部設定済みだが、workflowのSSH移行、初回deploy、1店舗疎通は未完了。push、deploy、本番WordPress/Supabase操作は行っていない。

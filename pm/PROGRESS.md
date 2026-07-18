@@ -3261,3 +3261,12 @@ pm/PROGRESS.md
 - 口コミmodule移動に追従していなかった`test:content-provenance`へ新所有ファイルを1行追加した。focused検査と通常`npm test`、lint、typecheck、824/824 build、performance 6対象、High/Critical 0、`git diff --check`はすべてexit 0。
 - security確認表の旧Xserver password再発行2項目と1店舗疎通は未完了。旧password候補は提供元で拒否され無効で、ユーザー判断により再発行しない。旧FTP方式を廃止し、専用SSH鍵・known_hosts・GitHub variablesは外部設定済みだが、workflowのSSH移行は次taskのため本番反映可能とは判定しない。
 - AI非公開staging、承認公開、セラピスト・出勤連動、Task 8独立横断レビューは未実施。通常Chromeを操作せず、認証値をlog、summary、screenshot名へ出さず、push、deploy、本番WordPress/Supabase操作は行っていない。
+
+## 2026-07-19 Phase 17 Task 8 レビュー指摘修正
+
+- dashboard認証確認を2routeそれぞれの認証なし401、不正認証401、QA認証200へ拡張した。
+- 本番`ShopReviewDashboard.tsx`と`ShopDetail.module.css`を使う非公開browser fixtureを追加した。`showGraph=true`固定modelでSVG、全label、数値、件数のRange実寸を測り、14表示条件でgraph内・viewport内・横はみ出し0を確認する。公開routeの取得不能/3件未満表示をgraph実測の代用にしない。
+- 修正前の4 source assertionは失敗を確認済み。初回browserでCSS module identity誤りによるSVG 4 failureを検出し、class mappingを修正した。最終は98 scenarios・90,648 assertions・56 screenshots・failures 0。
+- `npm test`、lint、typecheck、824/824 build（build ID `4mQkXziAHjCL6rhR1Wu6g`）、performance 6対象、High/Critical 0、`git diff --check`が成功した。
+- `pm/SECURITY-ROTATION-CHECKLIST-2026-07-18.md`と`pm/BLOCKER.md`を現状へ統一した。旧password候補は提供元で拒否され無効、再発行しない。専用SSH keyは外部設定済み。SSH workflow移行、初回deploy、1店舗疎通は未完了で、BLOCK-001を対応中へ戻した。
+- 通常Chrome、push、deploy、本番WordPress/Supabase操作は行っていない。Task 8の独立再確認と本番反映判断は別工程のまま。
