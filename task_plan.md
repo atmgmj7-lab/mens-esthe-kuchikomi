@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 17 in_progress（Task 1〜3は独立レビュー0件で完了。Task 4の分析ダッシュボード共通化を開始）
+Phase 17 in_progress（Task 1〜4は独立レビュー0件で完了。Task 5の承認済み口コミ公開contractを開始）
 
 ## Phases
 

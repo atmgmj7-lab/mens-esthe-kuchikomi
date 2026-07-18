@@ -364,7 +364,7 @@ git commit -m "fix: fail closed dashboard administration routes"
 - Consumes: existing `AnalyticsDashboard` and dashboard routes。
 - Produces: `DASHBOARD_NAV_GROUPS`、`DashboardShell({children})`、全dashboard route共通navigation。
 
-- [ ] **Step 1: 共通shellの失敗testを書く**
+- [x] **Step 1: 共通shellの失敗testを書く**
 
 ```js
 assert.match(layoutSource, /<DashboardShell>\s*\{children\}\s*<\/DashboardShell>/s);
@@ -383,13 +383,13 @@ assert.match(shellCss, /grid-template-columns:\s*minmax\(220px,\s*260px\)\s+minm
 assert.match(shellCss, /@media\s*\(max-width:\s*900px\)/);
 ```
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-dashboard-shell-contract.mjs`
 
 Expected: `DashboardShell`不在でFAIL。
 
-- [ ] **Step 3: route registryを実装する**
+- [x] **Step 3: route registryを実装する**
 
 ```ts
 export type DashboardNavItem = {
@@ -411,15 +411,15 @@ export const DASHBOARD_NAV_GROUPS = [
 
 未実装の管理routeはこのtaskでmenuへ出さない。
 
-- [ ] **Step 4: 共通shellをlayoutへ移す**
+- [x] **Step 4: 共通shellをlayoutへ移す**
 
 `DashboardShell`はPCで左navigation + main、900px以下で上部drawer + 1カラムとする。headerに「Eskomi Growth Command」「エスコミ管理ダッシュボード」、footerを1回だけ表示し、各pageから重複shellを削除する。DOM順はnavigation→mainとし、skip link、現在地`aria-current=page`、44px以上の操作を持つ。
 
-- [ ] **Step 5: 初期分析取得を変えない**
+- [x] **Step 5: 初期分析取得を変えない**
 
 `/dashboard/`は`<AnalyticsDashboard />`、`/dashboard/analytics/`は`<AnalyticsDashboard showWeekly showQuickLinks={false} />`を維持する。管理一覧API requestや固定badgeを追加しない。`WPQuickLinks`のlocalhost専用linkと、処理のないAI Workbench buttonは削除する。実装済みのGA4、Search Console、WordPress管理linkだけを操作要素として残す。
 
-- [ ] **Step 6: mock fallbackを削除し、未連携を明示する**
+- [x] **Step 6: mock fallbackを削除し、未連携を明示する**
 
 `ga.ts`の`mockDaily`、`mockTotals`、`MOCK_PAGES`、`MOCK_CREATIVES`、`MOCK_CTA`と、`searchConsole.ts`の`MOCK_SEARCH_*`を削除する。全取得関数は次のdiscriminated unionを返す。
 
@@ -433,13 +433,13 @@ HTTP 200で空配列・0集計を受けた場合は`{ status: "live", data: [] }
 
 `AnalyticsDashboard`はGA4、Search Console、分析用Supabaseを別sourceとして状態保持し、各panelへデータ元と最終取得成否を表示する。GA合計がliveでもページ別取得に失敗した場合はページrankingを未取得状態にし、別sourceの固定配列を実データとして表示しない。現在のbrowser用`dashboard-supabase.ts`は分析読取だけに限定し、後続の非公開管理stagingへ再利用しない。`GoogleAnalytics`はpathnameが`/dashboard`から始まる場合、pageview、click listener、Scriptを全て無効にする。
 
-- [ ] **Step 7: GREENとbuildを確認する**
+- [x] **Step 7: GREENとbuildを確認する**
 
 Run: `cd headless && node scripts/check-dashboard-shell-contract.mjs && npm run test:q06-seo-metadata && npm run test:visible-eskomi-brand && npm run typecheck && npm run lint && npm run build`
 
 Expected: contract、typecheck、lint、build PASS。
 
-- [ ] **Step 8: commitする**
+- [x] **Step 8: commitする**
 
 ```bash
 git add headless/app/dashboard headless/app/globals.css headless/components/AnalyticsDashboard.tsx headless/components/GoogleAnalytics.tsx headless/components/WPQuickLinks.tsx headless/components/dashboard headless/lib/dashboard/navigation.ts headless/lib/dashboard/data-result.ts headless/lib/ga.ts headless/lib/searchConsole.ts headless/scripts/check-dashboard-shell-contract.mjs headless/scripts/check-q06-seo-metadata.mjs headless/scripts/check-visible-eskomi-brand.mjs headless/package.json

@@ -3213,3 +3213,12 @@ pm/PROGRESS.md
 - レビュー修正で再検証例外を明示500へ変換し、200/400/401/500/503すべてへ`no-store`と`noindex, nofollow`を付与した。Runbookも未認証401・認証済み200の確認へ修正した。
 - focused、Q-06、通常`npm test`、型、lint、441/441 build、PHP構文、実サーバー認証確認が成功。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready。
 - push、deploy、本番操作は未実施。Task 1の資格情報ローテーション完了までは本番反映不可を維持する。
+
+## 2026-07-18 Phase 17 Task 4 分析ダッシュボード共通shell
+
+- dashboard 2routeを共通shellへ統合し、PC左navigation、900px以下drawer、skip link、`aria-current`、44px操作領域、320px横はみ出し0を実装した。
+- GA4・Search Console・分析用Supabaseの取得状態を分離し、成功0件と未設定・通信失敗・不正responseを区別する。固定mock、架空fallback、localhost、未実装AI操作を削除した。
+- 管理画面ではGA Script、pageview、shop view、click listenerを停止する。旧Xserver dashboardも同じlive envelopeへ統一し、co-deploy時のmock表示と形式衝突を解消した。
+- GA proxyは未設定・取得失敗を503とし、実0/0件はlive、rowありの必須値欠損・非数値は拒否する。新旧折れ線graphは1点・全0・短期間でも有限座標と一意keyを維持する。
+- focused、PHP実行fixture、通常`npm test`、型、lint、旧5/5・新441/441 build、通常/reduced motion browser 3連続が成功。独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready。
+- 旧dashboard依存の`npm audit` low 1 / moderate 3は今回差分外の既知リスクとして依存更新taskへ分離。push、deploy、本番操作は未実施。

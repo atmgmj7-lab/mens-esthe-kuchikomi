@@ -560,3 +560,12 @@
 - cache再検証をPOSTと専用headerだけへ限定し、WordPress側はsecret未設定なら送信しない。200/400/401/500/503をすべて保存禁止・検索対象外に統一した。
 - 実装commitは`f1b56f3`、レビュー修正は`cdb9368`。focused、Q-06、通常`npm test`、型、lint、441/441 build、PHP構文、実サーバー認証確認が成功した。
 - 独立再レビューはCritical 0 / Important 0 / Minor 0、Ready。push、deploy、本番操作は未実施し、資格情報ローテーションの本番前必須条件を維持する。
+
+## 2026-07-18 Phase 17 Task 4 分析ダッシュボード共通shell
+
+- `/dashboard/`と`/dashboard/analytics/`を同じ共通shellへ統合し、PCは左navigation、900px以下は開閉menu、skip link、現在地、44px操作領域を実装した。
+- GA4、Search Console、分析用Supabaseを項目別のlive/unavailableへ分離し、画面・旧配信dashboard・GA proxyから架空値と固定fallbackを削除した。管理画面内のGA Script・閲覧・click計測も停止した。
+- 旧Xserver dashboardと新Headlessの同時配信を揃え、GA4 envelope、欠損row拒否、0件と不正応答の区別、1点・全0グラフを新旧両方で固定した。
+- スマホmenuは通常・動作軽減設定で3回連続、open後先頭link、Escape後button、route後main、320px横はみ出し0を確認した。
+- 実装・レビュー修正commitは`e4dcff9`、`a752f78`、`e790d8c`、`59e5b4e`。旧dashboard 5/5、新Headless 441/441 build、全test、型、lint、PHP fixtureが成功した。
+- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready。旧dashboard依存のaudit low 1 / moderate 3は今回差分外の既知リスクとして別管理し、push、deploy、本番操作は未実施。
