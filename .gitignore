@@ -27,6 +27,7 @@ supabase/imports/*.sql
 
 # エディタ
 .cursor/
+.vscode/
 *.swp
 
 # Codex feature worktrees

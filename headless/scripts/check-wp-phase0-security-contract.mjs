@@ -27,25 +27,27 @@ const [
     readRepositoryFile("headless/package.json"),
   ]);
 
-const trackedPrivateEnv = execFileSync(
-  "git",
-  ["ls-files", "--", "ai-site-monitor/.env"],
-  { cwd: repositoryRoot, encoding: "utf8" },
-).trim();
-assert.equal(
-  trackedPrivateEnv,
-  "",
-  "ai-site-monitor/.env must not be tracked",
-);
-try {
-  execFileSync(
+function assertUntrackedAndIgnored(relativePath) {
+  const trackedPath = execFileSync(
     "git",
-    ["check-ignore", "--no-index", "--quiet", "ai-site-monitor/.env"],
-    { cwd: repositoryRoot, stdio: "ignore" },
-  );
-} catch {
-  assert.fail("ai-site-monitor/.env must remain ignored");
+    ["ls-files", "--", relativePath],
+    { cwd: repositoryRoot, encoding: "utf8" },
+  ).trim();
+  assert.equal(trackedPath, "", `${relativePath} must not be tracked`);
+
+  try {
+    execFileSync(
+      "git",
+      ["check-ignore", "--no-index", "--quiet", relativePath],
+      { cwd: repositoryRoot, stdio: "ignore" },
+    );
+  } catch {
+    assert.fail(`${relativePath} must remain ignored`);
+  }
 }
+
+assertUntrackedAndIgnored("ai-site-monitor/.env");
+assertUntrackedAndIgnored(".vscode/sftp.json");
 
 const envExampleEntries = new Map();
 for (const line of envExampleSource.split(/\r?\n/)) {

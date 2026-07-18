@@ -58,6 +58,9 @@ final class Eskomi_Test_Wpdb {
 		}
 
 		if ( str_starts_with( $query, 'DELETE ' ) ) {
+			if ( $GLOBALS['eskomi_test_fail_lock_release'] ) {
+				return false;
+			}
 			list( $name, $expected ) = $args;
 			if ( ! array_key_exists( $name, $GLOBALS['eskomi_test_options'] )
 				|| $GLOBALS['eskomi_test_options'][ $name ] !== $expected
@@ -80,10 +83,15 @@ function eskomi_test_reset_runtime(): void {
 	$GLOBALS['eskomi_test_options']           = array();
 	$GLOBALS['eskomi_test_log_count']         = 0;
 	$GLOBALS['eskomi_test_deleted_posts']     = array();
+	$GLOBALS['eskomi_test_operational_events'] = array();
 	$GLOBALS['eskomi_test_can_update']        = true;
 	$GLOBALS['eskomi_test_fail_meta_key']     = null;
 	$GLOBALS['eskomi_test_fail_meta_remaining'] = 0;
+	$GLOBALS['eskomi_test_fail_meta_on_call'] = array();
+	$GLOBALS['eskomi_test_meta_call_counts']  = array();
 	$GLOBALS['eskomi_test_fail_insert']       = false;
+	$GLOBALS['eskomi_test_fail_delete_post']  = false;
+	$GLOBALS['eskomi_test_fail_lock_release'] = false;
 	$GLOBALS['eskomi_test_uuid_counter']      = 0;
 }
 
@@ -92,6 +100,14 @@ eskomi_test_reset_runtime();
 function add_action() {}
 function register_post_type() {}
 function register_rest_route() {}
+function do_action( $hook, ...$args ) {
+	if ( 'eskomi_daily_update_operational_log' === $hook ) {
+		$GLOBALS['eskomi_test_operational_events'][] = $args;
+	}
+}
+function apply_filters( $hook, $value ) {
+	return 'eskomi_daily_update_write_error_log' === $hook ? false : $value;
+}
 function get_posts() { return array(); }
 function absint( $value ) { return abs( (int) $value ); }
 function get_post_type( $post_id ) { return 42 === (int) $post_id ? 'shop' : 'post'; }
@@ -117,6 +133,9 @@ function wp_insert_post() {
 	return 1000 + $GLOBALS['eskomi_test_log_count'];
 }
 function wp_delete_post( $post_id ) {
+	if ( $GLOBALS['eskomi_test_fail_delete_post'] ) {
+		return false;
+	}
 	$GLOBALS['eskomi_test_deleted_posts'][] = (int) $post_id;
 	unset( $GLOBALS['eskomi_test_meta'][ $post_id ] );
 	return true;
@@ -128,6 +147,13 @@ function metadata_exists( $meta_type, $post_id, $key ) {
 	return array_key_exists( $key, $GLOBALS['eskomi_test_meta'][ $post_id ] ?? array() );
 }
 function update_post_meta( $post_id, $key, $value ) {
+	$GLOBALS['eskomi_test_meta_call_counts'][ $key ] =
+		( $GLOBALS['eskomi_test_meta_call_counts'][ $key ] ?? 0 ) + 1;
+	$call_number = $GLOBALS['eskomi_test_meta_call_counts'][ $key ];
+	if ( in_array( $call_number, $GLOBALS['eskomi_test_fail_meta_on_call'][ $key ] ?? array(), true ) ) {
+		return false;
+	}
+
 	if ( $GLOBALS['eskomi_test_fail_meta_key'] === $key
 		&& $GLOBALS['eskomi_test_fail_meta_remaining'] > 0
 	) {
@@ -375,6 +401,81 @@ if ( 'old' !== get_post_meta( 42, 'shop_today_analysis', true )
 	|| metadata_exists( 'post', 42, 'shop_last_ai_check' )
 ) {
 	eskomi_test_fail( 'Audit insert failure was not rolled back.' );
+}
+
+eskomi_test_reset_runtime();
+$GLOBALS['eskomi_test_meta'][42]['shop_today_analysis'] = 'old analysis';
+$GLOBALS['eskomi_test_meta'][42]['shop_availability']   = 'old availability';
+$GLOBALS['eskomi_test_fail_meta_on_call'] = array(
+	'shop_today_therapists' => array( 1 ),
+	'shop_availability'     => array( 2 ),
+);
+$rollback_failure = handle_ai_shop_update_final(
+	eskomi_test_request(
+		eskomi_test_uuid( 403 ),
+		array(
+			'shop_today_analysis'   => 'new analysis',
+			'shop_availability'     => 'new availability',
+			'shop_today_therapists' => array( array( 'name' => 'n' ) ),
+		)
+	)
+);
+eskomi_test_expect_error( $rollback_failure, 'rollback_failed' );
+if ( 'old analysis' !== get_post_meta( 42, 'shop_today_analysis', true ) ) {
+	eskomi_test_fail( 'Rollback stopped before restoring snapshots after the failed key.' );
+}
+if ( str_contains( $rollback_failure->message . serialize( $rollback_failure->data ), 'shop_availability' ) ) {
+	eskomi_test_fail( 'Rollback failure key leaked into the external response.' );
+}
+if ( empty( $GLOBALS['eskomi_test_operational_events'] ) ) {
+	eskomi_test_fail( 'Rollback failure was not recorded internally.' );
+}
+$rollback_event = $GLOBALS['eskomi_test_operational_events'][ count( $GLOBALS['eskomi_test_operational_events'] ) - 1 ];
+if ( 'rollback_failed' !== $rollback_event[0]
+	|| ! in_array( 'shop_availability', $rollback_event[1], true )
+) {
+	eskomi_test_fail( 'Rollback failure did not record the failed key internally.' );
+}
+
+eskomi_test_reset_runtime();
+$GLOBALS['eskomi_test_meta'][42]['shop_today_analysis'] = 'old';
+$GLOBALS['eskomi_test_fail_meta_on_call']['log_target_shop'] = array( 1 );
+$GLOBALS['eskomi_test_fail_delete_post'] = true;
+$audit_cleanup_failure = handle_ai_shop_update_final(
+	eskomi_test_request( eskomi_test_uuid( 404 ), array( 'shop_today_analysis' => 'new' ) )
+);
+eskomi_test_expect_error( $audit_cleanup_failure, 'audit_cleanup_failed' );
+if ( 'old' !== get_post_meta( 42, 'shop_today_analysis', true ) ) {
+	eskomi_test_fail( 'Audit cleanup failure did not roll back shop data.' );
+}
+if ( empty( $GLOBALS['eskomi_test_operational_events'] ) ) {
+	eskomi_test_fail( 'Audit cleanup failure was not recorded internally.' );
+}
+$audit_event = $GLOBALS['eskomi_test_operational_events'][ count( $GLOBALS['eskomi_test_operational_events'] ) - 1 ];
+if ( 'audit_cleanup_failed' !== $audit_event[0] ) {
+	eskomi_test_fail( 'Audit cleanup failure recorded the wrong operational event.' );
+}
+
+eskomi_test_reset_runtime();
+$GLOBALS['eskomi_test_fail_lock_release'] = true;
+$lock_release_failure = handle_ai_shop_update_final(
+	eskomi_test_request( eskomi_test_uuid( 405 ), array( 'shop_today_analysis' => 'committed' ) )
+);
+eskomi_test_expect_error( $lock_release_failure, 'lock_release_failed' );
+if ( 'committed' !== get_post_meta( 42, 'shop_today_analysis', true )
+	|| ! metadata_exists( 'post', 42, ESKOMI_DAILY_UPDATE_REQUEST_META_KEY )
+) {
+	eskomi_test_fail( 'Committed update was lost when lock release failed.' );
+}
+if ( str_contains( $lock_release_failure->message . serialize( $lock_release_failure->data ), '|' ) ) {
+	eskomi_test_fail( 'Lock token leaked into the external response.' );
+}
+if ( empty( $GLOBALS['eskomi_test_operational_events'] ) ) {
+	eskomi_test_fail( 'Lock release failure was not recorded internally.' );
+}
+$lock_event = $GLOBALS['eskomi_test_operational_events'][ count( $GLOBALS['eskomi_test_operational_events'] ) - 1 ];
+if ( 'lock_release_failed' !== $lock_event[0] || ! empty( $lock_event[1] ) ) {
+	eskomi_test_fail( 'Lock release operational event must not contain token details.' );
 }
 
 eskomi_test_reset_runtime();

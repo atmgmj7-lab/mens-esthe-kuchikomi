@@ -422,6 +422,37 @@ function escomi_write_daily_meta_value( $post_id, $key, $value ) {
 }
 
 /**
+ * 秘密値やlock tokenを含めず、運用上の失敗だけを内部記録する。
+ *
+ * @param string $event     Event name.
+ * @param array  $meta_keys Failed meta keys.
+ * @return void
+ */
+function escomi_daily_operational_log( $event, $meta_keys = array() ) {
+	$safe_event = sanitize_key( $event );
+	$safe_keys  = array_values(
+		array_filter(
+			array_map( 'sanitize_key', $meta_keys )
+		)
+	);
+
+	do_action( 'eskomi_daily_update_operational_log', $safe_event, $safe_keys );
+	$write_error_log = apply_filters(
+		'eskomi_daily_update_write_error_log',
+		true,
+		$safe_event,
+		$safe_keys
+	);
+	if ( $write_error_log ) {
+		$message = '[Eskomi daily update] event=' . $safe_event;
+		if ( ! empty( $safe_keys ) ) {
+			$message .= ' meta_keys=' . implode( ',', $safe_keys );
+		}
+		error_log( $message );
+	}
+}
+
+/**
  * 保存済みmetaを逆順に元へ戻す。
  *
  * @param int   $post_id  Post ID.
@@ -429,6 +460,7 @@ function escomi_write_daily_meta_value( $post_id, $key, $value ) {
  * @return true|WP_Error
  */
 function escomi_restore_daily_meta_snapshots( $post_id, $snapshots ) {
+	$failed_keys = array();
 	foreach ( array_reverse( $snapshots ) as $snapshot ) {
 		$key = $snapshot['key'];
 		if ( $snapshot['exists'] ) {
@@ -441,8 +473,13 @@ function escomi_restore_daily_meta_snapshots( $post_id, $snapshots ) {
 		}
 
 		if ( ! $restored ) {
-			return new WP_Error( 'rollback_failed', '店舗情報を元に戻せませんでした', array( 'status' => 500 ) );
+			$failed_keys[] = $key;
 		}
+	}
+
+	if ( ! empty( $failed_keys ) ) {
+		escomi_daily_operational_log( 'rollback_failed', $failed_keys );
+		return new WP_Error( 'rollback_failed', '店舗情報を元に戻せませんでした', array( 'status' => 500 ) );
 	}
 
 	return true;
@@ -470,9 +507,9 @@ function escomi_daily_error_after_rollback( $shop_id, $snapshots, $error ) {
  * @return WP_REST_Response|WP_Error
  */
 function escomi_apply_daily_shop_update( $request, $validated, $shop_id ) {
-	$request_id    = $validated['request_id'];
-	$now           = time();
-	$recent        = escomi_get_recent_daily_request_ids( $shop_id, $now );
+	$request_id     = $validated['request_id'];
+	$now            = time();
+	$recent         = escomi_get_recent_daily_request_ids( $shop_id, $now );
 	$stored_history = get_post_meta( $shop_id, ESKOMI_DAILY_UPDATE_REQUEST_META_KEY, true );
 
 	foreach ( $recent as $entry ) {
@@ -564,11 +601,17 @@ function escomi_apply_daily_shop_update( $request, $validated, $shop_id ) {
 		);
 		foreach ( $log_values as $key => $value ) {
 			if ( ! escomi_write_daily_meta_value( $log_id, $key, $value ) ) {
-				wp_delete_post( $log_id, true );
+				$deleted_log = wp_delete_post( $log_id, true );
+				if ( ! $deleted_log ) {
+					escomi_daily_operational_log( 'audit_cleanup_failed' );
+					$error = new WP_Error( 'audit_cleanup_failed', '監査ログの後処理に失敗しました', array( 'status' => 500 ) );
+				} else {
+					$error = new WP_Error( 'audit_log_failed', '監査ログを保存できませんでした', array( 'status' => 500 ) );
+				}
 				return escomi_daily_error_after_rollback(
 					$shop_id,
 					$snapshots,
-					new WP_Error( 'audit_log_failed', '監査ログを保存できませんでした', array( 'status' => 500 ) )
+					$error
 				);
 			}
 		}
@@ -609,11 +652,26 @@ function handle_ai_shop_update_final( $request ) {
 		return $lock;
 	}
 
+	$result   = null;
+	$released = false;
 	try {
-		return escomi_apply_daily_shop_update( $request, $validated, $shop_id );
+		$result = escomi_apply_daily_shop_update( $request, $validated, $shop_id );
 	} finally {
-		escomi_release_daily_shop_lock( $lock );
+		$released = escomi_release_daily_shop_lock( $lock );
 	}
+
+	if ( ! $released ) {
+		escomi_daily_operational_log( 'lock_release_failed' );
+		if ( ! is_wp_error( $result ) ) {
+			return new WP_Error(
+				'lock_release_failed',
+				'更新は完了しましたが後処理に失敗しました',
+				array( 'status' => 503, 'retry_after' => ESKOMI_DAILY_UPDATE_LOCK_TTL )
+			);
+		}
+	}
+
+	return $result;
 }
 
 add_action(

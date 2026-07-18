@@ -12,6 +12,10 @@ Status: `required`
 | [ ] | 過去に追跡された`ai-site-monitor/.env`とGit履歴に含まれるGemini API key候補を、値を転記せず提供元で特定して失効する |  |  |  |
 | [ ] | Gemini API keyを再発行し、必要な実行環境だけへ登録する |  |  |  |
 | [ ] | `ai-site-monitor/.env`がGit追跡外かつignore対象であることを確認する |  |  |  |
+| [ ] | 過去に追跡された`.vscode/sftp.json`・Git履歴・端末出力に含まれる全Xserver SFTP/FTP password候補を、値を転記せず提供元で特定する |  |  |  |
+| [ ] | 特定した全Xserver SFTP/FTP password候補を失効し、新しいpasswordを再発行する |  |  |  |
+| [ ] | 再発行したXserver SFTP/FTP passwordを必要な実行環境だけへ再設定する |  |  |  |
+| [ ] | `.vscode/sftp.json`がGit追跡外かつignore対象であることを確認する |  |  |  |
 | [ ] | GitHubの旧`WP_USER` secretを削除する |  |  |  |
 | [ ] | GitHubの旧`WP_APP_PASSWORD` secretを削除する |  |  |  |
 | [ ] | 日次更新専用WordPress userを1名作成する |  |  |  |
