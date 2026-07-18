@@ -3166,3 +3166,14 @@ pm/PROGRESS.md
 - PC 1440pxとスマホ390pxで、横スクロール0、4:3画像、店舗責任者導線、スマホ固定導線を確認。画像なし店舗も代替画像が4:3で表示された。
 - 本番Supabaseのmigration履歴、RLS、匿名拒否、service role権限を確認。Security / Performance Advisorはともにerror 0 / warning 0。
 - Phase 4の調査値は非公開候補のまま維持し、WordPress公開情報、Supabase公開view、公開参照先は変更していない。
+
+## 2026-07-18 Phase 17 店舗詳細・AI管理・セラピスト連動 設計完了
+
+- 店舗詳細を1カラム・二層anchor menu・口コミ優先・基本情報下部へ再構成する設計書を更新した。
+- 口コミgraphはWordPress `reviews`の承認済み実データ3件以上だけを使い、最新3件と専用口コミ一覧、AggregateRatingを共通adapterへ統一する。
+- 管理者がCodex/ChatGPT向け調査指示書を生成し、JSON/CSVを非公開stagingへ取込み、差分・出典・観測日を確認後、承認fieldだけWordPressへ反映する別設計書を追加した。
+- 店舗情報の確認状況は料金・営業時間・アクセス・予約・公式URL・画像の6項目とし、field別provenanceと公開値hashが一致する場合だけ確認済みにする。
+- セラピストはWordPress `therapist`、出勤は`therapist_schedule`を正本にし、店舗詳細・セラピスト詳細・トップ・一覧・地域を共通IDで連動する。
+- security読取監査で既存REST保護解除、匿名debug、任意meta更新、Authorization転送、cache fail-openを確認した。実装順0番の安全化が完了するまで新管理書込を接続しない。
+- architecture・securityの独立再レビューはCritical 0 / Important 0 / Go。Google評価は対象外、公式site crawlerと外部portal月次取得は後工程とした。
+- 現在はユーザーの改訂設計書確認待ち。コード実装、WordPress/Supabase書込、push、deploy、本番公開は未実施。

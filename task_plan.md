@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 17 in_progress（店舗詳細を1カラム・二層タブ・口コミ優先・将来拡張可能な構成へ再設計。実データグラフの正本確認中）
+Phase 17 in_progress（公開店舗UIとAI管理・セラピスト連動の改訂設計を独立レビュー済み。ユーザーの最終設計確認待ち）
 
 ## Phases
 
@@ -160,10 +160,33 @@ Phase 17 in_progress（店舗詳細を1カラム・二層タブ・口コミ優�
 - [x] 年齢層・在籍数・出勤数・外部評価・外部順位の取得方法と段階導入範囲を確定する
 - [x] 3案の構造を比較し、検証済みデータ優先の1カラム・二層メニュー設計を承認する
 - [x] 設計書を保存し、placeholder・矛盾・曖昧さ・過剰範囲を自己レビューする
+- [x] AI一括取込・WordPress管理・セラピスト連動の別設計書を作成する
+- [x] architectureとsecurityの別担当レビューを行い、公開正本・権限・競合・監査・cache契約を修正する
 - [ ] ユーザーが保存済み設計書を確認する
 - [ ] テスト先行の実装計画を作成し、実装担当と別担当レビューへ分ける
 - [ ] PC/SP・SEO・アクセシビリティ・実データ境界を検証する
 - **Status:** in_progress
+
+### Phase 18: AI一括取込・管理画面
+- [ ] Phase 0として匿名debug、REST認証全体解除、任意meta更新、認証header転送、cache fail-openを先に解消する
+- [ ] fail-closedの管理routeとSupabase非公開stagingを実装する
+- [ ] 店舗一覧、手入力、AI調査指示書生成、JSON/CSV取込を実装する
+- [ ] WordPress現在値との差分、出典、観測日、承認日を確認できる画面を実装する
+- [ ] 承認済みfieldだけWordPressへ反映し、公開履歴と再実行を検証する
+- **Status:** pending
+
+### Phase 19: セラピスト・出勤・トップ連動
+- [ ] WordPressのセラピストCPTと店舗relationshipを実装する
+- [ ] 管理画面のセラピスト・年齢帯・出勤入力を実装する
+- [ ] セラピスト詳細、店舗詳細、トップ、店舗一覧を共通IDで連動する
+- [ ] 年齢層・在籍数・出勤を実データのある場合だけ表示する
+- **Status:** pending
+
+### Phase 20: 8月SEO店舗・地域充実
+- [ ] Search Consoleで優先地域と対象queryの基準値を確定する
+- [ ] 対象外店舗を整理し、一次情報・画像・独自本文・内部linkを優先地域へ追加する
+- [ ] 地域ごとの表示回数、click、平均掲載順位、10位以内queryを週次確認する
+- **Status:** pending
 
 ## Key Questions
 
@@ -213,11 +236,13 @@ Phase 17 in_progress（店舗詳細を1カラム・二層タブ・口コミ優�
 | Supabase標準DB port 54322が別ローカルprojectで使用中 | 1 | 他projectを停止せず、このprojectのlocal portを57320番台へ分離する |
 | `.env*` が存在しない状態でzsh globを展開し、環境変数名確認が失敗 | 1 | globを使わず `rg --files` で存在するenvファイルだけを確認する |
 | 公式statusとchangelogの同時取得が60秒以上応答しない | 1 | 実行を中止し、status APIとchangelog画面を別々に取得して成功した |
-| 進行ファイル更新patchの対象行指定が一致せず失敗 | 1 | 対象行を `rg -n` で確認し、小さいpatchに分けて更新した |
+| 進行ファイル更新patchの対象行指定が一致せず失敗 | 3 | 対象行を `rg -n` で確認し、小さいpatchに分けて更新した |
+| 設計レビュー反映を1つの大きなpatchで行い、末尾の対象行が一致せず失敗 | 2 | 現在の設計書を再読し、対象sectionごとの小さいpatchへ分けて反映した |
 | trial SQLを `supabase db query --file` で実行すると複数文prepared statement error | 1 | local SupabaseのPostgres containerへ同じSQLを `psql` で適用し、2回の再実行と検証に成功した |
 | 30店舗確認用の一時Node commandでshellの特殊文字が展開された | 1 | shell展開しないheredocへ切り替え、生成済みJSONの検査に成功した |
 | 30店舗本番投入時のChrome profileで対象projectを開けない | 1 | 誤projectへ書き込まず停止し、対象アカウントへ再接続後にproject refと事前件数を確認して再開した |
 | 参考動画のframe抽出で`ffprobe`が見つからない | 1 | 同じコマンドを繰り返さず、macOS Quick Lookまたはbundled Python画像ライブラリで確認する |
+| Supabase公式Markdown 3 URLの直接取得がweb tool内部エラー | 1 | 同じopenを繰り返さず、公式domain限定検索またはcurlでchangelogとsecurity文書を確認する |
 | 382店舗SQLの容量確認を `headless/` から誤った相対pathで実行 | 1 | `../supabase/imports/...` に直し、SQL 469,464 bytes・検証SQL 7,314 bytesと確認した |
 | `headless/` から計画書をroot相対pathで検索し、ファイルなしになった | 1 | `../docs/superpowers/plans/...` またはリポジトリrootからの絶対pathを使う |
 | Phase 4 preview全体を文字列検索し、管理用の `requires_human_review` まで口コミ項目と誤判定した | 1 | 管理用キーを `requires_human_check` に変更し、検査対象を公開フィールド名へ限定した |

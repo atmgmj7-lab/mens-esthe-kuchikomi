@@ -499,7 +499,7 @@
 - 現行componentとデータ境界を確認し、口コミ・予約実績比率は公開できる実データが現時点でないこと、予約導線クリックはGAで区別できることを確認した。
 - 推測グラフを作らず、表示する集計の正本・最低件数・期間・出典を先に確定してから設計書へ進む。
 - 最初のグラフは承認済み口コミの総合・料金・接客・清潔感とすることでユーザー確認済み。
-- 競合ポータル、Google Places公式仕様、現行データを比較し、外部順位は管理者確認入力、Google評価は公式API、年齢・在籍・出勤は店舗管理入力を正本にする案が安全と判断した。
+- 競合ポータル、Google Places公式仕様、現行データを比較した。外部順位は管理者確認入力、年齢・在籍・出勤は店舗管理入力を正本にし、Google評価はユーザー判断で対象外とした。
 - 既存口コミ投稿には4評価項目があり、承認済み公開口コミ3件以上の安全条件も実装済み。最初の評価グラフは既存契約を壊さず拡張できる。
 - 店舗責任者機能は現状申請受付だけで、店舗編集・会員プラン・セラピスト・出勤・ブログの保存基盤は未実装。次期UIはデータがあるmoduleだけを描画する登録方式にする必要がある。
 - 参考動画を8秒〜78秒の代表frameで確認した。大型推移グラフ、指標card、積み上げ棒、詳細内訳のうち、店舗詳細初期版には小型ring・4項目横棒・指標cardの軽量表現だけを採用する方針とした。
@@ -507,3 +507,18 @@
 - 3案を比較し、検証済みデータ優先のA案を採用した。自動取得優先は保守・誤照合リスク、会員基盤優先は現在のUI完成が遅れるため後工程とした。
 - `docs/superpowers/specs/2026-07-18-shop-detail-dashboard-foundation-design.md`へ、1カラム・二層menu、口コミdashboard、確認状況、順位、将来module、速度、SEO、対象外2店舗、検証条件を確定した。
 - 設計書はplaceholder、矛盾、曖昧語、範囲過大を自己レビューし、本文幅の曖昧表現をprofile/dashboard/table 1200px・紹介/口コミ本文960pxへ確定した。
+- ユーザーの設計レビューを受け、AI調査指示書、JSON/CSV一括取込、出典付き差分確認、承認時の更新日自動記録、WordPress公開反映を管理画面要件へ追加する方針とした。
+- 既存dashboard認証とSupabase構成を確認し、書込機能はfail-closed、service roleはserver-only、AI出力は非公開staging、公開時だけWordPressへ反映する安全境界を確定した。
+- WordPress既存の年齢帯、当日出勤、おすすめセラピスト、AI更新ログ、AI更新APIを確認した。再利用できる一方、現行APIは直接上書きのため、新管理画面では差分承認を必須にする。
+- 公開UIとAI管理・セラピスト・出勤/top連動を別subsystemへ分け、WordPress IDと共通公開view modelで接続する設計へ修正する。
+
+## 2026-07-18 Phase 17 AI管理・セラピスト連動 設計改訂
+
+- 管理者が地域・店舗・項目を選び、Codex/ChatGPT向け調査指示書を生成し、JSON/CSVを非公開取込する管理設計を`docs/superpowers/specs/2026-07-18-ai-content-admin-therapist-design.md`へ保存した。
+- 手入力とAI取込は同じ差分・承認経路を通し、出典・観測日・承認日・現在値hashを確認後、承認fieldだけWordPressへ公開する。Supabaseは非公開stagingに限定する。
+- 口コミはWordPress `reviews`、セラピストは`therapist`、出勤は`therapist_schedule`を公開正本とし、店舗詳細・セラピスト詳細・トップ・一覧・地域は共通IDとadapterを使う設計へ統一した。
+- architectureとsecurityを別担当が読取専用レビューした。口コミ集計の既存断絶、field別出典、会員入力権限と公開範囲、競合・冪等性・cache、少人数年齢保護を設計へ反映した。
+- 既存コードに匿名debug、REST認証保護の全体解除、MU plugin削除、任意店舗meta更新、受信Authorization転送、cache secret未設定時fail-openがあるため、新管理機能より先のPhase 0安全化を必須にした。
+- Google評価は対象外とし、公式サイトはURL・取得方式・最終実行・状態の管理項目だけを初期実装する。crawlerと外部portal月次自動取得は後工程へ分離した。
+- 現時点は設計のみ。コード実装、WordPress/Supabase書込、push、deploy、本番公開は行っていない。
+- 反映後の独立再レビューはarchitecture・securityともCritical 0 / Important 0 / Go。実装計画へ進める設計品質を確認した。

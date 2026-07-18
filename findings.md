@@ -34,6 +34,16 @@
 - 店舗詳細のダッシュボード表現は、本文を置き換えず「口コミの要約」と「確認済み店舗情報」の視覚補助として使う。見出し、口コミ本文、基本情報、出典はサーバーHTMLに残すため、SEOの主情報はグラフへ依存しない。
 - WordPress公開店舗に、対象外データと判断できる`あしぎぬ温泉`（ID 1259、area 5）と`天然温泉 ひなたの湯`（ID 1255、area 2・13）の2件が存在する。温泉・銭湯・サウナ・整体・美容室・脱毛・フィットネスの検索では他の明確な候補は出なかった。
 - 上記2件は現在、メンズエステ店舗としてindex可能なtitleとcanonicalを持つ公開ページで、WordPress REST、内部の監視data、Next.js店舗詳細に残っている。単なるcard非表示では不十分で、WordPressをdraft化し、公開route・sitemap・内部リンクから除外されることを確認する必要がある。
+- ユーザーは、管理者が地域・店舗を選び、CodexまたはChatGPT向けの調査指示書を生成し、AI出力のJSON/CSVを一括取込して出典・更新日付きで承認公開できる運用を希望している。外部AI APIの直接統合より、指示書生成・schema検証・差分承認を先に作る方が低コストで安全である。
+- 既存`/dashboard`はBasic認証に対応するが、認証環境変数がない場合は閲覧を許可する。店舗情報を書き換える新しい管理画面とmutation APIは、認証未設定時に必ず拒否するfail-closed guardが必要である。
+- Supabaseはimperative migration構成で、Data API公開schemaは`api`。新しいimport batchとrowはRLS有効、PUBLIC/anon/authenticated grantなし、service roleだけをserver-sideで使用する現在のowner request方式を踏襲する。
+- Supabase公式仕様でも、公開schemaのtableはRLSを有効にし、grantとRLSの両方で最小権限にする必要がある。service roleはRLSを迂回できるためbrowserへ出さず、管理routeのserver処理だけに限定する。
+- 公開正本はWordPressを維持する。AI出力はSupabaseの非公開stagingへ保存し、管理者承認後だけWordPress IDに紐づく公開metaへ反映することで、店舗詳細・セラピスト詳細・トップの参照先を分裂させない。
+- WordPressには`shop_today_therapists`、`shop_today_analysis`、`shop_availability`、7つの年齢帯、`therapist_1..3`、`shop_last_ai_check`、`ai_update_log`が既にある。headless公開画面では未使用または一部未接続なので、既存metaを正規化して再利用できる。
+- 既存`/wp-json/escomi/v1/update`は`edit_posts`権限で住所、電話、営業時間、料金、公式URL、AI要約、当日出勤、年齢帯などを直接上書きし、AI更新日時を保存する。新管理画面ではこの直接公開経路を拡張せず、非公開staging・差分・承認を必須にする。
+- `shop_last_ai_check`はAI処理日時であり、人が出典を確認した`shop_updated_at`ではない。公開確認日は承認時に別fieldへ保存し、AI処理日時を掲載確認日へ読み替えない。
+- WordPress旧表示には、availabilityが空の場合に「本日すぐご案内可能」と補う処理がある。headlessと新管理基盤では明示値がない空き状況を作らず、出勤・空きは日付と出典がある実データだけ公開する。
+- AI管理、公開店舗UI、セラピスト詳細、トップ連動は独立したsubsystemだが、`wp_shop_id`、`therapist`のWordPress relationship、共通の公開view modelを正本にして連動させる。巨大な1計画ではなく、public UI→admin import→therapist→schedule/topの順に分割する。
 
 ### 2026-07-15 SEO Phase 4開始時点
 
@@ -316,3 +326,13 @@
 - 店舗詳細は各幅で表示中の`予約・公式情報` groupを1つに限定し、H1をPC 34px以下・760px以下26px以下、facts値を18px以下として数値確認する。
 - fresh headless QAは4経路×14幅=56 scenarios、89,836 assertions、32 screenshots、failures 0。横はみ出し0、表示中CTA 44px以上を維持した。
 - 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。旧DOM前提、条件不在によるすり抜け、selector誤り、境界の欠落は見つからなかった。
+
+# 2026-07-18 AI管理・セラピスト連動 設計レビュー所見
+
+- 管理者がCodex/ChatGPTへ渡す指示書を生成し、JSON/CSVを一括取込する方式は実装可能。外部AI APIやcrawlerを初期版へ入れず、非公開staging、差分、承認、WordPress公開の順に分離すると運用負荷と誤公開を抑えられる。
+- 口コミ公開は現行`reviews`投稿typeと店舗詳細の既存集計が接続されていない。専用の承認済み口コミRESTと共通adapterを先に作り、graph・一覧・件数・AggregateRatingを同じ正本へ統一する必要がある。
+- 情報確認状況はページ更新日だけで判断できない。料金、営業時間、アクセス、予約、公式URL、画像ごとの出典、観測日、確認日、公開値hashをWordPressで持つ必要がある。
+- `functions.php`にREST認証保護の全体解除、MU plugin削除、匿名debugと`opcache_reset()`があり、既存AI更新routeにも任意店舗meta更新を許す境界がある。新管理機能の前にPhase 0で閉じる。
+- 公開`wp-json` proxyは受信AuthorizationをWordPressへ転送し、cache再検証routeはsecret未設定時に通るため、専用server clientとfail-closedへ分ける必要がある。
+- セラピスト、年齢、出勤の公開正本を`therapist`と`therapist_schedule`へ統一し、旧3枠・年齢帯meta・当日出勤metaは移行とshadow比較だけに限定する。
+- 外部順位は45日でstaleにし、Eskomi順位とは別snapshotへ保存する。Google評価は初期・将来範囲から除外した。

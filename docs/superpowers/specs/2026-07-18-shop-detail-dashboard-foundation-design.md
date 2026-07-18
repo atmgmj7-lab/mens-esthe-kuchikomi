@@ -6,6 +6,8 @@
 公開データ元: WordPressを維持  
 停止条件: ローカル実装・全幅QA・独立レビュー完了後、新しいpush・本番公開前で停止
 
+管理・AI取込・セラピスト連動は、共通のWordPress IDと公開view modelを使う別設計書`2026-07-18-ai-content-admin-therapist-design.md`に定める。
+
 ## 1. 目的
 
 Hot Pepper Beautyの情報設計を主軸に、店舗詳細を「情報量が多くても迷わない」1カラムページへ再構築する。上部には参考動画のダッシュボード表現を小さく取り入れ、承認済み口コミ、確認済み店舗情報、既存ランキングを短時間で把握できるようにする。
@@ -52,7 +54,6 @@ Aを実装し、Cを次の保存・運用基盤として進める。Bは公開AP
 - 店舗ブログ、セラピストブログ。
 - 無料会員・有料会員の店舗編集画面。
 - 店舗情報の審査、差分承認、公開予約。
-- Google Places評価。
 - 他ポータルの評価・順位。
 
 これらは空のtabや準備中cardを表示しない。将来データと権限が実装された時点でmoduleを登録すると、同じ店舗詳細へ追加できる構造だけを作る。
@@ -86,7 +87,7 @@ Aを実装し、Cを次の保存・運用基盤として進める。Bは公開AP
 13. 近隣店舗・同じ地域・選び方への内部リンク。
 14. 店舗責任者向け登録・修正導線。
 
-口コミ0〜2件の店舗はgraphを表示せず、口コミsection自体は上部へ残して「承認済み口コミはまだありません」と投稿導線を表示する。
+口コミ0件ではgraphを表示せず、「承認済み口コミはまだありません」と投稿導線を表示する。1〜2件では実在する口コミを表示し、「評価グラフは承認済み評価3件以上で表示します」と案内する。
 
 ## 4. 二層ページ内メニュー
 
@@ -119,6 +120,17 @@ Aを実装し、Cを次の保存・運用基盤として進める。Bは公開AP
 
 ## 5. 口コミ評価dashboard
 
+### 5.0 口コミの公開正本
+
+口コミの正本はWordPress `reviews`投稿typeとする。Supabaseへ公開用の複製を作らず、Next.jsのserver adapterが、専用の読取RESTから次の条件を満たす口コミだけを同じview modelへ変換する。
+
+- WordPressで公開済みかつ`approval_status=approved`。
+- 公開関係の正本であるWordPress店舗IDが一致。slug不一致は管理警告にし、当該店舗の旧slug履歴と確認できた場合だけ表示する。
+- 公開fieldは本文、投稿日、`rating_total`、`rating_price`、`rating_service`、`rating_cleanliness`だけ。
+- 投稿者email、管理memo、審査状態の内部情報を返さない。
+
+店舗詳細のgraph、最新口コミ、件数、AggregateRatingは必ずこの共通view modelを使う。上部には最新3件までを表示し、4件目以降は`/shops/{slug}/reviews/`のページ分割された口コミ一覧へつなぐ。
+
 ### 5.1 表示条件
 
 集計対象は次をすべて満たす口コミだけとする。
@@ -139,7 +151,7 @@ Aを実装し、Cを次の保存・運用基盤として進める。Bは公開AP
 - 左: 総合評価を5点満点で示す小型ring graph。
 - 右: 総合、料金、接客、清潔感の横棒。
 - 下: 承認済み口コミ件数、対象期間または最新投稿日、3件以上を集計する説明。
-- その下: 最新口コミを最大3件表示し、残りは口コミsection内で継続表示。
+- その下: 最新口コミを最大3件表示し、残りは専用の口コミ一覧へつなぐ。
 
 ringと横棒には数値を文字でも併記する。色だけで差を伝えない。screen readerには「接客 4.3点、回答5件」のように読めるlabelを付ける。
 
@@ -159,7 +171,7 @@ ringと横棒には数値を文字でも併記する。色だけで差を伝え�
 
 これは店舗品質の採点ではなく、Eskomiが確認できた情報の範囲を示す。
 
-対象項目は次の7件とする。
+対象項目は次の6件とする。
 
 1. 料金。
 2. 営業時間。
@@ -167,11 +179,12 @@ ringと横棒には数値を文字でも併記する。色だけで差を伝え�
 4. 予約先。
 5. 公式サイト。
 6. 店舗画像。
-7. 掲載情報の確認日。
 
-表示は「確認済み 5/7」のような件数、横棒、項目ごとの確認済み・未確認labelとする。「優良」「低評価」「情報不足店」などの価値判断には使わない。
+表示は「確認済み 5/6」のような件数、横棒、項目ごとの確認済み・未確認labelとする。「優良」「低評価」「情報不足店」などの価値判断には使わない。最新の確認日は点数へ含めず、確認済みfieldの`reviewedAt`から`latestReviewedAt`を補足表示する。
 
 確認日はWordPressの有効な日付がある場合だけ表示する。公式サイトが存在しても各項目の出典が確認できない場合は、公式サイトの存在だけを確認済みとし、料金等の出典済みとは扱わない。
+
+確認状態はページ全体の更新日だけで判定しない。WordPressの`shop_fact_provenance`に、料金、営業時間、アクセス、予約先、公式サイト、画像ごとの`sourceUrl`、`sourceType`、`observedAt`、`reviewedAt`、`reviewStatus`、`publishedValueHash`を保存する。現在の公開値hashが`publishedValueHash`と一致し、`reviewStatus=reviewed`の項目だけを確認済みに数える。`shop_updated_at`はページ全体の公開更新日として残し、各項目の確認日の代用にはしない。
 
 ## 7. Eskomi内順位
 
@@ -181,9 +194,11 @@ ringと横棒には数値を文字でも併記する。色だけで差を伝え�
 - 対象地域。
 - 並び順またはランキング名。
 - PR・手動指定などの既存開示。
-- 確認できる場合は更新日。
+- `observedAt`。
+- 対象店舗総数`totalEligibleShops`。
+- 算定根拠`basis`。
 
-WordPress配列の位置、乱数、口コミ不足時の仮評価から順位を作らない。順位がない店舗ではcard自体を表示しない。
+WordPressの順位snapshotは`areaSlug`、`rank`、`totalEligibleShops`、`basis`、`observedAt`、`isPr`を必須契約とする。WordPress配列の位置、乱数、口コミ不足時の仮評価から順位を作らない。順位がない店舗ではcard自体を表示しない。
 
 ## 8. 将来moduleの境界
 
@@ -200,7 +215,7 @@ WordPress配列の位置、乱数、口コミ不足時の仮評価から順位�
 - 出典または情報提供者。
 - 確認日。
 
-将来の公開範囲は`public`、`owner-free`、`owner-paid`を想定するが、今回の公開画面で会員判定や課金判定は実装しない。公開範囲の値だけで審査前の入力を公開しない。
+表示範囲と編集権限を分離する。公開moduleは`visibility: public | unlisted | private`、入力者は`authoringEntitlement: admin | owner-free | owner-paid`、審査方法は`moderationPolicy: review-required | trusted-publish`を持つ。無料・有料は入力可能範囲であり、審査済みcontentの閲覧範囲ではない。承認済みで`visibility=public`のcontentは会員planに関係なく全利用者へ表示し、審査前入力は公開しない。
 
 将来追加する主なmoduleは次のとおり。
 
@@ -212,8 +227,11 @@ WordPress配列の位置、乱数、口コミ不足時の仮評価から順位�
 | 出勤 | 店舗責任者入力 | 日付・確認時刻あり |
 | 店舗ブログ | 店舗責任者投稿 | 審査または公開権限あり |
 | セラピストブログ | 対象セラピスト投稿 | 審査または公開権限あり |
-| Google評価 | Google Places API | 帰属表示・元URL・更新条件を満たす |
 | 他ポータル評価・順位 | 管理者確認入力から開始 | 出典URL・対象地域・確認日あり |
+
+セラピスト、在籍数、年齢層、出勤は、WordPress `therapist`投稿typeと`therapist_schedule`だけを公開正本にする。既存の`therapist_1..3`、店舗年齢帯meta、`shop_today_therapists`は移行・互換入力に限定する。同名のセラピストもWordPress therapist IDが異なれば別人として扱う。
+
+年齢帯graphは公開対象3名以上の場合だけ表示する。1区分が1〜2名になる場合は隣接区分へまとめるか「その他」へ統合し、少人数から個人の年齢を推測できない表示にする。
 
 ## 9. 表示速度
 
@@ -222,6 +240,7 @@ WordPress配列の位置、乱数、口コミ不足時の仮評価から順位�
 - graph用client componentを作らない。
 - 初期表示後の追加API requestを行わない。
 - 口コミと店舗情報は既存のWordPress取得結果からview modelを生成する。
+- 店舗詳細、店舗一覧、地域、トップ、セラピスト詳細は、同じWordPress IDと共通public adapterを使い、画面別のmeta解釈を作らない。
 - animationは原則使わず、使う場合もopacityとtransformだけに限定し、`prefers-reduced-motion`で停止する。
 - 画像の4:3、適切な`object-fit`、既存fallbackを維持する。
 - 新しいnpm依存関係を追加しない。
@@ -239,6 +258,8 @@ WordPress配列の位置、乱数、口コミ不足時の仮評価から順位�
 - 口コミ本文と店舗提供情報を出典labelで分離する。
 - 内部リンクは同じ地域、近隣地域、料金、口コミ、選び方へ具体的なanchor textでつなぐ。
 - 空tab、空section、準備中だけの薄いcontentをindex用に作らない。
+
+セラピスト詳細は、公開状態、所属店舗、画像または確認済み紹介、確認日がすべてある場合だけindex可能にする。パンくずはホーム→地域→店舗→セラピスト、canonicalとsitemap、店舗詳細との相互linkを必須とし、条件を満たさないrecordには公開routeを作らない。
 
 ダッシュボードはSEO本文を置き換えるものではなく、検索ユーザーが情報を短時間で理解するための補助UIとする。
 
@@ -286,10 +307,12 @@ UI公開後の次工程は、34地域を同時に薄く更新するのではな�
 | 単位 | 役割 |
 |---|---|
 | `shop-detail-view-model` | WordPress値、口コミ集計、確認状況、順位を表示可能な事実へ変換 |
+| `shop-public-adapter` | shop・reviews・therapist・scheduleの正本を画面共通のIDと公開状態へ変換 |
+| `shop-review-adapter` | 承認済みreviewsだけをgraph・一覧・schema共通の値へ変換 |
 | `ShopDetailProfile` | 画像、店舗名、要点、操作 |
 | `ShopSectionNav` | 二層anchor navigationと現在位置 |
 | `ShopReviewDashboard` | ring、4項目横棒、件数、集計条件 |
-| `ShopInformationCoverage` | 7項目の確認状況 |
+| `ShopInformationCoverage` | 6項目の確認状況と最新確認日 |
 | `ShopRankingSnapshot` | 実在するEskomi順位 |
 | `ShopDetailModuleList` | 表示可能sectionの順番とmenu登録 |
 | `ShopDetailSections` | 紹介、料金、特徴、アクセス、基本情報、口コミ本文 |
@@ -317,10 +340,14 @@ UI公開後の次工程は、34地域を同時に薄く更新するのではな�
 - 口コミ3件未満ではgraphが出ない。
 - 承認前、非公開、AI、編集、PR口コミは集計されない。
 - 口コミ3件以上では総合ringと有効な個別項目だけが出る。
+- graph、最新口コミ、口コミ一覧、件数、AggregateRatingが同じreviews view modelを使う。
+- 口コミが2件から3件へ増えた時にgraphとAggregateRatingが同時に有効になる。
 - optional評価の0は未回答として除外される。
 - graph数値とAggregateRatingの総合値が一致する。
-- 確認状況は7項目固定で、推測値を加点しない。
+- 確認状況は6項目固定で、確認日そのものや推測値を加点しない。
+- 料金だけを更新しても営業時間など他項目の確認日・確認hashは更新されない。
 - 順位なし店舗に順位を生成しない。
+- 順位は明示snapshotを使い、店舗一覧の配列位置を使わない。
 - 空moduleのmenuとsectionが出ない。
 - 店舗責任者申請内容が自動公開されない。
 
