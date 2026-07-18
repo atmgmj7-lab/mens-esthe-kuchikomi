@@ -10,9 +10,11 @@ export function ShopBasicInformationSection({
   rel: string;
 }) {
   const rows = model.infoRows.filter((row) => row.key !== "address" && row.key !== "station");
+  const hasAccessRows = model.infoRows.some((row) => row.key === "address" || row.key === "station");
   const shopSlug = normalizePublicShopSlug(model.slug);
   return (
     <section id="basic-information" className={styles.section}>
+      {!hasAccessRows ? <span id="hours-access" className={styles.sectionAnchor} aria-hidden="true" /> : null}
       <div className={styles.sectionHeading}><p className={styles.kicker}>BASIC INFORMATION</p><h2>基本情報</h2></div>
       <table className={styles.infoTable}><tbody>{rows.map((row) => {
         const isOfficialLink = row.key === "official" && Boolean(row.href);

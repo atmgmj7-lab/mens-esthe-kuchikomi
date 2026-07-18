@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import * as jsxRuntime from "react/jsx-runtime";
 import ts from "typescript";
 import vm from "node:vm";
 
@@ -31,6 +34,25 @@ function loadTypeScript(file, overrides = {}) {
     { module, exports: module.exports, require, URL, Date, console },
     { filename: file }
   );
+  return module.exports;
+}
+
+function loadTsx(file, overrides = {}) {
+  const compiled = ts.transpileModule(read(file), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+      esModuleInterop: true
+    }
+  }).outputText;
+  const module = { exports: {} };
+  const require = (id) => {
+    if (id === "react/jsx-runtime") return jsxRuntime;
+    if (Object.hasOwn(overrides, id)) return overrides[id];
+    throw new Error(`Unexpected require from ${file}: ${id}`);
+  };
+  vm.runInNewContext(compiled, { module, exports: module.exports, require }, { filename: file });
   return module.exports;
 }
 
@@ -183,15 +205,26 @@ const ranking = {
   observedAt: "2026-07-18",
   isPr: false
 };
+const otherAreaRanking = {
+  ...ranking,
+  areaSlug: "umeda",
+  rank: 1,
+  observedAt: "2026-07-19"
+};
 assert.deepEqual(
-  JSON.parse(JSON.stringify(normalizeShopRankingSnapshot([ranking]))),
+  JSON.parse(JSON.stringify(normalizeShopRankingSnapshot([ranking, otherAreaRanking], "sakaisujihonmachi"))),
   ranking,
-  "a complete explicit ranking snapshot must be displayable"
+  "ranking display must select the latest valid snapshot for the current area only"
+);
+assert.equal(
+  normalizeShopRankingSnapshot([otherAreaRanking], "sakaisujihonmachi"),
+  null,
+  "a snapshot from another area must not be displayed"
 );
 for (const key of Object.keys(ranking)) {
   const invalid = { ...ranking };
   delete invalid[key];
-  assert.equal(normalizeShopRankingSnapshot([invalid]), null, `${key} is required for ranking display`);
+  assert.equal(normalizeShopRankingSnapshot([invalid], ranking.areaSlug), null, `${key} is required for ranking display`);
 }
 
 const moduleExports = loadTypeScript("lib/shop-detail-modules.ts");
@@ -232,12 +265,87 @@ const fullModules = getVisibleShopDetailModules({
   ...emptyContext,
   model,
   coverage,
-  ranking: normalizeShopRankingSnapshot([ranking]),
+  ranking: normalizeShopRankingSnapshot([ranking], ranking.areaSlug),
   hasNearby: true
 });
 const links = buildShopSectionLinks(fullModules);
 assert.ok(links.every((link) => link.layer === "primary" || link.layer === "secondary"));
 assert.equal(new Set(links.map(({ id }) => id)).size, links.length);
+
+const styles = new Proxy({}, { get: (_target, key) => String(key) });
+const componentOverrides = {
+  react: React,
+  "./ShopDetail.module.css": { __esModule: true, default: styles },
+  "@/lib/shop-slug": { normalizePublicShopSlug: (slug) => slug }
+};
+const { ShopBasicInformationSection } = loadTsx(
+  "components/shop-detail/ShopBasicInformationSection.tsx",
+  componentOverrides
+);
+const { ShopAccessSection } = loadTsx(
+  "components/shop-detail/ShopAccessSection.tsx",
+  componentOverrides
+);
+const hoursOnlyModel = {
+  ...emptyContext.model,
+  slug: "hours-only",
+  infoRows: [{ key: "hours", label: "営業時間", value: "10:00〜24:00" }],
+  verifiedAt: null
+};
+const hoursOnlyModules = getVisibleShopDetailModules({ ...emptyContext, model: hoursOnlyModel });
+assert.deepEqual(
+  Array.from(hoursOnlyModules, ({ id }) => id),
+  ["reviews", "shop-information", "basic-information"],
+  "hours-only shops must expose their basic information module"
+);
+const hoursOnlyHtml = renderToStaticMarkup(
+  React.createElement(ShopBasicInformationSection, { model: hoursOnlyModel, rel: "noopener" })
+);
+assert.ok(
+  hoursOnlyHtml.includes('id="hours-access"'),
+  "hours-only shops must keep the existing area-card #hours-access target in real DOM"
+);
+
+const accessAndBasicModel = {
+  ...hoursOnlyModel,
+  infoRows: [
+    { key: "station", label: "駅", value: "堺筋本町駅" },
+    ...hoursOnlyModel.infoRows
+  ]
+};
+const accessHtml = renderToStaticMarkup(
+  React.createElement(ShopAccessSection, { model: accessAndBasicModel })
+);
+const basicHtml = renderToStaticMarkup(
+  React.createElement(ShopBasicInformationSection, { model: accessAndBasicModel, rel: "noopener" })
+);
+assert.equal(
+  `${accessHtml}${basicHtml}`.match(/id="hours-access"/g)?.length ?? 0,
+  1,
+  "access and basic modules must not duplicate the compatibility anchor"
+);
+
+const anchorSources = {
+  reviews: read("components/shop-detail/ShopDetailModuleList.tsx"),
+  "shop-information": read("components/shop-detail/ShopOverviewSection.tsx"),
+  prices: read("components/shop-detail/ShopPricesSection.tsx"),
+  features: read("components/shop-detail/ShopFeaturesSection.tsx"),
+  "map-access": read("components/shop-detail/ShopAccessSection.tsx"),
+  "basic-information": read("components/shop-detail/ShopBasicInformationSection.tsx"),
+  nearby: read("components/shop-detail/ShopDetailModuleList.tsx")
+};
+const { ShopSectionNav } = loadTsx(
+  "components/shop-detail/ShopSectionNav.tsx",
+  componentOverrides
+);
+const menuHtml = renderToStaticMarkup(React.createElement(ShopSectionNav, { links }));
+for (const link of links) {
+  assert.ok(menuHtml.includes(`href="#${link.id}"`), `production menu must render #${link.id}`);
+  assert.ok(
+    anchorSources[link.id]?.includes(`id="${link.id}"`),
+    `menu link #${link.id} must have a production section anchor`
+  );
+}
 
 const navSource = read("components/shop-detail/ShopSectionNav.tsx");
 assert.ok(navSource.includes('link.layer === "primary"'), "navigation must render the primary layer");
@@ -254,6 +362,10 @@ const detailSource = read("components/ShopDetail.tsx");
 assert.ok(detailSource.includes("getVisibleShopDetailModules"));
 assert.ok(detailSource.includes("buildShopInformationCoverage"));
 assert.ok(detailSource.includes("normalizeShopRankingSnapshot"));
+assert.ok(
+  detailSource.includes("normalizeShopRankingSnapshot(\n    shop.acf.shop_area_ranking_snapshot,\n    areaSlugForNav"),
+  "ShopDetail must scope ranking snapshots to the area used by navigation and labels"
+);
 
 const cssSource = read("components/shop-detail/ShopDetail.module.css");
 assert.match(cssSource, /\.shell\s*\{[^}]*max-width:\s*1200px/s);

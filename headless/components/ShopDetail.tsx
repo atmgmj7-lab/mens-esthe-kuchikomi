@@ -85,7 +85,8 @@ export function ShopDetail({
     shop.acf.shop_fact_provenance
   );
   const ranking = normalizeShopRankingSnapshot(
-    shop.acf.shop_area_ranking_snapshot
+    shop.acf.shop_area_ranking_snapshot,
+    areaSlugForNav
   );
   const moduleContext: ShopDetailModuleContext = {
     model,

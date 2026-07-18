@@ -55,7 +55,7 @@ const componentClassContract = {
   "components/shop-detail/ShopPricesSection.tsx": ["kicker", "section", "sectionHeading", "table"],
   "components/shop-detail/ShopFeaturesSection.tsx": ["features", "kicker", "section", "sectionHeading"],
   "components/shop-detail/ShopAccessSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading"],
-  "components/shop-detail/ShopBasicInformationSection.tsx": ["infoTable", "kicker", "section", "sectionHeading", "sourceNote"],
+  "components/shop-detail/ShopBasicInformationSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading", "sourceNote"],
   "components/shop-detail/ShopInformationCoverage.tsx": ["coverageCard", "coverageCount", "coverageItems", "coverageTrack", "dashboardCardHeader", "dashboardEyebrow", "sourceNote"],
   "components/shop-detail/ShopRankingSnapshot.tsx": ["dashboardCardHeader", "dashboardEyebrow", "prLabel", "rankingCard", "rankingMeta", "rankingValue"],
   "components/shop-detail/ShopOwnerCta.tsx": [

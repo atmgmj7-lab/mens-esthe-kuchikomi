@@ -220,8 +220,12 @@ export function buildShopInformationCoverage(
   };
 }
 
-export function normalizeShopRankingSnapshot(value: unknown): ShopRankingSnapshot | null {
-  if (!Array.isArray(value)) return null;
+export function normalizeShopRankingSnapshot(
+  value: unknown,
+  currentAreaSlug: string | null | undefined
+): ShopRankingSnapshot | null {
+  const expectedAreaSlug = normalizeText(currentAreaSlug);
+  if (!Array.isArray(value) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(expectedAreaSlug)) return null;
   const snapshots = value.flatMap((item): ShopRankingSnapshot[] => {
     if (!item || typeof item !== "object") return [];
     const record = item as Record<string, unknown>;
@@ -248,7 +252,7 @@ export function normalizeShopRankingSnapshot(value: unknown): ShopRankingSnapsho
       isPr: record.isPr
     }];
   });
-  return snapshots.sort(
+  return snapshots.filter((snapshot) => snapshot.areaSlug === expectedAreaSlug).sort(
     (first, second) => Date.parse(second.observedAt) - Date.parse(first.observedAt)
   )[0] ?? null;
 }
