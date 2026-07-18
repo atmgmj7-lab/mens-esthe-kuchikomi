@@ -3231,3 +3231,10 @@ pm/PROGRESS.md
 - レビュー修正でpathの店舗IDをqueryから分離し、応答page・件数を厳格検証した。口コミ0件、取得不能、範囲外は`noindex, follow`、有効な口コミpageだけをindex対象にした。
 - 実装commitは`27b9f33`、レビュー修正は`b01888e`。focused、PHP fixture、通常`npm test`、型、lint、824ページbuild、差分・PII・秘密値確認が成功した。
 - 独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。push、deploy、本番操作は未実施し、Task 1の資格情報ローテーション完了までは本番反映不可を維持する。
+
+## 2026-07-18 Phase 17 Task 6 口コミdashboard・schema共通集計
+
+- 承認済み口コミの共通view modelを追加し、公開口コミ総数と有効な評価回答数を分けた。総合評価の有効回答3件以上だけグラフと`AggregateRating`を表示する。
+- 画面と構造化データは同じ集計値を使い、SSRのinline SVG円グラフとCSS棒グラフ、最新3件を表示する。取得不能は0件に変換しない。
+- 実装commitは`ba7c33b`。focused、全体`npm test`、型、lint、824/824ページbuild、差分・ARIA・schema・秘密値確認が成功した。
+- 独立レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。Task 3〜6完了位置で停止し、Task 7、push、deploy、本番操作は未実施。資格情報ローテーション前の本番反映禁止を維持する。

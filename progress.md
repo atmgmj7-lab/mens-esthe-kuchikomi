@@ -578,3 +578,10 @@
 - レビュー修正でpathの店舗IDをqueryで上書きできないようにし、Next側のpage・件数検証と、0件・取得不能・範囲外の`noindex, follow`を追加した。
 - 実装commitは`27b9f33`、レビュー修正は`b01888e`。focused contract、PHP fixture、3 PHP構文、通常`npm test`、型、lint、824ページbuild、差分・PII・秘密値確認が成功した。
 - 独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。push、deploy、本番WordPress/Supabase操作は未実施し、資格情報ローテーションの本番前条件を維持する。
+
+## 2026-07-18 Phase 17 Task 6 口コミdashboard・schema共通集計
+
+- 承認済み口コミの共通view modelを追加し、公開口コミ総数と有効な評価回答数を分離した。総合回答3件未満ではグラフと`AggregateRating`を出さない。
+- 同じview modelから軽量なSSR円グラフ・項目別棒グラフ・最新3件・構造化データを生成する。取得不能は0件へ変換せず、推測値・外部評価・Supabase接続は追加していない。
+- 実装commitは`ba7c33b`。focused、通常`npm test`、型、lint、824/824ページbuild、差分・ARIA・schema・秘密値確認が成功した。
+- 独立レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。ユーザー指定のTask 3〜6完了位置で停止し、Task 7、push、deploy、本番操作へは進んでいない。

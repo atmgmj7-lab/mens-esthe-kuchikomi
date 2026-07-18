@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 17 in_progress（Task 1〜5は独立レビュー0件で完了。Task 6の口コミdashboard・schema共通集計を開始）
+Phase 17 in_progress（Task 1〜6は独立レビュー0件で完了。ユーザー指定のTask 3〜6完了位置で停止）
 
 ## Phases
 

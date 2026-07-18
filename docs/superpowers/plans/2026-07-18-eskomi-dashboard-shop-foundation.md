@@ -583,7 +583,7 @@ git commit -m "feat: expose approved shop reviews safely"
 - Consumes: `ApprovedShopReviewResult`。
 - Produces: `ShopReviewViewModel`、`buildShopReviewViewModel()`、graph・最新3件・AggregateRating共通値。
 
-- [ ] **Step 1: 2件/3件境界の失敗testを書く**
+- [x] **Step 1: 2件/3件境界の失敗testを書く**
 
 検査scriptは既存`check-shop-detail-view-model.mjs`と同じくTypeScript compilerでproduction view modelをCommonJSへ変換し、`vm`で実関数を実行する。source文字列だけを検査せず、承認済み0・2・3件、個別評価2・3件、不正平均・不正回答数のfixtureをproduction関数へ渡す。既存`review-rating` fixtureにもschema境界を追加する。
 
@@ -611,21 +611,21 @@ export type ShopReviewViewModel =
 
 `unavailable`は0件empty stateへ変換せず、graph・schema・件数を出さない。`available`で総合評価の有効回答が2件なら`showGraph=false`・schemaなし、3件なら総合平均と有効回答3件以上の棒だけを返すことを固定する。公開口コミ総数と評価回答数を混同せず、0・範囲外・nullを分母へ入れない。
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-shop-review-dashboard-contract.mjs && npm run test:review-rating`
 
 Expected: view modelまたは3件境界契約でFAIL。
 
-- [ ] **Step 3: server-only集計を実装する**
+- [x] **Step 3: server-only集計を実装する**
 
 WordPress responseの各metricを範囲検証し、小数1桁へ丸める。総合回答3件未満では`showGraph=false`。個別metricは有効回答3件未満なら配列へ入れない。`latest`は投稿日降順最大3件。responseの平均・回答数が不正ならそのmetricを表示せずschemaにも渡さない。
 
-- [ ] **Step 4: SSR graphを実装する**
+- [x] **Step 4: SSR graphを実装する**
 
 `ShopReviewDashboard`は`showGraph=true`時だけ、小型inline SVG ringとCSS横棒を表示する。棒は0起点、`width = value / 5 * 100%`、数値・回答件数・`aria-label`を文字でも併記する。Client Component、animation、tooltipを使わない。2件以下では口コミ本文と「評価グラフは承認済み評価3件以上で表示します」を出す。日付が両方有効なら対象期間、最新だけなら最新投稿日を表示し、日付なしは推測しない。口コミ本文blockは最大960pxとする。
 
-- [ ] **Step 5: schemaを同じview modelへ接続する**
+- [x] **Step 5: schemaを同じview modelへ接続する**
 
 `shopLocalBusinessJsonLd(shop, reviewModel?: ShopReviewViewModel)`へ後方互換のoptional引数としてsignatureを拡張し、`reviewModel?.status === "available"`かつ`reviewModel.showGraph`かつ`aggregateRating != null`の時だけ次を出す。既存の1引数callerと`unavailable`は口コミschemaなしで従来どおり動かす。
 
@@ -639,13 +639,13 @@ data.aggregateRating = {
 };
 ```
 
-- [ ] **Step 6: GREENを確認する**
+- [x] **Step 6: GREENを確認する**
 
 Run: `cd headless && node scripts/check-shop-review-dashboard-contract.mjs && npm run test:review-rating && npm run test:schema-output && npm run test:shop-detail-density && npm run test:final-design-preservation && npm run typecheck && npm run lint`
 
 Expected: 全てPASS。
 
-- [ ] **Step 7: commitする**
+- [x] **Step 7: commitする**
 
 ```bash
 git add headless/lib/shop-review-view-model.ts headless/lib/seo.ts headless/components/ShopDetail.tsx headless/components/shop-detail/ShopDetailSections.tsx headless/components/shop-detail/ShopReviewDashboard.tsx headless/components/shop-detail/ShopDetail.module.css headless/scripts/check-shop-review-dashboard-contract.mjs headless/scripts/check-review-rating.mjs headless/scripts/check-schema-output-conditions.mjs headless/scripts/check-shop-detail-density-contract.mjs headless/scripts/check-final-design-preservation.mjs headless/package.json
