@@ -93,6 +93,15 @@ export function buildWpProxyResponse(
   });
 }
 
+export function isAllowedDailyUpdateContentType(value: string | null): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "application/json" ||
+    /^application\/json[\t ]*;[\t ]*charset[\t ]*=[\t ]*utf-8$/.test(normalized)
+  );
+}
+
 export async function readBoundedJsonBody(
   body: ReadableStream<Uint8Array> | null,
   maxBytes: number,
@@ -120,6 +129,11 @@ export async function readBoundedJsonBody(
       totalBytes += value.byteLength;
     }
   } catch {
+    try {
+      await reader.cancel();
+    } catch {
+      // Preserve the safe 400 response if the failing stream cannot be cancelled.
+    }
     return { ok: false, status: 400, error: "Request body could not be read" };
   } finally {
     reader.releaseLock();
@@ -158,9 +172,7 @@ export async function buildDailyUpdateRequest({
     return { ok: false, status: 401, error: "Unauthorized" };
   }
 
-  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
-  const mediaType = contentType.split(";", 1)[0].trim();
-  if (mediaType !== "application/json") {
+  if (!isAllowedDailyUpdateContentType(request.headers.get("content-type"))) {
     return { ok: false, status: 400, error: "Content-Type must be application/json" };
   }
 

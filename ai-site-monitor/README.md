@@ -18,6 +18,8 @@
 
 | Secret | 説明 |
 |--------|------|
+| `WP_SITE_URL` | Headless bridgeへ到達する公開URL（末尾のスラッシュなし） |
+| `DAILY_UPDATE_PROXY_SECRET` | 日次専用bridgeの秘密鍵。値をlogへ出さない |
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/) で取得したAPIキー（必須） |
 | `DISCORD_WEBHOOK_URL` | Discord通知用Webhook URL（任意） |
 
@@ -76,7 +78,7 @@ python test_get_urls.py
 
 | 変数 | 説明 |
 |------|------|
-| `WP_SITE_URL` | WordPress サイトURL（例: https://example.com） |
+| `WP_SITE_URL` | Headless bridgeへ到達する公開URL（例: https://example.com） |
 
 ### RequestsDependencyWarning の解消
 
@@ -142,6 +144,7 @@ python crawler_base.py
 - `.env`にサイトURL、日次専用秘密鍵、Geminiキーが設定済み
 - 日次専用秘密鍵なしのPOSTが401、秘密鍵付き空JSONが400になること
 - WordPress認証はHeadlessのserver環境だけに置き、callerやbrowserへ渡さないこと
+- `WP_USER`と`WP_APP_PASSWORD`は日次callerでは使用しないこと
 
 ### パッケージ
 
@@ -167,6 +170,7 @@ python ai_auto_updater.py --all
 
 | 変数 | 説明 |
 |------|------|
+| `WP_SITE_URL` | Headless bridgeへ到達する公開URL（末尾のスラッシュなし） |
 | `CRAWL_LIMIT` | 未指定時は `3`。正の整数＝最大件数 / `all`＝全店舗 |
 | `SHOP_DELAY_SECONDS` | 店舗ごとの待機秒（全店舗時の負荷緩和。既定 0） |
 | `DAILY_UPDATE_PROXY_SECRET` | 日次専用bridgeの秘密鍵。値をlogへ出さない |

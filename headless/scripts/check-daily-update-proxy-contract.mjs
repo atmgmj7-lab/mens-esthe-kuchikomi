@@ -32,6 +32,8 @@ const [
   shopPromptSource,
   deployGuideSource,
   crawlGuideSource,
+  monitorEnvExampleSource,
+  monitorReadmeSource,
 ] = await Promise.all([
   readRepositoryFile("headless/lib/wp/daily-update-proxy.ts"),
   readRepositoryFile("headless/lib/server/secure-secret.ts"),
@@ -47,6 +49,8 @@ const [
   readRepositoryFile("SHOP-prompt.md"),
   readRepositoryFile("DEPLOY-AI-UPDATE.md"),
   readRepositoryFile("tools/AI-CRAWL-README.md"),
+  readRepositoryFile("ai-site-monitor/.env.example"),
+  readRepositoryFile("ai-site-monitor/README.md"),
 ]);
 
 const combinedProxySource = `${routeSource}\n${proxySource}`;
@@ -84,6 +88,22 @@ for (const [label, source] of [
   assert.doesNotMatch(source, /wp-json\/escomi\/v1\/update/, `${label} must not target the daily route`);
 }
 assert.doesNotMatch(crawlerBaseSource, /Authorization/);
+
+const monitorEnvEntries = new Map();
+for (const line of monitorEnvExampleSource.split(/\r?\n/)) {
+  const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+  if (match) monitorEnvEntries.set(match[1], match[2].trim());
+}
+assert.equal(monitorEnvEntries.get("DAILY_UPDATE_PROXY_SECRET"), "");
+assert.match(
+  monitorReadmeSource,
+  /GitHub Secrets[\s\S]{0,1200}`WP_SITE_URL`[\s\S]{0,500}`DAILY_UPDATE_PROXY_SECRET`/,
+);
+assert.match(monitorReadmeSource, /Headless bridgeへ到達する公開URL/);
+assert.match(
+  monitorReadmeSource,
+  /WP_USER[\s\S]{0,120}WP_APP_PASSWORD[\s\S]{0,200}日次callerでは使用しない/,
+);
 
 for (const [label, source] of [
   ["SHOP prompt", shopPromptSource],
@@ -282,7 +302,31 @@ const invalidJsonResult = await proxyModule.buildDailyUpdateRequest({
 assert.equal(invalidJsonResult.ok, false);
 assert.equal(invalidJsonResult.status, 400);
 
-for (const invalidContentType of ["text/plain", "application/json-patch+json"]) {
+for (const validContentType of [
+  "application/json",
+  "application/json; charset=utf-8",
+  " Application/JSON ; Charset = UTF-8 ",
+]) {
+  const validContentTypeResult = await proxyModule.buildDailyUpdateRequest({
+    request: requestLike(
+      oneByteStream(new TextEncoder().encode("{}")).stream,
+      testEnvironment.proxySecret,
+      validContentType,
+    ),
+    targetPath: "escomi/v1/update",
+    environment: testEnvironment,
+  });
+  assert.equal(validContentTypeResult.ok, true, `allow ${validContentType}`);
+}
+
+for (const invalidContentType of [
+  "text/plain",
+  "application/json-patch+json",
+  "application/json; profile=example",
+  "application/json; charset=utf-16",
+  "application/json; charset=utf-8; charset=utf-8",
+  "application/json; charset=utf-8; profile=example",
+]) {
   let contentTypeBodyRead = false;
   const contentTypeBody = {
     getReader() {
@@ -304,6 +348,31 @@ for (const invalidContentType of ["text/plain", "application/json-patch+json"]) 
   assert.equal(contentTypeBodyRead, false);
 }
 
+let readErrorCancelled = false;
+let readErrorReleased = false;
+const readErrorResult = await proxyModule.readBoundedJsonBody(
+  {
+    getReader() {
+      return {
+        read: async () => {
+          throw new Error("stream read failed");
+        },
+        cancel: async () => {
+          readErrorCancelled = true;
+        },
+        releaseLock: () => {
+          readErrorReleased = true;
+        },
+      };
+    },
+  },
+  MAX_BYTES,
+);
+assert.equal(readErrorResult.ok, false);
+assert.equal(readErrorResult.status, 400);
+assert.equal(readErrorCancelled, true);
+assert.equal(readErrorReleased, true);
+
 const upstreamHeaders = proxyModule.buildDailyUpdateUpstreamHeaders(testEnvironment);
 assert.deepEqual(
   [...upstreamHeaders.keys()].sort(),
@@ -321,5 +390,54 @@ for (const upstreamStatus of [200, 401, 403]) {
   assert.equal(proxyResponse.status, upstreamStatus);
   assert.equal(proxyResponse.headers.get("cache-control"), "no-store");
 }
+
+const postResponse = proxyModule.buildWpProxyResponse(
+  new Response("post-body", {
+    status: 200,
+    headers: {
+      "content-type": "application/json",
+      "cache-control": "public, max-age=60",
+      "x-wp-total": "7",
+      "x-internal-debug": "drop-me",
+      "set-cookie": "drop-me",
+    },
+  }),
+  "POST",
+);
+assert.equal(await postResponse.text(), "post-body");
+assert.equal(postResponse.headers.get("content-type"), "application/json");
+assert.equal(postResponse.headers.get("x-wp-total"), "7");
+assert.equal(postResponse.headers.get("cache-control"), "no-store");
+assert.equal(postResponse.headers.has("x-internal-debug"), false);
+assert.equal(postResponse.headers.has("set-cookie"), false);
+
+const getResponse = proxyModule.buildWpProxyResponse(
+  new Response("get-body", {
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "public, max-age=60",
+      "x-wp-totalpages": "3",
+      "x-internal-debug": "drop-me",
+    },
+  }),
+  "GET",
+);
+assert.equal(await getResponse.text(), "get-body");
+assert.equal(getResponse.headers.get("content-type"), "application/json; charset=utf-8");
+assert.equal(getResponse.headers.get("cache-control"), "public, max-age=60");
+assert.equal(getResponse.headers.get("x-wp-totalpages"), "3");
+assert.equal(getResponse.headers.has("x-internal-debug"), false);
+
+const headResponse = proxyModule.buildWpProxyResponse(
+  new Response("must-not-pass", {
+    status: 200,
+    headers: { "content-type": "application/json", "x-wp-total": "2" },
+  }),
+  "HEAD",
+);
+assert.equal(await headResponse.text(), "");
+assert.equal(headResponse.headers.get("content-type"), "application/json");
+assert.equal(headResponse.headers.get("x-wp-total"), "2");
 
 console.log("Daily update proxy contract: PASS");
