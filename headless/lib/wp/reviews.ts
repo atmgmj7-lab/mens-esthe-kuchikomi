@@ -130,7 +130,20 @@ function validateReview(value: unknown): ApprovedShopReview | null {
   };
 }
 
-export function validateApprovedShopReviewPage(value: unknown): ApprovedShopReviewPage | null {
+export function validateApprovedShopReviewPage(
+  value: unknown,
+  expectedPage: number,
+  perPage: number,
+): ApprovedShopReviewPage | null {
+  if (
+    !isPositiveInteger(expectedPage) ||
+    !isPositiveInteger(perPage) ||
+    perPage > 20 ||
+    expectedPage - 1 > Math.floor(Number.MAX_SAFE_INTEGER / perPage)
+  ) {
+    return null;
+  }
+
   if (
     !isRecord(value) ||
     !hasExactKeys(value, ["items", "total", "totalPages", "page", "metrics", "dateRange"]) ||
@@ -144,10 +157,15 @@ export function validateApprovedShopReviewPage(value: unknown): ApprovedShopRevi
     return null;
   }
 
+  const expectedTotalPages = value.total === 0 ? 0 : Math.ceil(value.total / perPage);
+  const offset = (expectedPage - 1) * perPage;
+  const expectedItemCount = Math.max(0, Math.min(perPage, value.total - offset));
   if (
     (value.total === 0 && (value.totalPages !== 0 || value.items.length !== 0 || value.dateRange !== null)) ||
-    (value.total > 0 && value.totalPages < 1) ||
-    value.items.length > value.total
+    value.page !== expectedPage ||
+    value.totalPages !== expectedTotalPages ||
+    value.items.length > perPage ||
+    value.items.length !== expectedItemCount
   ) {
     return null;
   }
@@ -195,6 +213,8 @@ export function validateApprovedShopReviewPage(value: unknown): ApprovedShopRevi
 
 export async function resolveApprovedShopReviewRequest(
   request: () => Promise<unknown>,
+  expectedPage: number,
+  perPage: number,
 ): Promise<ApprovedShopReviewResult> {
   let payload: unknown;
   try {
@@ -203,10 +223,29 @@ export async function resolveApprovedShopReviewRequest(
     return { status: "unavailable", reason: "request-failed" };
   }
 
-  const page = validateApprovedShopReviewPage(payload);
+  const page = validateApprovedShopReviewPage(payload, expectedPage, perPage);
   return page
     ? { status: "available", page }
     : { status: "unavailable", reason: "invalid-response" };
+}
+
+export type ApprovedShopReviewRobots = {
+  index: boolean;
+  follow: true;
+};
+
+export function approvedShopReviewRobots(
+  result: ApprovedShopReviewResult,
+  requestedPage: number,
+): ApprovedShopReviewRobots {
+  const index =
+    result.status === "available" &&
+    result.page.total > 0 &&
+    requestedPage >= 1 &&
+    requestedPage <= result.page.totalPages &&
+    result.page.reviews.length > 0;
+
+  return { index, follow: true };
 }
 
 export async function getApprovedShopReviews(
@@ -222,9 +261,12 @@ export async function getApprovedShopReviews(
     return { status: "unavailable", reason: "invalid-response" };
   }
 
-  return resolveApprovedShopReviewRequest(() =>
-    wpFetch<unknown>(
-      `/escomi/v1/shops/${shopId}/reviews?page=${page}&per_page=${perPage}`,
-    ),
+  return resolveApprovedShopReviewRequest(
+    () =>
+      wpFetch<unknown>(
+        `/escomi/v1/shops/${shopId}/reviews?page=${page}&per_page=${perPage}`,
+      ),
+    page,
+    perPage,
   );
 }

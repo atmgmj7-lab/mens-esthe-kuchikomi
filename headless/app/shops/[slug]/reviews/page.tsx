@@ -8,7 +8,7 @@ import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { canonicalUrl, pageMetadata } from "@/lib/seo";
 import { toShopRouteParam } from "@/lib/shop-route-param";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
-import { getApprovedShopReviews } from "@/lib/wp/reviews";
+import { approvedShopReviewRobots, getApprovedShopReviews } from "@/lib/wp/reviews";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 
 type Props = {
@@ -56,12 +56,15 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   );
   if (!shop) return {};
   const path = reviewPagePath(shop.slug, page);
+  const reviewResult = await getApprovedShopReviews(shop.id, page, 20);
+  const robots = approvedShopReviewRobots(reviewResult, page);
 
   const metadata = pageMetadata({
     title: `${shop.title}の承認済み口コミ${page > 1 ? `（${page}ページ目）` : ""}`,
     description: `${shop.title}に投稿され、運営確認後に承認されたユーザー口コミを掲載しています。`,
     path,
-    canonicalOverride: canonicalUrl(path)
+    canonicalOverride: canonicalUrl(path),
+    robots
   });
   return { ...metadata, alternates: { canonical: canonicalUrl(path) } };
 }

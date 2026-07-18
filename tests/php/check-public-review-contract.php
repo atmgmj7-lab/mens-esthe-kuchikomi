@@ -42,18 +42,29 @@ final class WP_REST_Response {
 }
 
 final class Eskomi_Public_Review_Test_Request {
-	private array $params;
+	private array $url_params;
+	private array $query_params;
 
-	public function __construct( array $params ) {
-		$this->params = $params;
+	public function __construct( array $url_params, array $query_params = array() ) {
+		$this->url_params   = $url_params;
+		$this->query_params = $query_params;
 	}
 
 	public function get_param( string $key ) {
-		return $this->params[ $key ] ?? null;
+		$params = $this->get_params();
+		return $params[ $key ] ?? null;
 	}
 
 	public function get_params(): array {
-		return $this->params;
+		return array_merge( $this->url_params, $this->query_params );
+	}
+
+	public function get_url_params(): array {
+		return $this->url_params;
+	}
+
+	public function get_query_params(): array {
+		return $this->query_params;
 	}
 }
 
@@ -254,20 +265,36 @@ foreach ( array( 999, 43, 44 ) as $invalid_shop_id ) {
 }
 foreach (
 	array(
-		array( 'shop_id' => 42, 'page' => 0 ),
-		array( 'shop_id' => 42, 'page' => '1.5' ),
-		array( 'shop_id' => 42, 'per_page' => 0 ),
-		array( 'shop_id' => 42, 'per_page' => 21 ),
-		array( 'shop_id' => 42, 'page' => str_repeat( '9', 100 ) ),
-		array( 'shop_id' => 42, 'unknown' => 'value' ),
+		array( 'page' => 0 ),
+		array( 'page' => '1.5' ),
+		array( 'per_page' => 0 ),
+		array( 'per_page' => 21 ),
+		array( 'page' => str_repeat( '9', 100 ) ),
+		array( 'unknown' => 'value' ),
 	) as $invalid_params
 ) {
-	$response = $callback( new Eskomi_Public_Review_Test_Request( $invalid_params ) );
+	$response = $callback( new Eskomi_Public_Review_Test_Request( array( 'shop_id' => 42 ), $invalid_params ) );
 	escomi_public_review_test_expect( $response instanceof WP_Error && 400 === $response->data['status'], 'Invalid or unknown parameter must be 400.' );
 }
 
-$response = $callback( new Eskomi_Public_Review_Test_Request( array( 'shop_id' => 42, 'page' => 2, 'per_page' => 2 ) ) );
+$response = $callback(
+	new Eskomi_Public_Review_Test_Request(
+		array( 'shop_id' => 42 ),
+		array( 'page' => 2, 'per_page' => 2 )
+	)
+);
 escomi_public_review_test_expect( $response instanceof WP_REST_Response, 'Valid request must return a REST response.' );
 escomi_public_review_test_expect( 103 === $response->data['items'][0]['id'], 'Second page item is incorrect.' );
+
+$path_override = $callback(
+	new Eskomi_Public_Review_Test_Request(
+		array( 'shop_id' => 42 ),
+		array( 'shop_id' => 99 )
+	)
+);
+escomi_public_review_test_expect(
+	$path_override instanceof WP_Error && 400 === $path_override->data['status'],
+	'Query shop_id must be rejected and must never override the path shop_id.'
+);
 
 fwrite( STDOUT, "Public approved review PHP fixture: PASS\n" );

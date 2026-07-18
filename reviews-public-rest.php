@@ -192,16 +192,18 @@ if ( ! function_exists( 'escomi_public_review_request_error' ) ) {
 
 if ( ! function_exists( 'escomi_get_public_shop_reviews' ) ) {
 	function escomi_get_public_shop_reviews( $request ) {
-		$allowed_params = array( 'shop_id', 'page', 'per_page' );
-		foreach ( array_keys( $request->get_params() ) as $param ) {
+		$url_params     = $request->get_url_params();
+		$query_params   = $request->get_query_params();
+		$allowed_params = array( 'page', 'per_page' );
+		foreach ( array_keys( $query_params ) as $param ) {
 			if ( ! in_array( $param, $allowed_params, true ) ) {
 				return escomi_public_review_request_error( '未対応のパラメーターです。' );
 			}
 		}
 
-		$shop_id = escomi_public_review_positive_integer( $request->get_param( 'shop_id' ), null );
-		$page    = escomi_public_review_positive_integer( $request->get_param( 'page' ), 1 );
-		$per_page = escomi_public_review_positive_integer( $request->get_param( 'per_page' ), 20, 20 );
+		$shop_id  = escomi_public_review_positive_integer( $url_params['shop_id'] ?? null, null );
+		$page     = escomi_public_review_positive_integer( $query_params['page'] ?? null, 1 );
+		$per_page = escomi_public_review_positive_integer( $query_params['per_page'] ?? null, 20, 20 );
 
 		if ( null === $shop_id || null === $page || null === $per_page ) {
 			return escomi_public_review_request_error( 'pageとper_pageには有効な整数を指定してください。' );

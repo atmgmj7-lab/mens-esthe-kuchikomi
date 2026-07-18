@@ -38,6 +38,8 @@ assert.match(restSource, /['"]post_type['"]\s*=>\s*['"]reviews['"]/);
 assert.match(restSource, /['"]post_status['"]\s*=>\s*['"]publish['"]/);
 assert.match(restSource, /approval_status/);
 assert.match(restSource, /review_shop_id/);
+assert.match(restSource, /get_url_params\(\)/);
+assert.match(restSource, /get_query_params\(\)/);
 assert.doesNotMatch(restSource, /reviewer_email|reviewer_name|moderation_note|reviewer_ip|ip_address/i);
 
 assert.match(nextSource, /["']use cache["']/);
@@ -53,6 +55,12 @@ assert.match(shopDetailSource, /reviewResult:\s*ApprovedShopReviewResult/);
 assert.doesNotMatch(shopDetailSource, /extractShopUserReviewItems/);
 assert.match(sectionsSource, /reviewResult:\s*ApprovedShopReviewResult/);
 assert.match(reviewPageSource, /getApprovedShopReviews\(\s*shop\.id\s*,\s*page\s*,\s*20\s*\)/);
+assert.ok(
+  (reviewPageSource.match(/getApprovedShopReviews\(\s*shop\.id\s*,\s*page\s*,\s*20\s*\)/g) ?? []).length >= 2,
+  "metadata and page content must share the same cached review request",
+);
+assert.match(reviewPageSource, /approvedShopReviewRobots\(\s*reviewResult\s*,\s*page\s*\)/);
+assert.match(reviewPageSource, /pageMetadata\([\s\S]{0,600}\brobots\b/);
 assert.match(reviewPageSource, /口コミ情報を現在取得できません/);
 assert.match(reviewPageSource, /この店舗の承認済みユーザー口コミはまだありません/);
 assert.match(reviewPageSource, /alternates:[\s\S]*canonical:/);
@@ -131,10 +139,13 @@ const validPayload = {
   },
 };
 
-const { resolveApprovedShopReviewRequest, validateApprovedShopReviewPage } = loadReviewModule(
-  async () => validPayload,
-);
-const validated = validateApprovedShopReviewPage(validPayload);
+const {
+  approvedShopReviewRobots,
+  getApprovedShopReviews,
+  resolveApprovedShopReviewRequest,
+  validateApprovedShopReviewPage,
+} = loadReviewModule(async () => validPayload);
+const validated = validateApprovedShopReviewPage(validPayload, 1, 20);
 assert.ok(validated, "valid WordPress payload must pass the production validator");
 assert.deepEqual(validated.reviews[0].ratings, {
   total: 5,
@@ -156,7 +167,7 @@ const emptyPayload = {
   },
   dateRange: null,
 };
-assert.ok(validateApprovedShopReviewPage(emptyPayload), "a valid zero-review response is available");
+assert.ok(validateApprovedShopReviewPage(emptyPayload, 1, 20), "a valid zero-review response is available");
 
 const invalidPayloads = [
   null,
@@ -173,23 +184,78 @@ const invalidPayloads = [
   { ...validPayload, dateRange: { oldestSubmittedAt: "bad", latestSubmittedAt: "bad" } },
 ];
 for (const payload of invalidPayloads) {
-  assert.equal(validateApprovedShopReviewPage(payload), null, "invalid payload must fail closed");
+  assert.equal(validateApprovedShopReviewPage(payload, 1, 20), null, "invalid payload must fail closed");
 }
 
-assert.deepEqual(await resolveApprovedShopReviewRequest(async () => emptyPayload), {
+const twoItems = {
+  ...validPayload,
+  items: [validPayload.items[0], { ...validPayload.items[0], id: 11 }],
+  total: 2,
+  totalPages: 2,
+};
+assert.equal(
+  validateApprovedShopReviewPage(twoItems, 1, 1),
+  null,
+  "a response must not contain more reviews than the requested page size",
+);
+assert.equal(
+  validateApprovedShopReviewPage({ ...validPayload, page: 1 }, 2, 20),
+  null,
+  "a response page must exactly match the requested page",
+);
+assert.equal(
+  validateApprovedShopReviewPage({ ...validPayload, totalPages: 2 }, 1, 20),
+  null,
+  "totalPages must be derived from total and perPage",
+);
+
+const outOfRangePayload = { ...validPayload, items: [], page: 2 };
+assert.ok(
+  validateApprovedShopReviewPage(outOfRangePayload, 2, 20),
+  "an empty out-of-range response must remain available so the route can return 404",
+);
+
+assert.deepEqual(await resolveApprovedShopReviewRequest(async () => emptyPayload, 1, 20), {
   status: "available",
-  page: validateApprovedShopReviewPage(emptyPayload),
+  page: validateApprovedShopReviewPage(emptyPayload, 1, 20),
 });
-assert.deepEqual(await resolveApprovedShopReviewRequest(async () => ({ items: [] })), {
+assert.deepEqual(await resolveApprovedShopReviewRequest(async () => ({ items: [] }), 1, 20), {
   status: "unavailable",
   reason: "invalid-response",
 });
 assert.deepEqual(await resolveApprovedShopReviewRequest(async () => {
   throw new Error("network down");
-}), {
+}, 1, 20), {
   status: "unavailable",
   reason: "request-failed",
 });
+assert.deepEqual(
+  await resolveApprovedShopReviewRequest(async () => validPayload, 2, 20),
+  { status: "unavailable", reason: "invalid-response" },
+  "a mismatched response page must become unavailable",
+);
+assert.deepEqual(
+  await getApprovedShopReviews(42, 2, 20),
+  { status: "unavailable", reason: "invalid-response" },
+  "getApprovedShopReviews must pass the requested page and page size to the validator",
+);
+
+const availableValid = { status: "available", page: validated };
+const availableEmpty = {
+  status: "available",
+  page: validateApprovedShopReviewPage(emptyPayload, 1, 20),
+};
+const availableOutOfRange = {
+  status: "available",
+  page: validateApprovedShopReviewPage(outOfRangePayload, 2, 20),
+};
+assert.deepEqual(approvedShopReviewRobots(availableValid, 1), { index: true, follow: true });
+assert.deepEqual(approvedShopReviewRobots(availableEmpty, 1), { index: false, follow: true });
+assert.deepEqual(
+  approvedShopReviewRobots({ status: "unavailable", reason: "request-failed" }, 1),
+  { index: false, follow: true },
+);
+assert.deepEqual(approvedShopReviewRobots(availableOutOfRange, 2), { index: false, follow: true });
 
 execFileSync("php", [join(repositoryRoot, "tests/php/check-public-review-contract.php")], {
   cwd: repositoryRoot,
