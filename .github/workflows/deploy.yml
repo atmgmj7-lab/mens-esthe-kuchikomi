@@ -140,14 +140,6 @@ jobs:
             dashboard/AGENTS.md
             dashboard/.gitignore
 
-      - name: Clear OPcache
-        env:
-          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
-        run: |
-          sleep 10
-          RESULT=$(curl -sS "${WP_SITE_URL}/wp-json/escomi/v1/debug" --max-time 15 2>/dev/null || echo '{}')
-          echo "OPcache clear: $(echo $RESULT | grep -o '"opcache_reset":[^,}]*' || echo 'n/a')"
-
       - name: Post-deploy REST check
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
@@ -158,13 +150,9 @@ jobs:
             -H "Content-Type: application/json" \
             --max-time 20)
           echo "::notice::デプロイ後 REST check: POST /wp-json/escomi/v1/update → HTTP ${HTTP_CODE}"
-          if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-            echo "REST ルート確認 OK（HTTP ${HTTP_CODE}）— escomi/v1/update は正常に登録されています"
-          elif [ "$HTTP_CODE" = "404" ]; then
-            echo "::warning::デプロイ後も escomi/v1/update が 404 のままです。"
-            echo "  確認事項:"
-            echo "  1. FTP_PATH が wp-content/themes/swell_child/ を指しているか"
-            echo "  2. WordPress 管理画面 → 設定 → パーマリンク → 保存 を実行してください"
-          else
-            echo "::notice::REST check: HTTP ${HTTP_CODE}（403/503 等はサーバー/WAF の設定を確認）"
+          if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+            echo "REST ルート保護確認 OK（HTTP ${HTTP_CODE}）— 認証なし更新は拒否されています"
+            exit 0
           fi
+          echo "::error::REST ルート保護確認 NG（HTTP ${HTTP_CODE}）— 401 または 403 が必要です"
+          exit 1

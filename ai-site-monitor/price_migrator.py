@@ -37,13 +37,6 @@ except ImportError:
 
 import requests
 
-import os
-# --- ここに直接合鍵を書き込みます ---
-os.environ["WP_SITE_URL"] = "https://mens-esthe-kuchikomi.com/"
-os.environ["WP_USER"] = "master"
-os.environ["WP_APP_PASSWORD"] = "VUXv iM0G PmC9 MJpk Ommb ggzm"
-# ----------------------------------
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 DB_PATH = SCRIPT_DIR / "escomi_crawler.db"
 

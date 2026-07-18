@@ -647,19 +647,6 @@ add_action( 'rest_api_init', function () {
     ) );
 }, PHP_INT_MAX );
 
-// escomi/v1/update フォールバック登録（PHP_INT_MAX = ai-update-log.php より後に実行 → mu-plugin 上書きに勝つ）
-add_action( 'rest_api_init', function () {
-    if ( function_exists( 'handle_ai_shop_update_final' ) ) {
-        register_rest_route( 'escomi/v1', '/update', array(
-            'methods'             => array( 'POST' ),
-            'callback'            => 'handle_ai_shop_update_final',
-            'permission_callback' => function () {
-                return current_user_can( 'edit_posts' );
-            },
-        ) );
-    }
-}, PHP_INT_MAX );
-
 /* 2. ショートコード：店舗数表示 [shop_count] */
 add_shortcode('shop_count', function() {
     $count = wp_count_posts('shop');
@@ -1178,67 +1165,6 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 // 最適化版（編集部厳選3店のみ）。差し替え前は area-seo-hooks.php
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 require_once get_stylesheet_directory() . '/reviews-cpt.php';
-
-// ====================================================
-// "Missing API key." エラー完全封じ込め v4
-// CloudSecure の proxy-app-passwords.php は rest_authentication_errors だけでなく
-// rest_pre_dispatch を使う場合がある。rest_pre_dispatch で返された WP_Error は
-// check_authentication() より先に処理されるため authentication_errors フィルター
-// をいくら高優先度で登録しても無効になる。両方のフックで遮断する。
-// ====================================================
-
-// (A) rest_authentication_errors — 最高優先度で解除
-add_filter( 'rest_authentication_errors', function ( $result ) {
-    if ( is_wp_error( $result )
-        && $result->get_error_code() === 'rest_forbidden'
-        && strpos( $result->get_error_message(), 'Missing API key' ) !== false
-    ) {
-        return null;
-    }
-    return $result;
-}, PHP_INT_MAX );
-
-// (B) rest_pre_dispatch — proxy-app-passwords.php がここに注入する場合の対策
-add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
-    if ( is_wp_error( $result )
-        && $result->get_error_code() === 'rest_forbidden'
-        && strpos( $result->get_error_message(), 'Missing API key' ) !== false
-    ) {
-        return null;
-    }
-    return $result;
-}, PHP_INT_MAX, 3 );
-
-// (C) mu-plugin が再生成されていても次リクエストから削除
-add_action( 'init', function () {
-    $mu = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/mu-plugins/proxy-app-passwords.php' : '';
-    if ( $mu && file_exists( $mu ) ) {
-        @unlink( $mu );
-    }
-}, 1 );
-
-// (D) デプロイ確認用デバッグエンドポイント（認証不要・一時的）
-add_action( 'rest_api_init', function () {
-    register_rest_route( 'escomi/v1', '/debug', array(
-        'methods'             => 'GET',
-        'callback'            => function () {
-            $mu_dir = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/mu-plugins/' : '';
-            $opcache_reset = false;
-            if ( function_exists( 'opcache_reset' ) ) {
-                $opcache_reset = opcache_reset();
-            }
-            return array(
-                'deployed'          => 'v6-home-featured-areas',
-                'opcache_reset'     => $opcache_reset,
-                'mu_proxy_exists'   => $mu_dir ? file_exists( $mu_dir . 'proxy-app-passwords.php' ) : 'unknown',
-                'mu_plugins'        => $mu_dir && is_dir( $mu_dir ) ? array_values( array_diff( scandir( $mu_dir ), array( '.', '..' ) ) ) : array(),
-                'auth_filter_count' => has_filter( 'rest_authentication_errors' ),
-                'pre_dispatch_count'=> has_filter( 'rest_pre_dispatch' ),
-            );
-        },
-        'permission_callback' => '__return_true',
-    ) );
-} );
 
 // ====================================================
 // AI店舗自動更新・カスタム REST（escomi/v1/update）は ai-update-log.php で登録
