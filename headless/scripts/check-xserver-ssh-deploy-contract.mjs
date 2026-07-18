@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -16,6 +18,17 @@ const packageSource = await readFile(
   "utf8",
 );
 const packageJson = JSON.parse(packageSource);
+const functionsSource = await readFile(path.join(repositoryRoot, "functions.php"), "utf8");
+const predeployListPath = path.join(
+  repositoryRoot,
+  "scripts/xserver-predeploy-php-dependencies.txt",
+);
+const predeployListSource = await readFile(predeployListPath, "utf8");
+const stageValidatorPath = path.join(
+  repositoryRoot,
+  "scripts/validate-xserver-deploy-stage.sh",
+);
+const stageValidatorSource = await readFile(stageValidatorPath, "utf8");
 
 const EXPECTED_THEME_PATH =
   "/home/xs454693/mens-esthe-kuchikomi.com/public_html/wp-content/themes/swell_child/";
@@ -135,6 +148,7 @@ const forbiddenDirectories = [
   "docs",
   "headless",
   "pm",
+  "scripts",
   "tools",
   "ai-site-monitor",
   "content",
@@ -243,6 +257,94 @@ assert.match(stageStep, /test\s+-f\s+"\$STAGE_DIR\/functions\.php"/);
 assert.match(stageStep, /test\s+-f\s+"\$STAGE_DIR\/style\.css"/);
 assert.match(stageStep, /forbidden deploy file/i);
 
+const literalRequirePattern =
+  /require_once\s+(?:__DIR__|get_stylesheet_directory\(\))\s*\.\s*["']\/([^"']+\.php)["']\s*;/g;
+const literalRequiredPhp = [...functionsSource.matchAll(literalRequirePattern)].map(
+  (match) => match[1],
+);
+for (const knownRequiredPhp of [
+  "shop-public-meta.php",
+  "area-seo-hooks-optimized.php",
+  "reviews-cpt.php",
+  "reviews-public-rest.php",
+]) {
+  assert.ok(
+    literalRequiredPhp.includes(knownRequiredPhp),
+    `known functions.php literal require is missing: ${knownRequiredPhp}`,
+  );
+}
+const predeployPhp = predeployListSource
+  .split(/\r?\n/)
+  .map((entry) => entry.trim())
+  .filter((entry) => entry !== "" && !entry.startsWith("#"));
+assert.equal(new Set(predeployPhp).size, predeployPhp.length, "predeploy PHP list must be unique");
+for (const requiredPhp of literalRequiredPhp) {
+  assert.ok(
+    predeployPhp.includes(requiredPhp),
+    `functions.php literal require is missing from predeploy list: ${requiredPhp}`,
+  );
+}
+for (const conditionalDependency of ["ai-update-security.php", "ai-update-log.php"]) {
+  assert.ok(
+    predeployPhp.includes(conditionalDependency),
+    `conditional AI dependency must be predeployed: ${conditionalDependency}`,
+  );
+}
+assert.ok(
+  predeployPhp.indexOf("ai-update-security.php") < predeployPhp.indexOf("ai-update-log.php"),
+  "AI security helpers must be transferred before the AI update route",
+);
+assert.match(
+  stageStep,
+  /validate-xserver-deploy-stage\.sh"\s*\\?\s+"\$STAGE_DIR"\s*\\?\s+"\$GITHUB_WORKSPACE\/scripts\/xserver-predeploy-php-dependencies\.txt"/,
+);
+assert.match(stageValidatorSource, /set -euo pipefail/);
+assert.match(stageValidatorSource, /Deployment stage is missing required PHP dependency/);
+assert.match(stageValidatorSource, /Deployment stage contains forbidden scripts directory/);
+
+const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "eskomi-deploy-stage-"));
+const validFixture = path.join(fixtureRoot, "valid");
+try {
+  await mkdir(path.join(validFixture, "dashboard/_next"), { recursive: true });
+  await writeFile(path.join(validFixture, "functions.php"), "<?php\n");
+  await writeFile(path.join(validFixture, "style.css"), "/* fixture */\n");
+  await writeFile(path.join(validFixture, "dashboard/index.html"), "<!doctype html>\n");
+  for (const dependency of predeployPhp) {
+    await writeFile(path.join(validFixture, dependency), "<?php\n");
+  }
+  execFileSync("bash", [stageValidatorPath, validFixture, predeployListPath], {
+    stdio: "pipe",
+  });
+
+  for (const missingDependency of predeployPhp) {
+    const missingFixture = path.join(fixtureRoot, `missing-${missingDependency}`);
+    await cp(validFixture, missingFixture, { recursive: true });
+    await unlink(path.join(missingFixture, missingDependency));
+    assert.throws(
+      () =>
+        execFileSync("bash", [stageValidatorPath, missingFixture, predeployListPath], {
+          stdio: "pipe",
+        }),
+      /Command failed/,
+      `stage validation must fail without ${missingDependency}`,
+    );
+  }
+
+  const scriptsLeakFixture = path.join(fixtureRoot, "scripts-leak");
+  await cp(validFixture, scriptsLeakFixture, { recursive: true });
+  await mkdir(path.join(scriptsLeakFixture, "scripts"));
+  assert.throws(
+    () =>
+      execFileSync("bash", [stageValidatorPath, scriptsLeakFixture, predeployListPath], {
+        stdio: "pipe",
+      }),
+    /Command failed/,
+    "stage validation must reject deployment helper scripts",
+  );
+} finally {
+  await rm(fixtureRoot, { recursive: true, force: true });
+}
+
 for (const sshOption of [
   "BatchMode=yes",
   "IdentitiesOnly=yes",
@@ -260,6 +362,20 @@ assert.match(
 );
 assert.match(remoteDeployStep, /--no-perms\s+--no-owner\s+--no-group/);
 assertNoRemoteDelete(remoteDeployStep);
+const dependencyTransferPosition = remoteDeployStep.indexOf('for dependency in "${PREDEPLOY_PHP_DEPENDENCIES[@]}"');
+const fullStageTransferPosition = remoteDeployStep.indexOf('"$STAGE_DIR/"');
+const functionsTransferPosition = remoteDeployStep.lastIndexOf('"$STAGE_DIR/functions.php"');
+assert.ok(
+  dependencyTransferPosition !== -1 &&
+    dependencyTransferPosition < fullStageTransferPosition &&
+    fullStageTransferPosition < functionsTransferPosition,
+  "required PHP must transfer first, the stage second, and functions.php last",
+);
+assert.match(
+  remoteDeployStep,
+  /rsync[\s\S]*--exclude=["']functions\.php["'][\s\S]*"\$STAGE_DIR\/"/,
+  "the full stage transfer must exclude functions.php",
+);
 assert.throws(
   () => assertNoRemoteDelete(remoteDeployStep.replace("rsync -rltz", "rsync \\\n+            --delete \\\n+            -rltz")),
   assert.AssertionError,

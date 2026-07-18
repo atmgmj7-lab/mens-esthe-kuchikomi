@@ -90,6 +90,8 @@ assert.match(revalidateSource, /Revalidation is not configured[\s\S]{0,100}503/)
 assert.match(revalidateSource, /Invalid secret[\s\S]{0,100}401/);
 assert.match(revalidateSource, /headers\.get\(["']x-revalidate-secret["']\)/);
 assert.doesNotMatch(revalidateSource, /searchParams\.get\(["']secret["']\)/);
+assert.match(revalidateSource, /revalidateTag\(tag,\s*\{\s*expire:\s*0\s*\}\)/);
+assert.doesNotMatch(revalidateSource, /revalidateTag\(tag,\s*["']max["']\)/);
 
 assert.match(functionsSource, /revalidate secret not configured; request skipped/);
 assert.match(
@@ -273,7 +275,9 @@ response = await routeModule.POST(
 await assertSafeRevalidateResponse(response, 400);
 response = await routeModule.POST(revalidateRequest({ headerSecret: "server-secret" }));
 await assertSafeRevalidateResponse(response, 200);
-assert.deepEqual(revalidatedTags, [{ tag: "wp", profile: "max" }]);
+assert.equal(revalidatedTags.length, 1);
+assert.equal(revalidatedTags[0].tag, "wp");
+assert.equal(revalidatedTags[0].profile.expire, 0);
 
 const throwingRouteModule = compileRevalidateRoute(
   () => {

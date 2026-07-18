@@ -628,3 +628,12 @@
 - 901px以上は220px見出し＋32px gap＋本文の2列、900px以下は1列をcomputed styleと実寸で確認する。fixtureと公開実routeのsection・本文幅も14条件すべてで一致させ、既存Range・SVG・overflow検査は維持した。
 - graph focusedは14 scenarios・697 assertions・failures 0。fresh build後の全browserは98 scenarios・90,883 assertions・56 screenshots・failures 0。
 - `npm test`、lint、typecheck、824/824 build（build ID `2dC0C96qFJufAgIzzj575`）、performance 6対象、High/Critical 0が成功した。通常Chrome、push、deploy、本番WordPress/Supabase操作は行っていない。
+
+## 2026-07-19 Phase 17 最終横断レビュー修正
+
+- 公開される旧GA PHP入口を404・保存禁止・検索対象外のdisabled応答へ固定し、CORS、GA4認証、外部取得経路を削除した。CLI契約時だけpure parserを読み込める。
+- Next.js 16のローカル型・実装・文書を確認し、WordPress moderation後のtag再検証を`{ expire: 0 }`による即時失効へ変更した。認証、応答、失敗時処理は維持した。
+- SSH deployは必須PHPをstageで検査し、依存PHP先行、`functions.php`除外の全体転送、`functions.php`最終転送の順へ変更した。検証用root`scripts/`はstage除外・事後禁止・fixture拒否へ固定した。
+- security確認表とBLOCK-001はSSH実装・独立レビュー完了へ更新し、残作業を初回mainデプロイと1店舗疎通だけにした。承認済みpush自体を禁止せず、両方成功までrelease完了としない。
+- focused RED/Green、全`npm test`、両画面lint、型、旧5/5・Headless 824/824 build、PHP/YAML/bash構文、差分検査を実行した。表示コードを変更していないためbrowser QAは不要と判定した。
+- 認証情報の取得・表示、push、deploy、本番WordPress/Supabase操作は行っていない。

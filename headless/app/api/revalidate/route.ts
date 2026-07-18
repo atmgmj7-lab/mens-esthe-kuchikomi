@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    revalidateTag(tag, "max");
+    revalidateTag(tag, { expire: 0 });
   } catch {
     return revalidateResponse({ ok: false, message: "Revalidation failed" }, 500);
   }

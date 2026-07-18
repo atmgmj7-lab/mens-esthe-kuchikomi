@@ -1,8 +1,8 @@
 # WordPress日次更新 認証情報ローテーション確認表
 
-Status: `in_progress`（SSHデプロイ移行・初回デプロイ・1店舗疎通試験待ち）
+Status: `in_progress`（初回mainデプロイ・1店舗疎通試験待ち）
 
-この確認表の全項目が外部環境で確認されるまで、push・deploy・本番更新の準備完了とは判定しない。認証情報そのものは、この文書・issue・ログ・スクリーンショットへ記録しない。
+SSHデプロイ処理の実装と独立レビューは完了している。push・deployはユーザー承認済みだが、初回mainデプロイと1店舗疎通試験が成功するまでrelease完了とは判定しない。認証情報そのものは、この文書・issue・ログ・スクリーンショットへ記録しない。
 
 | 完了 | 確認項目 | 実施者 | 確認時刻（JST） | 証跡URL |
 |---|---|---|---|---|
@@ -17,7 +17,8 @@ Status: `in_progress`（SSHデプロイ移行・初回デプロイ・1店舗疎�
 | [x] | 無効な旧password候補は再発行せず、FTP方式を廃止する方針を確定する | 外部確認 | 2026-07-19 | SSH移行方針（旧password候補は再発行しない） |
 | [x] | `.vscode/sftp.json`がGit追跡外かつignore対象であることを確認する | Codex | 2026-07-18 18:51 | `.gitignore`と`git ls-files`で確認 |
 | [x] | デプロイ専用SSH keyを外部環境へ設定する | 外部確認 | 2026-07-19 | 外部設定完了（秘密鍵・値は非表示） |
-| [ ] | GitHub Actionsのデプロイ処理をFTPからSSHへ移行する |  |  |  |
+| [x] | GitHub Actionsのデプロイ処理をFTPからSSHへ移行する | Codex | 2026-07-19 | `.github/workflows/deploy.yml`とSSH deploy契約検査 |
+| [x] | SSHデプロイ処理の独立レビューを完了する | Codex | 2026-07-19 | 最終横断レビューと修正契約検査 |
 | [ ] | SSHへ移行した処理で初回デプロイを行い、成功を確認する |  |  |  |
 | [x] | GitHubの旧`WP_USER` secretを削除する | Codex | 2026-07-18 18:47 | https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/settings/secrets/actions |
 | [x] | GitHubの旧`WP_APP_PASSWORD` secretを削除する | Codex | 2026-07-18 18:47 | https://github.com/atmgmj7-lab/mens-esthe-kuchikomi/settings/secrets/actions |
@@ -30,9 +31,10 @@ Status: `in_progress`（SSHデプロイ移行・初回デプロイ・1店舗疎�
 
 ## 判定
 
-- 現在: `in_progress`（専用SSH keyの外部設定は完了。デプロイ処理のSSH移行・初回デプロイ・1店舗疎通試験は未完了）
+- 現在: `in_progress`（SSHデプロイ処理の実装・独立レビューは完了。初回mainデプロイと1店舗疎通試験は未完了）
 - 完了条件: 全項目がチェック済みで、実施者・確認時刻・証跡URLが記入されていること
-- 禁止事項: 明示確認のないpush、deploy、本番WordPress更新、本番Supabase更新
+- release判定: 承認済みpush・deployを進めても、初回mainデプロイと1店舗疎通試験が成功するまではrelease完了としない
+- 禁止事項: 承認範囲を越える本番WordPress更新、本番Supabase更新、認証情報の取得・表示
 
 ## 2026-07-18 補足
 
@@ -45,4 +47,4 @@ Status: `in_progress`（SSHデプロイ移行・初回デプロイ・1店舗疎�
 
 - 旧Xserver SFTP/FTP password候補は提供元で拒否され、無効である。旧候補は再発行せず、FTP方式を廃止する。
 - デプロイ専用SSH keyの外部設定は完了している。鍵の値はこの文書・ログへ記録しない。
-- GitHub ActionsのSSH移行、移行後の初回デプロイ、1店舗だけの日次更新疎通試験は未完了である。
+- GitHub ActionsのSSH移行と独立レビューは完了した。移行後の初回mainデプロイと1店舗だけの日次更新疎通試験は未完了である。

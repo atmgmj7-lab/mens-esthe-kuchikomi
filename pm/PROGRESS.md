@@ -3278,3 +3278,12 @@ pm/PROGRESS.md
 - fixtureと公開実routeのsection・本文幅を14条件で直接比較し、既存の全Range、SVG、graph/viewport内包、横はみ出し0検査を維持した。
 - focused 14 scenarios・697 assertions、fresh build後の全98 scenarios・90,883 assertions・56 screenshotsはいずれもfailures 0。
 - 全test、lint、typecheck、824/824 build（build ID `2dC0C96qFJufAgIzzj575`）、performance 6対象、High/Critical 0が成功。push、deploy、本番操作は行っていない。
+
+## 2026-07-19 Phase 17 最終横断レビュー修正
+
+- 旧Xserver dashboardのGA PHP公開入口をdisabled 404へ固定し、保存・検索・CORS・GA4資格情報/取得経路を閉じた。CLI契約だけはpure parser fixtureを維持した。
+- moderation後のtag cacheをNext.js 16の`revalidateTag(tag, { expire: 0 })`で即時失効する契約へ変更した。
+- SSH deployの必須PHP stage検査と転送順を、依存先行、`functions.php`除外の全体転送、`functions.php`最終転送へ固定した。新規root`scripts/`は公開stageへ入らない。
+- SSH workflow実装・独立レビューは完了。初回mainデプロイと1店舗疎通だけをBLOCK-001へ残し、両方成功までrelease完了と判定しない。
+- focused RED/Green、全test、lint、typecheck、旧dashboard 5/5・Headless 824/824 build、PHP/YAML/bash構文、差分検査を実行した。画面表示コードの変更がないためbrowser QAは省略した。
+- push、deploy、本番WordPress/Supabase操作、認証情報の取得・表示は行っていない。

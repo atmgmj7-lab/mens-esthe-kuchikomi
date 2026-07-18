@@ -107,6 +107,7 @@ jobs:
             --exclude='docs/' \
             --exclude='headless/' \
             --exclude='pm/' \
+            --exclude='scripts/' \
             --exclude='tools/' \
             --exclude='ai-site-monitor/' \
             --exclude='content/' \
@@ -155,6 +156,10 @@ jobs:
           mkdir -p "$STAGE_DIR/dashboard"
           rsync -a "$GITHUB_WORKSPACE/dashboard/out/" "$STAGE_DIR/dashboard/"
 
+          bash "$GITHUB_WORKSPACE/scripts/validate-xserver-deploy-stage.sh" \
+            "$STAGE_DIR" \
+            "$GITHUB_WORKSPACE/scripts/xserver-predeploy-php-dependencies.txt"
+
           if [[ -z "$(find "$STAGE_DIR" -mindepth 1 -print -quit)" ]]; then
             echo "::error::Deployment stage is empty."
             exit 1
@@ -180,7 +185,7 @@ jobs:
             \( -name '.git*' -o -name '.github' -o -name '.deploy' \
               -o -name '.superpowers' -o -name '.vscode' -o -name '.cursor' \
               -o -name '.cursorrules' -o -name 'docs' -o -name 'headless' \
-              -o -name 'pm' -o -name 'tools' \
+              -o -name 'pm' -o -name 'scripts' -o -name 'tools' \
               -o -name 'ai-site-monitor' -o -name 'content' -o -name 'agent-foundation' \
               -o -name 'MensEsthe-Notes' -o -name 'supabase' -o -name 'tests' \
               -o -name 'node_modules' -o -name 'venv' -o -name '__pycache__' \
@@ -243,10 +248,31 @@ jobs:
             "test -d '$XSERVER_SSH_PATH' && test -f '${XSERVER_SSH_PATH}style.css'"
 
           RSYNC_SSH="ssh -p $XSERVER_SSH_PORT -i $HOME/.ssh/xserver_deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          PREDEPLOY_PHP_DEPENDENCIES=()
+          while IFS= read -r dependency || [[ -n "$dependency" ]]; do
+            if [[ -z "$dependency" || "$dependency" == \#* ]]; then
+              continue
+            fi
+            PREDEPLOY_PHP_DEPENDENCIES+=("$dependency")
+          done < "$GITHUB_WORKSPACE/scripts/xserver-predeploy-php-dependencies.txt"
+
+          for dependency in "${PREDEPLOY_PHP_DEPENDENCIES[@]}"; do
+            rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
+              -e "$RSYNC_SSH" \
+              "$STAGE_DIR/$dependency" \
+              "$XSERVER_SSH_USER@$XSERVER_SSH_HOST:${XSERVER_SSH_PATH}${dependency}"
+          done
+
           rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
+            --exclude='functions.php' \
             -e "$RSYNC_SSH" \
             "$STAGE_DIR/" \
             "$XSERVER_SSH_USER@$XSERVER_SSH_HOST:$XSERVER_SSH_PATH"
+
+          rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
+            -e "$RSYNC_SSH" \
+            "$STAGE_DIR/functions.php" \
+            "$XSERVER_SSH_USER@$XSERVER_SSH_HOST:${XSERVER_SSH_PATH}functions.php"
 
       - name: Post-deploy REST check
         env:

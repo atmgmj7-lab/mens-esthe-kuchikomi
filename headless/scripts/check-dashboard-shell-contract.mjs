@@ -121,10 +121,18 @@ assert.doesNotMatch(
   /get_mock_data|mock_day_count|_mock|rand\s*\(/,
   "旧GA proxyからmock生成を完全に削除する必要があります"
 );
-assert.match(gaProxySource, /http_response_code\(503\)/);
-assert.match(gaProxySource, /["']status["']\s*=>\s*["']live["']/);
+assert.match(gaProxySource, /http_response_code\(404\)/);
+assert.match(gaProxySource, /PHP_SAPI\s*===\s*["']cli["']/);
 assert.match(gaProxySource, /["']source["']\s*=>\s*["']ga4["']/);
-assert.match(gaProxySource, /["']data["']\s*=>\s*\$data/);
+assert.match(gaProxySource, /["']reason["']\s*=>\s*["']disabled["']/);
+assert.match(gaProxySource, /Cache-Control: no-store/);
+assert.match(gaProxySource, /X-Robots-Tag: noindex, nofollow/);
+assert.doesNotMatch(gaProxySource, /Access-Control-Allow-Origin/);
+assert.doesNotMatch(
+  gaProxySource,
+  /run_ga4_proxy|get_access_token|fetch_ga4_data|GA4_CREDENTIALS_PATH/,
+  "公開GA proxyから認証情報とGA4取得経路を除去する必要があります"
+);
 assert.match(gaSource, /parseGa4LiveEnvelope/);
 assert.doesNotMatch(
   gaSource,

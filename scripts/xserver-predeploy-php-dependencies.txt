@@ -1,0 +1,6 @@
+shop-public-meta.php
+area-seo-hooks-optimized.php
+reviews-cpt.php
+reviews-public-rest.php
+ai-update-security.php
+ai-update-log.php
