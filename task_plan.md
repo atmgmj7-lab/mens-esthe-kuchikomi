@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調整し、main反映・Vercel本番公開・本番全幅QAまで完了）
+Phase 17 in_progress（店舗詳細を1カラム・二層タブ・口コミ優先・将来拡張可能な構成へ再設計。実データグラフの正本確認中）
 
 ## Phases
 
@@ -154,6 +154,17 @@ Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調
 - [x] ユーザー承認後に`main`へpushし、Vercel本番公開と本番全幅QAを完了する
 - **Status:** complete
 
+### Phase 17: 店舗詳細の1カラム・二層タブ基盤
+- [x] 現行の店舗詳細component、口コミデータ、CTA計測、将来拡張箇所を読み取り確認する
+- [x] トップに置く最初のグラフを承認済み口コミの評価集計とし、件数不足時は非表示にする
+- [x] 年齢層・在籍数・出勤数・外部評価・外部順位の取得方法と段階導入範囲を確定する
+- [x] 3案の構造を比較し、検証済みデータ優先の1カラム・二層メニュー設計を承認する
+- [x] 設計書を保存し、placeholder・矛盾・曖昧さ・過剰範囲を自己レビューする
+- [ ] ユーザーが保存済み設計書を確認する
+- [ ] テスト先行の実装計画を作成し、実装担当と別担当レビューへ分ける
+- [ ] PC/SP・SEO・アクセシビリティ・実データ境界を検証する
+- **Status:** in_progress
+
 ## Key Questions
 
 1. 最小構成で、現在不足している本文・口コミ・出典・確認日を拡張できるか。
@@ -206,6 +217,7 @@ Phase 16 complete（一覧順位・店舗詳細の密度・CTA一意性を再調
 | trial SQLを `supabase db query --file` で実行すると複数文prepared statement error | 1 | local SupabaseのPostgres containerへ同じSQLを `psql` で適用し、2回の再実行と検証に成功した |
 | 30店舗確認用の一時Node commandでshellの特殊文字が展開された | 1 | shell展開しないheredocへ切り替え、生成済みJSONの検査に成功した |
 | 30店舗本番投入時のChrome profileで対象projectを開けない | 1 | 誤projectへ書き込まず停止し、対象アカウントへ再接続後にproject refと事前件数を確認して再開した |
+| 参考動画のframe抽出で`ffprobe`が見つからない | 1 | 同じコマンドを繰り返さず、macOS Quick Lookまたはbundled Python画像ライブラリで確認する |
 | 382店舗SQLの容量確認を `headless/` から誤った相対pathで実行 | 1 | `../supabase/imports/...` に直し、SQL 469,464 bytes・検証SQL 7,314 bytesと確認した |
 | `headless/` から計画書をroot相対pathで検索し、ファイルなしになった | 1 | `../docs/superpowers/plans/...` またはリポジトリrootからの絶対pathを使う |
 | Phase 4 preview全体を文字列検索し、管理用の `requires_human_review` まで口コミ項目と誤判定した | 1 | 管理用キーを `requires_human_check` に変更し、検査対象を公開フィールド名へ限定した |
