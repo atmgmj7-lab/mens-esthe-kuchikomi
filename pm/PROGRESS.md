@@ -3246,3 +3246,18 @@ pm/PROGRESS.md
 - 画面と構造化データは同じ集計値を使い、SSRのinline SVG円グラフとCSS棒グラフ、最新3件を表示する。取得不能は0件に変換しない。
 - 実装commitは`ba7c33b`。focused、全体`npm test`、型、lint、824/824ページbuild、差分・ARIA・schema・秘密値確認が成功した。
 - 独立レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。Task 3〜6完了位置で停止し、Task 7、push、deploy、本番操作は未実施。資格情報ローテーション前の本番反映禁止を維持する。
+
+## 2026-07-19 Phase 17 Task 7 店舗詳細dashboard基盤
+
+- WordPress公開値を正本として6項目の確認状況、地域一致する明示順位snapshot、1カラム・二層menuを実装した。未確認値、選択順、他地域順位は公開表示へ使わない。
+- 実装・レビュー修正commitは`e531b3c`と`c3133e5`。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。
+- AI非公開staging、承認公開、セラピスト・出勤連動、対象外2店舗のdraft化は未実装。本番WordPress/Supabase操作、push、deployは行っていない。
+
+## 2026-07-19 Phase 17 Task 8 全幅QA・SEO・進行記録
+
+- 公開4routeと認証付きdashboard 2routeを14表示条件で検査し、headless 84 scenarios・90,155 assertions・48 screenshots・failures 0を確認した。認証なし401、不正認証401、QA認証200、320px drawerのbutton→menu→main focus移動も成功した。
+- 店舗詳細はH1孤立改行0、表示中CTA group 1、二層menu移動先欠落0、口コミgraph文字切れ0または明示的な3件未満/取得不能状態、横はみ出し0を実寸確認した。画面component/CSSの修正は不要だった。
+- 初回の二層menu 14 failureはTask 7前の古い`.next`が原因。fresh build後の残り5 failureは旧1360px検査期待で、Task 7の1200px本文正本へ更新した。最終build IDは`JOV17sh0ZfpTYYlPc4yXr`、専用`127.0.0.1:3100`だけを起動し、既存serverを再利用していない。
+- 口コミmodule移動に追従していなかった`test:content-provenance`へ新所有ファイルを1行追加した。focused検査と通常`npm test`、lint、typecheck、824/824 build、performance 6対象、High/Critical 0、`git diff --check`はすべてexit 0。
+- security確認表の旧Xserver password再発行2項目と1店舗疎通は未完了。旧password候補は提供元で拒否され無効で、ユーザー判断により再発行しない。旧FTP方式を廃止し、専用SSH鍵・known_hosts・GitHub variablesは外部設定済みだが、workflowのSSH移行は次taskのため本番反映可能とは判定しない。
+- AI非公開staging、承認公開、セラピスト・出勤連動、Task 8独立横断レビューは未実施。通常Chromeを操作せず、認証値をlog、summary、screenshot名へ出さず、push、deploy、本番WordPress/Supabase操作は行っていない。

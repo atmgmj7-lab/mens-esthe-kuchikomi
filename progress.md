@@ -595,3 +595,20 @@
 - 同じview modelから軽量なSSR円グラフ・項目別棒グラフ・最新3件・構造化データを生成する。取得不能は0件へ変換せず、推測値・外部評価・Supabase接続は追加していない。
 - 実装commitは`ba7c33b`。focused、通常`npm test`、型、lint、824/824ページbuild、差分・ARIA・schema・秘密値確認が成功した。
 - 独立レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。ユーザー指定のTask 3〜6完了位置で停止し、Task 7、push、deploy、本番操作へは進んでいない。
+
+## 2026-07-19 Phase 17 Task 7 店舗詳細dashboard基盤
+
+- 料金・営業時間・アクセス・予約・公式URL・画像の6項目確認状況、地域一致する明示順位snapshot、1カラム・二層menuを実装した。
+- WordPress公開値を正本とし、field別出典は公開値hash一致時だけ確認済みにする。順位候補や未確認値を公開値へ昇格していない。
+- 実装・レビュー修正commitは`e531b3c`と`c3133e5`。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。
+- AI非公開staging、承認公開、セラピスト・出勤連動、対象外2店舗のdraft化は未実装。本番WordPress/Supabase操作、push、deployは行っていない。
+
+## 2026-07-19 Phase 17 Task 8 全幅QA・SEO・進行記録
+
+- browser QAを公開4routeと認証付きdashboard 2routeへ拡張し、14表示条件でshell、navigation、main、現在地、横はみ出し、H1孤立改行、CTA group、二層menuの全移動先、口コミgraph/閾値状態、320px drawerのfocus移動を実測した。
+- runnerは毎回QA専用認証値をランダム生成し、ローカルNext serverとdashboard用browser contextだけへ渡す。公開contextは認証なし。外部server利用時はQA認証2項目の片方・両方なしをexit 1にする。
+- 初回はTask 7前の古いbuildで二層menuが14件失敗した。fresh build後は旧1360px期待だけが5件失敗し、Task 7の1200px正本へ検査を更新した。画面component/CSSは変更していない。
+- `npm test`初回は、口コミmodule移動後も旧2ファイルだけを読む`test:content-provenance`が1件失敗した。新しい`ShopDetailModuleList.tsx`を検査対象へ1行追加し、focusedと全testを成功させた。
+- 最終は`npm test`、lint、typecheck、824/824 build（build ID `JOV17sh0ZfpTYYlPc4yXr`）、headless 84 scenarios・90,155 assertions・48 screenshots・failures 0、performance 6対象、High/Critical 0、`git diff --check`がexit 0。
+- security確認表の旧Xserver password再発行2項目と1店舗疎通は未完了のまま。旧FTP方式は廃止し、外部設定済みの専用SSH鍵・known_hosts・GitHub variablesを使うdeploy workflow移行を次taskで行う。未完了項目を完了扱いにしていない。
+- Task 8の独立横断レビュー、AI非公開staging、セラピスト・出勤連動は未実施。通常Chromeは操作せず、認証値をlog、summary、screenshot名へ出さず、push、deploy、本番WordPress/Supabase操作は行っていない。

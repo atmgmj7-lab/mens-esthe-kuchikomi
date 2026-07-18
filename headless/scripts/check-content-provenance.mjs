@@ -163,7 +163,8 @@ assert.ok(areaLatestSource.includes("ユーザー口コミ"), "AreaLatestReviews
 
 const shopDetailSource = [
   readFileSync(join(root, "components/ShopDetail.tsx"), "utf8"),
-  readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8")
+  readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8"),
+  readFileSync(join(root, "components/shop-detail/ShopDetailModuleList.tsx"), "utf8")
 ].join("\n");
 assert.ok(!shopDetailSource.includes("Escomi編集部 Review"), "Shop detail must not label editorial text as Review");
 assert.ok(shopDetailSource.includes("ユーザー口コミ"), "Shop detail must separate user reviews");

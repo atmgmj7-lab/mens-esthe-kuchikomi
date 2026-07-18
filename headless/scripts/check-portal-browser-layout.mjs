@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
@@ -17,6 +18,10 @@ const routes = [
   { name: "area-sakaisujihonmachi", path: "/area/sakaisujihonmachi/", kind: "hub" },
   { name: "area-osaka", path: "/area/osaka/", kind: "area" },
   { name: "shops", path: "/shops/", kind: "shops" }
+];
+const dashboardRoutes = [
+  { name: "dashboard-overview", path: "/dashboard/", kind: "dashboard" },
+  { name: "dashboard-analytics", path: "/dashboard/analytics/", kind: "dashboard" }
 ];
 const standardViewports = [
   { name: "1440", width: 1440, height: 1000, screenshot: true },
@@ -43,6 +48,27 @@ const headed = process.env.PORTAL_QA_HEADED === "1";
 const summaryFileName = testHook === "smoke" ? "summary-headless-smoke.json" : "summary.json";
 const runViewports = testHook ? viewports.slice(0, 1) : viewports;
 const runRoutes = testHook ? routes.slice(0, 1) : routes;
+const runDashboardRoutes = testHook ? [] : dashboardRoutes;
+
+function dashboardCredentials() {
+  if (!process.env.PORTAL_BASE_URL) {
+    return {
+      username: randomBytes(24).toString("base64url"),
+      password: randomBytes(32).toString("base64url")
+    };
+  }
+
+  const username = process.env.PORTAL_QA_DASHBOARD_USER;
+  const password = process.env.PORTAL_QA_DASHBOARD_PASSWORD;
+  if (!username || !password) {
+    throw new Error(
+      "PORTAL_BASE_URL requires both PORTAL_QA_DASHBOARD_USER and PORTAL_QA_DASHBOARD_PASSWORD for dashboard QA"
+    );
+  }
+  return { username, password };
+}
+
+const qaDashboardCredentials = dashboardCredentials();
 
 function isPortOpen(port) {
   return new Promise((resolve) => {
@@ -59,7 +85,7 @@ function isPortOpen(port) {
   });
 }
 
-async function startServer() {
+async function startServer(credentials) {
   if (process.env.PORTAL_BASE_URL) return null;
   if (await isPortOpen(3100)) {
     throw new Error("127.0.0.1:3100 is already in use; refusing to reuse an unknown server");
@@ -71,7 +97,12 @@ async function startServer() {
     {
       cwd: projectRoot,
       detached: process.platform !== "win32",
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        DASHBOARD_BASIC_AUTH_USER: credentials.username,
+        DASHBOARD_BASIC_AUTH_PASSWORD: credentials.password
+      }
     }
   );
   let startupLog = "";
@@ -152,7 +183,11 @@ function approximately(actual, expected, tolerance) {
 }
 
 function sanitizeRuntimeText(value) {
-  return String(value ?? "")
+  let sanitized = String(value ?? "");
+  for (const secret of [qaDashboardCredentials.username, qaDashboardCredentials.password]) {
+    if (secret) sanitized = sanitized.replaceAll(secret, "<REDACTED_QA_CREDENTIAL>");
+  }
+  return sanitized
     .replaceAll(baseUrl, "<PORTAL_BASE_URL>")
     .replace(/\u001b\[[0-9;]*m/g, "")
     .replace(/\bsb_secret_[A-Za-z0-9_-]+\b/g, "<REDACTED_SECRET>")
@@ -189,10 +224,10 @@ function summaryFor(status) {
     runId,
     startedAt,
     completedAt: status === "running" ? null : new Date().toISOString(),
-    routes: runRoutes.length,
+    routes: runRoutes.length + runDashboardRoutes.length,
     standardWidths: standardViewports.length,
     measuredViewports: runViewports.length,
-    expectedScenarios: runRoutes.length * runViewports.length,
+    expectedScenarios: (runRoutes.length + runDashboardRoutes.length) * runViewports.length,
     completedScenarios,
     assertions: assertionCount,
     screenshots: screenshotCount,
@@ -275,6 +310,30 @@ async function collectMetrics(page) {
       const box = element.getBoundingClientRect();
       const style = getComputedStyle(element);
       return box.width > 0 && box.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+    };
+    const visualLines = (element) => {
+      if (!element) return [];
+      const lines = [];
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let textNode = walker.nextNode();
+      while (textNode) {
+        for (let index = 0; index < textNode.data.length; index += 1) {
+          const character = textNode.data[index];
+          if (!character.trim()) continue;
+          const range = document.createRange();
+          range.setStart(textNode, index);
+          range.setEnd(textNode, index + 1);
+          const box = range.getBoundingClientRect();
+          let line = lines.find((candidate) => Math.abs(candidate.top - box.top) <= 1);
+          if (!line) {
+            line = { top: box.top, text: "" };
+            lines.push(line);
+          }
+          line.text += character;
+        }
+        textNode = walker.nextNode();
+      }
+      return lines.sort((first, second) => first.top - second.top).map((line) => line.text);
     };
     const shopRoots = document.querySelectorAll("main[data-shop-detail-root]");
     const shopRoot = shopRoots[0];
@@ -369,6 +428,29 @@ async function collectMetrics(page) {
     const fixedGroup = groups.find((group) =>
       group.querySelector('[data-shop-cta-position="fixed"]')
     );
+    const sectionMenu = shopRoot?.querySelector('nav[aria-label="店舗詳細のページ内メニュー"]');
+    const sectionMenuLayers = [...(sectionMenu?.querySelectorAll(':scope [role="group"]') ?? [])];
+    const sectionMenuLinks = [...(sectionMenu?.querySelectorAll('a[href^="#"]') ?? [])];
+    const missingSectionTargets = sectionMenuLinks
+      .map((link) => link.getAttribute("href")?.slice(1) ?? "")
+      .filter((id) => !id || !document.getElementById(id));
+    const reviewSection = shopRoot?.querySelector("section#reviews");
+    const reviewGraph = reviewSection?.querySelector('[role="group"][aria-label="承認済み口コミの評価グラフ"]');
+    const reviewFallback = reviewSection
+      ? [...reviewSection.querySelectorAll("p")].find((paragraph) =>
+          /評価グラフは|口コミ情報を現在取得できません/.test(paragraph.textContent ?? "")
+        )
+      : null;
+    const graphText = [...(reviewGraph?.querySelectorAll("*") ?? [])]
+      .filter((element) => isVisible(element) && element.children.length === 0 && element.textContent?.trim())
+      .map((element) => ({
+        text: element.textContent?.trim() || "",
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        clientHeight: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+        box: rect(element)
+      }));
 
     return {
       clientWidth: document.documentElement.clientWidth,
@@ -377,6 +459,7 @@ async function collectMetrics(page) {
       dpr: window.devicePixelRatio,
       scale: window.visualViewport?.scale ?? 1,
       h1: title?.textContent?.trim() || "",
+      h1Lines: visualLines(title),
       titleSize: title ? Number.parseFloat(getComputedStyle(title).fontSize) : null,
       factValues,
       requiredDom: {
@@ -407,6 +490,13 @@ async function collectMetrics(page) {
             fixedGroup: rect(fixedGroup),
             fixedDisplay: fixedGroup ? getComputedStyle(fixedGroup).display : null,
             visibleActionGroupCount: visibleGroups.length,
+            sectionMenuLayerCount: sectionMenuLayers.length,
+            sectionMenuLinkCount: sectionMenuLinks.length,
+            missingSectionTargets,
+            reviewSectionCount: reviewSection ? 1 : 0,
+            reviewGraphCount: reviewGraph ? 1 : 0,
+            reviewFallbackCount: reviewFallback ? 1 : 0,
+            graphText,
             visibleActionGroups: visibleGroups.map((group) => ({
               box: rect(group),
               positions: [...group.querySelectorAll("[data-shop-cta-position]")].map((cta) =>
@@ -444,7 +534,7 @@ function assertShopGeometry(metrics, viewport, label) {
     ? viewport.width - 32
     : viewport.width <= 768
       ? viewport.width - 64
-      : Math.min(viewport.width - 80, 1360);
+      : Math.min(viewport.width - 80, 1200);
   const expectedLeft = (viewport.width - expectedWidth) / 2;
   const innerPadding = viewport.width <= 760 ? 0 : 24;
   const expectedInnerLeft = expectedLeft + innerPadding;
@@ -490,6 +580,43 @@ function assertShopGeometry(metrics, viewport, label) {
     count: shop.visibleActionGroupCount,
     groups: shop.visibleActionGroups
   });
+  const isolatedTitleLines = metrics.h1Lines.filter((line) => Array.from(line).length === 1);
+  check(isolatedTitleLines.length === 0, `${label} shop title has no isolated one-character line`, {
+    lines: metrics.h1Lines,
+    isolatedTitleLines
+  });
+  check(shop.sectionMenuLayerCount === 2, `${label} shop section menu has two layers`, {
+    count: shop.sectionMenuLayerCount
+  });
+  check(shop.sectionMenuLinkCount >= 2, `${label} shop section menu has destinations`, {
+    count: shop.sectionMenuLinkCount
+  });
+  check(shop.missingSectionTargets.length === 0, `${label} shop section menu targets exist`, {
+    missingTargets: shop.missingSectionTargets
+  });
+  check(shop.reviewSectionCount === 1, `${label} shop review data boundary exists`, {
+    count: shop.reviewSectionCount
+  });
+  check(
+    shop.reviewGraphCount + shop.reviewFallbackCount === 1,
+    `${label} shop review graph or explicit threshold state exists`,
+    {
+      graphCount: shop.reviewGraphCount,
+      fallbackCount: shop.reviewFallbackCount
+    }
+  );
+  if (shop.reviewGraphCount === 1) {
+    check(shop.graphText.length >= 3, `${label} shop review graph exposes measurable text`, {
+      count: shop.graphText.length
+    });
+    for (const [index, item] of shop.graphText.entries()) {
+      check(
+        item.scrollWidth <= item.clientWidth + 1 && item.scrollHeight <= item.clientHeight + 1,
+        `${label} shop review graph text ${index + 1} is not clipped`,
+        item
+      );
+    }
+  }
 
   if (viewport.width > 1024) {
     check(approximately(shop.hero.width, 320, 2), `${label} shop hero width`, {
@@ -889,6 +1016,135 @@ async function checkShopInteractions(page, viewport) {
   check(Math.abs(fallback.ratio - 4 / 3) / (4 / 3) <= 0.005, `${label} broken image fallback ratio`, fallback);
 }
 
+function basicAuthorization(username, password) {
+  return `Basic ${Buffer.from(`${username}:${password}`, "utf8").toString("base64")}`;
+}
+
+async function checkDashboardAuthentication() {
+  const request = async (authorization) => {
+    const headers = authorization ? { Authorization: authorization } : undefined;
+    return fetch(`${baseUrl}/dashboard/`, {
+      headers,
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000)
+    });
+  };
+
+  const unauthenticated = await request(null);
+  check(unauthenticated.status === 401, "dashboard unauthenticated request is rejected", {
+    status: unauthenticated.status
+  });
+
+  const invalid = await request(basicAuthorization("invalid-qa-user", "invalid-qa-password"));
+  check(invalid.status === 401, "dashboard invalid authentication is rejected", {
+    status: invalid.status
+  });
+
+  const authenticated = await request(
+    basicAuthorization(qaDashboardCredentials.username, qaDashboardCredentials.password)
+  );
+  check(authenticated.status === 200, "dashboard QA authentication is accepted", {
+    status: authenticated.status
+  });
+}
+
+async function waitForDashboardReady(page) {
+  await page.locator("main#dashboard-main").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator('nav[aria-label="管理ダッシュボード"]').waitFor({
+    state: "attached",
+    timeout: 15_000
+  });
+  await waitForStableLayout(page);
+}
+
+async function collectDashboardMetrics(page) {
+  return page.evaluate(() => {
+    const mainElements = [...document.querySelectorAll("main#dashboard-main")];
+    const navigationElements = [
+      ...document.querySelectorAll('nav[aria-label="管理ダッシュボード"]')
+    ];
+    const skipLinks = [...document.querySelectorAll('a[href="#dashboard-main"]')];
+    const shells = skipLinks
+      .map((link) => link.parentElement)
+      .filter(
+        (shell) =>
+          shell &&
+          shell.contains(mainElements[0]) &&
+          shell.contains(navigationElements[0])
+      );
+    const currentLinks = navigationElements[0]
+      ? [...navigationElements[0].querySelectorAll('a[aria-current="page"]')]
+      : [];
+    return {
+      shellCount: new Set(shells).size,
+      navigationCount: navigationElements.length,
+      mainCount: mainElements.length,
+      currentCount: currentLinks.length,
+      currentHref: currentLinks[0]?.getAttribute("href") ?? null,
+      clientWidth: document.documentElement.clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth
+    };
+  });
+}
+
+function assertDashboardMetrics(metrics, route, viewport) {
+  const label = `${route.name} ${viewport.name}`;
+  check(metrics.shellCount === 1, `${label} requires one dashboard shell`, {
+    count: metrics.shellCount
+  });
+  check(metrics.navigationCount === 1, `${label} requires one dashboard navigation`, {
+    count: metrics.navigationCount
+  });
+  check(metrics.mainCount === 1, `${label} requires one dashboard main`, {
+    count: metrics.mainCount
+  });
+  check(metrics.currentCount === 1, `${label} requires one current dashboard location`, {
+    count: metrics.currentCount,
+    href: metrics.currentHref
+  });
+  check(metrics.currentHref === route.path, `${label} current dashboard location matches route`, {
+    actual: metrics.currentHref,
+    expected: route.path
+  });
+  check(metrics.scrollWidth === metrics.clientWidth, `${label} document scroll width`, {
+    scrollWidth: metrics.scrollWidth,
+    clientWidth: metrics.clientWidth
+  });
+  check(metrics.bodyScrollWidth <= metrics.clientWidth, `${label} body scroll width`, {
+    bodyScrollWidth: metrics.bodyScrollWidth,
+    clientWidth: metrics.clientWidth
+  });
+}
+
+async function checkDashboardDrawerInteraction(page, route, viewport) {
+  const label = `${route.name} ${viewport.name} drawer`;
+  const toggle = page.locator("[data-dashboard-menu-toggle]");
+  await toggle.focus();
+  check(await toggle.evaluate((button) => document.activeElement === button), `${label} focus starts on button`);
+
+  await toggle.click();
+  const navigation = page.locator('nav[aria-label="管理ダッシュボード"]');
+  await navigation.waitFor({ state: "visible" });
+  check(
+    await navigation.evaluate((nav) => Boolean(document.activeElement && nav.contains(document.activeElement))),
+    `${label} focus moves into menu`
+  );
+
+  const destination = route.path === "/dashboard/" ? "/dashboard/analytics/" : "/dashboard/";
+  await navigation.locator(`a[href="${destination}"]`).click();
+  await page.waitForURL((url) => url.pathname === destination, { timeout: 15_000 });
+  await page.locator("main#dashboard-main").waitFor({ state: "visible" });
+  await page.waitForFunction(() => document.activeElement?.id === "dashboard-main");
+  check(
+    await page.locator("main#dashboard-main").evaluate((main) => document.activeElement === main),
+    `${label} focus moves to main after navigation`
+  );
+  check((await toggle.getAttribute("aria-expanded")) === "false", `${label} drawer closes after navigation`, {
+    expanded: await toggle.getAttribute("aria-expanded")
+  });
+}
+
 let server = null;
 let browser = null;
 await fs.mkdir(reportDir, { recursive: true });
@@ -901,26 +1157,37 @@ try {
   if (parsedBaseUrl.port === "5000") {
     throw new Error("PORTAL_BASE_URL must not target the existing out-of-scope port 5000 server");
   }
-  server = await startServer();
+  server = await startServer(qaDashboardCredentials);
   if (testHook === "force-after-server-start") {
     throw new Error("PORTAL_QA_TEST_HOOK force-after-server-start");
   }
+  if (runDashboardRoutes.length > 0) await checkDashboardAuthentication();
   // Headless is the safe default so QA does not steal focus or interfere with
   // the user's Mac. A visible browser is opt-in for an attended visual review.
   browser = await chromium.launch({ headless: !headed });
-  const context = await browser.newContext({
+  const publicContext = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     deviceScaleFactor: 1,
     locale: "ja-JP",
     timezoneId: "Asia/Tokyo",
     reducedMotion: "reduce"
   });
+  const dashboardContext = runDashboardRoutes.length > 0
+    ? await browser.newContext({
+        viewport: { width: 1440, height: 1000 },
+        deviceScaleFactor: 1,
+        locale: "ja-JP",
+        timezoneId: "Asia/Tokyo",
+        reducedMotion: "reduce",
+        httpCredentials: qaDashboardCredentials
+      })
+    : null;
 
   for (const viewport of runViewports) {
     for (const route of runRoutes) {
       const scenarioLabel = `${route.name} ${viewport.name}`;
       const runtimeIssues = [];
-      const page = await context.newPage();
+      const page = await publicContext.newPage();
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       const onPageError = (error) => {
         runtimeIssues.push({ type: "pageerror", ...errorDetails(error) });
@@ -981,6 +1248,65 @@ try {
         }
         if (route.kind === "shop" && viewport.width === 390 && viewport.height === 844) {
           await checkShopInteractions(page, viewport);
+        }
+        completedScenarios += 1;
+        console.log(`checked ${route.name} at ${viewport.name}`);
+      } finally {
+        page.off("pageerror", onPageError);
+        page.off("console", onConsole);
+        for (const issue of runtimeIssues) {
+          check(false, `${scenarioLabel} browser ${issue.type}`, issue);
+        }
+        try {
+          await page.close();
+        } catch (error) {
+          fail(`${scenarioLabel} page cleanup`, errorDetails(error));
+        }
+      }
+    }
+  }
+
+  for (const viewport of runViewports) {
+    for (const route of runDashboardRoutes) {
+      const scenarioLabel = `${route.name} ${viewport.name}`;
+      const runtimeIssues = [];
+      const page = await dashboardContext.newPage();
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      const onPageError = (error) => {
+        runtimeIssues.push({ type: "pageerror", ...errorDetails(error) });
+      };
+      const onConsole = (message) => {
+        if (message.type() !== "error" || isAllowedConsoleError(message)) return;
+        runtimeIssues.push({
+          type: "console.error",
+          message: sanitizeRuntimeText(message.text()),
+          location: sanitizeRuntimeText(message.location().url)
+        });
+      };
+      page.on("pageerror", onPageError);
+      page.on("console", onConsole);
+
+      try {
+        const response = await page.goto(`${baseUrl}${route.path}`, { waitUntil: "domcontentloaded" });
+        check(response?.ok() === true, `${scenarioLabel} HTTP 200`, {
+          status: response?.status() ?? null
+        });
+        await waitForDashboardReady(page);
+        const metrics = await collectDashboardMetrics(page);
+        assertDashboardMetrics(metrics, route, viewport);
+
+        if (viewport.screenshot) {
+          const screenshotPath = path.join(
+            runScreenshotDir,
+            `${route.name}-${viewport.name}.png`
+          );
+          await page.screenshot({ path: screenshotPath, fullPage: true, timeout: 120_000 });
+          screenshotCount += 1;
+          screenshotFiles.push(path.relative(reportDir, screenshotPath));
+        }
+
+        if (viewport.width === 320) {
+          await checkDashboardDrawerInteraction(page, route, viewport);
         }
         completedScenarios += 1;
         console.log(`checked ${route.name} at ${viewport.name}`);

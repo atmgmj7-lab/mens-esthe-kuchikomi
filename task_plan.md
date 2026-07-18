@@ -165,8 +165,16 @@ Phase 17 in_progress（Task 1〜6は独立レビュー0件で完了。ユーザ�
 - [x] ユーザーが保存済み設計書を確認する
 - [x] 分析ダッシュボードを共通管理shellとし、管理機能を同じnavigationへ段階追加する方針を確定する
 - [x] テスト先行の8タスク実装計画を独立レビューし、実装担当と別担当レビューへ分ける
-- [ ] PC/SP・SEO・アクセシビリティ・実データ境界を検証する
-- **Status:** in_progress
+- [x] PC/SP・SEO・アクセシビリティ・実データ境界を検証する
+- Task 1: `5c2eabd..394b537`、独立再レビュー Critical 0 / Important 0 / Minor 0
+- Task 2: `e6a82c1..c192969`、独立再レビュー Critical 0 / Important 0 / Minor 0
+- Task 3: `f1b56f3..cdb9368`、独立再レビュー Critical 0 / Important 0 / Minor 0
+- Task 4: `e4dcff9..59e5b4e`、独立再レビュー Critical 0 / Important 0 / Minor 0
+- Task 5: `27b9f33..b01888e`、独立再レビュー Critical 0 / Important 0 / Minor 0
+- Task 6: `ba7c33b`、独立レビュー Critical 0 / Important 0 / Minor 0
+- Task 7: `e7f3a48..c3133e5`、独立再レビュー Critical 0 / Important 0 / Minor 0
+- Task 8: 本commit `test: record dashboard shop foundation verification`で全幅QAと検証記録を保存。独立横断レビューは別担当で行う。
+- **Status:** in_progress（Task 1〜8のローカル実装・検証完了、Task 8独立横断レビューと本番反映判断は未実施）
 
 ### Phase 18: AI一括取込・管理画面
 - [ ] Phase 0として匿名debug、REST認証全体解除、任意meta更新、認証header転送、cache fail-openを先に解消する
