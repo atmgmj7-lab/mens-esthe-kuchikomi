@@ -253,6 +253,35 @@ assert.ok(
   "the bounded reader must stop without consuming the remainder",
 );
 
+let rejectingCancelCalls = 0;
+let rejectingCancelReleased = false;
+const rejectingCancelResult = await proxyModule.readBoundedJsonBody(
+  {
+    getReader() {
+      let delivered = false;
+      return {
+        read: async () => {
+          if (delivered) return { done: true, value: undefined };
+          delivered = true;
+          return { done: false, value: new Uint8Array(MAX_BYTES + 1) };
+        },
+        cancel: async () => {
+          rejectingCancelCalls += 1;
+          throw new Error("cancel failed");
+        },
+        releaseLock: () => {
+          rejectingCancelReleased = true;
+        },
+      };
+    },
+  },
+  MAX_BYTES,
+);
+assert.equal(rejectingCancelResult.ok, false);
+assert.equal(rejectingCancelResult.status, 413);
+assert.ok(rejectingCancelCalls >= 1);
+assert.equal(rejectingCancelReleased, true);
+
 let unknownBodyRead = false;
 const unknownBody = {
   getReader() {

@@ -121,7 +121,11 @@ export async function readBoundedJsonBody(
       if (!value) continue;
 
       if (value.byteLength > maxBytes - totalBytes) {
-        await reader.cancel();
+        try {
+          await reader.cancel();
+        } catch {
+          // The size violation remains 413 even if the stream cannot be cancelled.
+        }
         return { ok: false, status: 413, error: "Request body is too large" };
       }
 
