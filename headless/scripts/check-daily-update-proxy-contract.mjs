@@ -69,6 +69,17 @@ assert.doesNotMatch(monthlyWorkflow, /schedule:/);
 assert.match(monthlyWorkflow, /Supabase staging/);
 assert.match(dailyWorkflow, /DAILY_UPDATE_PROXY_SECRET/);
 assert.doesNotMatch(dailyWorkflow, /secrets\.WP_(?:USER|APP_PASSWORD)/);
+assert.match(
+  dailyWorkflow,
+  /WP_SITE_URL="\$\{WP_SITE_URL%\/\}"/,
+  "daily update preflight must remove a trailing slash from WP_SITE_URL",
+);
+assert.match(
+  dailyWorkflow,
+  /REST_UPDATE_URL="\$\{WP_SITE_URL\}\/wp-json\/escomi\/v1\/update\/"/,
+  "daily update preflight must use the canonical trailing-slash endpoint",
+);
+assert.match(dailyWorkflow, /-X POST "\$\{REST_UPDATE_URL\}"/);
 
 for (const [label, source] of [
   ["daily updater", autoUpdaterSource],

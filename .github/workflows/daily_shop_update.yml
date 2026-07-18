@@ -72,8 +72,11 @@ jobs:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
           DAILY_UPDATE_PROXY_SECRET: ${{ secrets.DAILY_UPDATE_PROXY_SECRET }}
         run: |
+          set -euo pipefail
+          WP_SITE_URL="${WP_SITE_URL%/}"
+          REST_UPDATE_URL="${WP_SITE_URL}/wp-json/escomi/v1/update/"
           UNAUTH_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
-            -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
+            -X POST "${REST_UPDATE_URL}" \
             -H "Content-Type: application/json" \
             -d '{}' \
             --max-time 15)
@@ -83,7 +86,7 @@ jobs:
           fi
 
           AUTH_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
-            -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
+            -X POST "${REST_UPDATE_URL}" \
             -H "Content-Type: application/json" \
             -H "x-escomi-daily-update-secret: ${DAILY_UPDATE_PROXY_SECRET}" \
             -d '{}' \

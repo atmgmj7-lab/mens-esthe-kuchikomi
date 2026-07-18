@@ -67,7 +67,7 @@ class DailyUpdatePayloadTests(unittest.TestCase):
     def assert_safe_post(self, post_mock, expected_meta):
         self.assertEqual(post_mock.call_count, 1)
         args, kwargs = post_mock.call_args
-        self.assertEqual(args[0], "https://example.test/wp-json/escomi/v1/update")
+        self.assertEqual(args[0], "https://example.test/wp-json/escomi/v1/update/")
         self.assertNotIn("auth", kwargs)
         self.assertEqual(kwargs["headers"], {SECRET_HEADER: "test-proxy-secret"})
         self.assertEqual(
@@ -83,7 +83,7 @@ class DailyUpdatePayloadTests(unittest.TestCase):
         self.auto.requests.post = post
 
         ok = self.auto.update_shop_ai_summary(
-            "https://example.test",
+            "https://example.test/",
             "test-proxy-secret",
             123,
             "確認済みの本日情報",
@@ -108,7 +108,7 @@ class DailyUpdatePayloadTests(unittest.TestCase):
         self.hourly.requests.post = post
 
         ok = self.hourly.update_schedule_only(
-            "https://example.test",
+            "https://example.test/",
             "test-proxy-secret",
             456,
             [{"name": "B", "time": "14:00-20:00", "tags": []}],

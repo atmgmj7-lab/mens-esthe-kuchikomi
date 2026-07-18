@@ -678,7 +678,7 @@ def update_shop_ai_summary(
         "meta": meta,
         "request_id": str(uuid.uuid4()),
     }
-    url = f"{site_url.rstrip('/')}/wp-json/escomi/v1/update"
+    url = f"{site_url.rstrip('/')}/wp-json/escomi/v1/update/"
     try:
         resp = requests.post(
             url,

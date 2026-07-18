@@ -280,8 +280,10 @@ jobs:
         run: |
           set -euo pipefail
           sleep 5
+          WP_SITE_URL="${WP_SITE_URL%/}"
+          REST_UPDATE_URL="${WP_SITE_URL}/wp-json/escomi/v1/update/"
           HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
-            -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
+            -X POST "${REST_UPDATE_URL}" \
             -H "Content-Type: application/json" \
             --max-time 20)
           echo "::notice::Post-deploy REST protection check returned HTTP ${HTTP_CODE}."

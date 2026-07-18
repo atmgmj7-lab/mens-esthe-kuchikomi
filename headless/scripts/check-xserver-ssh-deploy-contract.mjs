@@ -55,6 +55,17 @@ const stageStep = extractWorkflowStep("Prepare safe deployment stage");
 const configureSshStep = extractWorkflowStep("Configure SSH client");
 const remoteDeployStep = extractWorkflowStep("Verify remote theme directory and deploy");
 const restCheckStep = extractWorkflowStep("Post-deploy REST check");
+assert.match(
+  restCheckStep,
+  /WP_SITE_URL="\$\{WP_SITE_URL%\/\}"/,
+  "post-deploy REST check must remove a trailing slash from WP_SITE_URL",
+);
+assert.match(
+  restCheckStep,
+  /REST_UPDATE_URL="\$\{WP_SITE_URL\}\/wp-json\/escomi\/v1\/update\/"/,
+  "post-deploy REST check must use the canonical trailing-slash endpoint",
+);
+assert.match(restCheckStep, /-X POST "\$\{REST_UPDATE_URL\}"/);
 
 assert.doesNotMatch(
   workflowSource,
