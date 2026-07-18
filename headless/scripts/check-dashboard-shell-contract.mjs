@@ -54,6 +54,11 @@ const legacyAnalyticsDashboardSource = readFileSync(
   join(repositoryRoot, "dashboard/components/AnalyticsDashboard.tsx"),
   "utf8"
 );
+const legacyLineChartPath = join(repositoryRoot, "dashboard/components/LineChart.tsx");
+const legacyLineChartContractPath = join(repositoryRoot, "dashboard/lib/line-chart.ts");
+assert.ok(existsSync(legacyLineChartContractPath), "dashboard/lib/line-chart.ts が必要です");
+const legacyLineChartSource = readFileSync(legacyLineChartPath, "utf8");
+const legacyLineChartContractSource = readFileSync(legacyLineChartContractPath, "utf8");
 const gaContractSource = read("lib/dashboard/ga-contract.ts");
 const lineChartContractSource = read("lib/dashboard/line-chart.ts");
 const sourceStatusSource = read("lib/dashboard/source-status.ts");
@@ -105,6 +110,9 @@ assert.doesNotMatch(
 assert.match(legacyGaSource, /parseGa4LiveEnvelope/);
 assert.doesNotMatch(legacyAnalyticsDashboardSource, /_mock|モックデータ/);
 assert.match(legacyAnalyticsDashboardSource, /error=/);
+assert.match(legacyLineChartSource, /buildLineChartModel/);
+assert.match(legacyLineChartSource, /serializeLineChartPoints/);
+assert.match(legacyLineChartSource, /key=\{`\$\{idx\}-\$\{data\[idx\]\.date\}`\}/);
 assert.doesNotMatch(searchConsoleSource, /MOCK_SEARCH_/);
 assert.doesNotMatch(gaSource, /supa\s*!==\s*fallback/);
 assert.doesNotMatch(searchConsoleSource, /supa\s*!==\s*fallback/);
@@ -336,6 +344,40 @@ for (let length = 2; length <= 5; length += 1) {
   );
   assert.equal(model.labelIndices.length, length);
   assert.equal(new Set(model.labelIndices).size, length, `${length}日fixtureのlabel keyを重複させてはいけません`);
+}
+
+const { buildLineChartModel: buildLegacyLineChartModel } = loadTsModule(
+  legacyLineChartContractSource,
+  "legacy-line-chart-contract.cjs"
+);
+const legacyOneZero = buildLegacyLineChartModel([
+  { date: "20260718", pageviews: 0, sessions: 0 },
+]);
+assert.equal(legacyOneZero.maxValue, 1);
+assert.equal(legacyOneZero.pageviewPoints[0].x, 416);
+assert.ok(Number.isFinite(legacyOneZero.pageviewPoints[0].y));
+
+const legacyMultipleZero = buildLegacyLineChartModel([
+  { date: "20260717", pageviews: 0, sessions: 0 },
+  { date: "20260718", pageviews: 0, sessions: 0 },
+]);
+assert.equal(legacyMultipleZero.maxValue, 1);
+assert.ok(
+  legacyMultipleZero.pageviewPoints.every(
+    (point) => Number.isFinite(point.x) && Number.isFinite(point.y)
+  )
+);
+
+for (let length = 2; length <= 5; length += 1) {
+  const model = buildLegacyLineChartModel(
+    Array.from({ length }, (_, index) => ({
+      date: `202607${String(index + 10).padStart(2, "0")}`,
+      pageviews: index,
+      sessions: index,
+    }))
+  );
+  assert.equal(model.labelIndices.length, length);
+  assert.equal(new Set(model.labelIndices).size, length);
 }
 
 const { resolveSupabaseStatus } = loadTsModule(
