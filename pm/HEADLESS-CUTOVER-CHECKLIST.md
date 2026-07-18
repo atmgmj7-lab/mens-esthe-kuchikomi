@@ -65,6 +65,9 @@ headless 本番環境に以下が入っているか確認します。
 | `WP_ORIGIN_HOST` | Xserver origin へ IP 直アクセス時に付与する `Host` ヘッダー（既定: `mens-esthe-kuchikomi.com`） |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | GA4（`G-6XFMW5XKBW`） |
 | `REVALIDATE_SECRET` | キャッシュ再検証 |
+| `DASHBOARD_BASIC_AUTH_USER` / `DASHBOARD_BASIC_AUTH_PASSWORD` | ダッシュボード認証。2項目必須、片方だけなら503 |
+| `DAILY_UPDATE_PROXY_SECRET` | 日次更新bridgeのcaller認証。server-only |
+| `WP_DAILY_UPDATE_USER` / `WP_DAILY_UPDATE_APP_PASSWORD` | bridgeからWordPressへ接続する専用認証。server-only |
 | `SMTP_HOST` など SMTP 一式 | お問い合わせメール送信 |
 | `CONTACT_FROM_EMAIL` / `CONTACT_TO_EMAIL` | 送信元・宛先 |
 | `CONTACT_FORM_DRY_RUN` | **本番では `false` または未設定**（`true` だとメールは送られません） |
@@ -272,7 +275,7 @@ Search Console の **ページ** → **インデックス作成** で、切替�
 1. **初回（本番・手動）:** `wp-config.php` に `define('ESCOMI_REVALIDATE_SECRET', '…');` を追加（Vercel `REVALIDATE_SECRET` と同値）。任意で `ESCOMI_HEADLESS_REVALIDATE_URL`（例: `https://mens-esthe-kuchikomi.com/api/revalidate/`）。
 2. 子テーマ `functions.php`（`escomi_headless_*`）が FTP 反映済みであること。
 3. WP で店舗・投稿・エリアを 1 件更新 → 本番 Headless の表示が追従するか確認。
-4. API 直接確認: `pm/RUNBOOK.md` **A-5** の curl（`?tag=wp` または `POST /api/revalidate/` + `x-revalidate-secret`）。
+4. API 直接確認: `pm/RUNBOOK.md` **A-5** の `POST /api/revalidate/` + `x-revalidate-secret`。GETやquery secretは使わない。
 
 自動通知は 20 秒 throttle。autosave / revision は除外。
 

@@ -103,9 +103,9 @@ assert.ok(
 assert.ok(reviewSubmitPage.includes("index: false"), "/reviews/submit/ は noindex にする必要があります");
 assert.ok(reviewSubmitPage.includes("follow: false"), "/reviews/submit/ は nofollow にする必要があります");
 
-const middleware = read("middleware.ts");
+const proxy = read("proxy.ts");
 assert.ok(
-  middleware.includes('"X-Robots-Tag": "noindex, nofollow"'),
+  proxy.includes('headers.set("X-Robots-Tag", "noindex, nofollow")'),
   "Basic認証の401応答にも X-Robots-Tag を付ける必要があります"
 );
 

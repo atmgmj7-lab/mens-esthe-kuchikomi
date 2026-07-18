@@ -30,14 +30,25 @@ curl -I -L https://mens-esthe-kuchikomi.com/dashboard/
 
 ### Dashboard 認証
 
-Vercel Project の Production Environment Variables に次を登録する。
+Vercel Project の Production Environment Variables に次を**必ず2項目セット**で登録する。
 
 ```text
 DASHBOARD_BASIC_AUTH_USER
 DASHBOARD_BASIC_AUTH_PASSWORD
 ```
 
-未設定の場合、ダッシュボードは認証なしで開く。既存互換として `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` も利用できるが、今後は `DASHBOARD_BASIC_AUTH_*` を標準にする。
+認証は fail-closed。2項目の未設定・片方だけの設定は `503`、認証情報なし・不一致は `401` となり、どちらも `no-store` / `noindex` で返す。既存互換の `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` は、正式な2項目がどちらも存在せず、旧2項目が両方揃う場合だけ使う **pair-only** 互換とする。新旧の片方ずつを混ぜない。正式な環境変数が片方だけ存在する場合は旧設定へ戻さず `503` にする。
+
+`proxy.ts` は入口の防御であり、唯一の認可根拠にしない。`/api/dashboard/*` に管理APIを追加するときは、各 Route Handler でも `authorizeDashboardRequest()` を直接実行する。
+
+設定確認では値を画面・ログへ出さず、存在だけを確認する。
+
+```bash
+test -n "$DASHBOARD_BASIC_AUTH_USER" && echo "dashboard user: configured"
+test -n "$DASHBOARD_BASIC_AUTH_PASSWORD" && echo "dashboard password: configured"
+```
+
+日次更新bridgeも `DAILY_UPDATE_PROXY_SECRET`、`WP_DAILY_UPDATE_USER`、`WP_DAILY_UPDATE_APP_PASSWORD` の3項目をserver-onlyで設定する。値は `printenv` やCIログへ出さず、同様に `test -n` で存在だけを確認する。
 
 ### Dashboard データ接続
 
@@ -277,22 +288,17 @@ define('ESCOMI_REVALIDATE_SECRET', 'VercelのREVALIDATE_SECRETと同じ値');
 ### A. API 疎通確認（エージェント実行可・secret は環境から）
 
 ```bash
-# secret 未設定の環境（ローカル）例
-curl -sS "https://mens-esthe-kuchikomi.com/api/revalidate?tag=wp"
-
-# secret 設定済み（<SECRET> は wp-config / Vercel と同じ値。チャットに貼らない）
-curl -sS "https://mens-esthe-kuchikomi.com/api/revalidate?tag=wp&secret=<SECRET>"
-
-# POST（WP から送る形式に近い）
-curl -sS -X POST "https://mens-esthe-kuchikomi.com/api/revalidate/" \
+# `REVALIDATE_SECRET` は事前にローカル環境へ読み込み、画面やログへ表示しない
+test -n "$REVALIDATE_SECRET" && echo "revalidate secret: configured"
+curl -sS -o /dev/null -w "%{http_code}\n" -X POST "https://mens-esthe-kuchikomi.com/api/revalidate/" \
   -H "Content-Type: application/json" \
-  -H "x-revalidate-secret: <SECRET>" \
+  -H "x-revalidate-secret: ${REVALIDATE_SECRET}" \
   -d '{"tag":"wp","reason":"manual_test"}'
 ```
 
-期待: `{"ok":true,"tag":"wp"}`。secret 不一致時は `401`。
+期待: 正しいheader secretは `200`、secret 不一致・headerなしは `401`、サーバー側未設定は `503`。GETは使わず、queryへsecretを付けない。
 
-`WP_DEBUG` 有効時のみ、WP の `error_log` に `[escomi_headless] revalidate queued request ...` または失敗ログが出ます。
+`WP_DEBUG` 有効時のみ、WP の `error_log` に `[escomi_headless] revalidate queued request ...` または失敗ログが出ます。WordPress側secret未設定時は外部送信せず、`revalidate secret not configured; request skipped` を記録します。
 
 ---
 

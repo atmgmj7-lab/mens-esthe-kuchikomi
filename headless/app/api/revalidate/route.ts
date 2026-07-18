@@ -1,6 +1,8 @@
 import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
+import { secretsMatch } from "@/lib/server/secure-secret";
+
 const defaultTag = "wp";
 
 function isSafeTag(tag: string) {
@@ -8,9 +10,6 @@ function isSafeTag(tag: string) {
 }
 
 async function readTag(request: NextRequest) {
-  const searchTag = request.nextUrl.searchParams.get("tag");
-  if (searchTag) return searchTag;
-
   try {
     const body = (await request.json()) as { tag?: unknown };
     return typeof body.tag === "string" ? body.tag : defaultTag;
@@ -19,12 +18,33 @@ async function readTag(request: NextRequest) {
   }
 }
 
-async function handleRevalidate(request: NextRequest) {
-  const configuredSecret = process.env.REVALIDATE_SECRET;
-  const providedSecret = request.headers.get("x-revalidate-secret") || request.nextUrl.searchParams.get("secret");
+export async function POST(request: NextRequest) {
+  const configuredSecret = process.env.REVALIDATE_SECRET || "";
+  if (!configuredSecret) {
+    return NextResponse.json(
+      { ok: false, message: "Revalidation is not configured" },
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+      },
+    );
+  }
 
-  if (configuredSecret && providedSecret !== configuredSecret) {
-    return NextResponse.json({ ok: false, message: "Invalid secret" }, { status: 401 });
+  const providedSecret = request.headers.get("x-revalidate-secret") || "";
+  if (!providedSecret || !secretsMatch(configuredSecret, providedSecret)) {
+    return NextResponse.json(
+      { ok: false, message: "Invalid secret" },
+      {
+        status: 401,
+        headers: {
+          "Cache-Control": "no-store",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+      },
+    );
   }
 
   const tag = await readTag(request);
@@ -33,13 +53,8 @@ async function handleRevalidate(request: NextRequest) {
   }
 
   revalidateTag(tag, "max");
-  return NextResponse.json({ ok: true, tag });
-}
-
-export async function GET(request: NextRequest) {
-  return handleRevalidate(request);
-}
-
-export async function POST(request: NextRequest) {
-  return handleRevalidate(request);
+  return NextResponse.json(
+    { ok: true, tag },
+    { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } },
+  );
 }

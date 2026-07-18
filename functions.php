@@ -1561,7 +1561,7 @@ if (!function_exists('escomi_headless_revalidate_get_url')) {
 
         $query_pos = strpos($url, '?');
         if ($query_pos !== false) {
-            return trailingslashit(substr($url, 0, $query_pos)) . substr($url, $query_pos);
+            $url = substr($url, 0, $query_pos);
         }
 
         return trailingslashit($url);
@@ -1621,13 +1621,17 @@ if (!function_exists('escomi_headless_send_revalidate')) {
         $url = escomi_headless_revalidate_get_url();
         $secret = escomi_headless_revalidate_get_secret();
 
-        $headers = array('Content-Type' => 'application/json');
-        if ($secret !== '') {
-            $headers['x-revalidate-secret'] = $secret;
-        } elseif (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('[escomi_headless] revalidate secret not configured; sending without secret');
+        if ($secret === '') {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('[escomi_headless] revalidate secret not configured; request skipped');
+            }
+            return;
         }
 
+        $headers = array(
+            'Content-Type' => 'application/json',
+            'x-revalidate-secret' => $secret,
+        );
         $body = wp_json_encode(array(
             'tag' => 'wp',
             'reason' => (string) $reason,
