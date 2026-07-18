@@ -92,3 +92,31 @@ add_action(
 	10,
 	3
 );
+
+/** Invalidate the public review cache whenever moderation visibility changes. */
+add_action(
+	'transition_post_status',
+	function ( $new_status, $old_status, $post ) {
+		if ( ! ( $post instanceof WP_Post ) || 'reviews' !== $post->post_type || $new_status === $old_status ) {
+			return;
+		}
+		if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
+			escomi_headless_queue_revalidate( 'review_status:' . (int) $post->ID );
+		}
+	},
+	20,
+	3
+);
+
+function escomi_review_approval_meta_revalidate( $meta_id, $post_id, $meta_key ) {
+	unset( $meta_id );
+	if ( 'approval_status' !== $meta_key || 'reviews' !== get_post_type( $post_id ) ) {
+		return;
+	}
+	if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
+		escomi_headless_queue_revalidate( 'review_approval:' . (int) $post_id );
+	}
+}
+add_action( 'added_post_meta', 'escomi_review_approval_meta_revalidate', 20, 3 );
+add_action( 'updated_post_meta', 'escomi_review_approval_meta_revalidate', 20, 3 );
+add_action( 'deleted_post_meta', 'escomi_review_approval_meta_revalidate', 20, 3 );

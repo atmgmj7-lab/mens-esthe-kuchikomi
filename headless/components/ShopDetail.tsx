@@ -8,7 +8,6 @@ import { ShopDetailSections } from "@/components/shop-detail/ShopDetailSections"
 import { ShopOwnerCta } from "@/components/shop-detail/ShopOwnerCta";
 import { ShopSectionNav } from "@/components/shop-detail/ShopSectionNav";
 import styles from "@/components/shop-detail/ShopDetail.module.css";
-import { extractShopUserReviewItems } from "@/lib/area-shop-utils";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
@@ -17,7 +16,7 @@ import {
   buildShopDetailViewModel,
   buildShopSectionLinks
 } from "@/lib/shop-detail-view-model";
-import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { ApprovedShopReviewResult, AreaView, ShopView } from "@/lib/wp/types";
 
 function resolveShopAreaNav(
   shop: ShopView,
@@ -52,11 +51,13 @@ function resolveShopAreaNav(
 export function ShopDetail({
   shop,
   parentArea,
-  allAreas = []
+  allAreas = [],
+  reviewResult
 }: {
   shop: ShopView;
   parentArea?: AreaView | null;
   allAreas?: AreaView[];
+  reviewResult: ApprovedShopReviewResult;
 }) {
   const { areaName, areaSlugForNav } = resolveShopAreaNav(
     shop,
@@ -65,7 +66,6 @@ export function ShopDetail({
   );
   const model = buildShopDetailViewModel(shop, areaName);
   const officialRel = outboundRelForPromotion(shop.ranking.promotion);
-  const userReviews = extractShopUserReviewItems(shop);
   const reviewSubmitUrl = buildReviewSubmitUrl(shop.slug);
   const shopSchema = shopLocalBusinessJsonLd(shop);
   const shopAreaForHub = areaSlugForNav
@@ -73,7 +73,7 @@ export function ShopDetail({
     : undefined;
   const areaPath = areaSlugForNav ? `/area/${areaSlugForNav}/` : "";
   const sectionLinks = buildShopSectionLinks(model, {
-    hasReviews: userReviews.length > 0,
+    hasReviews: true,
     hasNearby: Boolean(shopAreaForHub)
   });
 
@@ -108,7 +108,7 @@ export function ShopDetail({
             <ShopSectionNav links={sectionLinks} />
             <ShopDetailSections
               model={model}
-              reviews={userReviews}
+              reviewResult={reviewResult}
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />

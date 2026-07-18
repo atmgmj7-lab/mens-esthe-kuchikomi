@@ -3,18 +3,12 @@ import type { ReactNode } from "react";
 import { formatPriceForDisplay } from "@/lib/price-normalization";
 import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
+import type { ApprovedShopReviewResult } from "@/lib/wp/types";
 import styles from "./ShopDetail.module.css";
-
-type ReviewItem = {
-  id?: string | number | null;
-  body: string;
-  authorName?: string | null;
-  submittedAt?: string | null;
-};
 
 type ShopDetailSectionsProps = {
   model: ShopDetailViewModel;
-  reviews: ReviewItem[];
+  reviewResult: ApprovedShopReviewResult;
   reviewSubmitUrl: string;
   rel: string;
 };
@@ -28,13 +22,17 @@ function SectionHeading({ en, children }: { en: string; children: ReactNode }) {
   );
 }
 
-function reviewAuthor(authorName: string | null | undefined): string {
-  return authorName?.trim() || "匿名";
+function formatReviewDate(value: string | null): string {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("ja-JP", {
+    dateStyle: "medium",
+    timeZone: "Asia/Tokyo"
+  }).format(new Date(value));
 }
 
 export function ShopDetailSections({
   model,
-  reviews,
+  reviewResult,
   reviewSubmitUrl,
   rel
 }: ShopDetailSectionsProps) {
@@ -45,6 +43,8 @@ export function ShopDetailSections({
       model.summaryText
   );
   const shopSlug = normalizePublicShopSlug(model.slug);
+  const reviewPage = reviewResult.status === "available" ? reviewResult.page : null;
+  const reviews = reviewPage?.reviews ?? [];
 
   return (
     <div className={styles.sections}>
@@ -130,15 +130,18 @@ export function ShopDetailSections({
 
       <section id="reviews" className={styles.section}>
         <SectionHeading en="USER REVIEWS">ユーザー口コミ</SectionHeading>
-        {reviews.length > 0 ? (
+        {reviewResult.status === "unavailable" ? (
+          <p role="status">口コミ情報を現在取得できません。時間をおいて再度ご確認ください。</p>
+        ) : reviews.length > 0 ? (
           <div className={styles.reviews}>
-            {reviews.map((review, index) => (
-              <article key={review.id ?? index}>
+            {reviews.map((review) => (
+              <article key={review.id}>
                 <p>{review.body}</p>
-                <small>
-                  {reviewAuthor(review.authorName)}
-                  {review.submittedAt ? ` / ${review.submittedAt}` : ""}
-                </small>
+                {review.submittedAt ? (
+                  <small>
+                    投稿日 <time dateTime={review.submittedAt}>{formatReviewDate(review.submittedAt)}</time>
+                  </small>
+                ) : null}
               </article>
             ))}
           </div>
@@ -148,6 +151,11 @@ export function ShopDetailSections({
         <p className={styles.sourceNote}>
           掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません。
         </p>
+        {reviewPage && reviewPage.total > reviews.length ? (
+          <Link href={`/shops/${shopSlug}/reviews/`} className={styles.textLink}>
+            承認済み口コミをすべて見る（{reviewPage.total}件）
+          </Link>
+        ) : null}
         <Link href={reviewSubmitUrl} className={styles.textLink}>
           この店舗の口コミを投稿する
         </Link>

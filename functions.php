@@ -1165,6 +1165,7 @@ add_filter( 'rank_math/frontend/description', 'escomi_maybe_tax_area_metadesc_fr
 // 最適化版（編集部厳選3店のみ）。差し替え前は area-seo-hooks.php
 require_once get_stylesheet_directory() . '/area-seo-hooks-optimized.php';
 require_once get_stylesheet_directory() . '/reviews-cpt.php';
+require_once get_stylesheet_directory() . '/reviews-public-rest.php';
 
 // ====================================================
 // AI店舗自動更新・カスタム REST（escomi/v1/update）は ai-update-log.php で登録
@@ -1600,7 +1601,7 @@ if (!function_exists('escomi_headless_revalidate_skip_post')) {
 
 if (!function_exists('escomi_headless_revalidate_is_relevant_post_type')) {
     function escomi_headless_revalidate_is_relevant_post_type($post_type) {
-        return in_array($post_type, array('shop', 'post', 'page'), true);
+        return in_array($post_type, array('shop', 'post', 'page', 'reviews'), true);
     }
 }
 
@@ -1712,6 +1713,19 @@ if (!function_exists('escomi_headless_on_trashed_post')) {
     }
 }
 
+if (!function_exists('escomi_headless_on_untrashed_post')) {
+    function escomi_headless_on_untrashed_post($post_id) {
+        if (escomi_headless_revalidate_skip_post($post_id)) {
+            return;
+        }
+        $post_type = get_post_type($post_id);
+        if (!$post_type || !escomi_headless_revalidate_is_relevant_post_type($post_type)) {
+            return;
+        }
+        escomi_headless_queue_revalidate('untrashed_' . $post_type . ':' . $post_id);
+    }
+}
+
 if (!function_exists('escomi_headless_on_deleted_post')) {
     function escomi_headless_on_deleted_post($post_id, $post = null) {
         if (escomi_headless_revalidate_skip_post($post_id)) {
@@ -1743,7 +1757,9 @@ if (!function_exists('escomi_headless_on_area_taxonomy_delete')) {
 add_action('save_post_shop', 'escomi_headless_on_save_post', 20, 3);
 add_action('save_post_post', 'escomi_headless_on_save_post', 20, 3);
 add_action('save_post_page', 'escomi_headless_on_save_post', 20, 3);
+add_action('save_post_reviews', 'escomi_headless_on_save_post', 20, 3);
 add_action('trashed_post', 'escomi_headless_on_trashed_post', 20, 1);
+add_action('untrashed_post', 'escomi_headless_on_untrashed_post', 20, 1);
 add_action('deleted_post', 'escomi_headless_on_deleted_post', 20, 2);
 add_action('edited_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
 add_action('created_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);

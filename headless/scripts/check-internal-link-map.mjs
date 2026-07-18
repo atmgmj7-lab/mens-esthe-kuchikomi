@@ -61,7 +61,7 @@ for (const href of [
 const sparseShopDetailHtml = shopDetailIntegrationEvidence.sparse.html;
 assert.ok(!sparseShopDetailHtml.includes('href="#prices"'));
 assert.ok(!sparseShopDetailHtml.includes('href="#hours-access"'));
-assert.ok(!sparseShopDetailHtml.includes('href="#reviews"'));
+assert.ok(sparseShopDetailHtml.includes('href="#reviews"'));
 assert.ok(!sparseShopDetailHtml.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailHtml.includes("#ranking"));
 assert.ok(!sparseShopDetailHtml.includes("#price-table"));

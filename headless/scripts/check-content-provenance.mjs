@@ -172,26 +172,20 @@ for (const [label, fixture] of [
   ["full shop detail", shopDetailIntegrationEvidence.full],
   ["sparse shop detail", shopDetailIntegrationEvidence.sparse]
 ]) {
-  assert.equal(
-    fixture.captures.extractedReviewShops.length,
-    1,
-    `${label} must call the approved review extractor once`
-  );
   assert.strictEqual(
-    fixture.captures.extractedReviewShops[0],
-    fixture.shop,
-    `${label} must extract reviews from the rendered WordPress shop`
-  );
-  assert.strictEqual(
-    fixture.captures.sectionsProps[0].reviews,
-    fixture.extractedReviews,
-    `${label} must pass only the extractor result to ShopDetailSections`
+    fixture.captures.sectionsProps[0].reviewResult,
+    fixture.reviewResult,
+    `${label} must pass only the approved WordPress review result to ShopDetailSections`
   );
   assert.ok(
     fixture.html.includes('<section id="reviews"></section>'),
     `${label} must render the user-review section from the live composition`
   );
 }
+assert.ok(
+  !shopDetailSource.includes("extractShopUserReviewItems"),
+  "Shop detail must not treat ACF review arrays as the public review source"
+);
 
 const hubLinksSource = readFileSync(join(root, "components/common/ShopAreaHubLinks.tsx"), "utf8");
 assert.ok(!hubLinksSource.includes("口コミ・編集部レビュー"), "Area hub link must not mix user reviews and editorial reviews");

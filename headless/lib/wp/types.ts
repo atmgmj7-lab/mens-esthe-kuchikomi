@@ -68,6 +68,42 @@ export type ShopView = {
   ranking: ShopRankingMeta;
 };
 
+export type ApprovedShopReview = {
+  id: number;
+  body: string;
+  submittedAt: string | null;
+  ratings: {
+    total: number | null;
+    price: number | null;
+    service: number | null;
+    cleanliness: number | null;
+  };
+};
+
+export type ApprovedShopReviewMetric = {
+  average: number | null;
+  responseCount: number;
+};
+
+export type ApprovedShopReviewPage = {
+  reviews: ApprovedShopReview[];
+  total: number;
+  totalPages: number;
+  page: number;
+  metrics: Record<
+    "total" | "price" | "service" | "cleanliness",
+    ApprovedShopReviewMetric
+  >;
+  dateRange: {
+    oldestSubmittedAt: string;
+    latestSubmittedAt: string;
+  } | null;
+};
+
+export type ApprovedShopReviewResult =
+  | { status: "available"; page: ApprovedShopReviewPage }
+  | { status: "unavailable"; reason: "request-failed" | "invalid-response" };
+
 export type AreaView = {
   id: number;
   slug: string;

@@ -63,7 +63,7 @@ function renderShopDetailIntegrationFixture({
   parentArea,
   allAreas,
   model,
-  extractedReviews,
+  reviewResult,
   schema,
   rel,
   reviewSubmitUrl
@@ -72,7 +72,6 @@ function renderShopDetailIntegrationFixture({
     actionProps: [],
     areaHubProps: [],
     areaQuickProps: [],
-    extractedReviewShops: [],
     galleryProps: [],
     heroProps: [],
     modelBuilds: [],
@@ -188,12 +187,6 @@ function renderShopDetailIntegrationFixture({
       kicker: "shop-detail-kicker",
       sectionAnchor: "shop-detail-section-anchor"
     },
-    "@/lib/area-shop-utils": {
-      extractShopUserReviewItems: (inputShop) => {
-        captures.extractedReviewShops.push(inputShop);
-        return extractedReviews;
-      }
-    },
     "@/lib/promotion-disclosure": {
       outboundRelForPromotion: (promotion) => {
         captures.promotionInputs.push(promotion);
@@ -234,13 +227,13 @@ function renderShopDetailIntegrationFixture({
   });
 
   const html = renderToStaticMarkup(
-    React.createElement(ShopDetail, { shop, parentArea, allAreas })
+    React.createElement(ShopDetail, { shop, parentArea, allAreas, reviewResult })
   );
 
   return {
     allAreas,
     captures,
-    extractedReviews,
+    reviewResult,
     html,
     model,
     parentArea,
@@ -628,10 +621,30 @@ const fullSectionsModel = {
 const fullSectionsHtml = renderToStaticMarkup(
   React.createElement(ShopDetailSections, {
     model: fullSectionsModel,
-    reviews: [
-      { id: 1, body: "<b>承認済み本文</b>", authorName: "   " },
-      { id: 2, body: "2件目の承認済み本文", authorName: "投稿者A", submittedAt: "2026-07-15" }
-    ],
+    reviewResult: {
+      status: "available",
+      page: {
+        reviews: [
+          {
+            id: 1,
+            body: "<b>承認済み本文</b>",
+            submittedAt: null,
+            ratings: { total: 5, price: 4, service: null, cleanliness: 3 }
+          },
+          {
+            id: 2,
+            body: "2件目の承認済み本文",
+            submittedAt: "2026-07-15T03:00:00+00:00",
+            ratings: { total: 4, price: null, service: 5, cleanliness: 4 }
+          }
+        ],
+        total: 2,
+        totalPages: 1,
+        page: 1,
+        metrics: {},
+        dateRange: null
+      }
+    },
     reviewSubmitUrl: "/review-form/?shop=safe-shop",
     rel: "nofollow sponsored noopener"
   })
@@ -673,8 +686,11 @@ assert.ok(
 );
 assert.ok(fullSectionsHtml.includes("&lt;b&gt;承認済み本文&lt;/b&gt;"), "approved review body must render as escaped React text");
 assert.ok(!fullSectionsHtml.includes("<b>承認済み本文</b>"), "approved review body must never render as HTML");
-assert.ok(fullSectionsHtml.includes("匿名"), "blank review author must normalize to anonymous");
-assert.ok(fullSectionsHtml.includes("投稿者A / 2026-07-15"), "approved review metadata must remain visible");
+assert.ok(!fullSectionsHtml.includes("投稿者A"), "review author data must not be exposed");
+assert.ok(
+  fullSectionsHtml.includes('dateTime="2026-07-15T03:00:00+00:00"'),
+  "approved review submission date must remain visible"
+);
 assert.ok(fullSectionsHtml.includes("<td>大阪市中央区本町1-2-3</td>"), "full information table must render the address value");
 assert.ok(
   fullSectionsHtml.includes("掲載情報の確認日 2026年7月15日"),
@@ -697,7 +713,10 @@ assert.ok(fullSectionsHtml.includes('data-shop-slug="safe-shop"'), "official inf
 const encodedSectionsHtml = renderToStaticMarkup(
   React.createElement(ShopDetailSections, {
     model: { ...fullSectionsModel, slug: encodedShopSlug },
-    reviews: [],
+    reviewResult: {
+      status: "available",
+      page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
+    },
     reviewSubmitUrl: "/review-form/",
     rel: "nofollow sponsored noopener"
   })
@@ -728,7 +747,10 @@ const sparseSectionsHtml = renderToStaticMarkup(
       infoRows: [],
       verifiedAt: null
     },
-    reviews: [],
+    reviewResult: {
+      status: "available",
+      page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
+    },
     reviewSubmitUrl: "/review-form/?shop=safe-shop",
     rel: "nofollow sponsored noopener"
   })
@@ -752,7 +774,10 @@ for (const forbidden of ["0名", "不定休", "駐車場なし", "OPEN"]) {
 const unsafeSectionsHtml = renderToStaticMarkup(
   React.createElement(ShopDetailSections, {
     model: { ...fullSectionsModel, slug: 'unsafe" slug' },
-    reviews: [],
+    reviewResult: {
+      status: "available",
+      page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
+    },
     reviewSubmitUrl: "/review-form/",
     rel: "nofollow sponsored noopener"
   })
@@ -821,12 +846,23 @@ const fullIntegrationModel = {
 };
 const fullIntegrationReviews = [
   {
-    id: "approved-review",
+    id: 901,
     body: "承認済み口コミ",
-    authorName: "投稿者",
-    submittedAt: "2026-07-16"
+    submittedAt: "2026-07-16T03:00:00+00:00",
+    ratings: { total: 5, price: 4, service: 5, cleanliness: 3 }
   }
 ];
+const fullIntegrationReviewResult = {
+  status: "available",
+  page: {
+    reviews: fullIntegrationReviews,
+    total: 1,
+    totalPages: 1,
+    page: 1,
+    metrics: {},
+    dateRange: null
+  }
+};
 const fullIntegrationSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -867,6 +903,17 @@ const sparseIntegrationModel = {
   infoRows: []
 };
 const sparseIntegrationReviews = [];
+const sparseIntegrationReviewResult = {
+  status: "available",
+  page: {
+    reviews: sparseIntegrationReviews,
+    total: 0,
+    totalPages: 0,
+    page: 1,
+    metrics: {},
+    dateRange: null
+  }
+};
 const sparseIntegrationSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -878,7 +925,7 @@ const fullShopDetailIntegration = renderShopDetailIntegrationFixture({
   parentArea: fullIntegrationParentArea,
   allAreas: [fullIntegrationArea],
   model: fullIntegrationModel,
-  extractedReviews: fullIntegrationReviews,
+  reviewResult: fullIntegrationReviewResult,
   schema: fullIntegrationSchema,
   rel: "nofollow sponsored noopener",
   reviewSubmitUrl: "/reviews/submit/?shop=integration-shop"
@@ -888,7 +935,7 @@ const sparseShopDetailIntegration = renderShopDetailIntegrationFixture({
   parentArea: null,
   allAreas: [],
   model: sparseIntegrationModel,
-  extractedReviews: sparseIntegrationReviews,
+  reviewResult: sparseIntegrationReviewResult,
   schema: sparseIntegrationSchema,
   rel: "noopener",
   reviewSubmitUrl: "/reviews/submit/?shop=sparse-shop"
@@ -912,7 +959,6 @@ for (const [label, fixture] of [
   assert.equal(fixture.captures.actionProps[1].fixed, true, `${label} fixed actions must be explicitly fixed`);
   assert.equal(fixture.captures.areaQuickProps.length, 1, `${label} must compose area quick links once`);
   assert.equal(fixture.captures.modelBuilds.length, 1, `${label} must build one view model`);
-  assert.equal(fixture.captures.extractedReviewShops.length, 1, `${label} must extract reviews once`);
   assert.equal(fixture.captures.reviewSubmitSlugs.length, 1, `${label} must build one review URL`);
   assert.equal(fixture.captures.schemaShops.length, 1, `${label} must build one LocalBusiness schema`);
   assert.equal(fixture.captures.promotionInputs.length, 1, `${label} must resolve one promotion rel`);
@@ -937,24 +983,19 @@ for (const [label, fixture] of [
     `${label} view model must receive the WordPress shop`
   );
   assert.strictEqual(
-    fixture.captures.extractedReviewShops[0],
-    fixture.shop,
-    `${label} review extraction must receive the WordPress shop`
-  );
-  assert.strictEqual(
     fixture.captures.sectionLinkBuilds[0].model,
     fixture.model,
     `${label} section links must use the shared view model`
   );
   assert.equal(
     fixture.captures.sectionLinkBuilds[0].options.hasReviews,
-    fixture.extractedReviews.length > 0,
-    `${label} review menu visibility must follow approved review existence`
+    true,
+    `${label} review menu must remain visible for approved-review and empty states`
   );
   assert.strictEqual(
-    fixture.captures.sectionsProps[0].reviews,
-    fixture.extractedReviews,
-    `${label} sections must receive only the extracted review array`
+    fixture.captures.sectionsProps[0].reviewResult,
+    fixture.reviewResult,
+    `${label} sections must receive the explicit approved review result`
   );
   assert.strictEqual(
     fixture.captures.sectionsProps[0].reviewSubmitUrl,
@@ -1046,7 +1087,7 @@ for (const href of [
 }
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#prices"'));
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#hours-access"'));
-assert.ok(!sparseShopDetailIntegration.html.includes('href="#reviews"'));
+assert.ok(sparseShopDetailIntegration.html.includes('href="#reviews"'));
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailIntegration.html.includes("#ranking"));
 assert.ok(!sparseShopDetailIntegration.html.includes("#price-table"));
