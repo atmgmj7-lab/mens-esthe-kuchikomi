@@ -1,3 +1,5 @@
+import type { PeriodDays } from "./period";
+
 export type DailyMetric = {
   date: string;
   pageviews: number;
@@ -9,7 +11,6 @@ export type Totals = {
   sessions: number;
   bounceRate: number;
   avgDuration: number;
-  _mock?: boolean;
 };
 
 export type PageMetric = {
@@ -29,122 +30,128 @@ export type CreativeMetric = {
   avgDuration: number;
 };
 
-import type { PeriodDays } from "./period";
+type Ga4LiveEnvelope = {
+  status: "live";
+  source: "ga4";
+  data: unknown;
+};
 
 const PROXY_URL =
   "/wp-content/themes/swell_child/dashboard/api/ga-proxy.php";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isMetricList<T>(
+  value: unknown,
+  validate: (item: Record<string, unknown>) => boolean
+): value is T[] {
+  return Array.isArray(value) && value.every((item) => isRecord(item) && validate(item));
+}
+
+export function parseGa4LiveEnvelope(value: unknown): Ga4LiveEnvelope | null {
+  if (!isRecord(value)) return null;
+  if (value.status !== "live" || value.source !== "ga4") return null;
+  if (!("data" in value)) return null;
+  return { status: "live", source: "ga4", data: value.data };
+}
+
+function isDailyMetricList(value: unknown): value is DailyMetric[] {
+  return isMetricList<DailyMetric>(
+    value,
+    (item) =>
+      typeof item.date === "string" && /^\d{8}$/.test(item.date) &&
+      isFiniteNumber(item.pageviews) &&
+      isFiniteNumber(item.sessions)
+  );
+}
+
+function isTotals(value: unknown): value is Totals {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value.pageviews) &&
+    isFiniteNumber(value.sessions) &&
+    isFiniteNumber(value.bounceRate) &&
+    isFiniteNumber(value.avgDuration)
+  );
+}
+
+function isPageMetricList(value: unknown): value is PageMetric[] {
+  return isMetricList<PageMetric>(
+    value,
+    (item) =>
+      typeof item.path === "string" && item.path.length > 0 &&
+      typeof item.title === "string" &&
+      isFiniteNumber(item.pageviews) &&
+      isFiniteNumber(item.sessions)
+  );
+}
+
+function isCreativeMetricList(value: unknown): value is CreativeMetric[] {
+  return isMetricList<CreativeMetric>(
+    value,
+    (item) =>
+      typeof item.creative === "string" &&
+      typeof item.campaign === "string" &&
+      isFiniteNumber(item.pageviews) &&
+      isFiniteNumber(item.sessions) &&
+      isFiniteNumber(item.users) &&
+      isFiniteNumber(item.bounceRate) &&
+      isFiniteNumber(item.avgDuration)
+  );
+}
+
 async function fetchProxy<T>(
   action: string,
   days: PeriodDays,
-  fallback: T
+  validate: (value: unknown) => value is T
 ): Promise<T> {
-  try {
-    const res = await fetch(
-      `${PROXY_URL}?action=${action}&days=${encodeURIComponent(String(days))}`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) return fallback;
-    const json = await res.json();
-    return json as T;
-  } catch {
-    return fallback;
+  const response = await fetch(
+    `${PROXY_URL}?action=${action}&days=${encodeURIComponent(String(days))}`,
+    { cache: "no-store" }
+  );
+  if (!response.ok) {
+    throw new Error(`GA4 request failed: ${response.status}`);
   }
-}
 
-function mockDaily(days: PeriodDays): DailyMetric[] {
-  const count = days === "all" ? 90 : days;
-  const data: DailyMetric[] = [];
-  const now = new Date();
-  for (let i = count - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const dow = d.getDay();
-    const weekend = dow === 0 || dow === 6 ? 200 : 0;
-    const noise = Math.sin(i * 0.7) * 150 + Math.cos(i * 1.3) * 80;
-    const y = String(d.getFullYear());
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    data.push({
-      date: `${y}${m}${day}`,
-      pageviews: Math.max(
-        200,
-        Math.round(900 + noise + weekend + (Math.random() - 0.5) * 100)
-      ),
-      sessions: Math.max(
-        130,
-        Math.round(
-          620 + noise * 0.7 + weekend * 0.7 + (Math.random() - 0.5) * 60
-        )
-      ),
-    });
+  const envelope = parseGa4LiveEnvelope(await response.json());
+  if (!envelope || !validate(envelope.data)) {
+    throw new Error("GA4 response is invalid");
   }
-  return data;
+  return envelope.data;
 }
-
-function mockTotals(days: PeriodDays): Totals {
-  const daily = mockDaily(days);
-  const pageviews = daily.reduce((s, d) => s + d.pageviews, 0);
-  const sessions = daily.reduce((s, d) => s + d.sessions, 0);
-  return {
-    pageviews,
-    sessions,
-    bounceRate: 42.3,
-    avgDuration: 187,
-    _mock: true,
-  };
-}
-
-const MOCK_PAGES: PageMetric[] = [
-  { path: "/shop/genie/", title: "ジーニー（渋谷）", pageviews: 3240, sessions: 2180 },
-  { path: "/shop/relax-men/", title: "RELAX MEN（新宿）", pageviews: 2870, sessions: 1920 },
-  { path: "/shop/bliss-tokyo/", title: "BLISS TOKYO", pageviews: 2310, sessions: 1540 },
-  { path: "/area/tokyo/", title: "東京エリアのメンズエステ", pageviews: 2100, sessions: 1480 },
-  { path: "/shop/angel-spa/", title: "エンジェルスパ（池袋）", pageviews: 1890, sessions: 1260 },
-  { path: "/area/osaka/", title: "大阪エリアのメンズエステ", pageviews: 1720, sessions: 1150 },
-  { path: "/shop/serene-touch/", title: "セリーンタッチ（梅田）", pageviews: 1540, sessions: 1030 },
-  { path: "/ranking/", title: "人気ランキング", pageviews: 1380, sessions: 920 },
-  { path: "/shop/pure-hands/", title: "ピュアハンズ（横浜）", pageviews: 1260, sessions: 840 },
-  { path: "/", title: "メンズエステ口コミランキング TOP", pageviews: 1140, sessions: 760 },
-];
-
-const MOCK_CREATIVES: CreativeMetric[] = [
-  { creative: "バナーA_日本橋", campaign: "Search_関西", pageviews: 4820, sessions: 3210, users: 2890, bounceRate: 38.4, avgDuration: 204 },
-  { creative: "テキスト_初回割", campaign: "Search_関西", pageviews: 3910, sessions: 2680, users: 2410, bounceRate: 41.2, avgDuration: 178 },
-  { creative: "リスティング_口コミ訴求", campaign: "Search_東京", pageviews: 3540, sessions: 2390, users: 2150, bounceRate: 44.8, avgDuration: 165 },
-  { creative: "P-MAX_動画01", campaign: "PMAX_全国", pageviews: 2980, sessions: 2100, users: 1980, bounceRate: 52.1, avgDuration: 142 },
-  { creative: "ディスプレイ_300x250", campaign: "Display_リターゲ", pageviews: 2210, sessions: 1540, users: 1420, bounceRate: 58.6, avgDuration: 118 },
-  { creative: "バナーB_梅田", campaign: "Search_関西", pageviews: 1870, sessions: 1290, users: 1180, bounceRate: 46.3, avgDuration: 171 },
-  { creative: "テキスト_24h営業", campaign: "Search_名古屋", pageviews: 1620, sessions: 1120, users: 1040, bounceRate: 49.7, avgDuration: 156 },
-  { creative: "YouTube_15s", campaign: "Video_認知", pageviews: 1340, sessions: 980, users: 920, bounceRate: 61.2, avgDuration: 95 },
-];
 
 export async function fetchGA4Daily(days: PeriodDays): Promise<DailyMetric[]> {
-  return fetchProxy<DailyMetric[]>("daily", days, mockDaily(days));
+  return fetchProxy("daily", days, isDailyMetricList);
 }
 
 export async function fetchGA4Totals(days: PeriodDays): Promise<Totals> {
-  return fetchProxy<Totals>("totals", days, mockTotals(days));
+  return fetchProxy("totals", days, isTotals);
 }
 
 export async function fetchGA4Pages(days: PeriodDays): Promise<PageMetric[]> {
-  return fetchProxy<PageMetric[]>("pages", days, MOCK_PAGES);
+  return fetchProxy("pages", days, isPageMetricList);
 }
 
 export async function fetchGA4Creatives(days: PeriodDays): Promise<CreativeMetric[]> {
-  return fetchProxy<CreativeMetric[]>("creatives", days, MOCK_CREATIVES);
+  return fetchProxy("creatives", days, isCreativeMetricList);
 }
 
 export function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}分${s}秒`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}分${remainingSeconds}秒`;
 }
 
-export function formatNumber(n: number): string {
-  return n.toLocaleString("ja-JP");
+export function formatNumber(value: number): string {
+  return value.toLocaleString("ja-JP");
 }
 
-export function formatPercent(n: number): string {
-  return `${n.toFixed(1)}%`;
+export function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
 }

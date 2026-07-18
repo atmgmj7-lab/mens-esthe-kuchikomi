@@ -37,9 +37,24 @@ export default function AnalyticsDashboard({
   const [pages, setPages] = useState<PageMetric[]>([]);
   const [creatives, setCreatives] = useState<CreativeMetric[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({
+    daily: "",
+    totals: "",
+    pages: "",
+    creatives: "",
+  });
+
+  const handlePeriodChange = (nextPeriod: PeriodDays) => {
+    setLoading(true);
+    setDaily([]);
+    setTotals(null);
+    setPages([]);
+    setCreatives([]);
+    setErrors({ daily: "", totals: "", pages: "", creatives: "" });
+    setPeriod(nextPeriod);
+  };
 
   useEffect(() => {
-    setLoading(true);
     Promise.allSettled([
       fetchGA4Daily(period),
       fetchGA4Totals(period),
@@ -50,6 +65,12 @@ export default function AnalyticsDashboard({
       if (t.status === "fulfilled") setTotals(t.value);
       if (p.status === "fulfilled") setPages(p.value);
       if (c.status === "fulfilled") setCreatives(c.value);
+      setErrors({
+        daily: d.status === "rejected" ? "データを取得できません" : "",
+        totals: t.status === "rejected" ? "データを取得できません" : "",
+        pages: p.status === "rejected" ? "データを取得できません" : "",
+        creatives: c.status === "rejected" ? "データを取得できません" : "",
+      });
       setLoading(false);
     });
   }, [period]);
@@ -70,12 +91,7 @@ export default function AnalyticsDashboard({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <PeriodSelector value={period} onChange={setPeriod} />
-        {totals?._mock && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/40 text-yellow-400 border border-yellow-800">
-            モックデータ（GA4未設定）
-          </span>
-        )}
+        <PeriodSelector value={period} onChange={handlePeriodChange} />
       </div>
 
       <section>
@@ -83,15 +99,15 @@ export default function AnalyticsDashboard({
           {label}の概要
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard label="ページビュー" value={totals ? formatNumber(totals.pageviews) : undefined} hint={label} loading={loading} />
-          <MetricCard label="セッション" value={totals ? formatNumber(totals.sessions) : undefined} hint={label} loading={loading} />
-          <MetricCard label="直帰率" value={totals ? `${totals.bounceRate}` : undefined} suffix="%" loading={loading} />
-          <MetricCard label="平均滞在時間" value={totals ? formatDuration(totals.avgDuration) : undefined} loading={loading} />
+          <MetricCard label="ページビュー" value={totals ? formatNumber(totals.pageviews) : undefined} hint={label} loading={loading} error={errors.totals} />
+          <MetricCard label="セッション" value={totals ? formatNumber(totals.sessions) : undefined} hint={label} loading={loading} error={errors.totals} />
+          <MetricCard label="直帰率" value={totals ? `${totals.bounceRate}` : undefined} suffix="%" loading={loading} error={errors.totals} />
+          <MetricCard label="平均滞在時間" value={totals ? formatDuration(totals.avgDuration) : undefined} loading={loading} error={errors.totals} />
         </div>
       </section>
 
       <section>
-        <LineChart data={daily} loading={loading} periodLabel={label} />
+        <LineChart data={daily} loading={loading} error={errors.daily} periodLabel={label} />
       </section>
 
       {showWeekly && !loading && weeklyData.length > 0 && (
@@ -116,11 +132,11 @@ export default function AnalyticsDashboard({
       )}
 
       <section>
-        <CreativeTable items={creatives} loading={loading} period={period} />
+        <CreativeTable items={creatives} loading={loading} error={errors.creatives} period={period} />
       </section>
 
       <section className={showQuickLinks ? "grid grid-cols-1 lg:grid-cols-2 gap-6" : ""}>
-        <PageRanking items={pages} loading={loading} period={period} />
+        <PageRanking items={pages} loading={loading} error={errors.pages} period={period} />
         {showQuickLinks && <WPQuickLinks />}
       </section>
     </div>

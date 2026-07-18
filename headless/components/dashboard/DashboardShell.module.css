@@ -325,7 +325,7 @@
     background: #08151b;
     box-shadow: 20px 0 60px rgba(0, 0, 0, 0.45);
     visibility: hidden;
-    transition: transform 180ms ease, visibility 180ms ease;
+    transition: transform 180ms ease;
   }
 
   .navigationOpen {

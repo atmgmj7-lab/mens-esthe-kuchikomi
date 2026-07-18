@@ -4,17 +4,6 @@
  * Query: action=daily|totals|pages|creatives|cta & days=7|30|90|all
  */
 
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
-
 function respond_ga4_error(string $reason, int $status): void
 {
     http_response_code($status);
@@ -27,40 +16,54 @@ function respond_ga4_error(string $reason, int $status): void
     exit;
 }
 
-$action = $_GET['action'] ?? 'daily';
-$days = $_GET['days'] ?? '30';
-$allowed_actions = ['daily', 'totals', 'pages', 'creatives', 'cta'];
+function run_ga4_proxy(): void
+{
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
 
-if (!in_array($action, $allowed_actions, true)) {
-    respond_ga4_error('invalid-action', 400);
-}
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
+        http_response_code(204);
+        return;
+    }
 
-$configured = defined('GA4_PROPERTY_ID') && defined('GA4_CREDENTIALS_PATH')
-    && is_string(GA4_PROPERTY_ID) && GA4_PROPERTY_ID !== ''
-    && is_string(GA4_CREDENTIALS_PATH) && file_exists(GA4_CREDENTIALS_PATH);
+    $action = $_GET['action'] ?? 'daily';
+    $days = $_GET['days'] ?? '30';
+    $allowed_actions = ['daily', 'totals', 'pages', 'creatives', 'cta'];
 
-if (!$configured) {
-    http_response_code(503);
-    echo json_encode([
-        'status' => 'unavailable',
-        'source' => 'ga4',
-        'data' => null,
-        'reason' => 'not-configured',
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
-}
+    if (!in_array($action, $allowed_actions, true)) {
+        respond_ga4_error('invalid-action', 400);
+    }
 
-try {
-    $token = get_access_token(GA4_CREDENTIALS_PATH);
-    $data = fetch_ga4_data($action, GA4_PROPERTY_ID, $token, $days);
-    echo json_encode([
-        'status' => 'live',
-        'source' => 'ga4',
-        'data' => $data,
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-} catch (Throwable $error) {
-    error_log('[Eskomi dashboard] GA4 request failed');
-    respond_ga4_error('request-failed', 503);
+    $configured = defined('GA4_PROPERTY_ID') && defined('GA4_CREDENTIALS_PATH')
+        && is_string(GA4_PROPERTY_ID) && GA4_PROPERTY_ID !== ''
+        && is_string(GA4_CREDENTIALS_PATH) && file_exists(GA4_CREDENTIALS_PATH);
+
+    if (!$configured) {
+        http_response_code(503);
+        echo json_encode([
+            'status' => 'unavailable',
+            'source' => 'ga4',
+            'data' => null,
+            'reason' => 'not-configured',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return;
+    }
+
+    try {
+        $token = get_access_token(GA4_CREDENTIALS_PATH);
+        $data = fetch_ga4_data($action, GA4_PROPERTY_ID, $token, $days);
+        echo json_encode([
+            'status' => 'live',
+            'source' => 'ga4',
+            'data' => $data,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $error) {
+        error_log('[Eskomi dashboard] GA4 request failed');
+        respond_ga4_error('request-failed', 503);
+    }
 }
 
 function get_date_range(string $days): array
@@ -197,51 +200,127 @@ function build_report_body(string $action, string $days): array
     }
 }
 
+function ga4_rows(array $raw): array
+{
+    if (!array_key_exists('rows', $raw)) {
+        return [];
+    }
+    if (!is_array($raw['rows'])) {
+        throw new RuntimeException('invalid GA4 rows');
+    }
+    $rows = $raw['rows'];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            throw new RuntimeException('invalid GA4 row');
+        }
+    }
+    return $rows;
+}
+
+function ga4_dimension_value(array $row, int $index): string
+{
+    if (!isset($row['dimensionValues']) || !is_array($row['dimensionValues'])) {
+        throw new RuntimeException('missing GA4 dimensions');
+    }
+    if (!array_key_exists($index, $row['dimensionValues'])) {
+        throw new RuntimeException('missing GA4 dimension');
+    }
+    $entry = $row['dimensionValues'][$index];
+    if (!is_array($entry) || !array_key_exists('value', $entry) || !is_string($entry['value'])) {
+        throw new RuntimeException('invalid GA4 dimension');
+    }
+    return $entry['value'];
+}
+
+function ga4_metric_value(array $row, int $index): string
+{
+    if (!isset($row['metricValues']) || !is_array($row['metricValues'])) {
+        throw new RuntimeException('missing GA4 metrics');
+    }
+    if (!array_key_exists($index, $row['metricValues'])) {
+        throw new RuntimeException('missing GA4 metric');
+    }
+    $entry = $row['metricValues'][$index];
+    if (!is_array($entry) || !array_key_exists('value', $entry) || !is_string($entry['value'])) {
+        throw new RuntimeException('invalid GA4 metric');
+    }
+    if (!preg_match('/^\d+(?:\.\d+)?$/D', $entry['value'])) {
+        throw new RuntimeException('non-numeric GA4 metric');
+    }
+    return $entry['value'];
+}
+
+function ga4_integer_metric(array $row, int $index): int
+{
+    $value = ga4_metric_value($row, $index);
+    if (!preg_match('/^\d+$/D', $value)) {
+        throw new RuntimeException('non-integer GA4 metric');
+    }
+    return (int) $value;
+}
+
+function ga4_float_metric(array $row, int $index): float
+{
+    return (float) ga4_metric_value($row, $index);
+}
+
 function parse_ga4_response(string $action, array $raw): array
 {
-    $rows = isset($raw['rows']) && is_array($raw['rows']) ? $raw['rows'] : [];
+    $rows = ga4_rows($raw);
     if ($action === 'totals') {
-        $values = $rows[0]['metricValues'] ?? [];
+        if ($rows === []) {
+            return [
+                'pageviews' => 0,
+                'sessions' => 0,
+                'bounceRate' => 0.0,
+                'avgDuration' => 0,
+            ];
+        }
+        $row = $rows[0];
         return [
-            'pageviews' => (int) ($values[0]['value'] ?? 0),
-            'sessions' => (int) ($values[1]['value'] ?? 0),
-            'bounceRate' => round((float) ($values[2]['value'] ?? 0) * 100, 1),
-            'avgDuration' => (int) ($values[3]['value'] ?? 0),
+            'pageviews' => ga4_integer_metric($row, 0),
+            'sessions' => ga4_integer_metric($row, 1),
+            'bounceRate' => round(ga4_float_metric($row, 2) * 100, 1),
+            'avgDuration' => (int) ga4_float_metric($row, 3),
         ];
     }
     if ($action === 'pages') {
-        return array_map(fn($row) => [
-            'path' => $row['dimensionValues'][0]['value'] ?? '/',
-            'title' => $row['dimensionValues'][1]['value'] ?? '',
-            'pageviews' => (int) ($row['metricValues'][0]['value'] ?? 0),
-            'sessions' => (int) ($row['metricValues'][1]['value'] ?? 0),
+        return array_map(fn(array $row) => [
+            'path' => ga4_dimension_value($row, 0),
+            'title' => ga4_dimension_value($row, 1),
+            'pageviews' => ga4_integer_metric($row, 0),
+            'sessions' => ga4_integer_metric($row, 1),
         ], $rows);
     }
     if ($action === 'creatives') {
-        return array_map(function ($row) {
-            $creative = $row['dimensionValues'][0]['value'] ?? '(not set)';
-            $campaign = $row['dimensionValues'][1]['value'] ?? '(not set)';
+        return array_map(function (array $row) {
+            $creative = ga4_dimension_value($row, 0);
+            $campaign = ga4_dimension_value($row, 1);
             return [
                 'creative' => $creative === '(not set)' || $creative === '' ? '(クリエイティブ未設定)' : $creative,
                 'campaign' => $campaign,
-                'pageviews' => (int) ($row['metricValues'][0]['value'] ?? 0),
-                'sessions' => (int) ($row['metricValues'][1]['value'] ?? 0),
-                'users' => (int) ($row['metricValues'][2]['value'] ?? 0),
-                'bounceRate' => round((float) ($row['metricValues'][3]['value'] ?? 0) * 100, 1),
-                'avgDuration' => (int) ($row['metricValues'][4]['value'] ?? 0),
+                'pageviews' => ga4_integer_metric($row, 0),
+                'sessions' => ga4_integer_metric($row, 1),
+                'users' => ga4_integer_metric($row, 2),
+                'bounceRate' => round(ga4_float_metric($row, 3) * 100, 1),
+                'avgDuration' => (int) ga4_float_metric($row, 4),
             ];
         }, $rows);
     }
     if ($action === 'cta') {
-        return array_map(fn($row) => [
-            'eventName' => $row['dimensionValues'][0]['value'] ?? '',
-            'count' => (int) ($row['metricValues'][0]['value'] ?? 0),
-            'sessions' => (int) ($row['metricValues'][1]['value'] ?? 0),
+        return array_map(fn(array $row) => [
+            'eventName' => ga4_dimension_value($row, 0),
+            'count' => ga4_integer_metric($row, 0),
+            'sessions' => ga4_integer_metric($row, 1),
         ], $rows);
     }
-    return array_map(fn($row) => [
-        'date' => $row['dimensionValues'][0]['value'] ?? '',
-        'pageviews' => (int) ($row['metricValues'][0]['value'] ?? 0),
-        'sessions' => (int) ($row['metricValues'][1]['value'] ?? 0),
+    return array_map(fn(array $row) => [
+        'date' => ga4_dimension_value($row, 0),
+        'pageviews' => ga4_integer_metric($row, 0),
+        'sessions' => ga4_integer_metric($row, 1),
     ], $rows);
+}
+
+if (!defined('ESKOMI_GA_PROXY_LIBRARY_ONLY') || ESKOMI_GA_PROXY_LIBRARY_ONLY !== true) {
+    run_ga4_proxy();
 }

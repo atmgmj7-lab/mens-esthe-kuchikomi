@@ -35,16 +35,7 @@ export default function DashboardNav() {
 
   useEffect(() => {
     if (!isOpen) return;
-    let focusFrame = 0;
-    const revealFrame = requestAnimationFrame(() => {
-      focusFrame = requestAnimationFrame(() => {
-        navigationRef.current?.querySelector<HTMLAnchorElement>("a[href]")?.focus();
-      });
-    });
-    return () => {
-      cancelAnimationFrame(revealFrame);
-      cancelAnimationFrame(focusFrame);
-    };
+    navigationRef.current?.querySelector<HTMLAnchorElement>("a[href]")?.focus();
   }, [isOpen]);
 
   const closeAndRestoreFocus = useCallback(() => {

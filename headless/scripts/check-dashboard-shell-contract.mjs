@@ -46,6 +46,14 @@ const gaProxySource = readFileSync(
   join(repositoryRoot, "dashboard/public/api/ga-proxy.php"),
   "utf8"
 );
+const legacyGaSource = readFileSync(
+  join(repositoryRoot, "dashboard/lib/ga.ts"),
+  "utf8"
+);
+const legacyAnalyticsDashboardSource = readFileSync(
+  join(repositoryRoot, "dashboard/components/AnalyticsDashboard.tsx"),
+  "utf8"
+);
 const gaContractSource = read("lib/dashboard/ga-contract.ts");
 const lineChartContractSource = read("lib/dashboard/line-chart.ts");
 const sourceStatusSource = read("lib/dashboard/source-status.ts");
@@ -82,8 +90,21 @@ assert.match(shellCss, /@media\s*\(max-width:\s*900px\)/);
 assert.match(shellCss, /min-height:\s*44px/);
 assert.match(shellCss, /min-width:\s*0/);
 assert.match(shellCss, /overflow-x:\s*(?:hidden|clip)/);
+assert.doesNotMatch(
+  shellCss,
+  /transition\s*:[^;]*visibility/,
+  "drawerのvisibilityをtransition対象にするとopen直後のfocusが失敗します"
+);
 
 assert.doesNotMatch(gaSource, /mockDaily|mockTotals|MOCK_PAGES|MOCK_CREATIVES|MOCK_CTA|_mock/);
+assert.doesNotMatch(
+  legacyGaSource,
+  /mockDaily|mockTotals|MOCK_PAGES|MOCK_CREATIVES|_mock|\bfallback\b/,
+  "Xserver配信対象の旧dashboardにもmock/fallbackを残してはいけません"
+);
+assert.match(legacyGaSource, /parseGa4LiveEnvelope/);
+assert.doesNotMatch(legacyAnalyticsDashboardSource, /_mock|モックデータ/);
+assert.match(legacyAnalyticsDashboardSource, /error=/);
 assert.doesNotMatch(searchConsoleSource, /MOCK_SEARCH_/);
 assert.doesNotMatch(gaSource, /supa\s*!==\s*fallback/);
 assert.doesNotMatch(searchConsoleSource, /supa\s*!==\s*fallback/);
@@ -262,6 +283,28 @@ assert.equal(
   parseGa4LiveEnvelope({ status: "live", source: "mock", data: [] }),
   null,
   "旧mock sourceを拒否する必要があります"
+);
+
+const { parseGa4LiveEnvelope: parseLegacyGa4LiveEnvelope } = loadTsModule(
+  legacyGaSource,
+  "legacy-ga-contract.cjs"
+);
+assert.deepEqual(
+  JSON.parse(JSON.stringify(parseLegacyGa4LiveEnvelope({
+    status: "live",
+    source: "ga4",
+    data: [],
+  }))),
+  { status: "live", source: "ga4", data: [] }
+);
+assert.equal(parseLegacyGa4LiveEnvelope([]), null);
+assert.equal(
+  parseLegacyGa4LiveEnvelope({ status: "unavailable", source: "ga4", data: [] }),
+  null
+);
+assert.equal(
+  parseLegacyGa4LiveEnvelope({ status: "live", source: "mock", data: [] }),
+  null
 );
 
 const { buildLineChartModel } = loadTsModule(
