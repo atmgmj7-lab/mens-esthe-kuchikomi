@@ -1,6 +1,6 @@
-# swell_child テーマを Xserver（本番）へ FTP デプロイ
-# Secrets: FTP_HOST, FTP_USERNAME, FTP_PASSWORD, FTP_PATH
-# FTP-Deploy-Action の仕様上、FTP_PATH（server-dir）は末尾スラッシュ付きで登録すること（例: .../themes/swell_child/）
+# swell_child theme deployment to XServer using a dedicated SSH key.
+# Secrets: XSERVER_SSH_PRIVATE_KEY, XSERVER_SSH_KNOWN_HOSTS
+# Variables: XSERVER_SSH_HOST, XSERVER_SSH_PORT, XSERVER_SSH_USER, XSERVER_SSH_PATH
 
 name: Deploy to Xserver
 
@@ -26,35 +26,63 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate FTP secrets
+      - name: Validate SSH deployment inputs
         env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-          FTP_PATH: ${{ secrets.FTP_PATH }}
+          XSERVER_SSH_PRIVATE_KEY: ${{ secrets.XSERVER_SSH_PRIVATE_KEY }}
+          XSERVER_SSH_KNOWN_HOSTS: ${{ secrets.XSERVER_SSH_KNOWN_HOSTS }}
+          XSERVER_SSH_HOST: ${{ vars.XSERVER_SSH_HOST }}
+          XSERVER_SSH_PORT: ${{ vars.XSERVER_SSH_PORT }}
+          XSERVER_SSH_USER: ${{ vars.XSERVER_SSH_USER }}
+          XSERVER_SSH_PATH: ${{ vars.XSERVER_SSH_PATH }}
         run: |
-          if [ -z "$FTP_HOST" ]; then
-            echo "::error::FTP_HOST が未設定です（Repository secrets に FTP サーバー名を登録してください）。"
+          set -euo pipefail
+          EXPECTED_THEME_PATH="/home/xs454693/mens-esthe-kuchikomi.com/public_html/wp-content/themes/swell_child/"
+
+          if [[ -z "$XSERVER_SSH_PRIVATE_KEY" || -z "$XSERVER_SSH_KNOWN_HOSTS" ]]; then
+            echo "::error::XServer SSH credentials are not configured."
             exit 1
           fi
-          if [ -z "$FTP_USERNAME" ]; then
-            echo "::error::FTP_USERNAME が未設定です。"
+          if [[ -z "$XSERVER_SSH_HOST" ]]; then
+            echo "::error::XServer SSH host is not configured."
             exit 1
           fi
-          if [ -z "$FTP_PASSWORD" ]; then
-            echo "::error::FTP_PASSWORD が未設定です。"
+          if [[ ! "$XSERVER_SSH_HOST" =~ ^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]]; then
+            echo "::error::XServer SSH host must be a valid DNS name."
             exit 1
           fi
-          if [ -z "$FTP_PATH" ]; then
-            echo "::error::FTP_PATH が未設定です。"
+          if [[ "$XSERVER_SSH_HOST" =~ ^[0-9.]+$ ]]; then
+            echo "::error::XServer SSH host must not be an IP address."
             exit 1
           fi
-          case "$FTP_PATH" in
-            */) ;;
-            *)
-              echo "::warning::FTP_PATH の末尾にスラッシュが無いです。SamKirkland/FTP-Deploy-Action は server-dir の末尾スラッシュを推奨します。"
-              ;;
-          esac
+          if [[ ! "$XSERVER_SSH_PORT" =~ ^[1-9][0-9]{0,4}$ ]]; then
+            echo "::error::XServer SSH port must be a decimal number from 1 to 65535."
+            exit 1
+          fi
+          if (( 10#$XSERVER_SSH_PORT < 1 || 10#$XSERVER_SSH_PORT > 65535 )); then
+            echo "::error::XServer SSH port is outside the allowed range."
+            exit 1
+          fi
+          if [[ ! "$XSERVER_SSH_USER" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "::error::XServer SSH user contains unsupported characters."
+            exit 1
+          fi
+          if [[ "$XSERVER_SSH_PATH" != "$EXPECTED_THEME_PATH" ]]; then
+            echo "::error::XServer SSH path does not match the approved theme directory."
+            exit 1
+          fi
+
+      - name: Configure SSH client
+        env:
+          XSERVER_SSH_PRIVATE_KEY: ${{ secrets.XSERVER_SSH_PRIVATE_KEY }}
+          XSERVER_SSH_KNOWN_HOSTS: ${{ secrets.XSERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          umask 077
+          printf '%s\n' "$XSERVER_SSH_PRIVATE_KEY" > "$HOME/.ssh/xserver_deploy"
+          printf '%s\n' "$XSERVER_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/xserver_deploy"
+          chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -65,94 +93,163 @@ jobs:
 
       - name: Build Dashboard
         run: |
+          set -euo pipefail
           cd dashboard
           npm ci
           npm run build
           cp -r out/. .
           rm -rf out
 
-      - name: FTP Deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          local-dir: ./
-          server-dir: ${{ secrets.FTP_PATH }}
-          timeout: 30000
-          log-level: verbose
-          dangerous-clean-slate: false
-          # 初回疎通確認: 実転送なし（必要時のみコメント解除）
-          # dry-run: true
-          exclude: |
-            **/.git/**
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/venv/**
-            **/__pycache__/**
-            **/.pytest_cache/**
-            **/.DS_Store
-            **/.idea/**
-            **/.vscode/**
-            .github/**
-            docs/**
-            headless/**
-            pm/**
-            tools/**
-            ai-site-monitor/**
-            content/**
-            agent-foundation/**
-            MensEsthe-Notes/**
-            **/*.md
-            **/*.markdown
-            **/*.MD
-            **/*.log
-            import-test.php
-            import-shops-web.php
-            extract_target_list.py
-            requirements-extract.txt
-            requirements-extract*.txt
-            shops.csv
-            wp_shops.example.json
-            .cursorrules
-            .cursor/**
-            **/.env
-            **/.env.*
-            **/*.secret
-            **/*.pem
-            dashboard/app/**
-            dashboard/lib/**
-            dashboard/components/**
-            dashboard/public/**
-            dashboard/.next/**
-            dashboard/out/**
-            dashboard/next.config.ts
-            dashboard/tsconfig.json
-            dashboard/postcss.config.mjs
-            dashboard/eslint.config.mjs
-            dashboard/package.json
-            dashboard/package-lock.json
-            dashboard/next-env.d.ts
-            dashboard/README.md
-            dashboard/CLAUDE.md
-            dashboard/AGENTS.md
-            dashboard/.gitignore
+      - name: Prepare safe deployment stage
+        env:
+          STAGE_DIR: ${{ runner.temp }}/xserver-theme-stage
+        run: |
+          set -euo pipefail
+          rm -rf "$STAGE_DIR"
+          mkdir -p "$STAGE_DIR"
+
+          rsync -a "$GITHUB_WORKSPACE/" "$STAGE_DIR/" \
+            --exclude='/.git' \
+            --exclude='/.git/' \
+            --exclude='/.gitignore' \
+            --exclude='/.github/' \
+            --exclude='/.deploy/' \
+            --exclude='/.superpowers/' \
+            --exclude='/.vscode/' \
+            --exclude='/.cursor/' \
+            --exclude='/.cursorrules' \
+            --exclude='/docs/' \
+            --exclude='/headless/' \
+            --exclude='/pm/' \
+            --exclude='/tools/' \
+            --exclude='/ai-site-monitor/' \
+            --exclude='/content/' \
+            --exclude='/agent-foundation/' \
+            --exclude='/MensEsthe-Notes/' \
+            --exclude='/supabase/' \
+            --exclude='/tests/' \
+            --exclude='node_modules/' \
+            --exclude='venv/' \
+            --exclude='__pycache__/' \
+            --exclude='.pytest_cache/' \
+            --exclude='.DS_Store' \
+            --exclude='.idea/' \
+            --exclude='.vscode/' \
+            --exclude='*.md' \
+            --exclude='*.markdown' \
+            --exclude='*.MD' \
+            --exclude='*.log' \
+            --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='*.secret' \
+            --exclude='*.pem' \
+            --exclude='/import-test.php' \
+            --exclude='/import-shops-web.php' \
+            --exclude='/extract_target_list.py' \
+            --exclude='/requirements-extract.txt' \
+            --exclude='/requirements-extract*.txt' \
+            --exclude='/shops.csv' \
+            --exclude='/wp_shops.example.json' \
+            --exclude='/opcache-reset.php' \
+            --exclude='/github-test.txt' \
+            --exclude='/start.sh' \
+            --exclude='/screenshot.png' \
+            --exclude='/dashboard/app/' \
+            --exclude='/dashboard/lib/' \
+            --exclude='/dashboard/components/' \
+            --exclude='/dashboard/public/' \
+            --exclude='/dashboard/node_modules/' \
+            --exclude='/dashboard/.next/' \
+            --exclude='/dashboard/out/' \
+            --exclude='/dashboard/next.config.ts' \
+            --exclude='/dashboard/tsconfig.json' \
+            --exclude='/dashboard/postcss.config.mjs' \
+            --exclude='/dashboard/eslint.config.mjs' \
+            --exclude='/dashboard/package.json' \
+            --exclude='/dashboard/package-lock.json' \
+            --exclude='/dashboard/next-env.d.ts' \
+            --exclude='/dashboard/.gitignore'
+
+          if [[ -z "$(find "$STAGE_DIR" -mindepth 1 -print -quit)" ]]; then
+            echo "::error::Deployment stage is empty."
+            exit 1
+          fi
+          if ! test -f "$STAGE_DIR/functions.php"; then
+            echo "::error::Deployment stage is missing functions.php."
+            exit 1
+          fi
+          if ! test -f "$STAGE_DIR/style.css"; then
+            echo "::error::Deployment stage is missing style.css."
+            exit 1
+          fi
+
+          FORBIDDEN_PATH="$(find "$STAGE_DIR" -mindepth 1 \
+            \( -name '.git' -o -name '.github' -o -name '.deploy' -o -name '.superpowers' \
+              -o -name 'docs' -o -name 'headless' -o -name 'pm' -o -name 'tools' \
+              -o -name 'ai-site-monitor' -o -name 'content' -o -name 'agent-foundation' \
+              -o -name 'MensEsthe-Notes' -o -name 'supabase' -o -name 'tests' \
+              -o -name 'node_modules' -o -name '.next' -o -name 'out' \
+              -o -iname '*.md' -o -iname '*.markdown' -o -name '*.log' \
+              -o -name '.env' -o -name '.env.*' -o -name '*.secret' -o -name '*.pem' \
+              -o -name 'import-test.php' -o -name 'import-shops-web.php' \
+              -o -name 'extract_target_list.py' -o -name 'opcache-reset.php' \) \
+            -print -quit)"
+          if [[ -n "$FORBIDDEN_PATH" ]]; then
+            echo "::error::Forbidden deploy file detected in the staging directory."
+            exit 1
+          fi
+
+          for dashboard_path in \
+            app lib components public node_modules .next out \
+            next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs \
+            package.json package-lock.json next-env.d.ts; do
+            if [[ -e "$STAGE_DIR/dashboard/$dashboard_path" ]]; then
+              echo "::error::Forbidden deploy file detected in dashboard staging output."
+              exit 1
+            fi
+          done
+
+      - name: Verify remote theme directory and deploy
+        env:
+          STAGE_DIR: ${{ runner.temp }}/xserver-theme-stage
+          XSERVER_SSH_HOST: ${{ vars.XSERVER_SSH_HOST }}
+          XSERVER_SSH_PORT: ${{ vars.XSERVER_SSH_PORT }}
+          XSERVER_SSH_USER: ${{ vars.XSERVER_SSH_USER }}
+          XSERVER_SSH_PATH: ${{ vars.XSERVER_SSH_PATH }}
+        run: |
+          set -euo pipefail
+          SSH_OPTIONS=(
+            -p "$XSERVER_SSH_PORT"
+            -i "$HOME/.ssh/xserver_deploy"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+
+          ssh "${SSH_OPTIONS[@]}" "$XSERVER_SSH_USER@$XSERVER_SSH_HOST" \
+            "test -d '$XSERVER_SSH_PATH' && test -f '${XSERVER_SSH_PATH}style.css'"
+
+          RSYNC_SSH="ssh -p $XSERVER_SSH_PORT -i $HOME/.ssh/xserver_deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+          rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
+            -e "$RSYNC_SSH" \
+            "$STAGE_DIR/" \
+            "$XSERVER_SSH_USER@$XSERVER_SSH_HOST:$XSERVER_SSH_PATH"
 
       - name: Post-deploy REST check
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
         run: |
+          set -euo pipefail
           sleep 5
           HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
             -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
             -H "Content-Type: application/json" \
             --max-time 20)
-          echo "::notice::デプロイ後 REST check: POST /wp-json/escomi/v1/update → HTTP ${HTTP_CODE}"
+          echo "::notice::Post-deploy REST protection check returned HTTP ${HTTP_CODE}."
           if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
-            echo "REST ルート保護確認 OK（HTTP ${HTTP_CODE}）— 認証なし更新は拒否されています"
+            echo "REST route protection check passed."
             exit 0
           fi
-          echo "::error::REST ルート保護確認 NG（HTTP ${HTTP_CODE}）— 401 または 403 が必要です"
+          echo "::error::REST route protection check failed; expected HTTP 401 or 403."
           exit 1
