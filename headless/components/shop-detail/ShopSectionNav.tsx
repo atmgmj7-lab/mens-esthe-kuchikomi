@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ShopSectionLink } from "@/lib/shop-detail-view-model";
+import type { ShopSectionLink } from "@/lib/shop-detail-modules";
 import styles from "./ShopDetail.module.css";
 
 export function ShopSectionNav({ links }: { links: ShopSectionLink[] }) {
@@ -97,10 +97,13 @@ export function ShopSectionNav({ links }: { links: ShopSectionLink[] }) {
 
   if (links.length === 0) return null;
 
-  return (
-    <nav ref={navRef} className={styles.sectionNav} aria-label="店舗詳細のページ内メニュー">
-      <div className={styles.sectionNavList}>
-        {links.map((link) => (
+  const primaryLinks = links.filter((link) => link.layer === "primary");
+  const secondaryLinks = links.filter((link) => link.layer === "secondary");
+
+  const renderLayer = (layerLinks: ShopSectionLink[], label: string) =>
+    layerLinks.length > 0 ? (
+      <div className={styles.sectionNavLayer} role="group" aria-label={label}>
+        {layerLinks.map((link) => (
           <a
             key={link.id}
             className={styles.sectionNavLink}
@@ -111,6 +114,14 @@ export function ShopSectionNav({ links }: { links: ShopSectionLink[] }) {
             {link.label}
           </a>
         ))}
+      </div>
+    ) : null;
+
+  return (
+    <nav ref={navRef} className={styles.sectionNav} aria-label="店舗詳細のページ内メニュー">
+      <div className={styles.sectionNavList}>
+        {renderLayer(primaryLinks, "主要項目")}
+        {renderLayer(secondaryLinks, "詳細項目")}
       </div>
     </nav>
   );

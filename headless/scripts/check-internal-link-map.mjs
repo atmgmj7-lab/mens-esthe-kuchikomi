@@ -29,7 +29,8 @@ assert.ok(
 
 const shopDetail = [
   read("components/ShopDetail.tsx"),
-  read("components/shop-detail/ShopDetailSections.tsx")
+  read("components/shop-detail/ShopDetailSections.tsx"),
+  read("components/shop-detail/ShopDetailModuleList.tsx")
 ].join("\n");
 assert.ok(
   shopDetail.includes("ShopAreaHubLinks") && shopDetail.includes('id="nearby"'),
@@ -50,7 +51,7 @@ for (const href of ["#ranking", "#price-table", "#reviews"]) {
 const fullShopDetailHtml = shopDetailIntegrationEvidence.full.html;
 for (const href of [
   'href="#prices"',
-  'href="#hours-access"',
+  'href="#map-access"',
   'href="#reviews"',
   'href="#nearby"',
   'href="/reviews/submit/?shop=integration-shop"'
@@ -60,7 +61,7 @@ for (const href of [
 
 const sparseShopDetailHtml = shopDetailIntegrationEvidence.sparse.html;
 assert.ok(!sparseShopDetailHtml.includes('href="#prices"'));
-assert.ok(!sparseShopDetailHtml.includes('href="#hours-access"'));
+assert.ok(!sparseShopDetailHtml.includes('href="#map-access"'));
 assert.ok(sparseShopDetailHtml.includes('href="#reviews"'));
 assert.ok(!sparseShopDetailHtml.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailHtml.includes("#ranking"));

@@ -40,21 +40,24 @@ const componentClassContract = {
     "titleRow",
     "verified"
   ],
-  "components/shop-detail/ShopDetailSections.tsx": [
-    "catch",
-    "features",
-    "infoTable",
+  "components/shop-detail/ShopDetailSections.tsx": [],
+  "components/shop-detail/ShopDetailModuleList.tsx": [
     "kicker",
+    "nearbyContent",
     "reviews",
-    "richText",
     "section",
     "sectionHeading",
     "sections",
     "sourceNote",
-    "sourceSeparated",
-    "table",
     "textLink"
   ],
+  "components/shop-detail/ShopOverviewSection.tsx": ["catch", "informationDashboard", "kicker", "overviewBody", "richText", "section", "sectionHeading", "sourceNote", "sourceSeparated"],
+  "components/shop-detail/ShopPricesSection.tsx": ["kicker", "section", "sectionHeading", "table"],
+  "components/shop-detail/ShopFeaturesSection.tsx": ["features", "kicker", "section", "sectionHeading"],
+  "components/shop-detail/ShopAccessSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading"],
+  "components/shop-detail/ShopBasicInformationSection.tsx": ["infoTable", "kicker", "section", "sectionHeading", "sourceNote"],
+  "components/shop-detail/ShopInformationCoverage.tsx": ["coverageCard", "coverageCount", "coverageItems", "coverageTrack", "dashboardCardHeader", "dashboardEyebrow", "sourceNote"],
+  "components/shop-detail/ShopRankingSnapshot.tsx": ["dashboardCardHeader", "dashboardEyebrow", "prLabel", "rankingCard", "rankingMeta", "rankingValue"],
   "components/shop-detail/ShopOwnerCta.tsx": [
     "kicker",
     "ownerCta",
@@ -62,6 +65,7 @@ const componentClassContract = {
   ],
   "components/shop-detail/ShopSectionNav.tsx": [
     "sectionNav",
+    "sectionNavLayer",
     "sectionNavLink",
     "sectionNavList"
   ]
@@ -904,7 +908,7 @@ assert.equal(
 );
 
 assertClassDeclarationIn(baseCss, "page", /width:\s*100%/, "base page must stay within its containing block");
-assertClassDeclarationIn(baseCss, "shell", /max-width:\s*1360px/, "base desktop shell must stop at 1360px");
+assertClassDeclarationIn(baseCss, "shell", /max-width:\s*1200px/, "base desktop shell must stop at 1200px");
 assertClassDeclarationIn(
   baseCss,
   "shell",
@@ -932,10 +936,10 @@ assertClassDeclarationIn(
 );
 
 for (const [viewportWidth, expectedShellWidth, expectedMainWidth] of [
-  [1440, 1360, 960],
+  [1440, 1200, 800],
   [1280, 1200, 800]
 ]) {
-  const shellWidth = Math.min(1360, viewportWidth - 80);
+  const shellWidth = Math.min(1200, viewportWidth - 80);
   const mainWidth = shellWidth - 24 - 32 - 320 - 24;
   assert.equal(shellWidth, expectedShellWidth, `${viewportWidth}px shell width must be ${expectedShellWidth}px`);
   assert.equal(mainWidth, expectedMainWidth, `${viewportWidth}px main column must be ${expectedMainWidth}px`);
@@ -944,8 +948,8 @@ for (const [viewportWidth, expectedShellWidth, expectedMainWidth] of [
 assertClassDeclarationIn(
   compactCss,
   "detailGrid",
-  /grid-template-areas:\s*"hero"\s*"visual"\s*"content"/,
-  "1024px and below must order hero, gallery, then content"
+  /grid-template-areas:\s*"visual"\s*"hero"\s*"content"/,
+  "1024px and below must order gallery, facts and actions, then content"
 );
 assertClassDeclarationIn(
   compactCss,

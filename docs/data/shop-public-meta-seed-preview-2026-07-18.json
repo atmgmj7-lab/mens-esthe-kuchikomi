@@ -1,0 +1,979 @@
+{
+  "schemaVersion": 1,
+  "preparedOn": "2026-07-18",
+  "mode": "local-preview-only",
+  "sourceFiles": [
+    "sakaisujihonmachi-phase4-30-shops-2026-07-15.json",
+    "sakaisujihonmachi-phase4-evidence-2026-07-15.json"
+  ],
+  "selection": {
+    "areaSlug": "sakaisujihonmachi",
+    "shopCount": 30,
+    "rankingClaim": false
+  },
+  "provenanceCandidates": [
+    {
+      "wpPostId": 1221,
+      "wordpressTitle": "Riru cheri（リルシェ）",
+      "field": "official",
+      "sourceUrl": "https://riru-cheri.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "b7566ed216d595bb904a1dbbc5dea558acf0bb9af72174800f8e0c66a6a158d1"
+    },
+    {
+      "wpPostId": 880,
+      "wordpressTitle": "Drnu（ドクターヌ）",
+      "field": "official",
+      "sourceUrl": "https://drnu-osaka.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "fb1eb7495fd0146aa6911573cdd50b67b2e723cbdcc46e073db30e481aca89ec"
+    },
+    {
+      "wpPostId": 883,
+      "wordpressTitle": "FROG SPA（フロッグスパ）",
+      "field": "booking",
+      "sourceUrl": "https://frog-spa.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "bb123497f9cfae7978e68f58bdeed97d0ad1a99bfe3252331558f252559be6a3"
+    },
+    {
+      "wpPostId": 883,
+      "wordpressTitle": "FROG SPA（フロッグスパ）",
+      "field": "official",
+      "sourceUrl": "https://frog-spa.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "649400cfc8ed8c394c464a931763462dafeb76172ff3ae84530275dca31231e3"
+    },
+    {
+      "wpPostId": 885,
+      "wordpressTitle": "祇園 the.Mrs 天満橋店（ぎおんザミセス）",
+      "field": "booking",
+      "sourceUrl": "https://gion-mrs.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "47a03e3398cc92fc7c9a0e80de0d7628b91bc2d742d0b02b55afa197a31b0a2f"
+    },
+    {
+      "wpPostId": 885,
+      "wordpressTitle": "祇園 the.Mrs 天満橋店（ぎおんザミセス）",
+      "field": "official",
+      "sourceUrl": "https://gion-mrs.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "f179d32a695a30050e5aff90837d6de6a4949419a7634878d2665fb78c7e595e"
+    },
+    {
+      "wpPostId": 838,
+      "wordpressTitle": "ChouChou（シュシュ）",
+      "field": "booking",
+      "sourceUrl": "https://chouchou-kitashinchi.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "154705613de88f9015e6594dad31ff2c9c31297c74761ec4df02fcf3401408ee"
+    },
+    {
+      "wpPostId": 838,
+      "wordpressTitle": "ChouChou（シュシュ）",
+      "field": "official",
+      "sourceUrl": "https://chouchou-kitashinchi.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "6beb6946d16b52cc27e7589c58e5fbc9df347a7b6029a68f48478198c16a8989"
+    },
+    {
+      "wpPostId": 853,
+      "wordpressTitle": "Mrs.FlowerSPA（ミセスフラワースパ）",
+      "field": "booking",
+      "sourceUrl": "https://mrs-flowerspa.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "890eedc1381d834d65b6237ff0783aad79e01dec44aeb4dd5c5c1809fb8c2928"
+    },
+    {
+      "wpPostId": 853,
+      "wordpressTitle": "Mrs.FlowerSPA（ミセスフラワースパ）",
+      "field": "official",
+      "sourceUrl": "https://mrs-flowerspa.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "8135e522ee5f94b04a7e71d705fe5370f4109da23c166f4572b535071f0ad092"
+    },
+    {
+      "wpPostId": 799,
+      "wordpressTitle": "Firstclass（ファーストクラス）",
+      "field": "booking",
+      "sourceUrl": "https://firstclass-osaka.net/access",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "3f4e892446cbb0683802877b5d3ad0178cc76aa04783bc020988f095994cfb7b"
+    },
+    {
+      "wpPostId": 799,
+      "wordpressTitle": "Firstclass（ファーストクラス）",
+      "field": "official",
+      "sourceUrl": "https://firstclass-osaka.net/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "b116e4ff452d48eec61a85e172a7b42d1ef48210b306c97baa0c9b61553e9bc4"
+    },
+    {
+      "wpPostId": 807,
+      "wordpressTitle": "君色ドレスSPA",
+      "field": "official",
+      "sourceUrl": "https://kimiiro-dress.men-este.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "2b948d7be7e357937828e1c30425d0cd98868cf7898cfa57b74fe808f86be63b"
+    },
+    {
+      "wpPostId": 812,
+      "wordpressTitle": "milk tea（ミルクティー）",
+      "field": "official",
+      "sourceUrl": "https://osakamilktea.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "692f6822688a04754bea5f5d07a3841a98e5359592f7b232da84d72591cb046a"
+    },
+    {
+      "wpPostId": 815,
+      "wordpressTitle": "Mrs.HOLIC（ミセス ホリック）",
+      "field": "booking",
+      "sourceUrl": "https://mrs-holic.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "c56fcf5b82d8919d0dada6d08235648dcc38eab15ddc0b7c4bc8bf5f25cf66a3"
+    },
+    {
+      "wpPostId": 815,
+      "wordpressTitle": "Mrs.HOLIC（ミセス ホリック）",
+      "field": "official",
+      "sourceUrl": "https://mrs-holic.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "13199c35655184810afe47f980bbed8011f62fa7cc49171eb632371479de7cec"
+    },
+    {
+      "wpPostId": 817,
+      "wordpressTitle": "なにわ女子",
+      "field": "official",
+      "sourceUrl": "https://naniwajoshi.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "1b11702c033cf7a14c2b051bd653da68a694411166b523e785b2264f0b0852a3"
+    },
+    {
+      "wpPostId": 820,
+      "wordpressTitle": "LUXY（ラグジー）",
+      "field": "booking",
+      "sourceUrl": "https://luxy-spa.com/top.php",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "b71ec58fb8c933ef57e4e09074c40c0ed7348adc1a86de151b2262ce945f00b6"
+    },
+    {
+      "wpPostId": 820,
+      "wordpressTitle": "LUXY（ラグジー）",
+      "field": "official",
+      "sourceUrl": "https://luxy-spa.com/top.php",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "1aa999694c06149a8b49a755c2412f231e8d53f36b32ec52d12175ba027e2432"
+    },
+    {
+      "wpPostId": 826,
+      "wordpressTitle": "Un Secret（アンスクレ）",
+      "field": "booking",
+      "sourceUrl": "https://unsecret-osaka.com/top.php",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "b4bb3a7926090f54825884a576ff1df14d0eba1724d728fa8bd0672831ad17a9"
+    },
+    {
+      "wpPostId": 826,
+      "wordpressTitle": "Un Secret（アンスクレ）",
+      "field": "official",
+      "sourceUrl": "https://unsecret-osaka.com/top.php",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "04e1b467491761469f9fdc2185afc748a091a647a8113e45838f09a717202018"
+    },
+    {
+      "wpPostId": 828,
+      "wordpressTitle": "VISCONTI（ヴィスコンティ）",
+      "field": "official",
+      "sourceUrl": "http://www.menseste.jp/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "b7f445e8e57b2dff038cc34664f5d6dee4da4782edb9c7948e47a8652a05a33d"
+    },
+    {
+      "wpPostId": 794,
+      "wordpressTitle": "CLUB LEGGENDA（クラブレジェンダ）",
+      "field": "booking",
+      "sourceUrl": "https://club-leggenda.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "ff77a0a045f8b9509de5e5f723f8602f2db8ea59facfefb18ac306747c38a790"
+    },
+    {
+      "wpPostId": 794,
+      "wordpressTitle": "CLUB LEGGENDA（クラブレジェンダ）",
+      "field": "official",
+      "sourceUrl": "https://club-leggenda.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "447e31d5b30aa2b3094a4453a5b0bf8a88d1cb291c26ecc99fd0c4aeabf8a7a6"
+    },
+    {
+      "wpPostId": 795,
+      "wordpressTitle": "C.r.e.a.m（クリーム）",
+      "field": "booking",
+      "sourceUrl": "https://www.cream-osaka.com/access.html",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "e8d65e904140735e03dcbcec43d7129ee2a74d14ac9b3190b24217ad1b35c59d"
+    },
+    {
+      "wpPostId": 747,
+      "wordpressTitle": "Sanando（サナンド）",
+      "field": "booking",
+      "sourceUrl": "https://sanando.jp/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "5462e496e30ef2ca0a99823ad2fe2af438b99f09caacb89ca3a7ce81a4e16a91"
+    },
+    {
+      "wpPostId": 747,
+      "wordpressTitle": "Sanando（サナンド）",
+      "field": "official",
+      "sourceUrl": "https://sanando.jp/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "5912bdda8cf7e865b17eaa8900051b3b720cf294867342c6f7a61a4e59e135da"
+    },
+    {
+      "wpPostId": 763,
+      "wordpressTitle": "こころのゆりかご",
+      "field": "official",
+      "sourceUrl": "https://kokoronoyurikago-osaka.site/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "d71f6464ccf2989bf48f3994d895402fd94f0029750d5dea96cf67ce712c5413"
+    },
+    {
+      "wpPostId": 775,
+      "wordpressTitle": "ゆだねて",
+      "field": "official",
+      "sourceUrl": "https://www.yudanete.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "a8a9a1b8911c80f28b7158ebc624e61d6853d6935d01ed0b7479e1671243cc22"
+    },
+    {
+      "wpPostId": 779,
+      "wordpressTitle": "アヌSPA",
+      "field": "booking",
+      "sourceUrl": "https://anuspa.club/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "416885bfbf15efad7954bc181e1cc26975be906e3cc799e07b2c9b568c0b3d85"
+    },
+    {
+      "wpPostId": 779,
+      "wordpressTitle": "アヌSPA",
+      "field": "official",
+      "sourceUrl": "https://anuspa.club/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "bdc477aaa7632ef5fe42f4fa38629173fd6a1d008aed1d3a063f6bea373c4106"
+    },
+    {
+      "wpPostId": 716,
+      "wordpressTitle": "桃源郷（とうげんきょう）",
+      "field": "official",
+      "sourceUrl": "https://tougenkyou-osaka.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "9afb6e2269d222da5fe65592108e1b4feb1fcbdc3ab3c42d4d3b81614fd0b6d9"
+    },
+    {
+      "wpPostId": 717,
+      "wordpressTitle": "UNION＋（ユニオンプラス）",
+      "field": "official",
+      "sourceUrl": "https://union-plus-es.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "11043427e501ec5d1da9623ad1e2155f72d32da03a68a66088b8d43bb6c6c567"
+    },
+    {
+      "wpPostId": 701,
+      "wordpressTitle": "Queen Spumante 長堀橋店（クイーンスプマンテ）",
+      "field": "booking",
+      "sourceUrl": "https://queenspumante.com/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "7fd2f4e2c5d9065ee8fac4e5caeb13e1cae9fc8fb56c91922c06a190149de1c4"
+    },
+    {
+      "wpPostId": 719,
+      "wordpressTitle": "VIO:V（ヴィオーヴ）",
+      "field": "official",
+      "sourceUrl": "http://www.viov.jp/",
+      "sourceType": "official-site",
+      "observedAt": "2026-07-15",
+      "reviewedAt": "2026-07-15",
+      "reviewStatus": "reviewed",
+      "publishedValueHash": "30ed83076f266f7b1a9a4db562dc3a9b65c569d2676e8a440228fe0802728424"
+    }
+  ],
+  "blocked": [
+    {
+      "wpPostId": 1221,
+      "wordpressTitle": "Riru cheri（リルシェ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 1221,
+      "wordpressTitle": "Riru cheri（リルシェ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 1221,
+      "wordpressTitle": "Riru cheri（リルシェ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 1221,
+      "wordpressTitle": "Riru cheri（リルシェ）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 880,
+      "wordpressTitle": "Drnu（ドクターヌ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 880,
+      "wordpressTitle": "Drnu（ドクターヌ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 880,
+      "wordpressTitle": "Drnu（ドクターヌ）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 883,
+      "wordpressTitle": "FROG SPA（フロッグスパ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 883,
+      "wordpressTitle": "FROG SPA（フロッグスパ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 883,
+      "wordpressTitle": "FROG SPA（フロッグスパ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 885,
+      "wordpressTitle": "祇園 the.Mrs 天満橋店（ぎおんザミセス）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 885,
+      "wordpressTitle": "祇園 the.Mrs 天満橋店（ぎおんザミセス）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 885,
+      "wordpressTitle": "祇園 the.Mrs 天満橋店（ぎおんザミセス）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 838,
+      "wordpressTitle": "ChouChou（シュシュ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 838,
+      "wordpressTitle": "ChouChou（シュシュ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 838,
+      "wordpressTitle": "ChouChou（シュシュ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 853,
+      "wordpressTitle": "Mrs.FlowerSPA（ミセスフラワースパ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 853,
+      "wordpressTitle": "Mrs.FlowerSPA（ミセスフラワースパ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 853,
+      "wordpressTitle": "Mrs.FlowerSPA（ミセスフラワースパ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 799,
+      "wordpressTitle": "Firstclass（ファーストクラス）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 799,
+      "wordpressTitle": "Firstclass（ファーストクラス）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 799,
+      "wordpressTitle": "Firstclass（ファーストクラス）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 805,
+      "wordpressTitle": "Karisome（かりそめ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 805,
+      "wordpressTitle": "Karisome（かりそめ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 805,
+      "wordpressTitle": "Karisome（かりそめ）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 805,
+      "wordpressTitle": "Karisome（かりそめ）",
+      "field": "official",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 807,
+      "wordpressTitle": "君色ドレスSPA",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 807,
+      "wordpressTitle": "君色ドレスSPA",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 807,
+      "wordpressTitle": "君色ドレスSPA",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 807,
+      "wordpressTitle": "君色ドレスSPA",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 812,
+      "wordpressTitle": "milk tea（ミルクティー）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 812,
+      "wordpressTitle": "milk tea（ミルクティー）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 815,
+      "wordpressTitle": "Mrs.HOLIC（ミセス ホリック）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 815,
+      "wordpressTitle": "Mrs.HOLIC（ミセス ホリック）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 815,
+      "wordpressTitle": "Mrs.HOLIC（ミセス ホリック）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 817,
+      "wordpressTitle": "なにわ女子",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 817,
+      "wordpressTitle": "なにわ女子",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 817,
+      "wordpressTitle": "なにわ女子",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 817,
+      "wordpressTitle": "なにわ女子",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 820,
+      "wordpressTitle": "LUXY（ラグジー）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 820,
+      "wordpressTitle": "LUXY（ラグジー）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 820,
+      "wordpressTitle": "LUXY（ラグジー）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 826,
+      "wordpressTitle": "Un Secret（アンスクレ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 826,
+      "wordpressTitle": "Un Secret（アンスクレ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 826,
+      "wordpressTitle": "Un Secret（アンスクレ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 828,
+      "wordpressTitle": "VISCONTI（ヴィスコンティ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 828,
+      "wordpressTitle": "VISCONTI（ヴィスコンティ）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 794,
+      "wordpressTitle": "CLUB LEGGENDA（クラブレジェンダ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 794,
+      "wordpressTitle": "CLUB LEGGENDA（クラブレジェンダ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 795,
+      "wordpressTitle": "C.r.e.a.m（クリーム）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 795,
+      "wordpressTitle": "C.r.e.a.m（クリーム）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 795,
+      "wordpressTitle": "C.r.e.a.m（クリーム）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 795,
+      "wordpressTitle": "C.r.e.a.m（クリーム）",
+      "field": "official",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 747,
+      "wordpressTitle": "Sanando（サナンド）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 747,
+      "wordpressTitle": "Sanando（サナンド）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 747,
+      "wordpressTitle": "Sanando（サナンド）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 763,
+      "wordpressTitle": "こころのゆりかご",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 775,
+      "wordpressTitle": "ゆだねて",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 775,
+      "wordpressTitle": "ゆだねて",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 775,
+      "wordpressTitle": "ゆだねて",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 775,
+      "wordpressTitle": "ゆだねて",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 779,
+      "wordpressTitle": "アヌSPA",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 715,
+      "wordpressTitle": "The.gloss（ザ・グロス）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 715,
+      "wordpressTitle": "The.gloss（ザ・グロス）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 715,
+      "wordpressTitle": "The.gloss（ザ・グロス）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 715,
+      "wordpressTitle": "The.gloss（ザ・グロス）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 715,
+      "wordpressTitle": "The.gloss（ザ・グロス）",
+      "field": "official",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 716,
+      "wordpressTitle": "桃源郷（とうげんきょう）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 716,
+      "wordpressTitle": "桃源郷（とうげんきょう）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 716,
+      "wordpressTitle": "桃源郷（とうげんきょう）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 716,
+      "wordpressTitle": "桃源郷（とうげんきょう）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 717,
+      "wordpressTitle": "UNION＋（ユニオンプラス）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 717,
+      "wordpressTitle": "UNION＋（ユニオンプラス）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 717,
+      "wordpressTitle": "UNION＋（ユニオンプラス）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 717,
+      "wordpressTitle": "UNION＋（ユニオンプラス）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 701,
+      "wordpressTitle": "Queen Spumante 長堀橋店（クイーンスプマンテ）",
+      "field": "price",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 701,
+      "wordpressTitle": "Queen Spumante 長堀橋店（クイーンスプマンテ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 701,
+      "wordpressTitle": "Queen Spumante 長堀橋店（クイーンスプマンテ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 701,
+      "wordpressTitle": "Queen Spumante 長堀橋店（クイーンスプマンテ）",
+      "field": "official",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 719,
+      "wordpressTitle": "VIO:V（ヴィオーヴ）",
+      "field": "hours",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 719,
+      "wordpressTitle": "VIO:V（ヴィオーヴ）",
+      "field": "access",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    },
+    {
+      "wpPostId": 719,
+      "wordpressTitle": "VIO:V（ヴィオーヴ）",
+      "field": "booking",
+      "status": "blocked-value-mismatch",
+      "reason": "WordPressの現在公開値と一次情報で確認した値が一致しません。"
+    }
+  ],
+  "rankingCandidates": [],
+  "applied": false
+}

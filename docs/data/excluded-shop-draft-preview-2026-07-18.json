@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "preparedOn": "2026-07-18",
+  "mode": "local-preview-only",
+  "shops": [
+    {
+      "wpPostId": 1259,
+      "wordpressTitle": "あしぎぬ温泉",
+      "currentState": {
+        "postType": "shop",
+        "postStatus": "publish",
+        "indexable": true
+      },
+      "requestedAction": "draft",
+      "applied": false,
+      "postApplyChecks": {
+        "route": "WordPressの現在slugで店舗詳細が200を返さない",
+        "sitemap": "店舗sitemapにWordPress IDが含まれない",
+        "internalLinks": "店舗一覧・地域一覧・関連導線にWordPress IDが含まれない"
+      }
+    },
+    {
+      "wpPostId": 1255,
+      "wordpressTitle": "天然温泉 ひなたの湯",
+      "currentState": {
+        "postType": "shop",
+        "postStatus": "publish",
+        "indexable": true
+      },
+      "requestedAction": "draft",
+      "applied": false,
+      "postApplyChecks": {
+        "route": "WordPressの現在slugで店舗詳細が200を返さない",
+        "sitemap": "店舗sitemapにWordPress IDが含まれない",
+        "internalLinks": "店舗一覧・地域一覧・関連導線にWordPress IDが含まれない"
+      }
+    }
+  ]
+}

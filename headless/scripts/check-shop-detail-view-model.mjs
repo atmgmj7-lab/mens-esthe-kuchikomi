@@ -57,7 +57,26 @@ vm.runInNewContext(
   { module, exports: module.exports, require, URL, Date, console },
   { filename: "shop-detail-view-model.cjs" }
 );
-const { buildShopDetailViewModel, buildShopSectionLinks } = module.exports;
+const { buildShopDetailViewModel } = module.exports;
+
+const moduleRegistrySource = readFileSync(join(root, "lib/shop-detail-modules.ts"), "utf8");
+const moduleRegistryCompiled = ts.transpileModule(moduleRegistrySource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true }
+}).outputText;
+const moduleRegistry = { exports: {} };
+vm.runInNewContext(
+  moduleRegistryCompiled,
+  {
+    module: moduleRegistry,
+    exports: moduleRegistry.exports,
+    require: (id) => {
+      if (id === "server-only") return {};
+      throw new Error(`Unexpected registry require: ${id}`);
+    }
+  },
+  { filename: "shop-detail-modules.cjs" }
+);
+const { buildShopSectionLinks, getVisibleShopDetailModules } = moduleRegistry.exports;
 
 const base = {
   id: 123,
@@ -277,37 +296,37 @@ task8Contract("safe-introduction-text", () => {
 });
 
 task8Contract("conditional-section-links", () => {
-  assert.equal(
-    typeof buildShopSectionLinks,
-    "function",
-    "buildShopSectionLinks(model, { hasReviews, hasNearby })をexportしてください"
-  );
+  const context = {
+    model: {
+      ...full,
+      introductionText: "店舗紹介",
+      featureNames: ["個室"],
+      infoRows: [{ key: "hours", label: "営業時間", value: "10:00〜24:00" }]
+    },
+    review: {},
+    coverage: null,
+    ranking: null,
+    hasNearby: true
+  };
   assert.deepEqual(
     Array.from(
-      buildShopSectionLinks(
-        {
-          ...full,
-          introductionText: "店舗紹介",
-          featureNames: ["個室"],
-          infoRows: [{ key: "hours", label: "営業時間", value: "10:00〜24:00" }]
-        },
-        { hasReviews: true, hasNearby: true }
-      ),
-      ({ id, label }) => ({ id, label })
+      buildShopSectionLinks(getVisibleShopDetailModules(context)),
+      ({ id, label, layer }) => ({ id, label, layer })
     ),
     [
-      { id: "overview", label: "概要" },
-      { id: "prices", label: "料金" },
-      { id: "hours-access", label: "営業時間・アクセス" },
-      { id: "features", label: "特徴" },
-      { id: "reviews", label: "口コミ" },
-      { id: "nearby", label: "近隣店舗" }
+      { id: "reviews", label: "口コミ", layer: "primary" },
+      { id: "shop-information", label: "店舗情報", layer: "primary" },
+      { id: "prices", label: "料金", layer: "primary" },
+      { id: "features", label: "こだわり", layer: "secondary" },
+      { id: "basic-information", label: "基本情報", layer: "secondary" },
+      { id: "nearby", label: "周辺情報", layer: "secondary" }
     ]
   );
   assert.deepEqual(
     Array.from(
-      buildShopSectionLinks(
-        {
+      buildShopSectionLinks(getVisibleShopDetailModules({
+        ...context,
+        model: {
           ...sparse,
           introductionText: "",
           catchText: "",
@@ -317,16 +336,25 @@ task8Contract("conditional-section-links", () => {
           infoRows: [],
           featureNames: []
         },
-        { hasReviews: false, hasNearby: false }
-      )
+        hasNearby: false
+      })),
+      ({ id, label, layer }) => ({ id, label, layer })
     ),
-    [],
+    [{ id: "reviews", label: "口コミ", layer: "primary" }],
     "空セクションのmenu linkを作らないでください"
   );
 });
 
 task8Contract("safe-react-rendering", () => {
-  const sectionsSource = readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8");
+  const sectionsSource = [
+    "ShopDetailSections.tsx",
+    "ShopDetailModuleList.tsx",
+    "ShopOverviewSection.tsx",
+    "ShopPricesSection.tsx",
+    "ShopFeaturesSection.tsx",
+    "ShopAccessSection.tsx",
+    "ShopBasicInformationSection.tsx"
+  ].map((file) => readFileSync(join(root, "components/shop-detail", file), "utf8")).join("\n");
   assert.equal(
     sectionsSource.includes("dangerouslySetInnerHTML"),
     false,
@@ -336,7 +364,7 @@ task8Contract("safe-react-rendering", () => {
     sectionsSource.includes("model.introductionText"),
     "店舗紹介本文はintroductionTextをReact文字列として描画してください"
   );
-  for (const id of ["overview", "prices", "hours-access", "features", "reviews"]) {
+  for (const id of ["shop-information", "prices", "map-access", "features", "basic-information", "reviews"]) {
     assert.ok(sectionsSource.includes(`id=\"${id}\"`), `実在sectionへ#${id}を付けてください`);
   }
 });

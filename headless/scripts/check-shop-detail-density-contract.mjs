@@ -10,6 +10,7 @@ const reviewDashboardSource = readFileSync(
   "components/shop-detail/ShopReviewDashboard.tsx",
   "utf8"
 );
+const moduleRegistrySource = readFileSync("lib/shop-detail-modules.ts", "utf8");
 const cssSource = readFileSync(
   "components/shop-detail/ShopDetail.module.css",
   "utf8"
@@ -59,6 +60,15 @@ check("server-rendered review dashboard", () => {
 });
 check("review text measure", () => {
   assert.match(cssSource, /\.reviews\s*\{[^}]*max-width:\s*960px/);
+});
+check("single article width", () => {
+  assert.match(cssSource, /\.shell\s*\{[^}]*max-width:\s*1200px/);
+});
+check("registry owns module order", () => {
+  assert.ok(shopDetailSource.includes("getVisibleShopDetailModules"));
+  for (const id of ["reviews", "shop-information", "prices", "features", "map-access", "basic-information", "nearby"]) {
+    assert.ok(moduleRegistrySource.includes(`id: "${id}"`));
+  }
 });
 
 assert.equal(

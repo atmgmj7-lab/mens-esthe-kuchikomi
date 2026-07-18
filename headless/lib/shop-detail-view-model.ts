@@ -36,11 +36,6 @@ export type ShopDetailInfoRow = {
   href?: string;
 };
 
-export type ShopSectionLink = {
-  id: "overview" | "prices" | "hours-access" | "features" | "reviews" | "nearby";
-  label: string;
-};
-
 export type ShopDetailViewModel = {
   id: number;
   slug: string;
@@ -263,27 +258,4 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
     summaryText: firstText(acf, ["shop_ai_summary"]),
     featureNames: explicitFeatureNames(acf)
   };
-}
-
-export function buildShopSectionLinks(
-  model: ShopDetailViewModel,
-  { hasReviews, hasNearby }: { hasReviews: boolean; hasNearby: boolean }
-): ShopSectionLink[] {
-  const links: ShopSectionLink[] = [];
-  if (
-    model.catchText ||
-    model.introductionText ||
-    model.recommendText ||
-    model.summaryText
-  ) {
-    links.push({ id: "overview", label: "概要" });
-  }
-  if (model.prices.length > 0) links.push({ id: "prices", label: "料金" });
-  if (model.infoRows.length > 0) {
-    links.push({ id: "hours-access", label: "営業時間・アクセス" });
-  }
-  if (model.featureNames.length > 0) links.push({ id: "features", label: "特徴" });
-  if (hasReviews) links.push({ id: "reviews", label: "口コミ" });
-  if (hasNearby) links.push({ id: "nearby", label: "近隣店舗" });
-  return links;
 }

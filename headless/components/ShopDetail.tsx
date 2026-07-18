@@ -12,11 +12,17 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
-import { buildShopReviewViewModel } from "@/lib/shop-review-view-model";
 import {
-  buildShopDetailViewModel,
-  buildShopSectionLinks
-} from "@/lib/shop-detail-view-model";
+  buildShopInformationCoverage,
+  normalizeShopRankingSnapshot
+} from "@/lib/shop-information-coverage";
+import {
+  buildShopSectionLinks,
+  getVisibleShopDetailModules,
+  type ShopDetailModuleContext
+} from "@/lib/shop-detail-modules";
+import { buildShopReviewViewModel } from "@/lib/shop-review-view-model";
+import { buildShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import type { ApprovedShopReviewResult, AreaView, ShopView } from "@/lib/wp/types";
 
 function resolveShopAreaNav(
@@ -74,10 +80,22 @@ export function ShopDetail({
     ? allAreas.find((area) => area.slug === areaSlugForNav)
     : undefined;
   const areaPath = areaSlugForNav ? `/area/${areaSlugForNav}/` : "";
-  const sectionLinks = buildShopSectionLinks(model, {
-    hasReviews: true,
+  const coverage = buildShopInformationCoverage(
+    model,
+    shop.acf.shop_fact_provenance
+  );
+  const ranking = normalizeShopRankingSnapshot(
+    shop.acf.shop_area_ranking_snapshot
+  );
+  const moduleContext: ShopDetailModuleContext = {
+    model,
+    review: reviewModel,
+    coverage,
+    ranking,
     hasNearby: Boolean(shopAreaForHub)
-  });
+  };
+  const visibleModules = getVisibleShopDetailModules(moduleContext);
+  const sectionLinks = buildShopSectionLinks(visibleModules);
 
   return (
     <main
@@ -109,24 +127,24 @@ export function ShopDetail({
           <div className={styles.detailContent}>
             <ShopSectionNav links={sectionLinks} />
             <ShopDetailSections
-              model={model}
+              context={moduleContext}
+              modules={visibleModules}
+              nearbyContent={
+                shopAreaForHub ? (
+                  <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
+                ) : null
+              }
               reviewResult={reviewResult}
-              reviewModel={reviewModel}
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />
-            <ShopOwnerCta shop={shop} />
-            {shopAreaForHub ? (
-              <div id="nearby" className={styles.sectionAnchor}>
-                <ShopAreaHubLinks area={shopAreaForHub} parentArea={parentArea} />
-              </div>
-            ) : null}
             <AreaQuickLinks
               areas={allAreas}
               current={areaSlugForNav}
               title="エリアから探す"
               className="u-mt-50"
             />
+            <ShopOwnerCta shop={shop} />
           </div>
         </article>
       </div>

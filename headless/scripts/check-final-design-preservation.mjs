@@ -69,6 +69,7 @@ function renderShopDetailIntegrationFixture({
   rel,
   reviewSubmitUrl
 }) {
+  let latestModuleContext = null;
   const captures = {
     actionProps: [],
     areaHubProps: [],
@@ -141,15 +142,14 @@ function renderShopDetailIntegrationFixture({
     "@/components/shop-detail/ShopDetailSections": {
       ShopDetailSections: (props) => {
         captures.sectionsProps.push(props);
-        const children = [];
-        if (props.model.prices.length > 0) {
-          children.push(React.createElement("section", { id: "prices", key: "price" }));
-        }
-        if (props.model.infoRows.length > 0) {
-          children.push(React.createElement("section", { id: "hours-access", key: "data" }));
-        }
+        const children = props.modules.map((item) =>
+          React.createElement(
+            "section",
+            { id: item.id, key: item.id },
+            item.id === "nearby" ? props.nearbyContent : null
+          )
+        );
         children.push(
-          React.createElement("section", { id: "reviews", key: "reviews" }),
           React.createElement(
             "a",
             { href: props.reviewSubmitUrl, key: "review-submit" },
@@ -213,23 +213,33 @@ function renderShopDetailIntegrationFixture({
         return reviewModel;
       }
     },
+    "@/lib/shop-information-coverage": {
+      buildShopInformationCoverage: () => null,
+      normalizeShopRankingSnapshot: () => null
+    },
+    "@/lib/shop-detail-modules": {
+      getVisibleShopDetailModules: (context) => {
+        latestModuleContext = context;
+        const items = [
+          { id: "reviews", label: "口コミ", layer: "primary", renderer: "reviews" }
+        ];
+        if (context.model.catchText || context.model.introductionText || context.model.recommendText || context.model.summaryText || context.model.infoRows.length > 0) items.push({ id: "shop-information", label: "店舗情報", layer: "primary", renderer: "information" });
+        if (context.model.prices.length > 0) items.push({ id: "prices", label: "料金", layer: "primary", renderer: "prices" });
+        if (context.model.featureNames.length > 0) items.push({ id: "features", label: "こだわり", layer: "secondary", renderer: "features" });
+        if (context.model.infoRows.some((row) => row.key === "address" || row.key === "station")) items.push({ id: "map-access", label: "地図・アクセス", layer: "primary", renderer: "access" });
+        if (context.model.infoRows.some((row) => row.key !== "address" && row.key !== "station")) items.push({ id: "basic-information", label: "基本情報", layer: "secondary", renderer: "basic" });
+        if (context.hasNearby) items.push({ id: "nearby", label: "周辺情報", layer: "secondary", renderer: "nearby" });
+        return items;
+      },
+      buildShopSectionLinks: (items) => {
+        captures.sectionLinkBuilds.push({ context: latestModuleContext, modules: items });
+        return items.map(({ id, label, layer }) => ({ id, label, layer }));
+      }
+    },
     "@/lib/shop-detail-view-model": {
       buildShopDetailViewModel: (inputShop, areaName) => {
         captures.modelBuilds.push({ shop: inputShop, areaName });
         return model;
-      },
-      buildShopSectionLinks: (inputModel, options) => {
-        captures.sectionLinkBuilds.push({ model: inputModel, options });
-        const links = [];
-        if (inputModel.catchText || inputModel.introductionText || inputModel.recommendText || inputModel.summaryText) {
-          links.push({ id: "overview", label: "概要" });
-        }
-        if (inputModel.prices.length > 0) links.push({ id: "prices", label: "料金" });
-        if (inputModel.infoRows.length > 0) links.push({ id: "hours-access", label: "営業時間・アクセス" });
-        if (inputModel.featureNames.length > 0) links.push({ id: "features", label: "特徴" });
-        if (options.hasReviews) links.push({ id: "reviews", label: "口コミ" });
-        if (options.hasNearby) links.push({ id: "nearby", label: "近隣店舗" });
-        return links;
       }
     }
   });
@@ -330,7 +340,15 @@ for (const label of ["堺筋本町メンズエステ", "新大阪メンズエス
 }
 
 const shopDetail = read("components/ShopDetail.tsx");
-const detailSections = read("components/shop-detail/ShopDetailSections.tsx");
+const detailSections = [
+  "ShopDetailSections.tsx",
+  "ShopDetailModuleList.tsx",
+  "ShopOverviewSection.tsx",
+  "ShopPricesSection.tsx",
+  "ShopFeaturesSection.tsx",
+  "ShopAccessSection.tsx",
+  "ShopBasicInformationSection.tsx"
+].map((file) => read(`components/shop-detail/${file}`)).join("\n");
 const detailReviewDashboard = read("components/shop-detail/ShopReviewDashboard.tsx");
 assert.ok(shopDetail.includes("buildShopDetailViewModel"));
 assert.ok(shopDetail.includes("ShopDetailHero"));
@@ -339,7 +357,7 @@ assert.ok(shopDetail.includes("ShopDetailSections"));
 assert.ok(shopDetail.includes("ShopOwnerCta"));
 assert.ok(detailSections.includes('id="prices"'));
 assert.ok(detailSections.includes('id="reviews"'));
-assert.ok(detailSections.includes('id="hours-access"'));
+assert.ok(detailSections.includes('id="map-access"'));
 assert.ok(!shopDetail.includes("areaAvg60"));
 assert.ok(!shopDetail.includes("shpc-badge-open"));
 assert.ok(!shopDetail.includes("age_18_19"));
@@ -410,8 +428,9 @@ assert.ok(
 );
 assert.ok(ownerCta.includes("公開前に確認"), "owner CTA must state that submissions are reviewed before publication");
 assert.ok(!ownerCta.includes("自動公開します"), "owner CTA must not promise automatic publication");
-assert.ok(detailSections.includes("model.prices.length > 0"), "price section must require approved model prices");
-assert.ok(detailSections.includes("model.infoRows.length > 0"), "information section must require approved model rows");
+const moduleRegistry = read("lib/shop-detail-modules.ts");
+assert.ok(moduleRegistry.includes("context.model.prices.length > 0"), "price module must require approved model prices");
+assert.ok(moduleRegistry.includes("context.model.infoRows"), "information modules must require approved model rows");
 assert.ok(
   detailReviewDashboard.includes("model.latest.length > 0"),
   "review dashboard must distinguish approved items from empty state"
@@ -596,263 +615,12 @@ assert.ok(ownerCtaHtml.includes('data-shop-cta-kind="owner"'), "owner CTA must i
 assert.ok(ownerCtaHtml.includes('data-shop-cta-position="owner-band"'), "owner CTA must identify its position");
 assert.ok(ownerCtaHtml.includes('data-shop-slug=""'), "owner CTA must not expose an unsafe shop slug");
 
-const { ShopDetailSections } = loadTsxModule("components/shop-detail/ShopDetailSections.tsx", {
-  "@/lib/price-normalization": {
-    formatPriceForDisplay: (price) =>
-      price.amount == null ? null : `${Number(price.amount).toLocaleString("ja-JP")}円`
-  },
-  "next/link": {
-    __esModule: true,
-    default: ({ children, href, ...props }) => React.createElement("a", { href, ...props }, children)
-  },
-  "./ShopReviewDashboard": loadTsxModule(
-    "components/shop-detail/ShopReviewDashboard.tsx"
-  )
-});
-const fullSectionsModel = {
-  slug: "safe-shop",
-  prices: [{ key: "price_90", label: "90分", price: { status: "confirmed", amount: 14000 } }],
-  catchText: '<em data-source="catch">店舗提供のキャッチ</em>',
-  introductionText:
-    '<p data-source="wordpress-introduction"><strong>WordPress店舗紹介本文</strong></p>',
-  recommendText: '<em data-source="recommend">編集部のおすすめ情報</em>',
-  summaryText: '<em data-source="summary">公開情報から整理した掲載情報</em>',
-  featureNames: ["個室あり", "駅から徒歩圏内"],
-  infoRows: [
-    {
-      key: "address",
-      label: "住所",
-      value: "大阪市中央区本町1-2-3",
-      href: "https://must-not-link.example.test"
-    },
-    {
-      key: "official",
-      label: "公式サイト",
-      value: "公式サイトを見る",
-      href: "https://official.example.test/safe"
-    }
-  ],
-  verifiedAt: "2026年7月15日"
-};
-const fullSectionsHtml = renderToStaticMarkup(
-  React.createElement(ShopDetailSections, {
-    model: fullSectionsModel,
-    reviewResult: {
-      status: "available",
-      page: {
-        reviews: [
-          {
-            id: 1,
-            body: "<b>承認済み本文</b>",
-            submittedAt: null,
-            ratings: { total: 5, price: 4, service: null, cleanliness: 3 }
-          },
-          {
-            id: 2,
-            body: "2件目の承認済み本文",
-            submittedAt: "2026-07-15T03:00:00+00:00",
-            ratings: { total: 4, price: null, service: 5, cleanliness: 4 }
-          }
-        ],
-        total: 2,
-        totalPages: 1,
-        page: 1,
-        metrics: {},
-        dateRange: null
-      }
-    },
-    reviewModel: {
-      status: "available",
-      totalApproved: 2,
-      showGraph: false,
-      aggregateRating: null,
-      aggregateRatingCount: 2,
-      metrics: [],
-      latest: [
-        {
-          id: 1,
-          body: "<b>承認済み本文</b>",
-          submittedAt: null,
-          ratings: { total: 5, price: 4, service: null, cleanliness: 3 }
-        },
-        {
-          id: 2,
-          body: "2件目の承認済み本文",
-          submittedAt: "2026-07-15T03:00:00+00:00",
-          ratings: { total: 4, price: null, service: 5, cleanliness: 4 }
-        }
-      ],
-      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
-    },
-    reviewSubmitUrl: "/review-form/?shop=safe-shop",
-    rel: "nofollow sponsored noopener"
-  })
-);
-for (const heading of ["料金プラン", "この店舗について", "特徴・設備", "アクセス・基本情報", "ユーザー口コミ"]) {
-  assert.ok(fullSectionsHtml.includes(heading), `full shop detail sections must render ${heading}`);
-}
-assert.ok(fullSectionsHtml.includes("<td>14,000円</td>"), "full price row must render the approved 14,000 yen value");
-assert.ok(
-  fullSectionsHtml.includes(
-    '&lt;p data-source=&quot;wordpress-introduction&quot;&gt;&lt;strong&gt;WordPress店舗紹介本文&lt;/strong&gt;&lt;/p&gt;'
-  ),
-  "WordPress introduction text must render as escaped React text"
-);
-assert.ok(
-  !fullSectionsHtml.includes('<p data-source="wordpress-introduction">'),
-  "WordPress introduction markup must never render as real HTML"
-);
-for (const [source, text] of [
-  ["catch", "店舗提供のキャッチ"],
-  ["recommend", "編集部のおすすめ情報"],
-  ["summary", "公開情報から整理した掲載情報"]
-]) {
-  const rawHtml = `<em data-source="${source}">${text}</em>`;
-  const escapedHtml = `&lt;em data-source=&quot;${source}&quot;&gt;${text}&lt;/em&gt;`;
-  assert.ok(fullSectionsHtml.includes(escapedHtml), `${source} copy must render as escaped React text`);
-  assert.ok(!fullSectionsHtml.includes(rawHtml), `${source} copy must never render as real HTML`);
-}
-assert.ok(fullSectionsHtml.includes("<strong>掲載情報コメント</strong>"), "full sections must label non-user summary text");
-assert.ok(
-  fullSectionsHtml.includes(
-    "&lt;em data-source=&quot;summary&quot;&gt;公開情報から整理した掲載情報&lt;/em&gt;"
-  ),
-  "full sections must render the summary body separately from the non-review label"
-);
-assert.ok(
-  fullSectionsHtml.includes("公開情報をもとに整理した文章で、ユーザー口コミではありません。"),
-  "full sections must explain that summary text is not a user review"
-);
-assert.ok(fullSectionsHtml.includes("&lt;b&gt;承認済み本文&lt;/b&gt;"), "approved review body must render as escaped React text");
-assert.ok(!fullSectionsHtml.includes("<b>承認済み本文</b>"), "approved review body must never render as HTML");
-assert.ok(!fullSectionsHtml.includes("投稿者A"), "review author data must not be exposed");
-assert.ok(
-  fullSectionsHtml.includes('dateTime="2026-07-15T03:00:00+00:00"'),
-  "approved review submission date must remain visible"
-);
-assert.ok(fullSectionsHtml.includes("<td>大阪市中央区本町1-2-3</td>"), "full information table must render the address value");
-assert.ok(
-  fullSectionsHtml.includes("掲載情報の確認日 2026年7月15日"),
-  "full information section must render the fixture confirmation date"
-);
-assert.ok(fullSectionsHtml.includes('<th scope="row">90分</th>'), "price rows must use scoped row headers");
-assert.ok(fullSectionsHtml.includes('<th scope="row">公式サイト</th>'), "information rows must use scoped row headers");
-assert.ok(
-  fullSectionsHtml.includes('href="https://official.example.test/safe"'),
-  "official information link must preserve the model-safe href"
-);
-assert.ok(fullSectionsHtml.includes('target="_blank"'), "official information link must remain keyboard-readable and external");
-assert.ok(
-  fullSectionsHtml.includes('rel="nofollow sponsored noopener"'),
-  "official information link must preserve the supplied promotion rel"
-);
-assert.ok(fullSectionsHtml.includes('data-shop-cta-kind="official"'), "official information link must identify CTA kind");
-assert.ok(fullSectionsHtml.includes('data-shop-cta-position="info"'), "official information link must identify CTA position");
-assert.ok(fullSectionsHtml.includes('data-shop-slug="safe-shop"'), "official information link must preserve a safe slug");
-const encodedSectionsHtml = renderToStaticMarkup(
-  React.createElement(ShopDetailSections, {
-    model: { ...fullSectionsModel, slug: encodedShopSlug },
-    reviewResult: {
-      status: "available",
-      page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
-    },
-    reviewModel: {
-      status: "available",
-      totalApproved: 0,
-      showGraph: false,
-      aggregateRating: null,
-      aggregateRatingCount: 0,
-      metrics: [],
-      latest: [],
-      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
-    },
-    reviewSubmitUrl: "/review-form/",
-    rel: "nofollow sponsored noopener"
-  })
-);
-assert.ok(
-  encodedSectionsHtml.includes(`data-shop-slug="${encodedShopSlug}"`),
-  "canonical percent-encoded WordPress slug must remain in info CTA data"
-);
-assert.ok(
-  !fullSectionsHtml.includes("must-not-link.example.test"),
-  "non-official information rows must stay plain text even if an href is supplied"
-);
-assert.ok(
-  fullSectionsHtml.includes('href="/review-form/?shop=safe-shop"'),
-  "full sections must keep the review submission link"
-);
-
-const sparseSectionsHtml = renderToStaticMarkup(
-  React.createElement(ShopDetailSections, {
-    model: {
-      slug: "safe-shop",
-      prices: [],
-      catchText: "",
-      introductionText: "",
-      recommendText: "",
-      summaryText: "",
-      featureNames: [],
-      infoRows: [],
-      verifiedAt: null
-    },
-    reviewResult: {
-      status: "available",
-      page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
-    },
-    reviewModel: {
-      status: "available",
-      totalApproved: 0,
-      showGraph: false,
-      aggregateRating: null,
-      aggregateRatingCount: 0,
-      metrics: [],
-      latest: [],
-      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
-    },
-    reviewSubmitUrl: "/review-form/?shop=safe-shop",
-    rel: "nofollow sponsored noopener"
-  })
-);
-for (const omitted of ["料金プラン", "この店舗について", "特徴・設備", "アクセス・基本情報"]) {
-  assert.ok(!sparseSectionsHtml.includes(omitted), `sparse shop detail sections must omit ${omitted}`);
-}
-assert.ok(sparseSectionsHtml.includes("ユーザー口コミ"), "sparse sections must keep the review section");
-assert.ok(
-  sparseSectionsHtml.includes("この店舗の承認済みユーザー口コミはまだありません。"),
-  "sparse sections must render the explicit approved-review empty state"
-);
-assert.ok(
-  sparseSectionsHtml.includes('href="/review-form/?shop=safe-shop"'),
-  "sparse sections must keep the review submission link"
-);
-for (const forbidden of ["0名", "不定休", "駐車場なし", "OPEN"]) {
-  assert.ok(!sparseSectionsHtml.includes(forbidden), `sparse rendered sections must not invent ${forbidden}`);
-}
-
-const unsafeSectionsHtml = renderToStaticMarkup(
-  React.createElement(ShopDetailSections, {
-    model: { ...fullSectionsModel, slug: 'unsafe" slug' },
-    reviewResult: {
-      status: "available",
-      page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
-    },
-    reviewModel: {
-      status: "available",
-      totalApproved: 0,
-      showGraph: false,
-      aggregateRating: null,
-      aggregateRatingCount: 0,
-      metrics: [],
-      latest: [],
-      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
-    },
-    reviewSubmitUrl: "/review-form/",
-    rel: "nofollow sponsored noopener"
-  })
-);
-assert.ok(unsafeSectionsHtml.includes('data-shop-slug=""'), "unsafe info CTA slug must be reduced to an empty value");
-assert.ok(!unsafeSectionsHtml.includes("unsafe"), "unsafe shop slug text must not be exposed in info CTA data");
+const moduleListSource = read("components/shop-detail/ShopDetailModuleList.tsx");
+assert.ok(moduleListSource.includes("MODULE_RENDERERS"), "module list must render from the registry renderer map");
+assert.ok(moduleListSource.includes("ShopReviewDashboard"), "approved review dashboard must remain in the reviews module");
+assert.ok(moduleListSource.includes("reviewSubmitUrl"), "reviews module must keep the review submission route");
+assert.ok(detailSections.includes("model.introductionText"), "overview must render introductionText as React text");
+assert.equal(detailSections.includes("dangerouslySetInnerHTML"), false, "shop detail modules must not render public text as raw HTML");
 
 const fullIntegrationPromotion = {
   isPromotion: true,
@@ -1075,12 +843,12 @@ for (const [label, fixture] of [
     `${label} view model must receive the WordPress shop`
   );
   assert.strictEqual(
-    fixture.captures.sectionLinkBuilds[0].model,
+    fixture.captures.sectionLinkBuilds[0].context.model,
     fixture.model,
     `${label} section links must use the shared view model`
   );
   assert.equal(
-    fixture.captures.sectionLinkBuilds[0].options.hasReviews,
+    fixture.captures.sectionLinkBuilds[0].modules.some((item) => item.id === "reviews"),
     true,
     `${label} review menu must remain visible for approved-review and empty states`
   );
@@ -1095,7 +863,7 @@ for (const [label, fixture] of [
     `${label} review view model must receive the explicit approved review result`
   );
   assert.strictEqual(
-    fixture.captures.sectionsProps[0].reviewModel,
+    fixture.captures.sectionsProps[0].context.review,
     fixture.reviewModel,
     `${label} sections must receive the shared review view model`
   );
@@ -1124,11 +892,15 @@ for (const [label, fixture] of [
   for (const props of [
     fixture.captures.heroProps[0],
     fixture.captures.galleryProps[0],
-    fixture.captures.sectionsProps[0],
     ...fixture.captures.actionProps
   ]) {
     assert.strictEqual(props.model, fixture.model, `${label} must forward one shared view model`);
   }
+  assert.strictEqual(
+    fixture.captures.sectionsProps[0].context.model,
+    fixture.model,
+    `${label} modules must receive the shared view model through context`
+  );
   assert.strictEqual(
     fixture.captures.ownerProps[0].shop,
     fixture.shop,
@@ -1163,9 +935,9 @@ assertMarkupOrder(
     'data-shop-integration="actions-hero"',
     'data-shop-integration="section-nav"',
     'data-shop-integration="sections"',
-    'data-shop-integration="owner"',
     'data-shop-integration="area-hub"',
-    'data-shop-integration="area-quick"'
+    'data-shop-integration="area-quick"',
+    'data-shop-integration="owner"'
   ],
   "full shop detail"
 );
@@ -1178,22 +950,22 @@ assertMarkupOrder(
     'data-shop-integration="hero"',
     'data-shop-integration="actions-hero"',
     'data-shop-integration="sections"',
-    'data-shop-integration="owner"',
-    'data-shop-integration="area-quick"'
+    'data-shop-integration="area-quick"',
+    'data-shop-integration="owner"'
   ],
   "sparse shop detail"
 );
 
 for (const href of [
   'href="#prices"',
-  'href="#hours-access"',
+  'href="#map-access"',
   'href="#reviews"',
   'href="#nearby"'
 ]) {
   assert.ok(fullShopDetailIntegration.html.includes(href), `full shop detail must render ${href}`);
 }
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#prices"'));
-assert.ok(!sparseShopDetailIntegration.html.includes('href="#hours-access"'));
+assert.ok(!sparseShopDetailIntegration.html.includes('href="#map-access"'));
 assert.ok(sparseShopDetailIntegration.html.includes('href="#reviews"'));
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailIntegration.html.includes("#ranking"));

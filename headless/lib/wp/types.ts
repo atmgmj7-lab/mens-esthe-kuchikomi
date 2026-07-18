@@ -48,6 +48,33 @@ export type ShopRankingMeta = {
   promotion: PromotionDisclosure;
 };
 
+export type ShopFactField =
+  | "price"
+  | "hours"
+  | "access"
+  | "booking"
+  | "official"
+  | "image";
+
+export type ShopFactProvenance = {
+  field: "price" | "hours" | "access" | "booking" | "official" | "image";
+  sourceUrl: string;
+  sourceType: "official-site" | "shop-provided" | "admin-verified";
+  observedAt: string;
+  reviewedAt: string;
+  reviewStatus: "reviewed" | "pending" | "rejected";
+  publishedValueHash: string;
+};
+
+export type ShopAreaRankingSnapshot = {
+  areaSlug: string;
+  rank: number;
+  totalEligibleShops: number;
+  basis: string;
+  observedAt: string;
+  isPr: boolean;
+};
+
 export type WpShop = WpPostBase & {
   official_url?: string;
   area_slug?: string;
