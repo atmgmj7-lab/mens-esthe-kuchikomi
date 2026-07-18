@@ -19,14 +19,28 @@ git add headless
 git commit -m "feat: improve dashboard cockpit"
 git push origin main
 gh run watch --workflow "Deploy Headless to Vercel" --exit-status
-curl -I -L https://mens-esthe-kuchikomi.com/dashboard/
+
+for dashboard_path in dashboard dashboard/analytics; do
+  dashboard_url="https://mens-esthe-kuchikomi.com/${dashboard_path}/"
+
+  dashboard_unauthenticated_status="$(curl -sS -o /dev/null -w "%{http_code}" "$dashboard_url")"
+  test "$dashboard_unauthenticated_status" = "401" && echo "$dashboard_path unauthenticated: 401"
+
+  # Basic認証値は画面やログへ表示せず、curlの標準入力から渡す
+  dashboard_authenticated_status="$(
+    printf 'user = "%s:%s"\n' "$DASHBOARD_BASIC_AUTH_USER" "$DASHBOARD_BASIC_AUTH_PASSWORD" |
+      curl --config - -sS -o /dev/null -w "%{http_code}" "$dashboard_url"
+  )"
+  test "$dashboard_authenticated_status" = "200" && echo "$dashboard_path authenticated: 200"
+done
 ```
 
 期待:
 
 - GitHub Actions `Deploy Headless to Vercel` が成功する
-- `https://mens-esthe-kuchikomi.com/dashboard/` が HTTP 200
-- `https://mens-esthe-kuchikomi.com/dashboard/analytics/` が HTTP 200
+- 未認証の `/dashboard/` と `/dashboard/analytics/` が HTTP 401
+- 認証済みの `/dashboard/` と `/dashboard/analytics/` が HTTP 200
+- 認証値がコマンド出力やログへ表示されない
 
 ### Dashboard 認証
 

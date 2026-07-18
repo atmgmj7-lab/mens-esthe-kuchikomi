@@ -85,8 +85,9 @@ assert.match(authSource, /secretsMatch/);
 
 assert.doesNotMatch(revalidateSource, /export async function GET/);
 assert.match(revalidateSource, /secretsMatch/);
-assert.match(revalidateSource, /status:\s*503/);
-assert.match(revalidateSource, /status:\s*401/);
+assert.match(revalidateSource, /function revalidateResponse/);
+assert.match(revalidateSource, /Revalidation is not configured[\s\S]{0,100}503/);
+assert.match(revalidateSource, /Invalid secret[\s\S]{0,100}401/);
 assert.match(revalidateSource, /headers\.get\(["']x-revalidate-secret["']\)/);
 assert.doesNotMatch(revalidateSource, /searchParams\.get\(["']secret["']\)/);
 
@@ -103,6 +104,11 @@ assert.doesNotMatch(envExampleSource, /^BASIC_AUTH_(?:USER|PASSWORD)=/m);
 assert.match(runbookSource, /fail-closed/);
 assert.match(runbookSource, /pair-only/);
 assert.match(runbookSource, /DAILY_UPDATE_PROXY_SECRET/);
+assert.match(runbookSource, /dashboard_unauthenticated_status[\s\S]{0,500}["']401["']/);
+assert.match(runbookSource, /printf\s+["']user = ["']?%s:%s/);
+assert.match(runbookSource, /dashboard_authenticated_status[\s\S]{0,500}--config\s+-/);
+assert.match(runbookSource, /dashboard_authenticated_status[\s\S]{0,500}["']200["']/);
+assert.doesNotMatch(runbookSource, /curl\s+-I\s+-L\s+https:\/\/mens-esthe-kuchikomi\.com\/dashboard\//);
 assert.doesNotMatch(runbookSource, /\/api\/revalidate\?[^\s`"']*(?:secret|tag)=/);
 assert.doesNotMatch(cutoverSource, /\/api\/revalidate\?[^\s`"']*(?:secret|tag)=/);
 
@@ -203,24 +209,22 @@ assert.equal(
   "a partial official pair must not silently fall back to legacy variables",
 );
 
-const revalidatedTags = [];
-const routeEnvironment = {};
-const routeModule = compileCommonJs(
-  revalidateSource,
-  "revalidate-route.ts",
-  {
-    "next/cache": {
-      revalidateTag: (tag, profile) => revalidatedTags.push({ tag, profile }),
-    },
-    "next/server": {
-      NextResponse: {
-        json: (body, init) => Response.json(body, init),
+function compileRevalidateRoute(revalidateTag, routeEnvironment = {}) {
+  return compileCommonJs(
+    revalidateSource,
+    "revalidate-route.ts",
+    {
+      "next/cache": { revalidateTag },
+      "next/server": {
+        NextResponse: {
+          json: (body, init) => Response.json(body, init),
+        },
       },
+      "@/lib/server/secure-secret": secretModule,
     },
-    "@/lib/server/secure-secret": secretModule,
-  },
-  routeEnvironment,
-);
+    routeEnvironment,
+  );
+}
 
 function revalidateRequest({ headerSecret = null, querySecret = null, tag = "wp" } = {}) {
   const url = new URL("https://example.test/api/revalidate");
@@ -234,16 +238,49 @@ function revalidateRequest({ headerSecret = null, querySecret = null, tag = "wp"
   };
 }
 
+async function assertSafeRevalidateResponse(response, expectedStatus) {
+  assert.equal(response.status, expectedStatus);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("x-robots-tag"), "noindex, nofollow");
+}
+
+const revalidatedTags = [];
+const routeEnvironment = {};
+const routeModule = compileRevalidateRoute(
+  (tag, profile) => revalidatedTags.push({ tag, profile }),
+  routeEnvironment,
+);
+
 assert.equal(routeModule.GET, undefined);
 let response = await routeModule.POST(revalidateRequest());
-assert.equal(response.status, 503);
+await assertSafeRevalidateResponse(response, 503);
 routeEnvironment.REVALIDATE_SECRET = "server-secret";
 response = await routeModule.POST(revalidateRequest({ querySecret: "server-secret" }));
+await assertSafeRevalidateResponse(response, 401);
 assert.equal(response.status, 401, "query secrets must be ignored");
 response = await routeModule.POST(revalidateRequest({ headerSecret: "wrong" }));
-assert.equal(response.status, 401);
+await assertSafeRevalidateResponse(response, 401);
+response = await routeModule.POST(
+  revalidateRequest({ headerSecret: "server-secret", tag: "invalid tag" }),
+);
+await assertSafeRevalidateResponse(response, 400);
 response = await routeModule.POST(revalidateRequest({ headerSecret: "server-secret" }));
-assert.equal(response.status, 200);
+await assertSafeRevalidateResponse(response, 200);
 assert.deepEqual(revalidatedTags, [{ tag: "wp", profile: "max" }]);
+
+const throwingRouteModule = compileRevalidateRoute(
+  () => {
+    throw new Error("test revalidation failure");
+  },
+  { REVALIDATE_SECRET: "server-secret" },
+);
+response = await throwingRouteModule.POST(
+  revalidateRequest({ headerSecret: "server-secret" }),
+);
+await assertSafeRevalidateResponse(response, 500);
+assert.deepEqual(await response.json(), {
+  ok: false,
+  message: "Revalidation failed",
+});
 
 console.log("headless admin security contract: PASS");
