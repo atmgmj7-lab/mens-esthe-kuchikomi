@@ -45,6 +45,7 @@ import {
   type DashboardDataResult,
   type DashboardDataSource,
 } from "@/lib/dashboard/data-result";
+import { resolveSupabaseStatus } from "@/lib/dashboard/source-status";
 
 type Props = {
   showWeekly?: boolean;
@@ -273,8 +274,21 @@ export default function AnalyticsDashboard({
     scPagesResult,
     scAreasResult,
   ]);
-  const isSupabaseMode = dashboardConfig.dataSource === "supabase";
   const isSupabaseConfigured = isSupabaseReady();
+  const supabaseStatus = resolveSupabaseStatus(
+    dashboardConfig.dataSource,
+    isSupabaseConfigured,
+    [
+      dailyResult,
+      totalsResult,
+      pagesResult,
+      creativesResult,
+      ctaResult,
+      scKeywordsResult,
+      scPagesResult,
+      scAreasResult,
+    ]
+  );
   const label = periodLabel(period);
   const totalsError = errorFor(totalsResult);
   const scPagesError = errorFor(scPagesResult);
@@ -301,12 +315,10 @@ export default function AnalyticsDashboard({
             <strong>{searchSummary.liveCount} / {searchSummary.total} 取得</strong>
             <small>{searchSummary.source}・{formatFetchedAt(searchSummary.newest)}</small>
           </article>
-          <article data-status={isSupabaseConfigured ? "live" : "unavailable"}>
+          <article data-status={supabaseStatus.status}>
             <span>分析用Supabase</span>
-            <strong>
-              {isSupabaseConfigured ? "接続設定あり" : isSupabaseMode ? "未設定" : "現在は未使用"}
-            </strong>
-            <small>分析データの読み取り専用</small>
+            <strong>{supabaseStatus.label}</strong>
+            <small>{supabaseStatus.detail}・分析データの読み取り専用</small>
           </article>
         </div>
       </section>

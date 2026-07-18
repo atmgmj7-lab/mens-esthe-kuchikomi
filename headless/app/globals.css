@@ -452,6 +452,11 @@ img {
   box-shadow: 0 0 0 3px rgba(75, 181, 159, 0.12);
 }
 
+.dashboard-source-grid article[data-status="neutral"]::before {
+  background: #71808e;
+  box-shadow: none;
+}
+
 .dashboard-source-grid span,
 .dashboard-source-grid strong,
 .dashboard-source-grid small {

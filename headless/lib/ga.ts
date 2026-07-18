@@ -7,6 +7,12 @@ import {
   type DashboardDataResult,
   type DashboardDataSource,
 } from "./dashboard/data-result";
+import {
+  isGa4DailyMetricList,
+  normalizeGa4DailyMetrics,
+  normalizeGa4Date,
+  parseGa4LiveEnvelope,
+} from "./dashboard/ga-contract";
 
 export type DailyMetric = {
   date: string;
@@ -19,7 +25,6 @@ export type Totals = {
   sessions: number;
   bounceRate: number;
   avgDuration: number;
-  ctaClicks: number;
 };
 
 export type PageMetric = {
@@ -64,11 +69,16 @@ function filterRecentByDate<T extends { date: string }>(
   const now = new Date();
   const start = new Date(now);
   start.setDate(start.getDate() - (n - 1));
-  const target = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const target = [
+    start.getFullYear(),
+    String(start.getMonth() + 1).padStart(2, "0"),
+    String(start.getDate()).padStart(2, "0"),
+  ].join("");
 
   return items.filter((item) => {
-    const parsed = new Date(item.date);
-    return Number.isNaN(parsed.getTime()) || parsed >= target;
+    const normalized = normalizeGa4Date(item.date);
+    if (!normalized) return false;
+    return normalized >= target;
   });
 }
 
@@ -110,24 +120,13 @@ function isMetricList<T>(
   return Array.isArray(value) && value.every((item) => isRecord(item) && validateItem(item));
 }
 
-function isDailyMetricList(value: unknown): value is DailyMetric[] {
-  return isMetricList<DailyMetric>(
-    value,
-    (item) =>
-      typeof item.date === "string" && item.date.length > 0 &&
-      isFiniteNumber(item.pageviews) &&
-      isFiniteNumber(item.sessions)
-  );
-}
-
 function isTotals(value: unknown): value is Totals {
   return (
     isRecord(value) &&
     isFiniteNumber(value.pageviews) &&
     isFiniteNumber(value.sessions) &&
     isFiniteNumber(value.bounceRate) &&
-    isFiniteNumber(value.avgDuration) &&
-    isFiniteNumber(value.ctaClicks)
+    isFiniteNumber(value.avgDuration)
   );
 }
 
@@ -180,7 +179,8 @@ async function fetchFromSupabase(
           sessions: readNumber(row, ["sessions", "visits", "session_count"]),
         }))
         .sort((a, b) => a.date.localeCompare(b.date));
-      return filterRecentByDate(daily, days);
+      if (!isGa4DailyMetricList(daily)) return daily;
+      return filterRecentByDate(normalizeGa4DailyMetrics(daily), days);
     }
     case "totals": {
       const rows = await fetchSupabaseTable<Record<string, unknown>>(GA_TABLES.gaTotals);
@@ -190,7 +190,6 @@ async function fetchFromSupabase(
           sessions: 0,
           bounceRate: 0,
           avgDuration: 0,
-          ctaClicks: 0,
         } satisfies Totals;
       }
 
@@ -202,9 +201,8 @@ async function fetchFromSupabase(
           avgDuration:
             sum.avgDuration +
             readNumber(row, ["avgDuration", "averageSessionDuration", "avg_duration"]),
-          ctaClicks: sum.ctaClicks + readNumber(row, ["ctaClicks", "cta_clicks", "event_count"]),
         }),
-        { pageviews: 0, sessions: 0, bounceRate: 0, avgDuration: 0, ctaClicks: 0 }
+        { pageviews: 0, sessions: 0, bounceRate: 0, avgDuration: 0 }
       );
       return {
         ...totals,
@@ -259,7 +257,8 @@ async function fetchFromLegacyProxy(action: GaAction, days: PeriodDays): Promise
     { cache: "no-store" }
   );
   if (!response.ok) throw new Error(`GA4 request failed: ${response.status}`);
-  return response.json();
+  const envelope = parseGa4LiveEnvelope(await response.json());
+  return envelope?.data ?? { invalidGa4Envelope: true };
 }
 
 function gaSource(): DashboardDataSource {
@@ -281,10 +280,15 @@ async function fetchGaResult<T>(
   return resolveDashboardData({
     source: gaSource(),
     configured: isGaSourceConfigured(),
-    request: () =>
-      useSupabase
+    request: async () => {
+      const payload = useSupabase
         ? fetchFromSupabase(action, days)
-        : fetchFromLegacyProxy(action, days),
+        : fetchFromLegacyProxy(action, days);
+      const data = await payload;
+      return action === "daily" && isGa4DailyMetricList(data)
+        ? normalizeGa4DailyMetrics(data)
+        : data;
+    },
     validate,
   });
 }
@@ -292,7 +296,7 @@ async function fetchGaResult<T>(
 export function fetchGA4Daily(
   days: PeriodDays
 ): Promise<DashboardDataResult<DailyMetric[]>> {
-  return fetchGaResult("daily", days, isDailyMetricList);
+  return fetchGaResult("daily", days, isGa4DailyMetricList);
 }
 
 export function fetchGA4Totals(

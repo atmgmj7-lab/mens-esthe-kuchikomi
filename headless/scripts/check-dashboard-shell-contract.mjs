@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import vm from "node:vm";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
+const repositoryRoot = resolve(root, "..");
 const pathFor = (file) => join(root, file);
 const read = (file) => readFileSync(pathFor(file), "utf8");
 
@@ -15,6 +17,10 @@ const requiredFiles = [
   "components/dashboard/DashboardShell.module.css",
   "lib/dashboard/navigation.ts",
   "lib/dashboard/data-result.ts",
+  "lib/dashboard/ga-contract.ts",
+  "lib/dashboard/line-chart.ts",
+  "lib/dashboard/source-status.ts",
+  "scripts/check-dashboard-shell-browser.mjs",
 ];
 
 for (const file of requiredFiles) {
@@ -28,6 +34,7 @@ const navigationSource = read("lib/dashboard/navigation.ts");
 const shellSource = read("components/dashboard/DashboardShell.tsx");
 const navSource = read("components/dashboard/DashboardNav.tsx");
 const shellCss = read("components/dashboard/DashboardShell.module.css");
+const globalCss = read("app/globals.css");
 const dataResultSource = read("lib/dashboard/data-result.ts");
 const gaSource = read("lib/ga.ts");
 const searchConsoleSource = read("lib/searchConsole.ts");
@@ -35,6 +42,14 @@ const analyticsDashboardSource = read("components/AnalyticsDashboard.tsx");
 const googleAnalyticsSource = read("components/GoogleAnalytics.tsx");
 const quickLinksSource = read("components/WPQuickLinks.tsx");
 const packageSource = read("package.json");
+const gaProxySource = readFileSync(
+  join(repositoryRoot, "dashboard/public/api/ga-proxy.php"),
+  "utf8"
+);
+const gaContractSource = read("lib/dashboard/ga-contract.ts");
+const lineChartContractSource = read("lib/dashboard/line-chart.ts");
+const sourceStatusSource = read("lib/dashboard/source-status.ts");
+const lineChartSource = read("components/LineChart.tsx");
 
 assert.match(layoutSource, /<DashboardShell>\s*\{children\}\s*<\/DashboardShell>/s);
 assert.match(navigationSource, /href:\s*["']\/dashboard\/["']/);
@@ -54,7 +69,10 @@ assert.match(shellSource, /id=["']dashboard-main["']/);
 assert.match(navSource, /aria-current=\{isCurrent\s*\?\s*["']page["']\s*:\s*undefined\}/);
 assert.match(navSource, /aria-controls=/);
 assert.match(navSource, /aria-expanded=/);
-assert.match(navSource, /onKeyDown=/);
+assert.match(navSource, /document\.addEventListener\(["']keydown["']/);
+assert.match(navSource, /requestAnimationFrame/);
+assert.match(navSource, /getElementById\(["']dashboard-main["']\)/);
+assert.match(navSource, /hasMountedRef/);
 
 assert.match(
   shellCss,
@@ -69,6 +87,16 @@ assert.doesNotMatch(gaSource, /mockDaily|mockTotals|MOCK_PAGES|MOCK_CREATIVES|MO
 assert.doesNotMatch(searchConsoleSource, /MOCK_SEARCH_/);
 assert.doesNotMatch(gaSource, /supa\s*!==\s*fallback/);
 assert.doesNotMatch(searchConsoleSource, /supa\s*!==\s*fallback/);
+assert.doesNotMatch(
+  gaProxySource,
+  /get_mock_data|mock_day_count|_mock|rand\s*\(/,
+  "旧GA proxyからmock生成を完全に削除する必要があります"
+);
+assert.match(gaProxySource, /http_response_code\(503\)/);
+assert.match(gaProxySource, /["']status["']\s*=>\s*["']live["']/);
+assert.match(gaProxySource, /["']source["']\s*=>\s*["']ga4["']/);
+assert.match(gaProxySource, /["']data["']\s*=>\s*\$data/);
+assert.match(gaSource, /parseGa4LiveEnvelope/);
 assert.doesNotMatch(
   gaSource,
   /\btoNumber\(/,
@@ -103,8 +131,17 @@ assert.match(analyticsDashboardSource, /GA4/);
 assert.match(analyticsDashboardSource, /Search Console/);
 assert.match(analyticsDashboardSource, /分析用Supabase/);
 assert.match(analyticsDashboardSource, /未取得|未連携|取得できません/);
+assert.doesNotMatch(
+  analyticsDashboardSource,
+  /data-status=\{isSupabaseConfigured\s*\?\s*["']live["']/,
+  "Supabaseは設定だけでliveにしてはいけません"
+);
+assert.match(analyticsDashboardSource, /data-status=\{supabaseStatus\.status\}/);
+assert.match(globalCss, /article\[data-status=["']neutral["']\]/);
+assert.match(lineChartSource, /buildLineChartModel/);
 assert.match(packageSource, /["']test:dashboard-shell["']\s*:/);
 assert.match(packageSource, /npm run test:dashboard-shell/);
+assert.match(packageSource, /["']test:dashboard-shell-browser["']\s*:/);
 
 const dataResultCompiled = ts.transpileModule(dataResultSource, {
   compilerOptions: {
@@ -177,5 +214,116 @@ const invalidResult = await resolveDashboardData({
 assert.equal(invalidResult.status, "unavailable");
 assert.equal(invalidResult.reason, "invalid-response");
 assert.equal(invalidResult.data, null);
+
+function loadTsModule(source, filename) {
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const loaded = { exports: {} };
+  vm.runInNewContext(
+    compiled,
+    { module: loaded, exports: loaded.exports },
+    { filename }
+  );
+  return loaded.exports;
+}
+
+const {
+  isGa4DailyMetricList,
+  normalizeGa4Date,
+  parseGa4LiveEnvelope,
+} = loadTsModule(gaContractSource, "ga-contract.cjs");
+
+assert.equal(normalizeGa4Date("20260718"), "20260718");
+assert.equal(normalizeGa4Date("2026-07-18"), "20260718");
+assert.equal(normalizeGa4Date("20260229"), null, "存在しない日付を拒否する必要があります");
+assert.equal(normalizeGa4Date("2026-13-01"), null);
+assert.equal(
+  isGa4DailyMetricList([{ date: "2026-02-29", pageviews: 0, sessions: 0 }]),
+  false,
+  "daily production validatorは存在しないISO日付を拒否する必要があります"
+);
+assert.equal(
+  isGa4DailyMetricList([{ date: "20260228", pageviews: 0, sessions: 0 }]),
+  true
+);
+
+const liveEnvelope = parseGa4LiveEnvelope({
+  status: "live",
+  source: "ga4",
+  data: [],
+});
+assert.deepEqual(Array.from(liveEnvelope.data), []);
+assert.equal(parseGa4LiveEnvelope([]), null, "bareの旧responseを拒否する必要があります");
+assert.equal(
+  parseGa4LiveEnvelope({ status: "live", source: "mock", data: [] }),
+  null,
+  "旧mock sourceを拒否する必要があります"
+);
+
+const { buildLineChartModel } = loadTsModule(
+  lineChartContractSource,
+  "line-chart-contract.cjs"
+);
+const oneZero = buildLineChartModel([{ date: "20260718", pageviews: 0, sessions: 0 }]);
+assert.equal(oneZero.maxValue, 1);
+assert.equal(oneZero.pageviewPoints.length, 1);
+assert.equal(oneZero.pageviewPoints[0].x, 416, "1点はplot中央へ置く必要があります");
+assert.ok(Number.isFinite(oneZero.pageviewPoints[0].y));
+
+const multipleZero = buildLineChartModel([
+  { date: "20260717", pageviews: 0, sessions: 0 },
+  { date: "20260718", pageviews: 0, sessions: 0 },
+]);
+assert.equal(multipleZero.maxValue, 1);
+assert.ok(
+  multipleZero.pageviewPoints.every((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+);
+
+for (let length = 2; length <= 5; length += 1) {
+  const model = buildLineChartModel(
+    Array.from({ length }, (_, index) => ({
+      date: `202607${String(index + 10).padStart(2, "0")}`,
+      pageviews: index,
+      sessions: index,
+    }))
+  );
+  assert.equal(model.labelIndices.length, length);
+  assert.equal(new Set(model.labelIndices).size, length, `${length}日fixtureのlabel keyを重複させてはいけません`);
+}
+
+const { resolveSupabaseStatus } = loadTsModule(
+  sourceStatusSource,
+  "source-status.cjs"
+);
+const unavailableResults = Array.from({ length: 8 }, () => ({
+  status: "unavailable",
+  source: "analytics-supabase",
+  data: null,
+  reason: "request-failed",
+}));
+assert.equal(
+  resolveSupabaseStatus("supabase", true, unavailableResults).status,
+  "unavailable",
+  "Supabase設定済みでも全取得失敗はunavailableです"
+);
+assert.equal(
+  resolveSupabaseStatus("legacy-proxy", true, unavailableResults).status,
+  "neutral"
+);
+assert.equal(
+  resolveSupabaseStatus("legacy-proxy", true, unavailableResults).label,
+  "未使用"
+);
+
+const phpOutput = execFileSync(
+  "php",
+  [join(repositoryRoot, "tests/php/check-ga-proxy-contract.php")],
+  { encoding: "utf8" }
+);
+assert.match(phpOutput, /GA proxy contract: PASS/);
 
 console.log("Dashboard shell contract checks passed");

@@ -58,7 +58,8 @@
     "test:wp-phase0-security": "node scripts/check-wp-phase0-security-contract.mjs && php ../tests/php/check-ai-update-route-security.php",
     "test:daily-update-proxy": "node scripts/check-daily-update-proxy-contract.mjs && cd ../ai-site-monitor && python3 -m unittest tests.test_daily_update_payload",
     "test:headless-admin-security": "node scripts/check-headless-admin-security-contract.mjs",
-    "test:dashboard-shell": "node scripts/check-dashboard-shell-contract.mjs"
+    "test:dashboard-shell": "node scripts/check-dashboard-shell-contract.mjs",
+    "test:dashboard-shell-browser": "node scripts/check-dashboard-shell-browser.mjs"
   },
   "dependencies": {
     "next": "16.2.10",

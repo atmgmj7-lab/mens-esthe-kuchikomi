@@ -1,6 +1,11 @@
 "use client";
 
 import type { DailyMetric } from "@/lib/ga";
+import {
+  buildLineChartModel,
+  LINE_CHART_DIMENSIONS,
+  serializeLineChartPoints,
+} from "@/lib/dashboard/line-chart";
 
 type Props = {
   data: DailyMetric[];
@@ -9,22 +14,10 @@ type Props = {
   periodLabel?: string;
 };
 
-const W = 800;
-const H = 260;
-const PAD = { top: 20, right: 20, bottom: 40, left: 52 };
-const CHART_W = W - PAD.left - PAD.right;
+const W = LINE_CHART_DIMENSIONS.width;
+const H = LINE_CHART_DIMENSIONS.height;
+const PAD = LINE_CHART_DIMENSIONS.padding;
 const CHART_H = H - PAD.top - PAD.bottom;
-
-function polyline(values: number[], maxVal: number): string {
-  if (values.length === 0) return "";
-  return values
-    .map((v, i) => {
-      const x = PAD.left + (i / (values.length - 1)) * CHART_W;
-      const y = PAD.top + CHART_H - (v / maxVal) * CHART_H;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-}
 
 function fmtDate(yyyymmdd: string): string {
   const m = yyyymmdd.slice(4, 6);
@@ -65,16 +58,12 @@ export default function LineChart({
     );
   }
 
-  const pvValues = data.map((d) => d.pageviews);
-  const sesValues = data.map((d) => d.sessions);
-  const maxVal = Math.max(...pvValues, ...sesValues) * 1.15;
+  const model = buildLineChartModel(data);
+  const maxVal = model.maxValue;
 
   const gridLines = Array.from({ length: 5 }, (_, i) => i / 4);
 
-  const labelCount = 6;
-  const labelIndices = Array.from({ length: labelCount }, (_, i) =>
-    Math.round((i / (labelCount - 1)) * (data.length - 1))
-  );
+  const labelIndices = model.labelIndices;
 
   return (
     <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5">
@@ -123,10 +112,10 @@ export default function LineChart({
         })}
 
         {labelIndices.map((idx) => {
-          const x = PAD.left + (idx / (data.length - 1)) * CHART_W;
+          const x = model.pageviewPoints[idx].x;
           return (
             <text
-              key={idx}
+              key={`${idx}-${data[idx].date}`}
               x={x}
               y={H - 8}
               textAnchor="middle"
@@ -139,7 +128,7 @@ export default function LineChart({
         })}
 
         <polyline
-          points={polyline(sesValues, maxVal)}
+          points={serializeLineChartPoints(model.sessionPoints)}
           fill="none"
           stroke="#34d399"
           strokeWidth="2"
@@ -147,7 +136,7 @@ export default function LineChart({
         />
 
         <polyline
-          points={polyline(pvValues, maxVal)}
+          points={serializeLineChartPoints(model.pageviewPoints)}
           fill="none"
           stroke="#818cf8"
           strokeWidth="2"

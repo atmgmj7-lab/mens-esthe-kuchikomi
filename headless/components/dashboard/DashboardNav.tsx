@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DASHBOARD_NAV_GROUPS } from "@/lib/dashboard/navigation";
 import styles from "./DashboardShell.module.css";
 
@@ -14,21 +14,52 @@ export default function DashboardNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
-  const firstLinkRef = useRef<HTMLAnchorElement>(null);
+  const navigationRef = useRef<HTMLElement>(null);
+  const hasMountedRef = useRef(false);
+  const previousPathnameRef = useRef(pathname);
   const normalizedPathname = normalizePathname(pathname);
 
   useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+    if (previousPathnameRef.current === pathname) return;
+    previousPathnameRef.current = pathname;
     setIsOpen(false);
+    const frame = requestAnimationFrame(() => {
+      document.getElementById("dashboard-main")?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [pathname]);
 
   useEffect(() => {
-    if (isOpen) firstLinkRef.current?.focus();
+    if (!isOpen) return;
+    let focusFrame = 0;
+    const revealFrame = requestAnimationFrame(() => {
+      focusFrame = requestAnimationFrame(() => {
+        navigationRef.current?.querySelector<HTMLAnchorElement>("a[href]")?.focus();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(revealFrame);
+      cancelAnimationFrame(focusFrame);
+    };
   }, [isOpen]);
 
-  const closeAndRestoreFocus = () => {
+  const closeAndRestoreFocus = useCallback(() => {
     setIsOpen(false);
     toggleRef.current?.focus();
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onDocumentKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeAndRestoreFocus();
+    };
+    document.addEventListener("keydown", onDocumentKeyDown);
+    return () => document.removeEventListener("keydown", onDocumentKeyDown);
+  }, [closeAndRestoreFocus, isOpen]);
 
   return (
     <aside className={styles.sidebar} aria-label="管理ダッシュボードのメニュー">
@@ -36,6 +67,7 @@ export default function DashboardNav() {
         <span className={styles.mobileBrand}>Eskomi 管理</span>
         <button
           ref={toggleRef}
+          data-dashboard-menu-toggle
           type="button"
           className={styles.menuButton}
           aria-controls="dashboard-navigation"
@@ -58,12 +90,11 @@ export default function DashboardNav() {
       )}
 
       <nav
+        ref={navigationRef}
         id="dashboard-navigation"
+        data-open={isOpen}
         className={`${styles.navigation} ${isOpen ? styles.navigationOpen : ""}`}
         aria-label="管理ダッシュボード"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") closeAndRestoreFocus();
-        }}
       >
         <div className={styles.navIdentity}>
           <span className={styles.navMark} aria-hidden="true">E</span>
@@ -77,12 +108,11 @@ export default function DashboardNav() {
           <section key={group.label} className={styles.navGroup}>
             <h2>{group.label}</h2>
             <ul>
-              {group.items.map((item, index) => {
+              {group.items.map((item) => {
                 const isCurrent = normalizedPathname === item.href;
                 return (
                   <li key={item.href}>
                     <Link
-                      ref={index === 0 ? firstLinkRef : undefined}
                       href={item.href}
                       className={styles.navLink}
                       aria-current={isCurrent ? "page" : undefined}
