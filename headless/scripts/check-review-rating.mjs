@@ -216,6 +216,13 @@ const rankingCardsSource = readFileSync(join(root, "components/area/hub/RankingH
 assert.ok(rankingCardsSource.includes("canReceiveNaturalRankNumber"), "Ranking cards must not assign natural rank numbers to PR shops");
 
 const seoSource = readFileSync(join(root, "lib/seo.ts"), "utf8");
-assert.ok(!seoSource.includes("aggregateRating"), "AggregateRating must stay disabled until eligible user-review records exist");
+assert.ok(
+  seoSource.includes("reviewModel") && seoSource.includes("aggregateRating"),
+  "AggregateRating must use the approved-review view model once the three-response boundary is met"
+);
+assert.ok(
+  !seoSource.match(/aggregateRating[\s\S]{0,500}(?:review_star|review_count)/),
+  "AggregateRating must not use legacy ACF review values"
+);
 
 console.log("Review rating check passed.");

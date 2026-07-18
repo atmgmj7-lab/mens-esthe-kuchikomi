@@ -6,6 +6,10 @@ const heroSource = readFileSync(
   "components/shop-detail/ShopDetailHero.tsx",
   "utf8"
 );
+const reviewDashboardSource = readFileSync(
+  "components/shop-detail/ShopReviewDashboard.tsx",
+  "utf8"
+);
 const cssSource = readFileSync(
   "components/shop-detail/ShopDetail.module.css",
   "utf8"
@@ -47,6 +51,14 @@ check("mobile CTA handoff", () => {
     cssSource,
     /@media \(max-width:\s*760px\)[\s\S]*\.hero \.actions\s*\{\s*display:\s*none/
   );
+});
+check("server-rendered review dashboard", () => {
+  assert.ok(!reviewDashboardSource.includes('"use client"'));
+  assert.ok(reviewDashboardSource.includes("<svg"));
+  assert.ok(reviewDashboardSource.includes("model.latest"));
+});
+check("review text measure", () => {
+  assert.match(cssSource, /\.reviews\s*\{[^}]*max-width:\s*960px/);
 });
 
 assert.equal(

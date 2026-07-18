@@ -154,6 +154,68 @@ assert.equal(shopSchema.telephone, undefined, "LocalBusiness schema must not out
 assert.equal(shopSchema.address, undefined, "LocalBusiness schema must not output missing address");
 assert.equal(shopSchema.priceRange, undefined, "LocalBusiness schema must not output unconfirmed price");
 
+const unavailableReviewModel = { status: "unavailable", reason: "request-failed" };
+assert.equal(
+  shopLocalBusinessJsonLd(hiddenReviewShop, unavailableReviewModel).aggregateRating,
+  undefined,
+  "LocalBusiness schema must not output AggregateRating while approved reviews are unavailable"
+);
+
+const underThresholdReviewModel = {
+  status: "available",
+  totalApproved: 2,
+  showGraph: false,
+  aggregateRating: null,
+  aggregateRatingCount: 2,
+  metrics: [],
+  latest: [],
+  dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
+};
+assert.equal(
+  shopLocalBusinessJsonLd(hiddenReviewShop, underThresholdReviewModel).aggregateRating,
+  undefined,
+  "LocalBusiness schema must stay disabled below three valid overall ratings"
+);
+
+const eligibleReviewModel = {
+  status: "available",
+  totalApproved: 4,
+  showGraph: true,
+  aggregateRating: 4.5,
+  aggregateRatingCount: 3,
+  metrics: [{ key: "total", label: "総合評価", value: 4.5, count: 3 }],
+  latest: [],
+  dateRange: {
+    oldestSubmittedAt: "2026-07-15T03:00:00+00:00",
+    latestSubmittedAt: "2026-07-18T03:00:00+00:00"
+  }
+};
+assert.deepEqual(
+  JSON.parse(JSON.stringify(shopLocalBusinessJsonLd(hiddenReviewShop, eligibleReviewModel).aggregateRating)),
+  {
+    "@type": "AggregateRating",
+    ratingValue: 4.5,
+    reviewCount: 3,
+    bestRating: 5,
+    worstRating: 1
+  },
+  "LocalBusiness schema must use the same eligible approved-review aggregate shown on the page"
+);
+
+for (const invalidReviewModel of [
+  { ...eligibleReviewModel, aggregateRating: Number.NaN },
+  { ...eligibleReviewModel, aggregateRating: 0 },
+  { ...eligibleReviewModel, aggregateRating: 6 },
+  { ...eligibleReviewModel, aggregateRatingCount: 2 },
+  { ...eligibleReviewModel, aggregateRatingCount: 3.5 }
+]) {
+  assert.equal(
+    shopLocalBusinessJsonLd(hiddenReviewShop, invalidReviewModel).aggregateRating,
+    undefined,
+    "LocalBusiness schema must fail closed for an inconsistent review view model"
+  );
+}
+
 const areaHubSource = readFileSync(join(root, "components/area/AreaHubPageTemplate.tsx"), "utf8");
 assert.ok(
   areaHubSource.includes("faqSchema ?"),
@@ -185,8 +247,12 @@ const shopDetailSource = [
   readFileSync(join(root, "components/shop-detail/ShopDetailSections.tsx"), "utf8")
 ].join("\n");
 assert.ok(
-  shopDetailSource.includes("const shopSchema = shopLocalBusinessJsonLd(shop)"),
-  "Shop pages must compute LocalBusiness JSON-LD before rendering it"
+  shopDetailSource.includes("const reviewModel = buildShopReviewViewModel(reviewResult)"),
+  "Shop pages must build one approved-review view model before rendering"
+);
+assert.ok(
+  shopDetailSource.includes("const shopSchema = shopLocalBusinessJsonLd(shop, reviewModel)"),
+  "Shop pages must compute LocalBusiness JSON-LD from the same approved-review view model"
 );
 assert.ok(
   shopDetailSource.includes("serializeJsonLd(shopSchema)"),
@@ -210,9 +276,14 @@ for (const [label, fixture] of [
     `${label} must render LocalBusiness JSON-LD before visible content`
   );
   assert.strictEqual(
-    fixture.captures.schemaShops[0],
+    fixture.captures.schemaInputs[0].shop,
     fixture.shop,
     `${label} schema must be computed from the rendered WordPress shop`
+  );
+  assert.strictEqual(
+    fixture.captures.schemaInputs[0].reviewModel,
+    fixture.reviewModel,
+    `${label} schema must use the same review model as the visible review dashboard`
   );
   assert.ok(
     fixture.html.includes(JSON.stringify(fixture.schema)),

@@ -12,6 +12,7 @@ import { serializeJsonLd } from "@/lib/json-ld";
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
 import { shopLocalBusinessJsonLd } from "@/lib/seo";
+import { buildShopReviewViewModel } from "@/lib/shop-review-view-model";
 import {
   buildShopDetailViewModel,
   buildShopSectionLinks
@@ -65,9 +66,10 @@ export function ShopDetail({
     parentArea
   );
   const model = buildShopDetailViewModel(shop, areaName);
+  const reviewModel = buildShopReviewViewModel(reviewResult);
   const officialRel = outboundRelForPromotion(shop.ranking.promotion);
   const reviewSubmitUrl = buildReviewSubmitUrl(shop.slug);
-  const shopSchema = shopLocalBusinessJsonLd(shop);
+  const shopSchema = shopLocalBusinessJsonLd(shop, reviewModel);
   const shopAreaForHub = areaSlugForNav
     ? allAreas.find((area) => area.slug === areaSlugForNav)
     : undefined;
@@ -109,6 +111,7 @@ export function ShopDetail({
             <ShopDetailSections
               model={model}
               reviewResult={reviewResult}
+              reviewModel={reviewModel}
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />

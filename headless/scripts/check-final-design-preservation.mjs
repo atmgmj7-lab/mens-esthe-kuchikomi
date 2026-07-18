@@ -64,6 +64,7 @@ function renderShopDetailIntegrationFixture({
   allAreas,
   model,
   reviewResult,
+  reviewModel,
   schema,
   rel,
   reviewSubmitUrl
@@ -78,7 +79,8 @@ function renderShopDetailIntegrationFixture({
     ownerProps: [],
     promotionInputs: [],
     reviewSubmitSlugs: [],
-    schemaShops: [],
+    reviewModelInputs: [],
+    schemaInputs: [],
     sectionLinkBuilds: [],
     sectionNavProps: [],
     sectionsProps: []
@@ -200,9 +202,15 @@ function renderShopDetailIntegrationFixture({
       }
     },
     "@/lib/seo": {
-      shopLocalBusinessJsonLd: (inputShop) => {
-        captures.schemaShops.push(inputShop);
+      shopLocalBusinessJsonLd: (inputShop, inputReviewModel) => {
+        captures.schemaInputs.push({ shop: inputShop, reviewModel: inputReviewModel });
         return schema;
+      }
+    },
+    "@/lib/shop-review-view-model": {
+      buildShopReviewViewModel: (inputReviewResult) => {
+        captures.reviewModelInputs.push(inputReviewResult);
+        return reviewModel;
       }
     },
     "@/lib/shop-detail-view-model": {
@@ -234,6 +242,7 @@ function renderShopDetailIntegrationFixture({
     allAreas,
     captures,
     reviewResult,
+    reviewModel,
     html,
     model,
     parentArea,
@@ -322,6 +331,7 @@ for (const label of ["堺筋本町メンズエステ", "新大阪メンズエス
 
 const shopDetail = read("components/ShopDetail.tsx");
 const detailSections = read("components/shop-detail/ShopDetailSections.tsx");
+const detailReviewDashboard = read("components/shop-detail/ShopReviewDashboard.tsx");
 assert.ok(shopDetail.includes("buildShopDetailViewModel"));
 assert.ok(shopDetail.includes("ShopDetailHero"));
 assert.ok(shopDetail.includes("ShopDetailGallery"));
@@ -402,7 +412,10 @@ assert.ok(ownerCta.includes("公開前に確認"), "owner CTA must state that su
 assert.ok(!ownerCta.includes("自動公開します"), "owner CTA must not promise automatic publication");
 assert.ok(detailSections.includes("model.prices.length > 0"), "price section must require approved model prices");
 assert.ok(detailSections.includes("model.infoRows.length > 0"), "information section must require approved model rows");
-assert.ok(detailSections.includes("reviews.length > 0"), "review section must distinguish approved items from empty state");
+assert.ok(
+  detailReviewDashboard.includes("model.latest.length > 0"),
+  "review dashboard must distinguish approved items from empty state"
+);
 assert.ok(
   detailSections.includes("掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません"),
   "review section must visibly explain source separation"
@@ -591,7 +604,10 @@ const { ShopDetailSections } = loadTsxModule("components/shop-detail/ShopDetailS
   "next/link": {
     __esModule: true,
     default: ({ children, href, ...props }) => React.createElement("a", { href, ...props }, children)
-  }
+  },
+  "./ShopReviewDashboard": loadTsxModule(
+    "components/shop-detail/ShopReviewDashboard.tsx"
+  )
 });
 const fullSectionsModel = {
   slug: "safe-shop",
@@ -644,6 +660,29 @@ const fullSectionsHtml = renderToStaticMarkup(
         metrics: {},
         dateRange: null
       }
+    },
+    reviewModel: {
+      status: "available",
+      totalApproved: 2,
+      showGraph: false,
+      aggregateRating: null,
+      aggregateRatingCount: 2,
+      metrics: [],
+      latest: [
+        {
+          id: 1,
+          body: "<b>承認済み本文</b>",
+          submittedAt: null,
+          ratings: { total: 5, price: 4, service: null, cleanliness: 3 }
+        },
+        {
+          id: 2,
+          body: "2件目の承認済み本文",
+          submittedAt: "2026-07-15T03:00:00+00:00",
+          ratings: { total: 4, price: null, service: 5, cleanliness: 4 }
+        }
+      ],
+      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
     },
     reviewSubmitUrl: "/review-form/?shop=safe-shop",
     rel: "nofollow sponsored noopener"
@@ -717,6 +756,16 @@ const encodedSectionsHtml = renderToStaticMarkup(
       status: "available",
       page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
     },
+    reviewModel: {
+      status: "available",
+      totalApproved: 0,
+      showGraph: false,
+      aggregateRating: null,
+      aggregateRatingCount: 0,
+      metrics: [],
+      latest: [],
+      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
+    },
     reviewSubmitUrl: "/review-form/",
     rel: "nofollow sponsored noopener"
   })
@@ -751,6 +800,16 @@ const sparseSectionsHtml = renderToStaticMarkup(
       status: "available",
       page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
     },
+    reviewModel: {
+      status: "available",
+      totalApproved: 0,
+      showGraph: false,
+      aggregateRating: null,
+      aggregateRatingCount: 0,
+      metrics: [],
+      latest: [],
+      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
+    },
     reviewSubmitUrl: "/review-form/?shop=safe-shop",
     rel: "nofollow sponsored noopener"
   })
@@ -777,6 +836,16 @@ const unsafeSectionsHtml = renderToStaticMarkup(
     reviewResult: {
       status: "available",
       page: { reviews: [], total: 0, totalPages: 0, page: 1, metrics: {}, dateRange: null }
+    },
+    reviewModel: {
+      status: "available",
+      totalApproved: 0,
+      showGraph: false,
+      aggregateRating: null,
+      aggregateRatingCount: 0,
+      metrics: [],
+      latest: [],
+      dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
     },
     reviewSubmitUrl: "/review-form/",
     rel: "nofollow sponsored noopener"
@@ -863,6 +932,16 @@ const fullIntegrationReviewResult = {
     dateRange: null
   }
 };
+const fullIntegrationReviewModel = {
+  status: "available",
+  totalApproved: 1,
+  showGraph: false,
+  aggregateRating: null,
+  aggregateRatingCount: 1,
+  metrics: [],
+  latest: fullIntegrationReviews,
+  dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
+};
 const fullIntegrationSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -914,6 +993,16 @@ const sparseIntegrationReviewResult = {
     dateRange: null
   }
 };
+const sparseIntegrationReviewModel = {
+  status: "available",
+  totalApproved: 0,
+  showGraph: false,
+  aggregateRating: null,
+  aggregateRatingCount: 0,
+  metrics: [],
+  latest: [],
+  dateRange: { oldestSubmittedAt: null, latestSubmittedAt: null }
+};
 const sparseIntegrationSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
@@ -926,6 +1015,7 @@ const fullShopDetailIntegration = renderShopDetailIntegrationFixture({
   allAreas: [fullIntegrationArea],
   model: fullIntegrationModel,
   reviewResult: fullIntegrationReviewResult,
+  reviewModel: fullIntegrationReviewModel,
   schema: fullIntegrationSchema,
   rel: "nofollow sponsored noopener",
   reviewSubmitUrl: "/reviews/submit/?shop=integration-shop"
@@ -936,6 +1026,7 @@ const sparseShopDetailIntegration = renderShopDetailIntegrationFixture({
   allAreas: [],
   model: sparseIntegrationModel,
   reviewResult: sparseIntegrationReviewResult,
+  reviewModel: sparseIntegrationReviewModel,
   schema: sparseIntegrationSchema,
   rel: "noopener",
   reviewSubmitUrl: "/reviews/submit/?shop=sparse-shop"
@@ -960,7 +1051,8 @@ for (const [label, fixture] of [
   assert.equal(fixture.captures.areaQuickProps.length, 1, `${label} must compose area quick links once`);
   assert.equal(fixture.captures.modelBuilds.length, 1, `${label} must build one view model`);
   assert.equal(fixture.captures.reviewSubmitSlugs.length, 1, `${label} must build one review URL`);
-  assert.equal(fixture.captures.schemaShops.length, 1, `${label} must build one LocalBusiness schema`);
+  assert.equal(fixture.captures.reviewModelInputs.length, 1, `${label} must build one review view model`);
+  assert.equal(fixture.captures.schemaInputs.length, 1, `${label} must build one LocalBusiness schema`);
   assert.equal(fixture.captures.promotionInputs.length, 1, `${label} must resolve one promotion rel`);
   assert.equal(fixture.captures.sectionLinkBuilds.length, 1, `${label} must build conditional section links once`);
   assert.equal(fixture.captures.sectionNavProps.length, 1, `${label} must compose section navigation once`);
@@ -998,6 +1090,16 @@ for (const [label, fixture] of [
     `${label} sections must receive the explicit approved review result`
   );
   assert.strictEqual(
+    fixture.captures.reviewModelInputs[0],
+    fixture.reviewResult,
+    `${label} review view model must receive the explicit approved review result`
+  );
+  assert.strictEqual(
+    fixture.captures.sectionsProps[0].reviewModel,
+    fixture.reviewModel,
+    `${label} sections must receive the shared review view model`
+  );
+  assert.strictEqual(
     fixture.captures.sectionsProps[0].reviewSubmitUrl,
     fixture.reviewSubmitUrl,
     `${label} sections must receive the built review URL`
@@ -1033,9 +1135,14 @@ for (const [label, fixture] of [
     `${label} owner CTA must receive the current WordPress shop`
   );
   assert.strictEqual(
-    fixture.captures.schemaShops[0],
+    fixture.captures.schemaInputs[0].shop,
     fixture.shop,
     `${label} schema builder must receive the current WordPress shop`
+  );
+  assert.strictEqual(
+    fixture.captures.schemaInputs[0].reviewModel,
+    fixture.reviewModel,
+    `${label} schema builder must receive the same review view model as the visible dashboard`
   );
   assert.ok(
     fixture.html.includes(JSON.stringify(fixture.schema)),

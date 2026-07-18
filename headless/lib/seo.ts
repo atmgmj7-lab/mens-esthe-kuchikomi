@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { resolveShopAreaTerm } from "@/lib/shop-contact";
 import { formatPriceForDisplay, resolveShopPrimaryPrice, shouldOutputPriceSchema } from "@/lib/price-normalization";
 import { normalizeShopAddress } from "@/lib/shop-fact-normalization";
+import type { ShopReviewViewModel } from "@/lib/shop-review-view-model";
 import { stripHtml } from "@/lib/wp/client";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
@@ -184,7 +185,10 @@ export function shopItemListJsonLd(
   };
 }
 
-export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown> {
+export function shopLocalBusinessJsonLd(
+  shop: ShopView,
+  reviewModel?: ShopReviewViewModel,
+): Record<string, unknown> {
   const tel = stripHtml(shop.acf.shop_tel);
   const address = normalizeShopAddress(shop.acf.shop_address);
   const areaTerm = resolveShopAreaTerm(shop);
@@ -214,6 +218,26 @@ export function shopLocalBusinessJsonLd(shop: ShopView): Record<string, unknown>
     data.areaServed = {
       "@type": "Place",
       name: areaServed
+    };
+  }
+
+  if (
+    reviewModel?.status === "available" &&
+    reviewModel.showGraph &&
+    typeof reviewModel.aggregateRating === "number" &&
+    Number.isFinite(reviewModel.aggregateRating) &&
+    reviewModel.aggregateRating >= 1 &&
+    reviewModel.aggregateRating <= 5 &&
+    Number.isSafeInteger(reviewModel.aggregateRatingCount) &&
+    reviewModel.aggregateRatingCount >= 3 &&
+    reviewModel.aggregateRatingCount <= reviewModel.totalApproved
+  ) {
+    data.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: reviewModel.aggregateRating,
+      reviewCount: reviewModel.aggregateRatingCount,
+      bestRating: 5,
+      worstRating: 1,
     };
   }
 

@@ -2,13 +2,16 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatPriceForDisplay } from "@/lib/price-normalization";
 import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
+import type { ShopReviewViewModel } from "@/lib/shop-review-view-model";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
 import type { ApprovedShopReviewResult } from "@/lib/wp/types";
 import styles from "./ShopDetail.module.css";
+import { ShopReviewDashboard } from "./ShopReviewDashboard";
 
 type ShopDetailSectionsProps = {
   model: ShopDetailViewModel;
   reviewResult: ApprovedShopReviewResult;
+  reviewModel: ShopReviewViewModel;
   reviewSubmitUrl: string;
   rel: string;
 };
@@ -22,17 +25,10 @@ function SectionHeading({ en, children }: { en: string; children: ReactNode }) {
   );
 }
 
-function formatReviewDate(value: string | null): string {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("ja-JP", {
-    dateStyle: "medium",
-    timeZone: "Asia/Tokyo"
-  }).format(new Date(value));
-}
-
 export function ShopDetailSections({
   model,
   reviewResult,
+  reviewModel,
   reviewSubmitUrl,
   rel
 }: ShopDetailSectionsProps) {
@@ -130,24 +126,9 @@ export function ShopDetailSections({
 
       <section id="reviews" className={styles.section}>
         <SectionHeading en="USER REVIEWS">ユーザー口コミ</SectionHeading>
-        {reviewResult.status === "unavailable" ? (
-          <p role="status">口コミ情報を現在取得できません。時間をおいて再度ご確認ください。</p>
-        ) : reviews.length > 0 ? (
-          <div className={styles.reviews}>
-            {reviews.map((review) => (
-              <article key={review.id}>
-                <p>{review.body}</p>
-                {review.submittedAt ? (
-                  <small>
-                    投稿日 <time dateTime={review.submittedAt}>{formatReviewDate(review.submittedAt)}</time>
-                  </small>
-                ) : null}
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p>この店舗の承認済みユーザー口コミはまだありません。</p>
-        )}
+        <div className={styles.reviews}>
+          <ShopReviewDashboard model={reviewModel} />
+        </div>
         <p className={styles.sourceNote}>
           掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません。
         </p>
