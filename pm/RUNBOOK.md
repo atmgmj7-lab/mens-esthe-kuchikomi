@@ -64,6 +64,44 @@ test -n "$DASHBOARD_BASIC_AUTH_PASSWORD" && echo "dashboard password: configured
 
 日次更新bridgeも `DAILY_UPDATE_PROXY_SECRET`、`WP_DAILY_UPDATE_USER`、`WP_DAILY_UPDATE_APP_PASSWORD` の3項目をserver-onlyで設定する。値は `printenv` やCIログへ出さず、同様に `test -n` で存在だけを確認する。
 
+#### 日次更新専用WordPress userの権限
+
+`escomi_update_daily_shop_data`は日次更新専用user **1名だけ**のuser capabilityとして付与する。`administrator`、`editor`などの一般roleへ`wp cap add`で付与してはいけない。専用userには対象`shop`を編集できる既存権限も必要だが、この専用capabilityを一般roleへ広げて代用しない。
+
+Xserver内のWordPress設置先で、秘密値を引数やログへ出さずに実行する。
+
+```bash
+cd /home/xs454693/mens-esthe-kuchikomi.com/public_html
+
+# 実際の日次更新専用user名を現在のshellだけへ設定する。
+read -r -p 'Daily update WordPress user: ' DAILY_UPDATE_WP_USER
+test -n "$DAILY_UPDATE_WP_USER"
+wp user get "$DAILY_UPDATE_WP_USER" --field=ID >/dev/null
+
+# 専用user単体へ付与する。role全体へは付与しない。
+wp user add-cap "$DAILY_UPDATE_WP_USER" escomi_update_daily_shop_data
+wp user list-caps "$DAILY_UPDATE_WP_USER" | grep -Fx escomi_update_daily_shop_data
+
+# 同じcapabilityを持つuserが専用userだけであることを確認する。
+for user_id in $(wp user list --field=ID); do
+  if wp user list-caps "$user_id" | grep -Fxq escomi_update_daily_shop_data; then
+    wp user get "$user_id" --field=user_login
+  fi
+done
+```
+
+出力が専用user 1名だけなら合格。複数名なら、専用user以外から直ちに撤回する。日次更新を停止するとき、またはApplication Passwordの切替を戻すときの撤回手順:
+
+```bash
+wp user remove-cap "$DAILY_UPDATE_WP_USER" escomi_update_daily_shop_data
+if wp user list-caps "$DAILY_UPDATE_WP_USER" | grep -Fxq escomi_update_daily_shop_data; then
+  echo 'capability removal failed' >&2
+  exit 1
+fi
+```
+
+Application Passwordはこの確認後に専用userで発行する。パスワード自体はVercel Productionの`WP_DAILY_UPDATE_APP_PASSWORD`だけへ登録し、GitHub、リポジトリ、shell履歴へ置かない。
+
 ### Dashboard データ接続
 
 標準は Supabase。Vercel Project の Production Environment Variables に次を登録する。
@@ -125,7 +163,7 @@ curl -sS "https://mens-esthe-kuchikomi.com/area/osaka/" | grep -E 'lux-map-ifram
 
 ### 3. REST `escomi` の生存確認（`/wp-json/escomi/v1/update`）
 
-`POST` と `edit_posts` のみ。**匿名 GET はしない**。未認証 **POST が 401** ならルートは認識されている（404／`rest_no_route` はパーマリンク再保存など）。
+`POST`のみで、日次更新専用userの`escomi_update_daily_shop_data`と対象店舗の`edit_post`を両方要求する。**匿名 GET はしない**。未認証 **POST が 401 または403** ならルートは保護されている（404／`rest_no_route` はパーマリンク再保存など）。
 
 ```bash
 curl -sS -o /dev/null -w "%{http_code}\n" -X POST \

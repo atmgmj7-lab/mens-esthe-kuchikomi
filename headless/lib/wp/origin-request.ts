@@ -1,4 +1,4 @@
-import http from "node:http";
+import https from "node:https";
 import { WP_ORIGIN_IP, wpOriginHost } from "@/lib/wp/origin";
 
 const HOP_BY_HOP_HEADERS = new Set([
@@ -89,10 +89,12 @@ export function requestWpOrigin(
         }
       }
 
-      const req = http.request(
+      const req = https.request(
         {
           hostname: WP_ORIGIN_IP,
-          port: 80,
+          port: 443,
+          servername: wpOriginHost,
+          rejectUnauthorized: true,
           path,
           method,
           headers: reqHeaders

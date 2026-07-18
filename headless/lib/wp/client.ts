@@ -1,7 +1,7 @@
 import { requestWpOrigin, resolveWpOriginTimeoutMs } from "@/lib/wp/origin-request";
 import { usesWpOriginIp } from "@/lib/wp/origin";
 
-const DEFAULT_WP_API_BASE = "http://85.131.213.108/wp-json";
+const DEFAULT_WP_API_BASE = "https://85.131.213.108/wp-json";
 const DEFAULT_WP_BASE = "https://mens-esthe-kuchikomi.com";
 
 export { WP_ORIGIN_IP, wpOriginBaseUrl, wpOriginHost } from "@/lib/wp/origin";

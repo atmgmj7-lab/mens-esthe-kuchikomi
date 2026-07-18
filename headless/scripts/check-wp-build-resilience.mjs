@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (file) => readFileSync(join(root, file), "utf8");
 
 function requireFromOriginRequest(id) {
-  if (id === "node:http") {
+  if (id === "node:https") {
     return {
       request() {
         const req = new EventEmitter();
@@ -157,7 +157,7 @@ function loadWpClient({
           return {
             WP_ORIGIN_IP: "127.0.0.1",
             usesWpOriginIp: () => false,
-            wpOriginBaseUrl: "http://127.0.0.1",
+            wpOriginBaseUrl: "https://127.0.0.1",
             wpOriginHost: "wp.example.test"
           };
         }
@@ -172,7 +172,7 @@ function loadWpClient({
 }
 
 function assertWpApiBaseValidation() {
-  const defaultApiBase = "http://85.131.213.108/wp-json";
+  const defaultApiBase = "https://85.131.213.108/wp-json";
   const defaultPublicBase = "https://mens-esthe-kuchikomi.com";
 
   for (const invalidPublicBase of ["", "[SENSITIVE]", "/", "not a URL", "javascript:alert(1)"]) {

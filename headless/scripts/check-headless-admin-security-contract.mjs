@@ -104,6 +104,13 @@ assert.doesNotMatch(envExampleSource, /^BASIC_AUTH_(?:USER|PASSWORD)=/m);
 assert.match(runbookSource, /fail-closed/);
 assert.match(runbookSource, /pair-only/);
 assert.match(runbookSource, /DAILY_UPDATE_PROXY_SECRET/);
+assert.match(runbookSource, /wp user add-cap [^\n]+ escomi_update_daily_shop_data/);
+assert.match(runbookSource, /wp user remove-cap [^\n]+ escomi_update_daily_shop_data/);
+assert.match(runbookSource, /一般roleへ[^\n]+付与してはいけない/);
+assert.doesNotMatch(
+  runbookSource,
+  /wp cap add\s+(?:administrator|editor)\s+escomi_update_daily_shop_data/,
+);
 assert.match(runbookSource, /dashboard_unauthenticated_status[\s\S]{0,500}["']401["']/);
 assert.match(runbookSource, /printf\s+["']user = ["']?%s:%s/);
 assert.match(runbookSource, /dashboard_authenticated_status[\s\S]{0,500}--config\s+-/);

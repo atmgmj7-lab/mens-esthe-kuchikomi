@@ -1,5 +1,5 @@
 /**
- * Encode a single URL path segment for upstream (node:http) requests.
+ * Encode a single URL path segment for upstream (node:https) requests.
  * Decodes first when already percent-encoded to avoid double-encoding.
  */
 export function encodePathSegmentForOrigin(segment: string): string {
