@@ -536,3 +536,11 @@
 - 8タスク計画を独立レビューし、UUIDv4検証、旧直接POST文書、安全な日次bridge、認証0件表示、将来module登録、対象外店舗previewまで修正した。
 - 最終判定はCritical 0 / Important 0 / Go。文言だけのMinor 1件も計画書上で修正した。
 - 次はTask 1のWordPress REST安全化を、実装担当と別担当レビューに分けて開始する。push、deploy、本番WordPress/Supabase操作は未実施。
+
+## 2026-07-18 Phase 17 Task 1 WordPress REST安全化
+
+- 匿名debug、REST認証解除、MU plugin削除、任意meta更新、重複routeを削除し、専用権限と店舗編集権限を必要とする日次3項目allowlistへ縮小した。
+- UUIDv4、24時間・最大100件の再送検出、店舗単位lock、途中失敗時rollback、非公開監査log、失敗時の秘密値なし運用記録を実装した。
+- 追跡されていた`.env`とSFTP設定をローカルに保持したままGit追跡外へ移し、WordPress、Gemini、Xserver SFTP/FTPの全候補を失効・再発行する確認表を追加した。
+- 実装commitは`5c2eabd`、`c56347d`、`394b537`。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes（ローカル実装）だった。
+- focused Node/PHP、通常`npm test`、3 PHP構文、YAML、Python構文、差分検査が成功した。外部ローテーション未完了のためpush、deploy、本番操作は禁止を維持する。

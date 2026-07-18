@@ -46,7 +46,7 @@
 - Consumes: WordPress `shop` post type、既存`escomi/v1/update`、既存Headless revalidate hook。
 - Produces: `escomi_is_valid_daily_request_id()`、`escomi_can_update_daily_shop_data(WP_REST_Request): bool|WP_Error`、`escomi_validate_daily_shop_update(WP_REST_Request): array|WP_Error`、日次allowlist更新route。
 
-- [ ] **Step 1: 危険な既存契約を検出する失敗testを書く**
+- [x] **Step 1: 危険な既存契約を検出する失敗testを書く**
 
 `check-wp-phase0-security-contract.mjs`はrepository rootの`functions.php`と`ai-update-log.php`を読み、次を`assert`する。
 
@@ -55,7 +55,7 @@ assert.doesNotMatch(functionsSource, /opcache_reset\s*\(/);
 assert.doesNotMatch(functionsSource, /@?unlink\s*\(/);
 assert.doesNotMatch(functionsSource, /register_rest_route\s*\(\s*['"]escomi\/v1['"]\s*,\s*['"]\/debug['"]/);
 assert.doesNotMatch(functionsSource, /Missing API key[\s\S]{0,900}return null/);
-assert.match(aiSource, /ESCOMI_DAILY_UPDATE_META_KEYS/);
+assert.match(aiSource, /ESKOMI_DAILY_UPDATE_META_KEYS/);
 assert.match(aiSource, /current_user_can\(\s*['"]edit_post['"]\s*,\s*\$shop_id\s*\)/);
 assert.match(aiSource, /escomi_update_daily_shop_data/);
 assert.match(aiSource, /request_id/);
@@ -65,22 +65,22 @@ assert.doesNotMatch(priceMigratorSource, /os\.environ\[["']WP_(?:USER|APP_PASSWO
 assert.doesNotMatch(deployWorkflowSource, /escomi\/v1\/debug|opcache_reset/);
 ```
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-wp-phase0-security-contract.mjs`
 
 Expected: `opcache_reset`または`unlink`の禁止契約でFAIL。
 
-- [ ] **Step 3: 匿名debugとREST保護解除を削除する**
+- [x] **Step 3: 匿名debugとREST保護解除を削除する**
 
 `functions.php`の「Missing API key」対策block全体を削除し、CloudSecure互換をtheme codeで上書きしない。`escomi/v1/debug`、`opcache_reset()`、MU plugin `unlink`を残さない。
 
-- [ ] **Step 4: legacy日次更新routeを明示allowlistへ縮小する**
+- [x] **Step 4: legacy日次更新routeを明示allowlistへ縮小する**
 
 `ai-update-log.php`に次の定数とpermission contractを追加する。
 
 ```php
-const ESCOMI_DAILY_UPDATE_META_KEYS = array(
+const ESKOMI_DAILY_UPDATE_META_KEYS = array(
     'shop_today_analysis',
     'shop_availability',
     'shop_today_therapists',
@@ -110,7 +110,7 @@ $meta = $request->get_param( 'meta' );
 if ( ! is_array( $meta ) ) {
     return new WP_Error( 'invalid_meta', 'metaが不正です', array( 'status' => 400 ) );
 }
-$unknown = array_diff( array_keys( $meta ), ESCOMI_DAILY_UPDATE_META_KEYS );
+$unknown = array_diff( array_keys( $meta ), ESKOMI_DAILY_UPDATE_META_KEYS );
 if ( $unknown ) {
     return new WP_Error( 'unsupported_field', '更新対象外の項目があります', array( 'status' => 400 ) );
 }
@@ -122,7 +122,7 @@ if ( $unknown ) {
 
 店舗metaへ直近24時間・最大100件の`{ id, appliedAt }`を保存し、期限切れを削除する。同じIDの再送は現在値を再更新せず`duplicate: true`で返す。直前1件だけの保存にせず、retry順序が入れ替わっても過去24時間の重複を検出する。
 
-- [ ] **Step 5: ai_update_logを非公開管理CPTへ変更する**
+- [x] **Step 5: ai_update_logを非公開管理CPTへ変更する**
 
 ```php
 register_post_type( 'ai_update_log', array(
@@ -136,7 +136,7 @@ register_post_type( 'ai_update_log', array(
 ) );
 ```
 
-- [ ] **Step 6: 固定認証情報と匿名debug依存を除去する**
+- [x] **Step 6: 固定認証情報と匿名debug依存を除去する**
 
 `ai-site-monitor/price_migrator.py`の固定`WP_USER`・`WP_APP_PASSWORD`代入を削除し、環境変数未設定時は値を表示せず停止する。`.github/workflows/deploy.yml`から匿名`/escomi/v1/debug`によるOPcache操作を削除し、日次routeの確認は認証なしPOSTが401または403を返すことだけをhealth条件にする。`functions.php`に重複している`escomi/v1/update`登録は1箇所へ統合する。
 
@@ -144,13 +144,13 @@ register_post_type( 'ai_update_log', array(
 
 `pm/SECURITY-ROTATION-CHECKLIST-2026-07-18.md`へ、値を書かずに「旧Application Password失効」「GitHubの旧`WP_USER`・`WP_APP_PASSWORD` secret削除」「専用user作成」「新Application Password発行」「Vercel設定」「GitHubの`DAILY_UPDATE_PROXY_SECRET`設定」「1店舗試験」の確認欄、実施者、確認時刻、証跡URL欄を作る。ローカル実装中は`required`のままにし、全項目の外部確認が終わるまでpush/deploy準備完了と判定しない。
 
-- [ ] **Step 7: GREENとPHP構文を確認する**
+- [x] **Step 7: GREENとPHP構文を確認する**
 
 Run: `cd headless && node scripts/check-wp-phase0-security-contract.mjs && php ../tests/php/check-ai-update-route-security.php && php -l ../functions.php && php -l ../ai-update-log.php && php -l ../ai-update-security.php`
 
 Expected: contract PASS、3つのPHPで`No syntax errors detected`。
 
-- [ ] **Step 8: named pathだけcommitする**
+- [x] **Step 8: named pathだけcommitする**
 
 ```bash
 git add functions.php ai-update-log.php ai-update-security.php tests/php/check-ai-update-route-security.php ai-site-monitor/price_migrator.py .github/workflows/deploy.yml pm/SECURITY-ROTATION-CHECKLIST-2026-07-18.md headless/package.json headless/scripts/check-wp-phase0-security-contract.mjs

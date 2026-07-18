@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-Phase 17 in_progress（改訂設計と8タスク実装計画は承認済み。Task 1のPhase 0 WordPress REST安全化を開始）
+Phase 17 in_progress（Task 1のWordPress REST安全化は独立レビュー0件で完了。Task 2の日次更新bridgeを開始）
 
 ## Phases
 

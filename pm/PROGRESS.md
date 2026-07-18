@@ -3190,3 +3190,10 @@ pm/PROGRESS.md
 - 8タスク実装計画を独立レビューし、Critical 0 / Important 0 / Goを確認した。計画上のMinor 1件は3つのPHP構文確認という正しい文言へ修正した。
 - Phase 0安全化から順に、各Taskを実装担当と別担当レビューへ分離して進める。
 - 計画承認時点でコード実装、WordPress/Supabase書込、push、deploy、本番公開は行っていない。
+
+## 2026-07-18 Phase 17 Task 1 WordPress REST安全化
+
+- 日次更新routeを専用権限・店舗編集権限・UUIDv4・3項目allowlist・上限検証・店舗単位lock・rollback付きへ縮小した。匿名debug、認証解除、重複route、固定認証値は削除した。
+- `ai_update_log`は管理画面だけの非公開CPTとし、実変更時だけ監査を残す。履歴、監査、lock解放の失敗は秘密値を含めない運用logと明示errorへ変換した。
+- 追跡済み`.env`とSFTP設定をGit追跡外へ移し、WordPress、Gemini、Xserver SFTP/FTP候補の失効・再発行を本番前の必須確認へ追加した。
+- 3回の独立レビュー修正後、Critical 0 / Important 0 / Minor 0、Ready Yes（ローカル実装）。外部ローテーション表は`required`のためpush、deploy、本番操作は不可のまま。
