@@ -3204,3 +3204,12 @@ pm/PROGRESS.md
 - 日次・毎時callerは専用secretとUUIDだけへ移行し、月次・料金・汎用crawlerの公開書込と月次scheduleを停止した。旧直接POST文書も安全なbridgeまたは実行禁止へ更新した。
 - review修正で設定例、Headless URL要件、Content-Type限定、stream cancel失敗、GET/HEAD/POST response契約を補強した。
 - 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready。外部ローテーションと本番3環境変数設定は未実施のためpush・deploy禁止を維持する。
+
+## 2026-07-18 Phase 17 Task 3 管理認証・cache再検証安全化
+
+- `middleware.ts`をNext.js 16の`proxy.ts`へ移行し、`/dashboard`、`/api/dashboard`、旧dashboard配下を共通のfail-closed認証で保護した。
+- `DASHBOARD_BASIC_AUTH_USER/PASSWORD`は2項目必須。旧`BASIC_AUTH_USER/PASSWORD`も2項目が揃う場合だけ互換利用し、片方設定や新旧混在は503とする。
+- `/api/revalidate/`はPOSTと`x-revalidate-secret`だけを許可し、query secretとGETを廃止した。WordPressはsecret未設定時に送信を停止する。
+- レビュー修正で再検証例外を明示500へ変換し、200/400/401/500/503すべてへ`no-store`と`noindex, nofollow`を付与した。Runbookも未認証401・認証済み200の確認へ修正した。
+- focused、Q-06、通常`npm test`、型、lint、441/441 build、PHP構文、実サーバー認証確認が成功。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready。
+- push、deploy、本番操作は未実施。Task 1の資格情報ローテーション完了までは本番反映不可を維持する。

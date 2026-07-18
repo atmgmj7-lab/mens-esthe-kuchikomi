@@ -273,7 +273,7 @@ git commit -m "fix: isolate automated daily shop updates"
 - Consumes: `DASHBOARD_BASIC_AUTH_USER`、`DASHBOARD_BASIC_AUTH_PASSWORD`、`REVALIDATE_SECRET`。
 - Produces: `isDashboardProtectedPath()`、`resolveContentAdminAuth()`、`authorizeDashboardRequest()`、Next.js 16 `proxy()`、POST/header限定revalidate。
 
-- [ ] **Step 1: fail-closed contractの失敗testを書く**
+- [x] **Step 1: fail-closed contractの失敗testを書く**
 
 ```js
 assert.match(proxySource, /export function proxy/);
@@ -303,13 +303,13 @@ assert.equal(authorizeDashboardRequest("Basic d3Jvbmc6d3Jvbmc=", { user: "qa", p
 assert.equal(authorizeDashboardRequest("Basic cWE6c2VjcmV0", { user: "qa", password: "secret" }).status, 200);
 ```
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-headless-admin-security-contract.mjs`
 
 Expected: middlewareの認証未設定pass-throughまたはGET revalidateでFAIL。
 
-- [ ] **Step 3: pure auth resolverとNext.js 16 proxyを実装する**
+- [x] **Step 3: pure auth resolverとNext.js 16 proxyを実装する**
 
 `isDashboardProtectedPath(pathname)`は通常dashboard、将来の`/api/dashboard/*`、legacy dashboard配下の画面・APIを同じ保護対象にする。matcher文字列が存在するだけで合格にせず、このpredicateと`authorizeDashboardRequest()`を`proxy()`が必ず呼ぶ。
 
@@ -317,19 +317,19 @@ Expected: middlewareの認証未設定pass-throughまたはGET revalidateでFAIL
 
 `headless/middleware.ts`を`headless/proxy.ts`へ移し、export名を`proxy`へ変更する。認証未設定は503、認証不正は401とし、matcherへ`/dashboard/:path*`、`/api/dashboard/:path*`、legacy dashboard routeを含める。401/503は`Cache-Control: no-store`と`X-Robots-Tag: noindex, nofollow`を返す。Proxyは入口判定であり、後続の管理APIもresolverをroute内で直接呼ぶ。
 
-- [ ] **Step 4: revalidateをPOST・header secret限定にする**
+- [x] **Step 4: revalidateをPOST・header secret限定にする**
 
 `REVALIDATE_SECRET`未設定は503、`x-revalidate-secret`なし・不一致は401、query secretは無視する。GET exportは削除する。WordPress側`escomi_headless_send_revalidate()`もsecretが空ならrequestを送らず、debug時だけ`revalidate secret not configured; request skipped`を記録する。
 
 `headless/.env.example`は正式なdashboard環境変数へ更新する。`pm/RUNBOOK.md`の「未設定なら認証なし」を削除し、fail-closed、旧envのpair-only互換、日次bridge、secret非表示の確認手順へ更新する。`pm/HEADLESS-CUTOVER-CHECKLIST.md`からGET/query revalidate例を削除し、POST/header方式だけを残す。
 
-- [ ] **Step 5: GREENを確認する**
+- [x] **Step 5: GREENを確認する**
 
 Run: `cd headless && node scripts/check-headless-admin-security-contract.mjs && npm run typecheck && npm run lint && npm run build`
 
 Expected: contract、typecheck、lint、build PASS。
 
-- [ ] **Step 6: commitする**
+- [x] **Step 6: commitする**
 
 ```bash
 git add functions.php headless/proxy.ts headless/middleware.ts headless/app/api/revalidate/route.ts headless/lib/dashboard/content-admin-auth.ts headless/scripts/check-headless-admin-security-contract.mjs headless/.env.example pm/RUNBOOK.md pm/HEADLESS-CUTOVER-CHECKLIST.md headless/package.json

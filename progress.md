@@ -552,3 +552,11 @@
 - 月次workflowの定期実行を停止し、旧3文書の直接POST手順を削除した。設定例とREADMEへHeadless公開URLと日次専用secretの正しい設定方法を追加した。
 - 実装commitは`e6a82c1`、`aebb1c3`、`c192969`。独立再レビューはCritical 0 / Important 0 / Minor 0、Readyだった。
 - Node/Python focused、通常`npm test`、型、lint、Python構文、YAML、秘密値scan、差分検査が成功した。push、deploy、本番操作は未実施。
+
+## 2026-07-18 Phase 17 Task 3 管理認証・cache再検証安全化
+
+- Next.js 16の`proxy.ts`へ移行し、通常dashboard、将来の管理API、旧dashboard経路を同じ認証境界へ統一した。認証設定不足は503、認証なし・不一致は401で閉じる。
+- 正式・旧認証設定は2項目の組だけを使い、新旧を混ぜない。401/503は保存禁止・検索対象外のheaderを返し、後続の管理APIもroute内で同じ認証判定を使う契約を追加した。
+- cache再検証をPOSTと専用headerだけへ限定し、WordPress側はsecret未設定なら送信しない。200/400/401/500/503をすべて保存禁止・検索対象外に統一した。
+- 実装commitは`f1b56f3`、レビュー修正は`cdb9368`。focused、Q-06、通常`npm test`、型、lint、441/441 build、PHP構文、実サーバー認証確認が成功した。
+- 独立再レビューはCritical 0 / Important 0 / Minor 0、Ready。push、deploy、本番操作は未実施し、資格情報ローテーションの本番前必須条件を維持する。
