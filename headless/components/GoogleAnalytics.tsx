@@ -38,6 +38,7 @@ export function GoogleAnalytics() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (pathname.startsWith("/dashboard")) return;
     if (!GA_MEASUREMENT_ID) return;
     const query = searchParams.toString();
     const url = query ? `${pathname}?${query}` : pathname;
@@ -45,6 +46,7 @@ export function GoogleAnalytics() {
   }, [pathname, searchParams]);
 
   useEffect(() => {
+    if (pathname.startsWith("/dashboard")) return;
     if (!GA_MEASUREMENT_ID) return;
 
     const shopSlug = normalizePublicShopSlug(
@@ -59,6 +61,7 @@ export function GoogleAnalytics() {
   }, [pathname]);
 
   useEffect(() => {
+    if (pathname.startsWith("/dashboard")) return;
     if (!GA_MEASUREMENT_ID) return;
 
     const onClick = (event: MouseEvent) => {
@@ -151,6 +154,7 @@ export function GoogleAnalytics() {
     return () => document.removeEventListener("click", onClick, true);
   }, [pathname]);
 
+  if (pathname.startsWith("/dashboard")) return null;
   if (!GA_MEASUREMENT_ID) return null;
 
   return (

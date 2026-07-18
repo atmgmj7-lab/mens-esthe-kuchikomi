@@ -83,6 +83,12 @@ assert.ok(dashboardPage.includes('path: "/dashboard/"'), "/dashboard/ は自己c
 assert.ok(dashboardPage.includes("index: false"), "/dashboard/ は noindex にする必要があります");
 assert.ok(dashboardPage.includes("follow: false"), "/dashboard/ は nofollow にする必要があります");
 
+const dashboardLayout = read("app/dashboard/layout.tsx");
+assert.ok(
+  dashboardLayout.includes("<DashboardShell>{children}</DashboardShell>"),
+  "dashboardの全routeは共通shell内でnoindex管理画面として表示する必要があります"
+);
+
 const analyticsLayoutPath = join(root, "app/dashboard/analytics/layout.tsx");
 assert.ok(existsSync(analyticsLayoutPath), "/dashboard/analytics/ は client page とは別に metadata 用 layout が必要です");
 const analyticsLayout = read("app/dashboard/analytics/layout.tsx");

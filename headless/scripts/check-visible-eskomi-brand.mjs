@@ -357,7 +357,7 @@ const expectedVisibleBrand = [
   ["lib/static-pages.ts", "Eskomi（エスコミ）"],
   ["app/api/contact/route.ts", "【Eskomi】お問い合わせ"],
   ["lib/contact-validation.ts", "【Eskomi お問い合わせフォーム】"],
-  ["app/dashboard/page.tsx", "Eskomi Growth Command"],
+  ["components/dashboard/DashboardShell.tsx", "Eskomi Growth Command"],
   ["components/area/hub/ShopImageThumb.tsx", ">Eskomi</span>"],
   ["lib/home-hero-config.ts", 'eyebrow: "ESKOMI GUIDE"'],
   ["scripts/check-contact-env.mjs", "Eskomi Headless"],
@@ -410,7 +410,7 @@ for (const [file, expected] of preservedInternalIdentifiers) {
 const preservedJapaneseBrand = [
   ["headless/components/SiteFooter.tsx", "関西メンズエステ口コミナビ エスコミ"],
   ["headless/lib/static-pages.ts", "Eskomi（エスコミ）"],
-  ["headless/app/dashboard/page.tsx", "エスコミ管理ダッシュボード"],
+  ["headless/components/dashboard/DashboardShell.tsx", "エスコミ管理ダッシュボード"],
   ["front-page.php", "関西メンズエステの口コミ情報サイト【エスコミ】"]
 ];
 
@@ -623,6 +623,13 @@ assert.equal(
   existsSync(join(repositoryRoot, "headless/public/shop-default-image.webp")),
   false,
   "旧fallbackラスタをリポジトリから削除してください"
+);
+
+const dashboardShellSource = readHeadless("components/dashboard/DashboardShell.tsx");
+const dashboardNavigationSource = readHeadless("components/dashboard/DashboardNav.tsx");
+assert.ok(
+  dashboardShellSource.includes("Eskomi") && dashboardNavigationSource.includes("Eskomi"),
+  "共通管理shellの可視ブランドはEskomi表記に統一する必要があります"
 );
 
 const allowedOccurrenceCount = allowed.reduce((sum, item) => sum + item.occurrenceCount, 0);

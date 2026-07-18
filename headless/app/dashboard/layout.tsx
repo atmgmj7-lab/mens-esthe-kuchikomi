@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import DashboardShell from "@/components/dashboard/DashboardShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,7 @@ export default function DashboardLayout({
     <div
       className={`${geistSans.variable} ${geistMono.variable} dashboard-app`}
     >
-      {children}
+      <DashboardShell>{children}</DashboardShell>
     </div>
   );
 }

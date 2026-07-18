@@ -1,10 +1,5 @@
 import { dashboardConfig } from "@/lib/dashboard-config";
 
-const AGENT_LINKS = [
-  { label: "📊 進捗モニター", href: "http://localhost:3333" },
-  { label: "🧠 AI記憶", href: "http://localhost:3333" },
-];
-
 const ANALYTICS_LINKS = [
   {
     label: "GA4 コンソール",
@@ -38,25 +33,7 @@ export default function WPQuickLinks({
   title = "WP管理画面",
 }: Props) {
   return (
-    <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
-      <div>
-        <p className="text-sm font-medium text-zinc-300 mb-1">Agent Foundation</p>
-        <p className="text-xs text-zinc-600 mb-2">※ローカル起動時のみ</p>
-        <div className="flex flex-wrap gap-2">
-          {AGENT_LINKS.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 text-xs rounded-lg bg-indigo-950 text-indigo-300 hover:bg-indigo-900 hover:text-white transition-colors border border-indigo-800"
-            >
-              {link.label}
-            </a>
-          ))}
-        </div>
-      </div>
-
+    <div className="dashboard-quick-links rounded-xl bg-zinc-900 border border-zinc-800 p-5 space-y-4">
       <div>
         <p className="text-sm font-medium text-zinc-300 mb-2">分析連携</p>
         <div className="flex flex-wrap gap-2">

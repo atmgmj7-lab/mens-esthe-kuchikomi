@@ -1,112 +1,15 @@
 import type { PeriodDays } from "./period";
 import { dashboardConfig } from "./dashboard-config";
-import { fetchSupabaseTable, isSupabaseReady, toNumber } from "./dashboard-supabase";
+import { fetchSupabaseTable, isSupabaseReady } from "./dashboard-supabase";
+import {
+  parseDashboardNumber,
+  resolveDashboardData,
+  type DashboardDataResult,
+  type DashboardDataSource,
+} from "./dashboard/data-result";
 
-const PROXY_URL =
-  dashboardConfig.searchConsoleProxyUrl;
-
+const PROXY_URL = dashboardConfig.searchConsoleProxyUrl;
 const SC_TABLES = dashboardConfig.supabase.tables;
-
-async function fetchFromSupabase<T>(
-  action: "keywords" | "pages" | "areas",
-  fallback: T
-): Promise<T> {
-  if (!isSupabaseReady()) return fallback;
-
-  try {
-    switch (action) {
-      case "keywords": {
-        const rows = await fetchSupabaseTable<Record<string, unknown>>(SC_TABLES.scKeywords);
-        return rows
-          .map((row) => ({
-            query: String(row.query || row.keyword || ""),
-            page: String(row.page || row.url || row.path || ""),
-            clicks: toNumber(row.clicks || row.impressions_clicks),
-            impressions: toNumber(row.impressions || row.imp),
-            ctr: toNumber(row.ctr || row.ctrRate),
-            position: toNumber(row.position || row.avgPosition || row.avg_position),
-          }))
-          .sort((a, b) => b.clicks - a.clicks) as T;
-      }
-      case "pages": {
-        const rows = await fetchSupabaseTable<Record<string, unknown>>(SC_TABLES.scPages);
-        return rows
-          .map((row) => ({
-            path: String(row.path || row.url || row.page || ""),
-            title: String(row.title || row.pageTitle || row.path || ""),
-            clicks: toNumber(row.clicks || row.impressions_clicks),
-            impressions: toNumber(row.impressions || row.imp),
-            ctr: toNumber(row.ctr || row.ctrRate),
-            position: toNumber(row.position || row.avgPosition || row.avg_position),
-          }))
-          .sort((a, b) => b.clicks - a.clicks) as T;
-      }
-      case "areas": {
-        return rowsToAreas(await fetchSupabaseTable<Record<string, unknown>>(SC_TABLES.scAreas)) as T;
-      }
-      default:
-        return fallback;
-    }
-  } catch {
-    return fallback;
-  }
-}
-
-function rowsToAreas(rows: Record<string, unknown>[]): SearchConsoleAreaMetric[] {
-  const grouped: Record<string, SearchConsoleAreaMetric> = {};
-  for (const area of PRIORITY_AREAS) {
-    grouped[area.id] = {
-      id: area.id,
-      areaName: area.name,
-      keywordCount: 0,
-      pageCount: 0,
-      impressions: 0,
-      clicks: 0,
-      ctr: 0,
-      avgPosition: 0,
-      top10Count: 0,
-      top20Count: 0,
-      status: "データ不足",
-      keywordSamples: [],
-    };
-  }
-
-  const posValues = new Map<string, number[]>();
-
-  for (const row of rows) {
-    const areaId = String(row.area_id || row.areaId || "");
-    if (!grouped[areaId]) continue;
-    const area = grouped[areaId];
-    area.keywordCount += 1;
-    area.pageCount += toNumber(row.pageCount || row.page_count || 1);
-    area.impressions += toNumber(row.impressions || row.imp);
-    area.clicks += toNumber(row.clicks || row.click_count || 0);
-    area.top10Count += toNumber(row.top10Count || row.top10_count || 0);
-    area.top20Count += toNumber(row.top20Count || row.top20_count || 0);
-    const pos = toNumber(row.avgPosition || row.position);
-    if (pos > 0) {
-      area.status = "収集済み";
-      posValues.set(areaId, [...(posValues.get(areaId) ?? []), pos]);
-      const sample = String(row.query || row.keyword || "");
-      if (sample && area.keywordSamples.length < 2) {
-        area.keywordSamples.push(sample);
-      }
-    }
-  }
-
-  for (const [areaId, values] of posValues) {
-    const area = grouped[areaId];
-    if (!area || values.length === 0) continue;
-    area.ctr = 0;
-    area.avgPosition =
-      values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
-    if (area.impressions > 0) {
-      area.ctr = toNumber(area.clicks / area.impressions) * 100;
-    }
-  }
-
-  return Object.values(grouped);
-}
 
 export type SearchConsoleKeywordMetric = {
   query: string;
@@ -165,7 +68,7 @@ export const PRIORITY_AREAS: FocusAreaConfig[] = [
     id: "sakai-suji",
     name: "堺筋本町",
     path: "/area/sakaisujihonmachi/",
-    matchQueries: ["堺筋本町", "堺筋", "堺筋本町駅", "堺筋"],
+    matchQueries: ["堺筋本町", "堺筋", "堺筋本町駅"],
   },
   {
     id: "nihonbashi",
@@ -181,53 +84,234 @@ export const PRIORITY_AREAS: FocusAreaConfig[] = [
   },
 ];
 
-async function fetchScProxy<T>(
-  action: "keywords" | "pages" | "areas",
-  days: PeriodDays,
-  fallback: T
-): Promise<T> {
-  if (dashboardConfig.dataSource === "supabase") {
-    const supa = await fetchFromSupabase(action, fallback);
-    if (supa !== fallback) return supa;
-  }
+type SearchConsoleAction = "keywords" | "pages" | "areas";
 
-  if (!dashboardConfig.enableLegacyProxyFallback && dashboardConfig.dataSource !== "legacy-proxy") {
-    return fallback;
-  }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-  try {
-    const url = new URL(PROXY_URL, window.location.origin);
-    url.searchParams.set("action", action);
-    url.searchParams.set("days", String(days));
-    if (action === "areas") {
-      url.searchParams.set("focus", PRIORITY_AREAS.map((area) => area.id).join(","));
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function readNumber(
+  row: Record<string, unknown>,
+  keys: string[]
+): number {
+  for (const key of keys) {
+    const value = parseDashboardNumber(row[key]);
+    if (value !== null) return value;
+  }
+  return Number.NaN;
+}
+
+function readText(row: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = row[key];
+    if (typeof value === "string" && value.trim() !== "") return value;
+  }
+  return "";
+}
+
+function isKeywordMetricList(value: unknown): value is SearchConsoleKeywordMetric[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.query === "string" && item.query.length > 0 &&
+        typeof item.page === "string" && item.page.length > 0 &&
+        isFiniteNumber(item.clicks) &&
+        isFiniteNumber(item.impressions) &&
+        isFiniteNumber(item.ctr) &&
+        isFiniteNumber(item.position)
+    )
+  );
+}
+
+function isPageMetricList(value: unknown): value is SearchConsolePageMetric[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.path === "string" && item.path.length > 0 &&
+        typeof item.title === "string" &&
+        isFiniteNumber(item.clicks) &&
+        isFiniteNumber(item.impressions) &&
+        isFiniteNumber(item.ctr) &&
+        isFiniteNumber(item.position)
+    )
+  );
+}
+
+function isAreaMetricList(value: unknown): value is SearchConsoleAreaMetric[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.id === "string" && item.id.length > 0 &&
+        typeof item.areaName === "string" && item.areaName.length > 0 &&
+        isFiniteNumber(item.keywordCount) &&
+        isFiniteNumber(item.pageCount) &&
+        isFiniteNumber(item.impressions) &&
+        isFiniteNumber(item.clicks) &&
+        isFiniteNumber(item.ctr) &&
+        isFiniteNumber(item.avgPosition) &&
+        isFiniteNumber(item.top10Count) &&
+        isFiniteNumber(item.top20Count) &&
+        (item.status === "収集済み" || item.status === "データ不足") &&
+        Array.isArray(item.keywordSamples) &&
+        item.keywordSamples.every((sample) => typeof sample === "string")
+    )
+  );
+}
+
+function rowsToAreas(rows: Record<string, unknown>[]): SearchConsoleAreaMetric[] {
+  const priorityAreaMap = new Map(PRIORITY_AREAS.map((area) => [area.id, area]));
+  const grouped = new Map<string, SearchConsoleAreaMetric>();
+  const positions = new Map<string, number[]>();
+
+  for (const row of rows) {
+    const areaId = String(row.area_id || row.areaId || "");
+    const areaConfig = priorityAreaMap.get(areaId);
+    if (!areaConfig) continue;
+
+    const area = grouped.get(areaId) ?? {
+      id: areaId,
+      areaName: areaConfig.name,
+      keywordCount: 0,
+      pageCount: 0,
+      impressions: 0,
+      clicks: 0,
+      ctr: 0,
+      avgPosition: 0,
+      top10Count: 0,
+      top20Count: 0,
+      status: "データ不足" as const,
+      keywordSamples: [],
+    };
+
+    area.keywordCount += 1;
+    area.pageCount += readNumber(row, ["pageCount", "page_count"]);
+    area.impressions += readNumber(row, ["impressions", "imp"]);
+    area.clicks += readNumber(row, ["clicks", "click_count"]);
+    area.top10Count += readNumber(row, ["top10Count", "top10_count"]);
+    area.top20Count += readNumber(row, ["top20Count", "top20_count"]);
+
+    const position = readNumber(row, ["avgPosition", "position"]);
+    if (position > 0) {
+      area.status = "収集済み";
+      positions.set(areaId, [...(positions.get(areaId) ?? []), position]);
+      const sample = readText(row, ["query", "keyword"]);
+      if (sample && area.keywordSamples.length < 2) area.keywordSamples.push(sample);
     }
+    grouped.set(areaId, area);
+  }
 
-    const res = await fetch(url.toString(), { cache: "no-store" });
-    if (!res.ok) return fallback;
+  for (const [areaId, values] of positions) {
+    const area = grouped.get(areaId);
+    if (!area || values.length === 0) continue;
+    area.avgPosition = values.reduce((sum, value) => sum + value, 0) / values.length;
+    area.ctr = area.impressions > 0 ? (area.clicks / area.impressions) * 100 : 0;
+  }
 
-    return (await res.json()) as T;
-  } catch {
-    return fallback;
+  return PRIORITY_AREAS.flatMap((area) => {
+    const value = grouped.get(area.id);
+    return value ? [value] : [];
+  });
+}
+
+async function fetchFromSupabase(action: SearchConsoleAction): Promise<unknown> {
+  switch (action) {
+    case "keywords": {
+      const rows = await fetchSupabaseTable<Record<string, unknown>>(SC_TABLES.scKeywords);
+      return rows
+        .map((row) => ({
+          query: readText(row, ["query", "keyword"]),
+          page: readText(row, ["page", "url", "path"]),
+          clicks: readNumber(row, ["clicks", "impressions_clicks"]),
+          impressions: readNumber(row, ["impressions", "imp"]),
+          ctr: readNumber(row, ["ctr", "ctrRate"]),
+          position: readNumber(row, ["position", "avgPosition", "avg_position"]),
+        }))
+        .sort((a, b) => b.clicks - a.clicks);
+    }
+    case "pages": {
+      const rows = await fetchSupabaseTable<Record<string, unknown>>(SC_TABLES.scPages);
+      return rows
+        .map((row) => ({
+          path: readText(row, ["path", "url", "page"]),
+          title: readText(row, ["title", "pageTitle", "path"]),
+          clicks: readNumber(row, ["clicks", "impressions_clicks"]),
+          impressions: readNumber(row, ["impressions", "imp"]),
+          ctr: readNumber(row, ["ctr", "ctrRate"]),
+          position: readNumber(row, ["position", "avgPosition", "avg_position"]),
+        }))
+        .sort((a, b) => b.clicks - a.clicks);
+    }
+    case "areas": {
+      const rows = await fetchSupabaseTable<Record<string, unknown>>(SC_TABLES.scAreas);
+      return rowsToAreas(rows);
+    }
   }
 }
 
-export async function fetchSearchConsoleKeywords(
+async function fetchFromLegacyProxy(
+  action: SearchConsoleAction,
   days: PeriodDays
-): Promise<SearchConsoleKeywordMetric[]> {
-  return fetchScProxy("keywords", days, MOCK_SEARCH_KEYWORDS);
+): Promise<unknown> {
+  const url = new URL(PROXY_URL, window.location.origin);
+  url.searchParams.set("action", action);
+  url.searchParams.set("days", String(days));
+  if (action === "areas") {
+    url.searchParams.set("focus", PRIORITY_AREAS.map((area) => area.id).join(","));
+  }
+  const response = await fetch(url.toString(), { cache: "no-store" });
+  if (!response.ok) throw new Error(`Search Console request failed: ${response.status}`);
+  return response.json();
 }
 
-export async function fetchSearchConsolePages(
-  days: PeriodDays
-): Promise<SearchConsolePageMetric[]> {
-  return fetchScProxy("pages", days, MOCK_SEARCH_PAGES);
+function searchConsoleSource(): DashboardDataSource {
+  return dashboardConfig.dataSource === "supabase"
+    ? "analytics-supabase"
+    : "legacy-proxy";
 }
 
-export async function fetchSearchConsoleAreas(
+async function fetchSearchConsoleResult<T>(
+  action: SearchConsoleAction,
+  days: PeriodDays,
+  validate: (value: unknown) => value is T
+): Promise<DashboardDataResult<T>> {
+  const useSupabase = dashboardConfig.dataSource === "supabase";
+  return resolveDashboardData({
+    source: searchConsoleSource(),
+    configured: useSupabase ? isSupabaseReady() : true,
+    request: () =>
+      useSupabase
+        ? fetchFromSupabase(action)
+        : fetchFromLegacyProxy(action, days),
+    validate,
+  });
+}
+
+export function fetchSearchConsoleKeywords(
   days: PeriodDays
-): Promise<SearchConsoleAreaMetric[]> {
-  return fetchScProxy("areas", days, MOCK_SEARCH_AREAS);
+): Promise<DashboardDataResult<SearchConsoleKeywordMetric[]>> {
+  return fetchSearchConsoleResult("keywords", days, isKeywordMetricList);
+}
+
+export function fetchSearchConsolePages(
+  days: PeriodDays
+): Promise<DashboardDataResult<SearchConsolePageMetric[]>> {
+  return fetchSearchConsoleResult("pages", days, isPageMetricList);
+}
+
+export function fetchSearchConsoleAreas(
+  days: PeriodDays
+): Promise<DashboardDataResult<SearchConsoleAreaMetric[]>> {
+  return fetchSearchConsoleResult("areas", days, isAreaMetricList);
 }
 
 export function buildContentGapsFromSearchConsole(
@@ -235,145 +319,16 @@ export function buildContentGapsFromSearchConsole(
   minImpressions = 120
 ): SearchConsolePageMetric[] {
   return pages
-    .filter((p) => p.impressions >= minImpressions)
-    .filter((p) => p.ctr < 4 || p.position > 20)
+    .filter((page) => page.impressions >= minImpressions)
+    .filter((page) => page.ctr < 4 || page.position > 20)
     .sort((a, b) => {
-      const scoreA = b.impressions * Math.max(0.01, 1 - a.ctr / 100) * (a.position > 0 ? a.position / 10 : 1);
-      const scoreB = a.impressions * Math.max(0.01, 1 - b.ctr / 100) * (b.position > 0 ? b.position / 10 : 1);
-      return scoreA - scoreB;
+      const scoreA =
+        a.impressions * Math.max(0.01, 1 - a.ctr / 100) *
+        (a.position > 0 ? a.position / 10 : 1);
+      const scoreB =
+        b.impressions * Math.max(0.01, 1 - b.ctr / 100) *
+        (b.position > 0 ? b.position / 10 : 1);
+      return scoreB - scoreA;
     })
     .slice(0, 10);
 }
-
-const MOCK_SEARCH_KEYWORDS: SearchConsoleKeywordMetric[] = [
-  {
-    query: "大阪 メンズエステ 口コミ",
-    page: "/area/osaka/",
-    clicks: 120,
-    impressions: 1450,
-    ctr: 8.28,
-    position: 7.2,
-  },
-  {
-    query: "新大阪 メンズエステ",
-    page: "/area/shinosaka/",
-    clicks: 84,
-    impressions: 940,
-    ctr: 8.94,
-    position: 5.8,
-  },
-  {
-    query: "梅田 メンズエステ",
-    page: "/area/umeda/",
-    clicks: 64,
-    impressions: 980,
-    ctr: 6.53,
-    position: 9.1,
-  },
-  {
-    query: "堺筋本町 メンズエステ",
-    page: "/area/sakaisujihonmachi/",
-    clicks: 22,
-    impressions: 260,
-    ctr: 8.46,
-    position: 15.4,
-  },
-  {
-    query: "日本橋 メンズエステ",
-    page: "/area/nihonbashi/",
-    clicks: 130,
-    impressions: 1120,
-    ctr: 11.61,
-    position: 4.4,
-  },
-  {
-    query: "堺 メンズエステ",
-    page: "/area/sakai/",
-    clicks: 42,
-    impressions: 460,
-    ctr: 9.13,
-    position: 12.8,
-  },
-];
-
-const MOCK_SEARCH_PAGES: SearchConsolePageMetric[] = MOCK_SEARCH_KEYWORDS.map((item) => ({
-  path: item.page,
-  title: item.query,
-  clicks: item.clicks,
-  impressions: item.impressions,
-  ctr: item.ctr,
-  position: item.position,
-}));
-
-const MOCK_SEARCH_AREAS: SearchConsoleAreaMetric[] = [
-  {
-    id: "shinosaka",
-    areaName: "新大阪",
-    keywordCount: 42,
-    pageCount: 18,
-    impressions: 940,
-    clicks: 84,
-    ctr: 8.94,
-    avgPosition: 5.8,
-    top10Count: 19,
-    top20Count: 32,
-    status: "収集済み",
-    keywordSamples: ["新大阪 メンズエステ", "新大阪 メンズエステ 料金"],
-  },
-  {
-    id: "umeda",
-    areaName: "梅田",
-    keywordCount: 56,
-    pageCount: 24,
-    impressions: 980,
-    clicks: 64,
-    ctr: 6.53,
-    avgPosition: 9.1,
-    top10Count: 16,
-    top20Count: 38,
-    status: "収集済み",
-    keywordSamples: ["梅田 メンズエステ", "梅田 エステ 口コミ"],
-  },
-  {
-    id: "sakai-suji",
-    areaName: "堺筋本町",
-    keywordCount: 20,
-    pageCount: 8,
-    impressions: 260,
-    clicks: 22,
-    ctr: 8.46,
-    avgPosition: 15.4,
-    top10Count: 3,
-    top20Count: 11,
-    status: "収集済み",
-    keywordSamples: ["堺筋本町 メンズエステ", "堺筋本町 口コミ"],
-  },
-  {
-    id: "nihonbashi",
-    areaName: "日本橋",
-    keywordCount: 74,
-    pageCount: 28,
-    impressions: 1120,
-    clicks: 130,
-    ctr: 11.61,
-    avgPosition: 4.4,
-    top10Count: 49,
-    top20Count: 66,
-    status: "収集済み",
-    keywordSamples: ["日本橋 メンズエステ", "大阪 日本橋 メンズエステ"],
-  },
-  {
-    id: "sakai",
-    areaName: "堺",
-    keywordCount: 33,
-    pageCount: 12,
-    impressions: 460,
-    clicks: 42,
-    ctr: 9.13,
-    avgPosition: 12.8,
-    top10Count: 8,
-    top20Count: 19,
-    status: "収集済み",
-    keywordSamples: ["堺 メンズエステ", "堺 エステ おすすめ"],
-  },
-];
