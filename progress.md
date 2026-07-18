@@ -1,5 +1,15 @@
 # Progress Log
 
+## Session: 2026-07-18（認証経路修正・ローテーション進行中）
+
+- **Status:** in progress（Xserver password再発行・GitHub再設定・1店舗疎通試験・push/deploy待ち）
+- 06/12以降の日次更新401は、複数資格情報の同時失効ではなく、headless切替でWordPress originがHTTP:80になりApplication Password認証が拒否されたことが主因と特定した。
+- `5f5cb90`と`c9b3bc6`でWordPress originを証明書検証付きHTTPS:443へ固定し、HTTP設定でもAuthorization/Cookieを平文送信しない契約テストを追加した。独立再レビューはCritical/Important/Minor 0、Ready: Yes。
+- WordPress日次更新専用userを作成し、専用capability保持者1名、新Application PasswordのHTTPS認証200、Vercel Production登録を確認した。管理者の旧Application Passwordは残数0、GitHubの旧`WP_USER`/`WP_APP_PASSWORD`も削除した。
+- Geminiは専用サービスアカウント紐付け型キーへ交換し、API 200とGitHub secret更新を確認した。旧キーは削除、またはGoogle側の漏えい検出403で利用不能を確認した。
+- `DAILY_UPDATE_PROXY_SECRET`はGitHubとVercel Productionへ同値登録済み。`.env`と`.vscode/sftp.json`はGit追跡外・ignore対象。
+- 残りの本番前ゲートは、Xserverの旧FTP/サーバーパスワード再発行、新値のGitHub secret登録、1店舗疎通試験。その完了まではpush/deployしない。
+
 ## Session: 2026-07-16
 
 ### Phase 15: 店舗詳細C案のローカル実装・全幅QA

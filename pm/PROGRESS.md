@@ -2,6 +2,14 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-07-18 認証経路修正・認証情報ローテーション 進行中
+
+- 06/12以降の401は資格情報の一斉失効ではなく、headless切替後にWordPress Application PasswordをHTTP originへ送る経路になったことが主因。HTTPS:443、正しいHost/TLS SNI、証明書検証、redirect非追従へ修正した。
+- HTTPの`WP_API_BASE_URL`が設定されても固定HTTPS originへ戻し、Authorization/CookieをHTTP native fetchへ渡さない回帰検査を追加。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready: Yes。
+- WordPress専用user・専用capability・新Application Passwordを本番へ作成し、HTTPS認証200、Vercel Production登録、管理者旧Application Password残数0を確認。GitHubの旧WordPress secretsも削除した。
+- Geminiはサービスアカウント紐付け型へ交換してAPI 200。旧キーは削除またはGoogle漏えい検出403で利用不能。日次proxy secretもGitHub/Vercelへ登録済み。
+- Xserverの旧FTP/サーバーパスワード再発行、GitHub再設定、1店舗疎通試験が未完了のため、push/deployは停止中。
+
 ### 2026-07-18 Phase 16 一覧・店舗詳細の精密再調整 完了
 
 - 順位badgeを画像内overlayへ移して順位有無のcardを共通3列にし、店舗詳細上部をPCの画像/hero 2列へ整理した。予約・公式情報groupは各画面幅で表示中1つだけにした。
