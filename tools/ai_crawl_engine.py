@@ -6,7 +6,6 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from google import genai
-from urllib.parse import urlparse
 
 # .envの読み込み（tools/.env または ai-site-monitor/.env）
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -51,11 +50,8 @@ def analyze_with_gemini(text):
             print(f"エラー: {e}")
     return {"summary": "解析失敗", "shop_address": "", "shop_tel": "", "shop_hours": "", "basic_price": "", "official_url": ""}
 
-def post_to_wordpress(data):
-    parsed = urlparse(os.environ.get("WP_BASE_URL"))
-    base_url = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
-    url = f"{base_url}/wp-json/escomi/v1/update"
-
+def build_staging_candidate(data):
+    """将来の非公開staging向け候補を作る。公開siteへは送信しない。"""
     shop_post_id = int(os.environ.get("SHOP_POST_ID", 0))
     summary = data.get("summary", "")
     meta = {}
@@ -63,24 +59,12 @@ def post_to_wordpress(data):
         if data.get(key):
             meta[key] = str(data[key]).strip()
 
-    payload = {
+    return {
         "shop_post_id": shop_post_id,
         "summary": summary,
-        "log_type": "update",
+        "log_type": "staging_candidate",
         "meta": meta,
     }
-    
-    # ここがエラーの箇所でした。正しく認証情報を渡します。
-    wp_user = os.environ.get("WP_USER")
-    wp_pw = os.environ.get("WP_APP_PASSWORD")
-
-    response = requests.post(url, json=payload, auth=(wp_user, wp_pw))
-    
-    if response.status_code == 201:
-        print(f"成功！ (201 Created): {url}")
-    else:
-        print(f"失敗: {response.status_code}")
-        print(f"詳細: {response.text}")
 
 def main():
     print(f"[1/4] スクレイピング開始: {os.environ.get('TARGET_URL')}")
@@ -91,8 +75,9 @@ def main():
     print("[2/4] Gemini解析開始")
     data = analyze_with_gemini(text)
 
-    print("[3/4] WordPressへ送信")
-    post_to_wordpress(data)
+    print("[3/4] 非公開staging候補を作成")
+    build_staging_candidate(data)
+    print("公開書込は停止中です。Supabase stagingと承認経路の完成後に接続します。")
 
 if __name__ == "__main__":
     main()

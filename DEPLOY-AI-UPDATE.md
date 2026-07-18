@@ -1,98 +1,21 @@
-# AI 自動更新システム デプロイ手順（Xserver 向け）
+# 日次AI更新bridge 運用メモ
 
-`ai_auto_updater.py` が WordPress の `/wp-json/escomi/v1/update` に POST する際に 404 が返る場合の対処手順です。
+## DEPRECATED / 実行禁止
 
----
+公開URLへWordPress認証を付けて直接POSTする旧手順は廃止しました。旧curlや認証headerを再利用しないでください。
 
-## 1. アップロードするファイル
+## 現在の境界
 
-以下のファイルを **Xserver の WordPress テーマフォルダ** にアップロードしてください。
+- WordPressは公開データの正本です。
+- 分析、空き状況、当日出勤の3項目だけをHeadlessの日次専用bridgeから更新します。
+- callerは日次専用秘密鍵だけを持ち、WordPress認証はHeadlessのserver環境だけに置きます。
+- 料金、紹介、公式URL、年齢、順位は、Supabaseの非公開stagingと差分承認が完成するまで公開書込禁止です。
 
-| ファイル | アップロード先 |
-|----------|----------------|
-| `ai-update-log.php` | `wp-content/themes/swell_child/ai-update-log.php` |
-| `functions.php` | `wp-content/themes/swell_child/functions.php` |
+## 安全な確認
 
-**重要**: `swell_child` が有効な子テーマであることを確認してください。
+1. 日次専用秘密鍵なしのPOSTが401になることを確認します。
+2. 日次専用秘密鍵付きの空JSONが400になることを確認します。
+3. 1店舗試験は、資格情報の失効・再発行チェック完了後に別途承認を得て行います。
+4. 応答やログへ秘密値を表示しません。
 
----
-
-## 2. ファイル配置の確認
-
-```
-wp-content/themes/swell_child/
-├── functions.php      ← 必須（ai-update-log.php を読み込む）
-├── ai-update-log.php  ← 必須（REST API エンドポイント定義）
-├── style.css
-└── （その他テーマファイル）
-```
-
----
-
-## 3. WordPress 管理画面でのパーマリンク更新
-
-**REST API のルートを有効にするため、必ず実行してください。**
-
-1. WordPress 管理画面にログイン
-2. **設定** → **パーマリンク**
-3. 何も変更せず、そのまま **「変更を保存」** をクリック
-
-これで REST API のルートが再登録されます。
-
----
-
-## 4. エンドポイントの動作確認
-
-### ブラウザで確認
-
-以下の URL をブラウザで開いてください。
-
-```
-https://あなたのサイト.com/wp-json/escomi/v1/update
-```
-
-**ルート存在の目安（匿名）**: `curl -X POST`（本文なし）で **401**（未認証）が返る→ルートは登録済み。**404** または `rest_no_route` → ファイル配置・パーマリンク「変更を保存」を再確認。
-
-認証済み **POST の成功確認** は `DEPLOY-AI-UPDATE.md` の手順 のち Python／Actions で行う（Application Password と `edit_posts` 必須）。
-
-### パーマリンクが「基本」の場合
-
-```
-https://あなたのサイト.com/?rest_route=/escomi/v1/update
-```
-
----
-
-## 5. Python スクリプトの再実行
-
-```bash
-cd ai-site-monitor
-python ai_auto_updater.py
-```
-
-`ai_auto_updater.py` は `/wp-json/` と `?rest_route=` の両方の URL を自動で試します。
-
----
-
-## 6. `Authorization` ヘッダが届かず 401 になる場合（Xserver／Apache）
-
-テーマ・権限・アプリパスワードは正しいのに **`rest_cannot_edit`** が返るとき、サーバー側で **`Authorization`** が削除されていることがあります。サイト **ルート**（`public_html/`）の `.htaccess` で、WordPress に付いた `RewriteEngine`/`RewriteRule` ブロックの **直上（先頭付近・WordPress 標準より前）** に次だけ足して保存し、キャッシュプラグインがあればパージしてください。
-
-```apache
-RewriteEngine On
-RewriteCond %{HTTP:Authorization} ^(.*)
-RewriteRule ^(.*) - [E=HTTP_AUTHORIZATION:%1]
-```
-
----
-
-## トラブルシューティング
-
-| 症状 | 対処 |
-|------|------|
-| 404 rest_no_route | パーマリンクを再保存（設定→パーマリンク→保存） |
-| ファイルが見つからない | `ai-update-log.php` が `swell_child` 直下にあるか確認 |
-| 401 認証エラー（一般） | `.env`／GitHub Secrets の `WP_USER` と `WP_APP_PASSWORD`。ユーザーに `edit_posts` があるか |
-| 401 `rest_cannot_edit` が続く／Basic は送っているつもり | 上記 **§6**。HTTP_AUTHORIZATION 伝達用 `.htaccess` 3行をルートへ追加 |
-
----
+ローカル実装ではpush、deploy、本番WordPress操作を行いません。

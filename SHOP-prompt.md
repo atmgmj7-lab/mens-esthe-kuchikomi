@@ -81,78 +81,13 @@ single.css は既に全ページで読み込み済み（wp_enqueue_style('child-
 
 GitHubプッシュ → デプロイ確認（30秒後）
 
-タスク2: monthly_shop_summary.yml の新規作成
-目的: 毎月1日朝7時に全店舗の公式サイトから店舗コンセプトを取得・要約し、shop_ai_summaryに保存。同時にshop_last_ai_checkも更新。
+タスク2: 月次公式サイト収集（公開書込停止）
 
-ファイル: .github/workflows/monthly_shop_summary.yml
-cron: 0 22 * * *（毎日UTC 22:00=日本時間7:00実行。Python側で1日のみ処理する）
+**DEPRECATED / 実行禁止**: 旧月次jobからWordPressへ直接保存する方式は廃止した。
 
-仕様（daily_shop_update.ymlをベースに作成）:
-
-yaml
-name: Monthly Shop Summary Update
-on:
-  schedule:
-    - cron: '0 22 * * *'
-  workflow_dispatch:
-    inputs:
-      max_shops:
-        description: '最大店舗数。空欄なら全店舗'
-        required: false
-        type: string
-        default: ''
-jobs:
-  update-monthly-summaries:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    env:
-      MAX_SHOPS_MANUAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_shops || '' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('ai-site-monitor/requirements.txt') }}
-      - name: Install dependencies
-        run: cd ai-site-monitor && pip install -r requirements.txt
-      - name: Install Playwright browsers
-        run: cd ai-site-monitor && python -m playwright install chromium --with-deps
-      - name: Pre-flight REST check
-        env:
-          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
-        run: |
-          HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" -H "Content-Type: application/json" --max-time 15)
-          echo "REST health: HTTP ${HTTP_CODE}"
-          if [ "$HTTP_CODE" = "404" ]; then exit 1; fi
-      - name: Run ai_monthly_updater
-        env:
-          WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
-          WP_USER: ${{ secrets.WP_USER }}
-          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SHOP_DELAY_SECONDS: '5'
-        run: |
-          cd ai-site-monitor
-          if [ -n "${MAX_SHOPS_MANUAL}" ]; then
-            python ai_monthly_updater.py --limit "${MAX_SHOPS_MANUAL}"
-          else
-            python ai_monthly_updater.py --all
-          fi
-      - name: Upload results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: monthly-update-results-${{ github.run_id }}
-          path: ai-site-monitor/results/
-          retention-days: 14
-          if-no-files-found: warn
-注意: ai_monthly_updater.py が --all 引数に対応しているか要確認。未対応の場合は追加修正。
+- `monthly_shop_summary.yml`は手動起動の説明専用で、定期実行と公開書込を行わない。
+- 料金・紹介・公式URL・年齢は、Supabaseの非公開stagingと差分承認が完成するまで反映禁止。
+- 日次の分析・空き状況・出勤だけは、Headlessの日次専用bridgeを利用する。
 
 タスク3: 不足データの補完
 目的: basic_price（最安料金）とshop_last_ai_check（最終更新日）を補完し、店舗詳細ページの全要素を表示可能にする
@@ -164,7 +99,7 @@ ai_monthly_updater.py が月次更新時に shop_last_ai_check を現在日時�
 basic_price は手動 or CSVインポートで補完（shops.csv に価格データがあれば活用）
 
 注意点
-.htaccess 触らない（Authorization設定済み）
+日次bridgeの認証設定はserver-onlyとし、browserやcallerへWordPress認証を渡さない
 
 ai-update-log.php はCloudSecure保護対象のため要注意
 
@@ -172,7 +107,7 @@ SWELLフックの優先度維持: shop_info_box=3, Today's Analysis=5
 
 single.css は全ページ読み込み済みなので、追加のenqueue不要
 
-GitHub ActionsのSecretsは daily_shop_update.yml と共通（WP_SITE_URL, WP_USER, WP_APP_PASSWORD, GEMINI_API_KEY）
+GitHub Actionsの日次callerはサイトURL、日次専用秘密鍵、Geminiキーだけを利用する
 
 実行順序
 タスク1（CSS分離: functions.php削除 + single.css追記）

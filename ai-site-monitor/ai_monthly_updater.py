@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ai_monthly_updater.py
-店舗の基本要約（shop_ai_summary）とグラフ用データ（年齢層・料金）を月1回更新する専用スクリプト。
+店舗の基本要約とグラフ用データ（年齢層・料金）の非公開staging候補を作るスクリプト。
 
 【巡回対象】最大3ページ
 - TOPページ（必須）
@@ -11,7 +11,7 @@ ai_monthly_updater.py
 【データ重視の編集部Review】
 抽出した年齢層分布・料金・設備を根拠に、数字を必ず含む客観的な紹介文を生成。
 
-※ shop_today_analysis / shop_today_therapists 等の毎日出勤データは一切送信しない。
+※ WordPress公開書込は停止中。Supabase stagingと差分承認が完成するまで候補生成だけを行う。
 """
 
 import argparse
@@ -21,7 +21,6 @@ import os
 import re
 import sys
 import time
-from base64 import b64encode
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urljoin, urlparse
@@ -101,19 +100,13 @@ PRICE_PATTERNS = [
 
 
 def get_config() -> Dict[str, str]:
-    """環境変数から設定を取得"""
+    """公開読取と分析に必要な設定だけを取得する。"""
     site_url = os.environ.get("WP_SITE_URL", "").rstrip("/")
-    user = os.environ.get("WP_USER", "")
-    app_password = os.environ.get("WP_APP_PASSWORD", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
 
     missing = []
     if not site_url:
         missing.append("WP_SITE_URL")
-    if not user:
-        missing.append("WP_USER")
-    if not app_password:
-        missing.append("WP_APP_PASSWORD")
     if not gemini_key:
         missing.append("GEMINI_API_KEY")
 
@@ -123,18 +116,13 @@ def get_config() -> Dict[str, str]:
 
     return {
         "site_url": site_url,
-        "user": user,
-        "app_password": app_password,
         "gemini_key": gemini_key,
     }
 
 
-def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
-    """REST API で shop 投稿一覧を取得（area_slug 含む）"""
+def fetch_shops(site_url: str) -> List[Dict]:
+    """公開REST APIで店舗一覧を取得する（area_slug含む）。"""
     url = f"{site_url}/wp-json/wp/v2/shop"
-    auth_str = f"{user}:{app_password}"
-    auth_b64 = b64encode(auth_str.encode()).decode()
-    headers = {"Authorization": f"Basic {auth_b64}"}
     params = {"per_page": 100, "_fields": "id,title,official_url,acf,area_slug"}
 
     all_shops = []
@@ -142,7 +130,7 @@ def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
 
     while True:
         params["page"] = page
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp = requests.get(url, params=params, timeout=30)
 
         if resp.status_code != 200:
             print(f"ERROR: API エラー (HTTP {resp.status_code})")
@@ -173,7 +161,11 @@ def parse_shop(shop: Dict) -> Optional[Dict]:
     official_url = (official_url or "").strip()
     area_slug = (shop.get("area_slug") or "").strip()
 
-    if not official_url or not str(post_id):
+    if not str(post_id):
+        print("    スキップ: 公開店舗データに店舗IDがありません")
+        return None
+    if not official_url:
+        print(f"    スキップ: 公開店舗データに公式URLがありません (post_id={post_id})")
         return None
 
     return {
@@ -480,32 +472,17 @@ def generate_monthly_summary(
     return None
 
 
-def _build_rest_urls(site_url: str) -> List[str]:
-    """REST API の URL 候補を返す"""
-    base = site_url.rstrip("/")
-    return [
-        f"{base}/wp-json/escomi/v1/update",
-        f"{base}/?rest_route=/escomi/v1/update",
-    ]
-
-
-def update_shop_monthly_summary(
-    site_url: str,
-    user: str,
-    app_password: str,
+def build_monthly_staging_candidate(
     post_id: int,
     summary: str,
     age_dist: Dict[str, int],
     shop_price_60min: Optional[int],
     area_average_60min: int,
-) -> bool:
+) -> Dict[str, Any]:
     """
-    WordPress REST API で shop_ai_summary とグラフ用データを一括保存。
-    age_18_19 〜 age_45_plus の7項目、shop_price_60min, area_average_60min を含む。
+    将来の非公開staging向け候補を組み立てる。
+    公式siteの入力項目は保持するが、WordPressへは書き込まない。
     """
-    if not summary or not summary.strip():
-        return False
-
     meta: Dict[str, Any] = {
         "shop_ai_summary": summary.strip(),
         "shop_last_ai_check": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
@@ -520,30 +497,12 @@ def update_shop_monthly_summary(
         "area_average_60min": area_average_60min,
     }
 
-    payload = {
+    return {
         "shop_post_id": post_id,
         "meta": meta,
         "summary": summary.strip(),
         "log_type": "monthly",
     }
-    auth = (user, app_password)
-    urls = _build_rest_urls(site_url)
-
-    for url in urls:
-        try:
-            resp = requests.post(url, json=payload, auth=auth, timeout=30)
-            if resp.status_code in (200, 201):
-                return True
-            if resp.status_code == 404:
-                continue
-            print(f"    [WordPress] 保存失敗 (URL: {url}): status_code={resp.status_code}")
-            return False
-        except Exception as e:
-            print(f"    [WordPress] リクエスト例外 ({url}): {type(e).__name__}: {e}")
-            continue
-
-    print(f"    [WordPress] 保存失敗: 全 URL で 404")
-    return False
 
 
 async def process_shop(
@@ -634,11 +593,8 @@ async def process_shop(
         preview = summary[:120] + "..." if len(summary) > 120 else summary
         print(f"    ---\n    {preview}")
 
-        # 6. WordPress に一括保存
-        success = update_shop_monthly_summary(
-            config["site_url"],
-            config["user"],
-            config["app_password"],
+        # 6. 非公開staging候補を組み立てる（公開書込は停止中）
+        build_monthly_staging_candidate(
             int(post_id),
             summary,
             age_dist,
@@ -646,21 +602,14 @@ async def process_shop(
             area_avg_60,
         )
 
-        if success:
-            print("    ✓ 更新完了")
-        else:
-            print("    ERROR: WordPress への保存に失敗")
+        print("    公開書込は停止中: Supabase staging計画完了後に承認経路へ接続します")
     except Exception as e:
         print(f"    ERROR: 処理中に例外が発生しました（次の店舗へ進みます）: {type(e).__name__}: {e}")
 
 
 async def main_async() -> None:
     config = get_config()
-    shops = fetch_shops(
-        config["site_url"],
-        config["user"],
-        config["app_password"],
-    )
+    shops = fetch_shops(config["site_url"])
 
     valid_shops = []
     for shop in shops:

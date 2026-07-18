@@ -11,7 +11,6 @@ import asyncio
 import os
 import re
 import sys
-from base64 import b64encode
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -37,34 +36,22 @@ PAGE_TIMEOUT_MS = 30000
 
 
 def get_config() -> Dict[str, str]:
-    """環境変数または .env から設定を取得"""
+    """公開店舗一覧の取得に必要な設定だけを取得する。"""
     site_url = os.environ.get("WP_SITE_URL", "").rstrip("/")
-    user = os.environ.get("WP_USER", "")
-    app_password = os.environ.get("WP_APP_PASSWORD", "")
 
-    if not site_url or not user or not app_password:
-        missing = []
-        if not site_url:
-            missing.append("WP_SITE_URL")
-        if not user:
-            missing.append("WP_USER")
-        if not app_password:
-            missing.append("WP_APP_PASSWORD")
+    if not site_url:
         print(
-            f"ERROR: 以下の環境変数が未設定です: {', '.join(missing)}\n"
+            "ERROR: 以下の環境変数が未設定です: WP_SITE_URL\n"
             "  .env ファイルを作成するか、環境変数を設定してください。"
         )
         sys.exit(1)
 
-    return {"site_url": site_url, "user": user, "app_password": app_password}
+    return {"site_url": site_url}
 
 
-def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
-    """REST API で shop 投稿一覧を取得"""
+def fetch_shops(site_url: str) -> List[Dict]:
+    """公開REST APIで店舗一覧を取得する。"""
     url = f"{site_url}/wp-json/wp/v2/shop"
-    auth_str = f"{user}:{app_password}"
-    auth_b64 = b64encode(auth_str.encode()).decode()
-    headers = {"Authorization": f"Basic {auth_b64}"}
     params = {"per_page": 100, "_fields": "id,title,official_url,acf"}
 
     all_shops = []
@@ -72,7 +59,7 @@ def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
 
     while True:
         params["page"] = page
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp = requests.get(url, params=params, timeout=30)
 
         if resp.status_code != 200:
             print(f"ERROR: API エラー (HTTP {resp.status_code})")
@@ -102,7 +89,11 @@ def parse_shop(shop: Dict) -> Optional[Dict]:
     )
     official_url = (official_url or "").strip()
 
-    if not official_url or not str(post_id):
+    if not str(post_id):
+        print("    スキップ: 公開店舗データに店舗IDがありません")
+        return None
+    if not official_url:
+        print(f"    スキップ: 公開店舗データに公式URLがありません (post_id={post_id})")
         return None
 
     return {"post_id": post_id, "name": name, "official_url": official_url}
@@ -157,11 +148,7 @@ async def crawl_shop(
 
 async def main_async() -> None:
     config = get_config()
-    shops = fetch_shops(
-        config["site_url"],
-        config["user"],
-        config["app_password"],
-    )
+    shops = fetch_shops(config["site_url"])
 
     # URL が有効な店舗のみ抽出し、最初の CRAWL_LIMIT 件
     valid_shops = []

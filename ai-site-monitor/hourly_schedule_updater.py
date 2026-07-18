@@ -19,7 +19,7 @@ import re
 import sqlite3
 import sys
 import time
-from base64 import b64encode
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -271,17 +271,14 @@ def save_rules(shop_id: int, domain: str, rules: Dict[str, str]) -> None:
 def get_config() -> Dict[str, str]:
     """環境変数から設定を取得"""
     site_url = os.environ.get("WP_SITE_URL", "").rstrip("/")
-    user = os.environ.get("WP_USER", "")
-    app_password = os.environ.get("WP_APP_PASSWORD", "")
+    daily_update_proxy_secret = os.environ.get("DAILY_UPDATE_PROXY_SECRET", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
 
     missing = []
     if not site_url:
         missing.append("WP_SITE_URL")
-    if not user:
-        missing.append("WP_USER")
-    if not app_password:
-        missing.append("WP_APP_PASSWORD")
+    if not daily_update_proxy_secret:
+        missing.append("DAILY_UPDATE_PROXY_SECRET")
 
     if missing:
         print(f"ERROR: 以下の環境変数が未設定です: {', '.join(missing)}")
@@ -289,18 +286,14 @@ def get_config() -> Dict[str, str]:
 
     return {
         "site_url": site_url,
-        "user": user,
-        "app_password": app_password,
+        "daily_update_proxy_secret": daily_update_proxy_secret,
         "gemini_key": gemini_key or "",
     }
 
 
-def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
-    """REST API で shop 投稿一覧を取得"""
+def fetch_shops(site_url: str) -> List[Dict]:
+    """公開REST APIで店舗一覧を取得する。"""
     url = f"{site_url}/wp-json/wp/v2/shop"
-    auth_str = f"{user}:{app_password}"
-    auth_b64 = b64encode(auth_str.encode()).decode()
-    headers = {"Authorization": f"Basic {auth_b64}"}
     params = {"per_page": 100, "_fields": "id,title,official_url,acf"}
 
     all_shops = []
@@ -308,7 +301,7 @@ def fetch_shops(site_url: str, user: str, app_password: str) -> List[Dict]:
 
     while True:
         params["page"] = page
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp = requests.get(url, params=params, timeout=30)
 
         if resp.status_code != 200:
             print(f"ERROR: API エラー (HTTP {resp.status_code})")
@@ -338,7 +331,11 @@ def parse_shop(shop: Dict) -> Optional[Dict]:
     )
     official_url = (official_url or "").strip()
 
-    if not official_url or not str(post_id):
+    if not str(post_id):
+        print("    スキップ: 公開店舗データに店舗IDがありません")
+        return None
+    if not official_url:
+        print(f"    スキップ: 公開店舗データに公式URLがありません (post_id={post_id})")
         return None
 
     return {"post_id": post_id, "name": name, "official_url": official_url}
@@ -451,19 +448,9 @@ def scrape_schedule(html: str, rules: Dict[str, str]) -> Tuple[List[Dict[str, An
         return ([], "")
 
 
-def _build_rest_urls(site_url: str) -> List[str]:
-    """REST API の URL 候補を返す"""
-    base = site_url.rstrip("/")
-    return [
-        f"{base}/wp-json/escomi/v1/update",
-        f"{base}/?rest_route=/escomi/v1/update",
-    ]
-
-
 def update_schedule_only(
     site_url: str,
-    user: str,
-    app_password: str,
+    daily_update_proxy_secret: str,
     post_id: int,
     therapists: List[Dict[str, Any]],
     availability: str,
@@ -480,26 +467,23 @@ def update_schedule_only(
     payload = {
         "shop_post_id": post_id,
         "meta": meta,
-        "summary": "",
-        "log_type": "hourly",
+        "request_id": str(uuid.uuid4()),
     }
-    auth = (user, app_password)
-    urls = _build_rest_urls(site_url)
+    url = f"{site_url.rstrip('/')}/wp-json/escomi/v1/update"
+    try:
+        resp = requests.post(
+            url,
+            json=payload,
+            headers={"x-escomi-daily-update-secret": daily_update_proxy_secret},
+            timeout=30,
+        )
+    except Exception as e:
+        print(f"    [WordPress] リクエスト例外: {type(e).__name__}: {e}")
+        return False
 
-    for url in urls:
-        try:
-            resp = requests.post(url, json=payload, auth=auth, timeout=30)
-            if resp.status_code in (200, 201):
-                return True
-            if resp.status_code == 404:
-                continue
-            print(f"    [WordPress] 保存失敗 (URL: {url}): status_code={resp.status_code}")
-            return False
-        except Exception as e:
-            print(f"    [WordPress] リクエスト例外 ({url}): {type(e).__name__}: {e}")
-            continue
-
-    print(f"    [WordPress] 保存失敗: 全 URL で 404")
+    if resp.status_code in (200, 201):
+        return True
+    print(f"    [WordPress] 保存失敗: status_code={resp.status_code}")
     return False
 
 
@@ -590,8 +574,7 @@ def process_shop(config: Dict[str, str], shop: Dict, index: int) -> bool:
 
     success = update_schedule_only(
         config["site_url"],
-        config["user"],
-        config["app_password"],
+        config["daily_update_proxy_secret"],
         post_id,
         therapists,
         availability,
@@ -609,11 +592,7 @@ def main() -> None:
     config = get_config()
     init_db()
 
-    shops = fetch_shops(
-        config["site_url"],
-        config["user"],
-        config["app_password"],
-    )
+    shops = fetch_shops(config["site_url"])
 
     valid_shops = []
     for shop in shops:

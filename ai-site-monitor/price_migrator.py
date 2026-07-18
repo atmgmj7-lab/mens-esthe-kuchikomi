@@ -1,25 +1,23 @@
 #!/usr/bin/env python3
 """
 price_migrator.py
-リフナビ等からスクレイピングして escomi_crawler.db に保存された店舗データを利用し、
-全店舗の「60分料金」を一括で WordPress の shop_price_60min ACF に登録するワンタイムスクリプト。
+escomi_crawler.dbに保存された店舗データを利用し、
+全店舗の「60分料金」の非公開staging候補をローカル確認するスクリプト。
 
 【データソース】
 1. escomi_crawler.db の shops テーブル（post_id, price/price_text/basic_price）
 2. または --json で指定した JSON ファイル（shop_post_id, price/price_text/basic_price）
 
 【実行例】
-  python price_migrator.py
-  python price_migrator.py --json path/to/shops_with_price.json
+  python3 price_migrator.py --dry-run
+  python3 price_migrator.py --dry-run --json path/to/shops_with_price.json
 """
 
 import argparse
 import json
-import os
 import re
 import sqlite3
 import sys
-from base64 import b64encode
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,8 +33,6 @@ try:
 except ImportError:
     HAS_TQDM = False
 
-import requests
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 DB_PATH = SCRIPT_DIR / "escomi_crawler.db"
 
@@ -51,27 +47,6 @@ PRICE_PATTERNS = [
     r"(\d{4,5})\s*円",  # フォールバック: 4〜5桁の数字+円
 ]
 PRICE_MIN, PRICE_MAX = 5000, 50000
-
-
-def get_config() -> Dict[str, str]:
-    """環境変数から設定を取得"""
-    site_url = os.environ.get("WP_SITE_URL", "").rstrip("/")
-    user = os.environ.get("WP_USER", "")
-    app_password = os.environ.get("WP_APP_PASSWORD", "")
-
-    missing = []
-    if not site_url:
-        missing.append("WP_SITE_URL")
-    if not user:
-        missing.append("WP_USER")
-    if not app_password:
-        missing.append("WP_APP_PASSWORD")
-
-    if missing:
-        print(f"ERROR: 以下の環境変数が未設定です: {', '.join(missing)}")
-        sys.exit(1)
-
-    return {"site_url": site_url, "user": user, "app_password": app_password}
 
 
 def inspect_db_schema(db_path: Path) -> None:
@@ -202,35 +177,6 @@ def extract_price_60(text: str) -> Optional[int]:
     return min(candidates) if candidates else None
 
 
-def update_shop_price_60min(
-    site_url: str,
-    user: str,
-    app_password: str,
-    post_id: int,
-    price_60: int,
-) -> bool:
-    """WordPress REST API で shop_price_60min を更新"""
-    url = f"{site_url.rstrip('/')}/wp-json/escomi/v1/update"
-    alt_url = f"{site_url.rstrip('/')}/?rest_route=/escomi/v1/update"
-
-    payload = {
-        "shop_post_id": post_id,
-        "meta": {"shop_price_60min": price_60},
-        "summary": "",
-        "log_type": "price_migrate",
-    }
-    auth = (user, app_password)
-
-    for u in (url, alt_url):
-        try:
-            resp = requests.post(u, json=payload, auth=auth, timeout=30)
-            if resp.status_code in (200, 201):
-                return True
-        except Exception:
-            continue
-    return False
-
-
 def create_shops_table_if_missing(db_path: Path) -> None:
     """shops テーブルがなければ作成（post_id, shop_name, price_text 等）"""
     if not db_path.exists():
@@ -250,11 +196,15 @@ def create_shops_table_if_missing(db_path: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="60分料金を WordPress shop_price_60min に一括登録")
+    parser = argparse.ArgumentParser(description="60分料金の非公開staging候補をローカル確認")
     parser.add_argument("--json", type=str, help="JSON ファイルパス（DB の代わりに使用）")
     parser.add_argument("--dry-run", action="store_true", help="実際には送信せず、抽出結果のみ表示")
     parser.add_argument("--init-db", action="store_true", help="shops テーブルを自動作成（未作成時）")
     args = parser.parse_args()
+
+    if not args.dry_run:
+        print("ERROR: 公開書込は停止中です。Supabase staging計画完了までは --dry-run のみ利用できます。")
+        sys.exit(1)
 
     # 1. スキーマ確認
     if args.init_db:
@@ -323,33 +273,20 @@ def main() -> None:
         for s in skipped:
             print(f"  [{s['post_id']}] {s['name']} | 元データ: {s['price_raw'] or '(空)'}")
 
-    # 5. WordPress へ送信
-    config = get_config()
-    success_count = 0
+    # 5. staging候補をローカル確認（公開書込なし）
+    success_count = len(to_update)
 
     iter_items = tqdm(to_update, desc="更新中") if HAS_TQDM else to_update
     for item in iter_items:
         if not HAS_TQDM:
             print(f"  処理中: [{item['post_id']}] {item['name']} → {item['price_60']}円")
 
-        if args.dry_run:
-            success_count += 1
-            continue
-
-        ok = update_shop_price_60min(
-            config["site_url"],
-            config["user"],
-            config["app_password"],
-            item["post_id"],
-            item["price_60"],
-        )
-        if ok:
-            success_count += 1
+        continue
 
     # 6. サマリー
     total = len(items)
     print(f"\n=== 完了 ===")
-    print(f"全 {total} 店舗中、{success_count} 店舗の料金更新に成功")
+    print(f"全 {total} 店舗中、{success_count} 店舗のstaging候補を確認")
     if skipped:
         print(f"（{len(skipped)} 店舗は料金抽出失敗のためスキップ）")
     if args.dry_run:

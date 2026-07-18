@@ -25,7 +25,7 @@ import os
 import re
 import sqlite3
 import sys
-from base64 import b64encode
+import uuid
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 from pathlib import Path
@@ -265,18 +265,15 @@ def parse_optional_area_term_id() -> Optional[int]:
 def get_config() -> Dict[str, Any]:
     """環境変数から設定を取得"""
     site_url = os.environ.get("WP_SITE_URL", "").rstrip("/")
-    user = os.environ.get("WP_USER", "")
-    app_password = os.environ.get("WP_APP_PASSWORD", "")
+    daily_update_proxy_secret = os.environ.get("DAILY_UPDATE_PROXY_SECRET", "")
     gemini_key = os.environ.get("GEMINI_API_KEY", "")
     area_term_id = parse_optional_area_term_id()
 
     missing = []
     if not site_url:
         missing.append("WP_SITE_URL")
-    if not user:
-        missing.append("WP_USER")
-    if not app_password:
-        missing.append("WP_APP_PASSWORD")
+    if not daily_update_proxy_secret:
+        missing.append("DAILY_UPDATE_PROXY_SECRET")
     if not gemini_key:
         missing.append("GEMINI_API_KEY")
 
@@ -286,8 +283,7 @@ def get_config() -> Dict[str, Any]:
 
     cfg: Dict[str, Any] = {
         "site_url": site_url,
-        "user": user,
-        "app_password": app_password,
+        "daily_update_proxy_secret": daily_update_proxy_secret,
         "gemini_key": gemini_key,
     }
     if area_term_id is not None:
@@ -422,15 +418,10 @@ def _hint_if_rest_blocked_at_edge(status_code: int, body: Optional[str]) -> None
 
 def fetch_shops(
     site_url: str,
-    user: str,
-    app_password: str,
     area_term_id: Optional[int] = None,
 ) -> List[Dict]:
-    """REST API で shop 投稿一覧を取得。area_term_id 指定時は area タクソノミーで絞り込む。"""
+    """公開REST APIで店舗を取得。area_term_id指定時はareaで絞り込む。"""
     url = f"{site_url}/wp-json/wp/v2/shop"
-    auth_str = f"{user}:{app_password}"
-    auth_b64 = b64encode(auth_str.encode()).decode()
-    headers = {**REST_REQUEST_HEADERS_BASE, "Authorization": f"Basic {auth_b64}"}
     params: Dict[str, Any] = {"per_page": 100, "_fields": "id,title,official_url,acf"}
     if area_term_id is not None:
         params["area"] = area_term_id
@@ -440,7 +431,7 @@ def fetch_shops(
 
     while True:
         params["page"] = page
-        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        resp = requests.get(url, headers=REST_REQUEST_HEADERS_BASE, params=params, timeout=30)
 
         if resp.status_code != 200:
             snippet = (resp.text or "")[:400].replace("\n", " ")
@@ -472,7 +463,11 @@ def parse_shop(shop: Dict) -> Optional[Dict]:
     )
     official_url = (official_url or "").strip()
 
-    if not official_url or not str(post_id):
+    if not str(post_id):
+        print("    スキップ: 公開店舗データに店舗IDがありません")
+        return None
+    if not official_url:
+        print(f"    スキップ: 公開店舗データに公式URLがありません (post_id={post_id})")
         return None
 
     return {"post_id": post_id, "name": name, "official_url": official_url}
@@ -653,29 +648,15 @@ def generate_summary_with_gemini(text: str, gemini_key: str) -> Optional[Dict[st
     return None
 
 
-def _build_rest_urls(site_url: str) -> list:
-    """REST API の URL 候補を返す（パーマリンク形式に応じて両方試す）"""
-    base = site_url.rstrip("/")
-    return [
-        f"{base}/wp-json/escomi/v1/update",  # パーマリンク「投稿名」等
-        f"{base}/?rest_route=/escomi/v1/update",  # パーマリンク「基本」の場合
-    ]
-
-
 def update_shop_ai_summary(
     site_url: str,
-    user: str,
-    app_password: str,
+    daily_update_proxy_secret: str,
     post_id: int,
     today_analysis: str,
     availability: str = "",
     today_therapists: Optional[List[Dict]] = None,
-    ages: Optional[Dict[str, int]] = None,
 ) -> bool:
-    """WordPress REST API で shop_today_analysis, shop_availability, 出勤, 年齢層を更新。
-
-    Application Password 利用時は WP_USER と WP_APP_PASSWORD による HTTP Basic 認証（requests の auth=）が必要。
-    """
+    """専用Headless bridge経由で許可された日次3項目だけを更新する。"""
     avail_value = "" if (not availability or availability.strip().lower() == "なし") else availability.strip()
     clean_analysis = today_analysis
     if clean_analysis and clean_analysis.strip().startswith('{'):
@@ -691,50 +672,27 @@ def update_shop_ai_summary(
     }
     if today_therapists is not None:
         meta["shop_today_therapists"] = today_therapists
-    if ages is not None:
-        meta["age_18"] = ages.get("18", 0)
-        meta["age_20"] = ages.get("20", 0)
-        meta["age_25"] = ages.get("25", 0)
-        meta["age_30"] = ages.get("30", 0)
-        meta["age_35"] = ages.get("35", 0)
-        meta["age_40"] = ages.get("40", 0)
 
     payload = {
         "shop_post_id": post_id,
         "meta": meta,
-        "summary": today_analysis,
-        "log_type": "update",
+        "request_id": str(uuid.uuid4()),
     }
-    # Application Password: HTTP Basic（WP_USER / WP_APP_PASSWORD）
-    auth = (user, app_password)
-    urls = _build_rest_urls(site_url)
+    url = f"{site_url.rstrip('/')}/wp-json/escomi/v1/update"
+    try:
+        resp = requests.post(
+            url,
+            json=payload,
+            headers={"x-escomi-daily-update-secret": daily_update_proxy_secret},
+            timeout=30,
+        )
+    except Exception as e:
+        print(f"    [WordPress] リクエスト例外: {type(e).__name__}: {e}")
+        return False
 
-    for url in urls:
-        try:
-            resp = requests.post(
-                url,
-                json=payload,
-                auth=auth,
-                headers=REST_REQUEST_HEADERS_BASE,
-                timeout=30,
-            )
-            if resp.status_code in (200, 201):
-                return True
-            if resp.status_code == 404:
-                continue  # 次の URL 形式を試す
-            # 404 以外の失敗
-            print(f"    [WordPress] 保存失敗 (URL: {url}):")
-            print(f"      status_code: {resp.status_code}")
-            print(f"      response.text:\n{resp.text if resp.text else '(空)'}")
-            return False
-        except Exception as e:
-            print(f"    [WordPress] リクエスト例外 ({url}): {type(e).__name__}: {e}")
-            continue
-
-    # 全 URL で 404
-    print(f"    [WordPress] 保存失敗: 全 URL で 404 (rest_no_route)")
-    print(f"      試した URL: {urls}")
-    print(f"      → パーマリンクの更新（設定→パーマリンク→保存）を実行してください")
+    if resp.status_code in (200, 201):
+        return True
+    print(f"    [WordPress] 保存失敗: status_code={resp.status_code}")
     return False
 
 
@@ -815,13 +773,11 @@ async def process_shop(
     # 4. WordPress に保存
     success = update_shop_ai_summary(
         config["site_url"],
-        config["user"],
-        config["app_password"],
+        config["daily_update_proxy_secret"],
         int(post_id),
         today_analysis,
         availability,
         today_therapists,
-        ages,
     )
 
     if success:
@@ -843,8 +799,6 @@ async def main_async(args: argparse.Namespace) -> None:
 
     shops = fetch_shops(
         config["site_url"],
-        config["user"],
-        config["app_password"],
         area_term_id,
     )
 

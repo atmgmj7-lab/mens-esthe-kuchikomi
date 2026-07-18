@@ -70,31 +70,34 @@ jobs:
       - name: Pre-flight REST check
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
+          DAILY_UPDATE_PROXY_SECRET: ${{ secrets.DAILY_UPDATE_PROXY_SECRET }}
         run: |
-          HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+          UNAUTH_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
             -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
             -H "Content-Type: application/json" \
+            -d '{}' \
             --max-time 15)
-          echo "::notice::REST health check: POST /wp-json/escomi/v1/update → HTTP ${HTTP_CODE}"
-          if [ "$HTTP_CODE" = "404" ]; then
-            echo "::error::escomi/v1/update が 404 (rest_no_route) — WordPress 側でルートが未登録です。"
-            echo "考えられる原因:"
-            echo "  1. ai-update-log.php が子テーマにデプロイされていない（deploy.yml の FTP_PATH を確認）"
-            echo "  2. functions.php が ai-update-log.php を require_once できていない（PHP Fatal の可能性）"
-            echo "  3. WP 管理画面 → 設定 → パーマリンク → 保存 でリライトルールの再生成が必要"
+          if [ "$UNAUTH_CODE" != "401" ]; then
+            echo "::error::専用秘密鍵なしのPOSTは401で拒否される必要があります。HTTP ${UNAUTH_CODE}"
             exit 1
           fi
-          if [ "$HTTP_CODE" = "000" ]; then
-            echo "::error::WP_SITE_URL への接続に失敗しました（curl exit 000）。URL / WAF / Secret 設定を確認してください。"
+
+          AUTH_CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -X POST "${WP_SITE_URL}/wp-json/escomi/v1/update" \
+            -H "Content-Type: application/json" \
+            -H "x-escomi-daily-update-secret: ${DAILY_UPDATE_PROXY_SECRET}" \
+            -d '{}' \
+            --max-time 15)
+          if [ "$AUTH_CODE" != "400" ]; then
+            echo "::error::秘密鍵付き空payloadはWordPress検証で400になる必要があります。HTTP ${AUTH_CODE}"
             exit 1
           fi
-          echo "REST ルート確認 OK（HTTP ${HTTP_CODE} — 401 は認証なし正常）"
+          echo "::notice::日次更新bridgeの401/400 preflightに成功しました。"
 
       - name: Run ai_auto_updater
         env:
           WP_SITE_URL: ${{ secrets.WP_SITE_URL }}
-          WP_USER: ${{ secrets.WP_USER }}
-          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          DAILY_UPDATE_PROXY_SECRET: ${{ secrets.DAILY_UPDATE_PROXY_SECRET }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SHOP_DELAY_SECONDS: '3'
           AREA_TERM_ID: '7'
