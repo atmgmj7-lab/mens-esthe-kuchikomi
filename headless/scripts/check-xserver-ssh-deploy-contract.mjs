@@ -127,7 +127,6 @@ assert.ok(forbiddenScanStart !== -1 && forbiddenScanEnd > forbiddenScanStart);
 const forbiddenScanBlock = stageStep.slice(forbiddenScanStart, forbiddenScanEnd);
 
 const forbiddenDirectories = [
-  ".git",
   ".github",
   ".deploy",
   ".superpowers",
@@ -150,8 +149,6 @@ const forbiddenDirectories = [
   ".idea",
 ];
 const forbiddenFiles = [
-  ".git",
-  ".gitignore",
   ".cursorrules",
   ".DS_Store",
   "import-test.php",
@@ -182,6 +179,19 @@ const forbiddenPatterns = [
   },
   { exclude: "*.[pP][eE][mM]", find: "*.pem", operator: "-iname" },
 ];
+
+const gitMetadataFixtures = [".gitkeep", ".gitattributes", ".gitmodules"];
+assert.ok(
+  rootCopyBlock.includes("--exclude='.git*'"),
+  "all .git* files and directories must be excluded at any depth",
+);
+assert.ok(
+  forbiddenScanBlock.includes("-name '.git*'"),
+  "the post-copy scan must reject every .git* basename",
+);
+for (const fixtureName of gitMetadataFixtures) {
+  assert.match(fixtureName, /^\.git.*$/, `${fixtureName} must be covered by the generic .git* guard`);
+}
 
 for (const directoryName of forbiddenDirectories) {
   assert.ok(

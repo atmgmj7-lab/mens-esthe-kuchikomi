@@ -97,9 +97,7 @@ jobs:
           mkdir -p "$STAGE_DIR"
 
           rsync -a "$GITHUB_WORKSPACE/" "$STAGE_DIR/" \
-            --exclude='.git' \
-            --exclude='.git/' \
-            --exclude='.gitignore' \
+            --exclude='.git*' \
             --exclude='.github/' \
             --exclude='.deploy/' \
             --exclude='.superpowers/' \
@@ -179,7 +177,7 @@ jobs:
           fi
 
           FORBIDDEN_PATH="$(find "$STAGE_DIR" -mindepth 1 \
-            \( -name '.git' -o -name '.gitignore' -o -name '.github' -o -name '.deploy' \
+            \( -name '.git*' -o -name '.github' -o -name '.deploy' \
               -o -name '.superpowers' -o -name '.vscode' -o -name '.cursor' \
               -o -name '.cursorrules' -o -name 'docs' -o -name 'headless' \
               -o -name 'pm' -o -name 'tools' \
