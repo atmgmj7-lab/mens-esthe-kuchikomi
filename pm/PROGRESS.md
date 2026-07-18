@@ -3197,3 +3197,10 @@ pm/PROGRESS.md
 - `ai_update_log`は管理画面だけの非公開CPTとし、実変更時だけ監査を残す。履歴、監査、lock解放の失敗は秘密値を含めない運用logと明示errorへ変換した。
 - 追跡済み`.env`とSFTP設定をGit追跡外へ移し、WordPress、Gemini、Xserver SFTP/FTP候補の失効・再発行を本番前の必須確認へ追加した。
 - 3回の独立レビュー修正後、Critical 0 / Important 0 / Minor 0、Ready Yes（ローカル実装）。外部ローテーション表は`required`のためpush、deploy、本番操作は不可のまま。
+
+## 2026-07-18 Phase 17 Task 2 日次更新bridge
+
+- 公開`wp-json`のPOSTを日次route完全一致へ限定し、受信Authorization破棄、3環境変数fail-closed、timing-safe比較、256KB上限、server-only Basic認証、no-storeを実装した。
+- 日次・毎時callerは専用secretとUUIDだけへ移行し、月次・料金・汎用crawlerの公開書込と月次scheduleを停止した。旧直接POST文書も安全なbridgeまたは実行禁止へ更新した。
+- review修正で設定例、Headless URL要件、Content-Type限定、stream cancel失敗、GET/HEAD/POST response契約を補強した。
+- 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready。外部ローテーションと本番3環境変数設定は未実施のためpush・deploy禁止を維持する。

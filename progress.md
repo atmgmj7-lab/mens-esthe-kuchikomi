@@ -544,3 +544,11 @@
 - 追跡されていた`.env`とSFTP設定をローカルに保持したままGit追跡外へ移し、WordPress、Gemini、Xserver SFTP/FTPの全候補を失効・再発行する確認表を追加した。
 - 実装commitは`5c2eabd`、`c56347d`、`394b537`。独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes（ローカル実装）だった。
 - focused Node/PHP、通常`npm test`、3 PHP構文、YAML、Python構文、差分検査が成功した。外部ローテーション未完了のためpush、deploy、本番操作は禁止を維持する。
+
+## 2026-07-18 Phase 17 Task 2 日次更新bridge
+
+- HeadlessのPOSTを`escomi/v1/update`完全一致だけへ限定し、256KB stream上限、JSON/Content-Type検証、専用secret、server-only WordPress認証、no-storeを実装した。受信Authorizationは転送しない。
+- 日次・毎時callerはUUIDv4と専用headerだけを送る。公開GETのBasic認証と年齢fieldを除去し、月次・料金・汎用crawlerのWordPress公開書込を停止した。
+- 月次workflowの定期実行を停止し、旧3文書の直接POST手順を削除した。設定例とREADMEへHeadless公開URLと日次専用secretの正しい設定方法を追加した。
+- 実装commitは`e6a82c1`、`aebb1c3`、`c192969`。独立再レビューはCritical 0 / Important 0 / Minor 0、Readyだった。
+- Node/Python focused、通常`npm test`、型、lint、Python構文、YAML、秘密値scan、差分検査が成功した。push、deploy、本番操作は未実施。

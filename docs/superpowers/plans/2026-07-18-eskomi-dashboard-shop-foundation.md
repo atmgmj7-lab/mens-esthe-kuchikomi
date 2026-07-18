@@ -186,7 +186,7 @@ git commit -m "fix: secure legacy WordPress update routes"
 - Consumes: `DAILY_UPDATE_PROXY_SECRET`、`WP_DAILY_UPDATE_USER`、`WP_DAILY_UPDATE_APP_PASSWORD`。
 - Produces: exact path日次POST bridge、`buildDailyUpdateRequest()`、`secretsMatch()`、専用秘密鍵だけを持つGitHub caller。
 
-- [ ] **Step 1: exact path・秘密鍵・payloadの失敗testを書く**
+- [x] **Step 1: exact path・秘密鍵・payloadの失敗testを書く**
 
 Node contractとPython unittestで次を固定する。
 
@@ -204,13 +204,13 @@ assert.doesNotMatch(monthlyWorkflow, /schedule:/);
 
 Python testは`request_id`がUUID、age fieldがない、headerが`x-escomi-daily-update-secret`だけ、Basic認証を付けないことを検証する。Node testは1byteずつ流れる256KB本文が成功し、256KB+1byteはreaderが残りを全読込せず413を返すこと、unknown pathではbodyを読まないことを実行検証する。
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-daily-update-proxy-contract.mjs && cd ../ai-site-monitor && python -m unittest tests.test_daily_update_payload`
 
 Expected: 受信Authorization転送またはrequest_id不在でFAIL。
 
-- [ ] **Step 3: timing-safe secretとserver-only認証headerを実装する**
+- [x] **Step 3: timing-safe secretとserver-only認証headerを実装する**
 
 ```ts
 export function secretsMatch(expected: string, actual: string): boolean {
@@ -222,31 +222,31 @@ export function secretsMatch(expected: string, actual: string): boolean {
 
 `buildDailyUpdateUpstreamHeaders()`は受信headerを複製せず、`Content-Type: application/json`とserver環境変数から作ったWordPress Basic headerだけを返す。秘密値をlog・responseへ含めない。
 
-- [ ] **Step 4: POSTを日次routeだけへ縮小する**
+- [x] **Step 4: POSTを日次routeだけへ縮小する**
 
 GET/HEADは従来の公開proxyとして認証headerなしで維持する。POSTは`targetPath === "escomi/v1/update"`、JSON、256KB以下だけを許可する。`readBoundedJsonBody(request.body, 262144)`は`ReadableStreamDefaultReader`をchunkごとに読み、累積が上限を1byteでも超えた時点で`reader.cancel()`して413を返す。`Content-Length`だけを信用せず、先に`arrayBuffer()`で全本文を確保しない。
 
 3環境変数のどれかが未設定なら503、専用headerなし・不一致は401、対象外pathは405、上限超過は413、JSON不正は400とする。受信Authorizationは常に破棄する。
 
-- [ ] **Step 5: 日次・毎時callerを専用秘密鍵へ移行する**
+- [x] **Step 5: 日次・毎時callerを専用秘密鍵へ移行する**
 
 `ai_auto_updater.py`と`hourly_schedule_updater.py`は各requestで`str(uuid.uuid4())`をpayloadへ入れ、`DAILY_UPDATE_PROXY_SECRET`を`x-escomi-daily-update-secret`へ付ける。POSTで`WP_USER`・`WP_APP_PASSWORD`を使わず、年齢fieldをpayloadから削除する。店舗一覧の公開GETは認証なしへ変更し、公開responseに必要項目がない時は更新対象から外して理由だけを記録する。
 
 `.github/workflows/daily_shop_update.yml`は`DAILY_UPDATE_PROXY_SECRET`だけをcallerへ渡し、旧WordPress認証secretを渡さない。preflightは秘密鍵なし401、秘密鍵あり・空payload400を正常なroute存在確認とする。
 
-- [ ] **Step 6: 月次・移行・汎用crawlerの直接書込を停止する**
+- [x] **Step 6: 月次・移行・汎用crawlerの直接書込を停止する**
 
 `.github/workflows/monthly_shop_summary.yml`の`schedule`を削除し、`workflow_dispatch`も「Supabase staging計画完了まで書込を実行せず説明を出して終了」へ変更する。`ai_monthly_updater.py`、`price_migrator.py`、`tools/ai_crawl_engine.py`から日次routeへ料金・紹介・公式URL・年齢を送る経路を削除または明示的に停止する。公式サイト自動収集の入力項目は設計上残すが、このplanでは公開書込しない。
 
 `SHOP-prompt.md`、`DEPLOY-AI-UPDATE.md`、`tools/AI-CRAWL-README.md`から`WP_USER/WP_APP_PASSWORD`をcallerへ渡して公開URLへ直接POSTする手順を削除する。日次3項目は専用bridge、料金・紹介・公式URL・年齢は非公開staging完成まで実行禁止と明記する。過去記録として残す必要がある箇所は冒頭へ`DEPRECATED / 実行禁止`を付け、コピー可能な旧curl・command・secret名を残さない。contract scriptは3文書に旧直接POST手順がないことを検査する。
 
-- [ ] **Step 7: GREENを確認する**
+- [x] **Step 7: GREENを確認する**
 
 Run: `cd headless && node scripts/check-daily-update-proxy-contract.mjs && npm run typecheck && npm run lint && cd ../ai-site-monitor && python -m unittest tests.test_daily_update_payload`
 
 Expected: contract、typecheck、lint PASS。
 
-- [ ] **Step 8: commitする**
+- [x] **Step 8: commitする**
 
 ```bash
 git add headless/app/wp-json/\[\[...path\]\]/route.ts headless/lib/server/secure-secret.ts headless/lib/wp/daily-update-proxy.ts headless/scripts/check-daily-update-proxy-contract.mjs headless/.env.example headless/package.json ai-site-monitor/ai_auto_updater.py ai-site-monitor/ai_monthly_updater.py ai-site-monitor/hourly_schedule_updater.py ai-site-monitor/price_migrator.py ai-site-monitor/crawler_base.py ai-site-monitor/README.md ai-site-monitor/tests/test_daily_update_payload.py SHOP-prompt.md DEPLOY-AI-UPDATE.md tools/ai_crawl_engine.py tools/AI-CRAWL-README.md .github/workflows/daily_shop_update.yml .github/workflows/monthly_shop_summary.yml
