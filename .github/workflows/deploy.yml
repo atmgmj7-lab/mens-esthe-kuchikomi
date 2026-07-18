@@ -62,7 +62,7 @@ jobs:
             echo "::error::XServer SSH port is outside the allowed range."
             exit 1
           fi
-          if [[ ! "$XSERVER_SSH_USER" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          if [[ ! "$XSERVER_SSH_USER" =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]]; then
             echo "::error::XServer SSH user contains unsupported characters."
             exit 1
           fi
@@ -70,19 +70,6 @@ jobs:
             echo "::error::XServer SSH path does not match the approved theme directory."
             exit 1
           fi
-
-      - name: Configure SSH client
-        env:
-          XSERVER_SSH_PRIVATE_KEY: ${{ secrets.XSERVER_SSH_PRIVATE_KEY }}
-          XSERVER_SSH_KNOWN_HOSTS: ${{ secrets.XSERVER_SSH_KNOWN_HOSTS }}
-        run: |
-          set -euo pipefail
-          install -d -m 700 "$HOME/.ssh"
-          umask 077
-          printf '%s\n' "$XSERVER_SSH_PRIVATE_KEY" > "$HOME/.ssh/xserver_deploy"
-          printf '%s\n' "$XSERVER_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
-          chmod 600 "$HOME/.ssh/xserver_deploy"
-          chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -97,8 +84,9 @@ jobs:
           cd dashboard
           npm ci
           npm run build
-          cp -r out/. .
-          rm -rf out
+          test -d out
+          test -f out/index.html
+          test -d out/_next
 
       - name: Prepare safe deployment stage
         env:
@@ -109,25 +97,25 @@ jobs:
           mkdir -p "$STAGE_DIR"
 
           rsync -a "$GITHUB_WORKSPACE/" "$STAGE_DIR/" \
-            --exclude='/.git' \
-            --exclude='/.git/' \
-            --exclude='/.gitignore' \
-            --exclude='/.github/' \
-            --exclude='/.deploy/' \
-            --exclude='/.superpowers/' \
-            --exclude='/.vscode/' \
-            --exclude='/.cursor/' \
-            --exclude='/.cursorrules' \
-            --exclude='/docs/' \
-            --exclude='/headless/' \
-            --exclude='/pm/' \
-            --exclude='/tools/' \
-            --exclude='/ai-site-monitor/' \
-            --exclude='/content/' \
-            --exclude='/agent-foundation/' \
-            --exclude='/MensEsthe-Notes/' \
-            --exclude='/supabase/' \
-            --exclude='/tests/' \
+            --exclude='.git' \
+            --exclude='.git/' \
+            --exclude='.gitignore' \
+            --exclude='.github/' \
+            --exclude='.deploy/' \
+            --exclude='.superpowers/' \
+            --exclude='.vscode/' \
+            --exclude='.cursor/' \
+            --exclude='.cursorrules' \
+            --exclude='docs/' \
+            --exclude='headless/' \
+            --exclude='pm/' \
+            --exclude='tools/' \
+            --exclude='ai-site-monitor/' \
+            --exclude='content/' \
+            --exclude='agent-foundation/' \
+            --exclude='MensEsthe-Notes/' \
+            --exclude='supabase/' \
+            --exclude='tests/' \
             --exclude='node_modules/' \
             --exclude='venv/' \
             --exclude='__pycache__/' \
@@ -135,40 +123,39 @@ jobs:
             --exclude='.DS_Store' \
             --exclude='.idea/' \
             --exclude='.vscode/' \
-            --exclude='*.md' \
-            --exclude='*.markdown' \
-            --exclude='*.MD' \
-            --exclude='*.log' \
+            --exclude='*.[mM][dD]' \
+            --exclude='*.[mM][aA][rR][kK][dD][oO][wW][nN]' \
+            --exclude='*.[lL][oO][gG]' \
             --exclude='.env' \
             --exclude='.env.*' \
-            --exclude='*.secret' \
-            --exclude='*.pem' \
-            --exclude='/import-test.php' \
-            --exclude='/import-shops-web.php' \
-            --exclude='/extract_target_list.py' \
-            --exclude='/requirements-extract.txt' \
-            --exclude='/requirements-extract*.txt' \
-            --exclude='/shops.csv' \
-            --exclude='/wp_shops.example.json' \
-            --exclude='/opcache-reset.php' \
-            --exclude='/github-test.txt' \
-            --exclude='/start.sh' \
-            --exclude='/screenshot.png' \
-            --exclude='/dashboard/app/' \
-            --exclude='/dashboard/lib/' \
-            --exclude='/dashboard/components/' \
-            --exclude='/dashboard/public/' \
-            --exclude='/dashboard/node_modules/' \
-            --exclude='/dashboard/.next/' \
-            --exclude='/dashboard/out/' \
-            --exclude='/dashboard/next.config.ts' \
-            --exclude='/dashboard/tsconfig.json' \
-            --exclude='/dashboard/postcss.config.mjs' \
-            --exclude='/dashboard/eslint.config.mjs' \
-            --exclude='/dashboard/package.json' \
-            --exclude='/dashboard/package-lock.json' \
-            --exclude='/dashboard/next-env.d.ts' \
-            --exclude='/dashboard/.gitignore'
+            --exclude='*.[sS][eE][cC][rR][eE][tT]' \
+            --exclude='*.[pP][eE][mM]' \
+            --exclude='import-test.php' \
+            --exclude='import-shops-web.php' \
+            --exclude='extract_target_list.py' \
+            --exclude='requirements-extract*.txt' \
+            --exclude='shops.csv' \
+            --exclude='wp_shops.example.json' \
+            --exclude='opcache-reset.php' \
+            --exclude='github-test.txt' \
+            --exclude='start.sh' \
+            --exclude='screenshot.png' \
+            --exclude='dashboard/'
+
+          if ! test -d "$GITHUB_WORKSPACE/dashboard/out"; then
+            echo "::error::Dashboard export directory is missing."
+            exit 1
+          fi
+          if ! test -f "$GITHUB_WORKSPACE/dashboard/out/index.html"; then
+            echo "::error::Dashboard export is missing index.html."
+            exit 1
+          fi
+          if ! test -d "$GITHUB_WORKSPACE/dashboard/out/_next"; then
+            echo "::error::Dashboard export is missing generated assets."
+            exit 1
+          fi
+          mkdir -p "$STAGE_DIR/dashboard"
+          rsync -a "$GITHUB_WORKSPACE/dashboard/out/" "$STAGE_DIR/dashboard/"
 
           if [[ -z "$(find "$STAGE_DIR" -mindepth 1 -print -quit)" ]]; then
             echo "::error::Deployment stage is empty."
@@ -182,17 +169,31 @@ jobs:
             echo "::error::Deployment stage is missing style.css."
             exit 1
           fi
+          if ! test -f "$STAGE_DIR/dashboard/index.html"; then
+            echo "::error::Deployment stage is missing dashboard/index.html."
+            exit 1
+          fi
+          if ! test -d "$STAGE_DIR/dashboard/_next"; then
+            echo "::error::Deployment stage is missing dashboard generated assets."
+            exit 1
+          fi
 
           FORBIDDEN_PATH="$(find "$STAGE_DIR" -mindepth 1 \
-            \( -name '.git' -o -name '.github' -o -name '.deploy' -o -name '.superpowers' \
-              -o -name 'docs' -o -name 'headless' -o -name 'pm' -o -name 'tools' \
+            \( -name '.git' -o -name '.gitignore' -o -name '.github' -o -name '.deploy' \
+              -o -name '.superpowers' -o -name '.vscode' -o -name '.cursor' \
+              -o -name '.cursorrules' -o -name 'docs' -o -name 'headless' \
+              -o -name 'pm' -o -name 'tools' \
               -o -name 'ai-site-monitor' -o -name 'content' -o -name 'agent-foundation' \
               -o -name 'MensEsthe-Notes' -o -name 'supabase' -o -name 'tests' \
-              -o -name 'node_modules' -o -name '.next' -o -name 'out' \
-              -o -iname '*.md' -o -iname '*.markdown' -o -name '*.log' \
-              -o -name '.env' -o -name '.env.*' -o -name '*.secret' -o -name '*.pem' \
+              -o -name 'node_modules' -o -name 'venv' -o -name '__pycache__' \
+              -o -name '.pytest_cache' -o -name '.DS_Store' -o -name '.idea' \
+              -o -iname '*.md' -o -iname '*.markdown' -o -iname '*.log' \
+              -o -name '.env' -o -name '.env.*' -o -iname '*.secret' -o -iname '*.pem' \
               -o -name 'import-test.php' -o -name 'import-shops-web.php' \
-              -o -name 'extract_target_list.py' -o -name 'opcache-reset.php' \) \
+              -o -name 'extract_target_list.py' -o -name 'requirements-extract*.txt' \
+              -o -name 'shops.csv' -o -name 'wp_shops.example.json' \
+              -o -name 'opcache-reset.php' -o -name 'github-test.txt' \
+              -o -name 'start.sh' -o -name 'screenshot.png' \) \
             -print -quit)"
           if [[ -n "$FORBIDDEN_PATH" ]]; then
             echo "::error::Forbidden deploy file detected in the staging directory."
@@ -208,6 +209,19 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Configure SSH client
+        env:
+          XSERVER_SSH_PRIVATE_KEY: ${{ secrets.XSERVER_SSH_PRIVATE_KEY }}
+          XSERVER_SSH_KNOWN_HOSTS: ${{ secrets.XSERVER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          umask 077
+          printf '%s\n' "$XSERVER_SSH_PRIVATE_KEY" > "$HOME/.ssh/xserver_deploy"
+          printf '%s\n' "$XSERVER_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/xserver_deploy"
+          chmod 600 "$HOME/.ssh/known_hosts"
 
       - name: Verify remote theme directory and deploy
         env:

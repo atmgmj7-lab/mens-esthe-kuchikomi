@@ -20,6 +20,29 @@ const packageJson = JSON.parse(packageSource);
 const EXPECTED_THEME_PATH =
   "/home/xs454693/mens-esthe-kuchikomi.com/public_html/wp-content/themes/swell_child/";
 
+function extractWorkflowStep(stepName) {
+  const marker = `      - name: ${stepName}\n`;
+  const start = workflowSource.indexOf(marker);
+  assert.notEqual(start, -1, `workflow step is required: ${stepName}`);
+  const nextStep = workflowSource.indexOf("\n      - name:", start + marker.length);
+  return workflowSource.slice(start, nextStep === -1 ? undefined : nextStep);
+}
+
+function assertNoRemoteDelete(stepSource) {
+  assert.doesNotMatch(
+    stepSource,
+    /--delete\b/,
+    "remote deploy step must never delete files that are absent from the stage",
+  );
+}
+
+const validationStep = extractWorkflowStep("Validate SSH deployment inputs");
+const buildDashboardStep = extractWorkflowStep("Build Dashboard");
+const stageStep = extractWorkflowStep("Prepare safe deployment stage");
+const configureSshStep = extractWorkflowStep("Configure SSH client");
+const remoteDeployStep = extractWorkflowStep("Verify remote theme directory and deploy");
+const restCheckStep = extractWorkflowStep("Post-deploy REST check");
+
 assert.doesNotMatch(
   workflowSource,
   /FTP|ftps|SamKirkland\/FTP-Deploy-Action/i,
@@ -51,103 +74,191 @@ for (const variableName of [
   );
 }
 
-assert.match(workflowSource, /\[\[\s+-z\s+"\$XSERVER_SSH_HOST"\s+\]\]/);
+assert.match(validationStep, /\[\[\s+-z\s+"\$XSERVER_SSH_HOST"\s+\]\]/);
+assert.ok(validationStep.includes("=~ ^([A-Za-z0-9]"), "host must use a DNS allow-list");
+assert.ok(validationStep.includes("=~ ^[0-9.]+$"), "numeric IP-shaped hosts must be rejected");
+assert.match(validationStep, /10#\$XSERVER_SSH_PORT\s*<\s*1/);
+assert.match(validationStep, /10#\$XSERVER_SSH_PORT\s*>\s*65535/);
 assert.ok(
-  workflowSource.includes("=~ ^([A-Za-z0-9]"),
-  "host must use a DNS allow-list",
+  validationStep.includes("=~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$"),
+  "SSH user must not start with a hyphen",
 );
 assert.ok(
-  workflowSource.includes("=~ ^[0-9.]+$"),
-  "numeric IP-shaped hosts must be rejected",
-);
-assert.match(workflowSource, /10#\$XSERVER_SSH_PORT\s*<\s*1/);
-assert.match(workflowSource, /10#\$XSERVER_SSH_PORT\s*>\s*65535/);
-assert.ok(
-  workflowSource.includes("=~ ^[A-Za-z0-9_-]+$"),
-  "SSH user must use a strict allow-list",
-);
-assert.ok(
-  workflowSource.includes(`EXPECTED_THEME_PATH="${EXPECTED_THEME_PATH}"`),
+  validationStep.includes(`EXPECTED_THEME_PATH="${EXPECTED_THEME_PATH}"`),
   "the only accepted remote path must be explicit",
 );
 assert.match(
-  workflowSource,
+  validationStep,
   /\[\[\s+"\$XSERVER_SSH_PATH"\s+!=\s+"\$EXPECTED_THEME_PATH"\s+\]\]/,
   "remote path must be checked by exact equality",
 );
 
-assert.match(workflowSource, /install\s+-d\s+-m\s+700\s+"\$HOME\/\.ssh"/);
-assert.match(workflowSource, /chmod\s+600\s+"\$HOME\/\.ssh\/xserver_deploy"/);
-assert.match(workflowSource, /chmod\s+600\s+"\$HOME\/\.ssh\/known_hosts"/);
+const stagePosition = workflowSource.indexOf("      - name: Prepare safe deployment stage");
+const configureSshPosition = workflowSource.indexOf("      - name: Configure SSH client");
+const remoteDeployPosition = workflowSource.indexOf(
+  "      - name: Verify remote theme directory and deploy",
+);
+assert.ok(
+  stagePosition < configureSshPosition && configureSshPosition < remoteDeployPosition,
+  "SSH credentials must be written only after local build and stage validation",
+);
+assert.match(configureSshStep, /install\s+-d\s+-m\s+700\s+"\$HOME\/\.ssh"/);
+assert.match(configureSshStep, /chmod\s+600\s+"\$HOME\/\.ssh\/xserver_deploy"/);
+assert.match(configureSshStep, /chmod\s+600\s+"\$HOME\/\.ssh\/known_hosts"/);
+
+assert.match(buildDashboardStep, /npm ci[\s\S]*npm run build/);
+assert.match(buildDashboardStep, /test\s+-d\s+out/);
+assert.match(buildDashboardStep, /test\s+-f\s+out\/index\.html/);
+assert.match(buildDashboardStep, /test\s+-d\s+out\/_next/);
+assert.doesNotMatch(buildDashboardStep, /cp\s+-r\s+out\/\.\s+\./);
+assert.doesNotMatch(buildDashboardStep, /rm\s+-rf\s+out/);
+
+assert.match(stageStep, /STAGE_DIR:\s*\$\{\{ runner\.temp \}\}\/xserver-theme-stage/);
+assert.match(stageStep, /rsync\s+-a\s+"\$GITHUB_WORKSPACE\/"\s+"\$STAGE_DIR\/"/);
+const rootCopyStart = stageStep.indexOf('rsync -a "$GITHUB_WORKSPACE/" "$STAGE_DIR/"');
+const dashboardSourceGuardStart = stageStep.indexOf(
+  'if ! test -d "$GITHUB_WORKSPACE/dashboard/out"',
+);
+assert.ok(rootCopyStart !== -1 && dashboardSourceGuardStart > rootCopyStart);
+const rootCopyBlock = stageStep.slice(rootCopyStart, dashboardSourceGuardStart);
+const forbiddenScanStart = stageStep.indexOf('FORBIDDEN_PATH="$(find "$STAGE_DIR"');
+const forbiddenScanEnd = stageStep.indexOf('if [[ -n "$FORBIDDEN_PATH" ]]', forbiddenScanStart);
+assert.ok(forbiddenScanStart !== -1 && forbiddenScanEnd > forbiddenScanStart);
+const forbiddenScanBlock = stageStep.slice(forbiddenScanStart, forbiddenScanEnd);
+
+const forbiddenDirectories = [
+  ".git",
+  ".github",
+  ".deploy",
+  ".superpowers",
+  ".vscode",
+  ".cursor",
+  "docs",
+  "headless",
+  "pm",
+  "tools",
+  "ai-site-monitor",
+  "content",
+  "agent-foundation",
+  "MensEsthe-Notes",
+  "supabase",
+  "tests",
+  "node_modules",
+  "venv",
+  "__pycache__",
+  ".pytest_cache",
+  ".idea",
+];
+const forbiddenFiles = [
+  ".git",
+  ".gitignore",
+  ".cursorrules",
+  ".DS_Store",
+  "import-test.php",
+  "import-shops-web.php",
+  "extract_target_list.py",
+  "requirements-extract*.txt",
+  "shops.csv",
+  "wp_shops.example.json",
+  "opcache-reset.php",
+  "github-test.txt",
+  "start.sh",
+  "screenshot.png",
+];
+const forbiddenPatterns = [
+  { exclude: "*.[mM][dD]", find: "*.md", operator: "-iname" },
+  {
+    exclude: "*.[mM][aA][rR][kK][dD][oO][wW][nN]",
+    find: "*.markdown",
+    operator: "-iname",
+  },
+  { exclude: "*.[lL][oO][gG]", find: "*.log", operator: "-iname" },
+  { exclude: ".env", find: ".env", operator: "-name" },
+  { exclude: ".env.*", find: ".env.*", operator: "-name" },
+  {
+    exclude: "*.[sS][eE][cC][rR][eE][tT]",
+    find: "*.secret",
+    operator: "-iname",
+  },
+  { exclude: "*.[pP][eE][mM]", find: "*.pem", operator: "-iname" },
+];
+
+for (const directoryName of forbiddenDirectories) {
+  assert.ok(
+    rootCopyBlock.includes(`--exclude='${directoryName}/'`),
+    `${directoryName}/ must be excluded by basename at any depth`,
+  );
+  assert.ok(
+    forbiddenScanBlock.includes(`-name '${directoryName}'`),
+    `${directoryName} must be rejected by the post-copy scan`,
+  );
+}
+for (const fileName of forbiddenFiles) {
+  assert.ok(
+    rootCopyBlock.includes(`--exclude='${fileName}'`),
+    `${fileName} must be excluded by basename at any depth`,
+  );
+  assert.ok(
+    forbiddenScanBlock.includes(`-name '${fileName}'`),
+    `${fileName} must be rejected by the post-copy scan`,
+  );
+}
+for (const pattern of forbiddenPatterns) {
+  assert.ok(
+    rootCopyBlock.includes(`--exclude='${pattern.exclude}'`),
+    `${pattern.exclude} must be excluded at any depth`,
+  );
+  assert.ok(
+    forbiddenScanBlock.includes(`${pattern.operator} '${pattern.find}'`),
+    `${pattern.find} must be rejected by the post-copy scan`,
+  );
+}
+
+assert.ok(
+  rootCopyBlock.includes("--exclude='dashboard/'"),
+  "root copy must exclude all dashboard source",
+);
+assert.match(stageStep, /test\s+-d\s+"\$GITHUB_WORKSPACE\/dashboard\/out"/);
+assert.match(stageStep, /test\s+-f\s+"\$GITHUB_WORKSPACE\/dashboard\/out\/index\.html"/);
+assert.match(stageStep, /test\s+-d\s+"\$GITHUB_WORKSPACE\/dashboard\/out\/_next"/);
+assert.match(
+  stageStep,
+  /rsync\s+-a\s+"\$GITHUB_WORKSPACE\/dashboard\/out\/"\s+"\$STAGE_DIR\/dashboard\/"/,
+  "only the dashboard export may be copied into the stage",
+);
+assert.match(stageStep, /test\s+-f\s+"\$STAGE_DIR\/dashboard\/index\.html"/);
+assert.match(stageStep, /test\s+-d\s+"\$STAGE_DIR\/dashboard\/_next"/);
+assert.match(stageStep, /find\s+"\$STAGE_DIR"\s+-mindepth 1\s+-print\s+-quit/);
+assert.match(stageStep, /test\s+-f\s+"\$STAGE_DIR\/functions\.php"/);
+assert.match(stageStep, /test\s+-f\s+"\$STAGE_DIR\/style\.css"/);
+assert.match(stageStep, /forbidden deploy file/i);
+
 for (const sshOption of [
   "BatchMode=yes",
   "IdentitiesOnly=yes",
   "StrictHostKeyChecking=yes",
 ]) {
   assert.ok(
-    (workflowSource.match(new RegExp(sshOption, "g")) ?? []).length >= 2,
+    (remoteDeployStep.match(new RegExp(sshOption, "g")) ?? []).length >= 2,
     `${sshOption} must protect both ssh and rsync`,
   );
 }
-
-assert.match(workflowSource, /STAGE_DIR:\s*\$\{\{ runner\.temp \}\}\/xserver-theme-stage/);
-assert.match(workflowSource, /rsync\s+-a\s+"\$GITHUB_WORKSPACE\/"\s+"\$STAGE_DIR\/"/);
-for (const excludedPath of [
-  "/.git",
-  "/.git/",
-  "/.github/",
-  "/.deploy/",
-  "/docs/",
-  "/headless/",
-  "/pm/",
-  "/tools/",
-  "/ai-site-monitor/",
-  "/content/",
-  "/agent-foundation/",
-  "/MensEsthe-Notes/",
-  "/dashboard/app/",
-  "/dashboard/lib/",
-  "/dashboard/components/",
-  "/dashboard/public/",
-  "/dashboard/node_modules/",
-  "/dashboard/.next/",
-  "/dashboard/out/",
-]) {
-  assert.ok(workflowSource.includes(`--exclude='${excludedPath}'`), `${excludedPath} must be excluded`);
-}
-for (const excludedPattern of [
-  "*.md",
-  "*.markdown",
-  "*.log",
-  ".env",
-  ".env.*",
-  "*.secret",
-  "*.pem",
-]) {
-  assert.ok(
-    workflowSource.includes(`--exclude='${excludedPattern}'`),
-    `${excludedPattern} must be excluded`,
-  );
-}
-
-assert.match(workflowSource, /find\s+"\$STAGE_DIR"\s+-mindepth 1\s+-print\s+-quit/);
-assert.match(workflowSource, /test\s+-f\s+"\$STAGE_DIR\/functions\.php"/);
-assert.match(workflowSource, /test\s+-f\s+"\$STAGE_DIR\/style\.css"/);
-assert.match(workflowSource, /forbidden deploy file/i);
-
 assert.match(
-  workflowSource,
-  /ssh[\s\S]{0,900}test -d[\s\S]{0,300}style\.css/,
+  remoteDeployStep,
+  /ssh[\s\S]*test -d[\s\S]*style\.css[\s\S]*rsync\s+-rltz/,
   "remote theme directory and style.css must be checked before rsync",
 );
-assert.match(workflowSource, /rsync\s+-rltz/);
-assert.match(workflowSource, /--no-perms\s+--no-owner\s+--no-group/);
-assert.doesNotMatch(workflowSource, /rsync[^\n]*--delete/);
+assert.match(remoteDeployStep, /--no-perms\s+--no-owner\s+--no-group/);
+assertNoRemoteDelete(remoteDeployStep);
+assert.throws(
+  () => assertNoRemoteDelete(remoteDeployStep.replace("rsync -rltz", "rsync \\\n+            --delete \\\n+            -rltz")),
+  assert.AssertionError,
+  "the remote-delete contract must catch --delete even when it is moved to another line",
+);
 
-assert.match(workflowSource, /Post-deploy REST check/);
-assert.match(workflowSource, /\/wp-json\/escomi\/v1\/update/);
-assert.match(workflowSource, /"\$HTTP_CODE"\s*=\s*"401"/);
-assert.match(workflowSource, /"\$HTTP_CODE"\s*=\s*"403"/);
+assert.match(restCheckStep, /\/wp-json\/escomi\/v1\/update/);
+assert.match(restCheckStep, /"\$HTTP_CODE"\s*=\s*"401"/);
+assert.match(restCheckStep, /"\$HTTP_CODE"\s*=\s*"403"/);
 
 assert.equal(
   packageJson.scripts["test:xserver-ssh-deploy"],
