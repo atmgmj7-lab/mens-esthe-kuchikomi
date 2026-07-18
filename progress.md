@@ -620,3 +620,11 @@
 - 修正前は認証route網羅、graph fixture、認証表、BLOCK-001の4 source assertionが失敗した。初回全browserはCSS module identityの誤りでSVG 4条件が失敗し、正しいclass mappingへ直した後にgraph専用14/14と全browser 98/98を成功させた。検査条件は緩めていない。
 - 最終確認は`npm test`、lint、typecheck、824/824 build（build ID `4mQkXziAHjCL6rhR1Wu6g`）、headless 98 scenarios・90,648 assertions・56 screenshots・failures 0、performance 6対象、High/Critical 0、`git diff --check`が成功した。
 - 認証情報確認表とBLOCKERの矛盾を解消した。旧Xserver password候補は提供元で拒否され無効、再発行しない。専用SSH keyは外部設定済みだが、workflowのSSH移行、初回deploy、1店舗疎通は未完了。push、deploy、本番WordPress/Supabase操作は行っていない。
+
+## 2026-07-19 Phase 17 Task 8 再レビュー幅修正
+
+- 旧graph fixtureは本番の`.page`・`.shell`・`.section`階層を通らず、独自`main max-width: 960px`で本文を過大表示していた。REDで1024pxは960px対期待644px、901pxは869px対期待521pxを確認した。
+- fixtureを本番6階層のidentity classへ移し、本番`ShopReviewDashboard`を`.reviews`内へ描画した。fixture固有のmain幅とpaddingは削除した。
+- 901px以上は220px見出し＋32px gap＋本文の2列、900px以下は1列をcomputed styleと実寸で確認する。fixtureと公開実routeのsection・本文幅も14条件すべてで一致させ、既存Range・SVG・overflow検査は維持した。
+- graph focusedは14 scenarios・697 assertions・failures 0。fresh build後の全browserは98 scenarios・90,883 assertions・56 screenshots・failures 0。
+- `npm test`、lint、typecheck、824/824 build（build ID `2dC0C96qFJufAgIzzj575`）、performance 6対象、High/Critical 0が成功した。通常Chrome、push、deploy、本番WordPress/Supabase操作は行っていない。

@@ -173,7 +173,7 @@ Phase 17 in_progress（Task 1〜6は独立レビュー0件で完了。ユーザ�
 - Task 5: `27b9f33..b01888e`、独立再レビュー Critical 0 / Important 0 / Minor 0
 - Task 6: `ba7c33b`、独立レビュー Critical 0 / Important 0 / Minor 0
 - Task 7: `e7f3a48..c3133e5`、独立再レビュー Critical 0 / Important 0 / Minor 0
-- Task 8: `39d4e82`で全幅QAと検証記録を保存。レビュー指摘を別commitで修正し、dashboard 2routeの3認証状態と本番口コミcomponent/CSSの非公開graph fixtureを14条件で実測した。
+- Task 8: `39d4e82`と`1bb8c76`で全幅QA・検証記録・初回レビュー指摘を保存。再レビューのfixture幅指摘も、本番6階層・computed grid・公開実route同値比較へ修正した。
 - **Status:** in_progress（Task 1〜8のローカル実装・レビュー指摘修正完了、Task 8の独立再確認と本番反映判断は未実施）
 
 ### Phase 18: AI一括取込・管理画面

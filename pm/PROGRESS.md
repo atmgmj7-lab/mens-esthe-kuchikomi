@@ -3270,3 +3270,11 @@ pm/PROGRESS.md
 - `npm test`、lint、typecheck、824/824 build（build ID `4mQkXziAHjCL6rhR1Wu6g`）、performance 6対象、High/Critical 0、`git diff --check`が成功した。
 - `pm/SECURITY-ROTATION-CHECKLIST-2026-07-18.md`と`pm/BLOCKER.md`を現状へ統一した。旧password候補は提供元で拒否され無効、再発行しない。専用SSH keyは外部設定済み。SSH workflow移行、初回deploy、1店舗疎通は未完了で、BLOCK-001を対応中へ戻した。
 - 通常Chrome、push、deploy、本番WordPress/Supabase操作は行っていない。Task 8の独立再確認と本番反映判断は別工程のまま。
+
+## 2026-07-19 Phase 17 Task 8 再レビュー幅修正
+
+- 旧graph fixtureは本番`.page`・`.shell`・`.section`を迂回し、fixture独自の960px mainで口コミ本文を過大表示していた。REDは1024pxで960px対644px、901pxで869px対521px。
+- 本番6階層のidentity classへ変更し、fixture固有main幅・paddingを削除した。901px以上は220px＋32px＋本文の2列、900px以下は1列をcomputed styleと実寸で固定した。
+- fixtureと公開実routeのsection・本文幅を14条件で直接比較し、既存の全Range、SVG、graph/viewport内包、横はみ出し0検査を維持した。
+- focused 14 scenarios・697 assertions、fresh build後の全98 scenarios・90,883 assertions・56 screenshotsはいずれもfailures 0。
+- 全test、lint、typecheck、824/824 build（build ID `2dC0C96qFJufAgIzzj575`）、performance 6対象、High/Critical 0が成功。push、deploy、本番操作は行っていない。

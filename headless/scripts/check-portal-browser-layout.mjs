@@ -128,14 +128,11 @@ async function renderReviewGraphFixture() {
     React.createElement(ShopReviewDashboard, { model })
   );
   const fixtureCss = `
-    :root { --ink: #14221c; --sub: #5f6d67; --green: #176b4d; --line: #dce3df; --gold: #aa7a21; }
-    * { box-sizing: border-box; }
-    html, body { width: 100%; max-width: 100%; margin: 0; }
-    body { padding: 16px; color: var(--ink); background: #fff; font-family: system-ui, sans-serif; }
-    main { width: 100%; max-width: 960px; min-width: 0; margin: 0 auto; }
+    html, body { width: 100%; margin: 0; }
+    body { background: #fff; font-family: system-ui, sans-serif; }
     ${productionCss}
   `;
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${fixtureCss}</style></head><body><main data-review-graph-fixture="true">${markup}</main></body></html>`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${fixtureCss}</style></head><body><main class="page" data-review-graph-fixture="true"><div class="shell"><div class="sections"><section class="section"><header class="sectionHeading"><h2>口コミ</h2></header><div class="reviews">${markup}</div></section></div></div></main></body></html>`;
 }
 
 function dashboardCredentials() {
@@ -252,6 +249,7 @@ let assertionCount = 0;
 let screenshotCount = 0;
 let completedScenarios = 0;
 const screenshotFiles = [];
+const realShopReviewLayouts = new Map();
 const startedAt = new Date().toISOString();
 const runId = `${startedAt.replace(/[:.]/g, "-")}-${process.pid}`;
 const runScreenshotDir = path.join(reportDir, "runs", runId);
@@ -268,6 +266,24 @@ function fail(label, details = {}) {
 
 function approximately(actual, expected, tolerance) {
   return Number.isFinite(actual) && Math.abs(actual - expected) <= tolerance;
+}
+
+function expectedProductionReviewLayout(viewport) {
+  const shellWidth = viewport.width <= 760
+    ? viewport.width - 32
+    : viewport.width <= 768
+      ? viewport.width - 64
+      : Math.min(viewport.width - 80, 1200);
+  const shellInlinePadding = viewport.width <= 760 ? 0 : 48;
+  const sectionWidth = shellWidth - shellInlinePadding;
+  const twoColumns = viewport.width > 900;
+  return {
+    shellWidth,
+    sectionWidth,
+    headingWidth: twoColumns ? 220 : sectionWidth,
+    contentWidth: twoColumns ? sectionWidth - 220 - 32 : sectionWidth,
+    twoColumns
+  };
 }
 
 function sanitizeRuntimeText(value) {
@@ -526,6 +542,8 @@ async function collectMetrics(page) {
       .map((link) => link.getAttribute("href")?.slice(1) ?? "")
       .filter((id) => !id || !document.getElementById(id));
     const reviewSection = shopRoot?.querySelector("section#reviews");
+    const reviewSectionHeading = reviewSection?.children[0] ?? null;
+    const reviewSectionContent = reviewSection?.children[1] ?? null;
     const reviewGraph = reviewSection?.querySelector('[role="group"][aria-label="承認済み口コミの評価グラフ"]');
     const reviewFallback = reviewSection
       ? [...reviewSection.querySelectorAll("p")].find((paragraph) =>
@@ -588,6 +606,15 @@ async function collectMetrics(page) {
             reviewGraphCount: reviewGraph ? 1 : 0,
             reviewFallbackCount: reviewFallback ? 1 : 0,
             reviewFallbackText: reviewFallback?.textContent?.trim() ?? null,
+            reviewLayout: reviewSection
+              ? {
+                  section: rect(reviewSection),
+                  heading: rect(reviewSectionHeading),
+                  content: rect(reviewSectionContent),
+                  gridTemplateColumns: getComputedStyle(reviewSection).gridTemplateColumns,
+                  columnGap: getComputedStyle(reviewSection).columnGap
+                }
+              : null,
             graphText,
             visibleActionGroups: visibleGroups.map((group) => ({
               box: rect(group),
@@ -1154,6 +1181,12 @@ async function checkDashboardAuthentication() {
 
 async function collectReviewGraphFixtureMetrics(page) {
   return page.evaluate(() => {
+    const pageRoot = document.querySelector("main.page");
+    const shell = pageRoot?.querySelector(":scope > .shell");
+    const sections = shell?.querySelector(":scope > .sections");
+    const section = sections?.querySelector(":scope > section.section");
+    const heading = section?.querySelector(":scope > .sectionHeading");
+    const reviews = section?.querySelector(":scope > .reviews");
     const graph = document.querySelector(
       '[role="group"][aria-label="承認済み口コミの評価グラフ"]'
     );
@@ -1194,6 +1227,21 @@ async function collectReviewGraphFixtureMetrics(page) {
       graphCount: graph ? 1 : 0,
       fallbackCount: fallback ? 1 : 0,
       graphBox: graphBox ? rect(graphBox) : null,
+      productionLayout: {
+        pageCount: pageRoot ? 1 : 0,
+        shellCount: shell ? 1 : 0,
+        sectionsCount: sections ? 1 : 0,
+        sectionCount: section ? 1 : 0,
+        headingCount: heading ? 1 : 0,
+        reviewsCount: reviews ? 1 : 0,
+        page: pageRoot ? rect(pageRoot.getBoundingClientRect()) : null,
+        shell: shell ? rect(shell.getBoundingClientRect()) : null,
+        section: section ? rect(section.getBoundingClientRect()) : null,
+        heading: heading ? rect(heading.getBoundingClientRect()) : null,
+        reviews: reviews ? rect(reviews.getBoundingClientRect()) : null,
+        gridTemplateColumns: section ? getComputedStyle(section).gridTemplateColumns : null,
+        columnGap: section ? getComputedStyle(section).columnGap : null
+      },
       graphClientWidth: graph?.clientWidth ?? null,
       graphScrollWidth: graph?.scrollWidth ?? null,
       svgBoxes: [...(graph?.querySelectorAll("svg") ?? [])].map((svg) => {
@@ -1211,8 +1259,10 @@ async function collectReviewGraphFixtureMetrics(page) {
   });
 }
 
-function assertReviewGraphFixtureMetrics(metrics, viewport) {
+function assertReviewGraphFixtureMetrics(metrics, viewport, realRouteLayout = null) {
   const label = `review-graph-fixture ${viewport.name}`;
+  const expectedLayout = expectedProductionReviewLayout(viewport);
+  const layout = metrics.productionLayout;
   check(metrics.graphCount === 1, `${label} renders production graph`, {
     count: metrics.graphCount
   });
@@ -1221,6 +1271,106 @@ function assertReviewGraphFixtureMetrics(metrics, viewport) {
   });
   check(Boolean(metrics.graphBox), `${label} graph rectangle exists`);
   if (!metrics.graphBox) return;
+
+  check(layout.pageCount === 1, `${label} uses production page class`, layout);
+  check(layout.shellCount === 1, `${label} uses production shell class`, layout);
+  check(layout.sectionsCount === 1, `${label} uses production sections class`, layout);
+  check(layout.sectionCount === 1, `${label} uses production section class`, layout);
+  check(layout.headingCount === 1, `${label} uses production section heading class`, layout);
+  check(layout.reviewsCount === 1, `${label} uses production reviews class`, layout);
+  check(
+    approximately(metrics.graphBox.width, expectedLayout.contentWidth, 2),
+    `${label} graph width matches production section content width`,
+    { actual: metrics.graphBox.width, expected: expectedLayout.contentWidth }
+  );
+  if (
+    !layout.page ||
+    !layout.shell ||
+    !layout.section ||
+    !layout.heading ||
+    !layout.reviews
+  ) {
+    return;
+  }
+  check(approximately(layout.page.width, viewport.width, 2), `${label} production page width`, {
+    actual: layout.page.width,
+    expected: viewport.width
+  });
+  check(
+    approximately(layout.shell.width, expectedLayout.shellWidth, 2),
+    `${label} production shell width`,
+    { actual: layout.shell.width, expected: expectedLayout.shellWidth }
+  );
+  check(
+    approximately(layout.section.width, expectedLayout.sectionWidth, 2),
+    `${label} production section width`,
+    { actual: layout.section.width, expected: expectedLayout.sectionWidth }
+  );
+  check(
+    approximately(layout.reviews.width, expectedLayout.contentWidth, 2),
+    `${label} production review content width`,
+    { actual: layout.reviews.width, expected: expectedLayout.contentWidth }
+  );
+  check(
+    approximately(metrics.graphBox.width, layout.reviews.width, 2),
+    `${label} graph fills production review content`,
+    { graph: metrics.graphBox, reviews: layout.reviews }
+  );
+
+  if (expectedLayout.twoColumns) {
+    const columns = layout.gridTemplateColumns?.split(/\s+/) ?? [];
+    check(columns.length === 2, `${label} production section has two computed columns`, {
+      gridTemplateColumns: layout.gridTemplateColumns
+    });
+    check(approximately(Number.parseFloat(columns[0]), 220, 1), `${label} heading track is 220px`, {
+      gridTemplateColumns: layout.gridTemplateColumns
+    });
+    check(layout.columnGap === "32px", `${label} production section column gap is 32px`, {
+      columnGap: layout.columnGap
+    });
+    check(
+      approximately(layout.heading.width, expectedLayout.headingWidth, 2),
+      `${label} heading actual width is 220px`,
+      { actual: layout.heading.width, expected: expectedLayout.headingWidth }
+    );
+    check(
+      approximately(layout.reviews.left - layout.section.left, 252, 2),
+      `${label} review content starts after 220px plus 32px`,
+      { actual: layout.reviews.left - layout.section.left, expected: 252 }
+    );
+  } else {
+    const columns = layout.gridTemplateColumns?.split(/\s+/) ?? [];
+    check(columns.length === 1, `${label} production section has one computed column`, {
+      gridTemplateColumns: layout.gridTemplateColumns
+    });
+    check(
+      approximately(layout.heading.left, layout.section.left, 2) &&
+        approximately(layout.reviews.left, layout.section.left, 2),
+      `${label} heading and reviews share the one-column start`,
+      { section: layout.section, heading: layout.heading, reviews: layout.reviews }
+    );
+    check(
+      approximately(layout.heading.width, layout.section.width, 2) &&
+        approximately(layout.reviews.width, layout.section.width, 2),
+      `${label} heading and reviews fill the one-column width`,
+      { section: layout.section, heading: layout.heading, reviews: layout.reviews }
+    );
+  }
+
+  if (viewport.width === 901) {
+    check(layout.reviews.width <= 522, `${label} keeps the real-route narrow content width`, {
+      actual: layout.reviews.width,
+      maximum: 522
+    });
+  }
+  if (realRouteLayout?.content) {
+    check(
+      approximately(layout.section.width, realRouteLayout.section.width, 2) &&
+        approximately(layout.reviews.width, realRouteLayout.content.width, 2),
+      `${label} fixture width matches the real public route`,
+      { fixture: layout, realRoute: realRouteLayout }
+    );
+  }
 
   const contained = (box, graphBox) =>
     box.width > 0 &&
@@ -1470,6 +1620,9 @@ try {
         }
         const metrics = await collectMetrics(page);
         assertRuntimeGeometry(metrics, route, viewport);
+        if (route.kind === "shop" && metrics.shop?.reviewLayout) {
+          realShopReviewLayouts.set(viewport.name, metrics.shop.reviewLayout);
+        }
 
         if (viewport.screenshot) {
           const screenshotPath = path.join(
@@ -1531,7 +1684,11 @@ try {
         await page.setContent(reviewGraphFixtureMarkup, { waitUntil: "domcontentloaded" });
         await waitForStableLayout(page);
         const metrics = await collectReviewGraphFixtureMetrics(page);
-        assertReviewGraphFixtureMetrics(metrics, viewport);
+        assertReviewGraphFixtureMetrics(
+          metrics,
+          viewport,
+          realShopReviewLayouts.get(viewport.name) ?? null
+        );
 
         if (viewport.screenshot) {
           const screenshotPath = path.join(
