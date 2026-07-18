@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -9,13 +10,82 @@ const repositoryRoot = path.resolve(scriptDirectory, "../..");
 const readRepositoryFile = (relativePath) =>
   readFile(path.join(repositoryRoot, relativePath), "utf8");
 
-const [functionsSource, aiSource, priceMigratorSource, deployWorkflowSource] =
+const [
+  functionsSource,
+  aiSource,
+  priceMigratorSource,
+  deployWorkflowSource,
+  envExampleSource,
+  packageSource,
+] =
   await Promise.all([
     readRepositoryFile("functions.php"),
     readRepositoryFile("ai-update-log.php"),
     readRepositoryFile("ai-site-monitor/price_migrator.py"),
     readRepositoryFile(".github/workflows/deploy.yml"),
+    readRepositoryFile("ai-site-monitor/.env.example"),
+    readRepositoryFile("headless/package.json"),
   ]);
+
+const trackedPrivateEnv = execFileSync(
+  "git",
+  ["ls-files", "--", "ai-site-monitor/.env"],
+  { cwd: repositoryRoot, encoding: "utf8" },
+).trim();
+assert.equal(
+  trackedPrivateEnv,
+  "",
+  "ai-site-monitor/.env must not be tracked",
+);
+try {
+  execFileSync(
+    "git",
+    ["check-ignore", "--no-index", "--quiet", "ai-site-monitor/.env"],
+    { cwd: repositoryRoot, stdio: "ignore" },
+  );
+} catch {
+  assert.fail("ai-site-monitor/.env must remain ignored");
+}
+
+const envExampleEntries = new Map();
+for (const line of envExampleSource.split(/\r?\n/)) {
+  const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+  if (match) envExampleEntries.set(match[1], match[2].trim());
+}
+for (const requiredKey of [
+  "WP_SITE_URL",
+  "WP_USER",
+  "WP_APP_PASSWORD",
+  "GEMINI_API_KEY",
+]) {
+  assert.ok(envExampleEntries.has(requiredKey), `${requiredKey} example key is required`);
+}
+for (const secretKey of ["WP_APP_PASSWORD", "GEMINI_API_KEY"]) {
+  assert.ok(envExampleEntries.get(secretKey) === "", `${secretKey} example must be empty`);
+}
+for (const [key, value] of envExampleEntries) {
+  if (/(?:PASSWORD|SECRET|TOKEN|API_KEY)$/i.test(key)) {
+    assert.ok(value === "", `${key} example must not contain a secret value`);
+  }
+}
+assert.doesNotMatch(
+  envExampleSource,
+  /(?:[A-Za-z0-9]{4}\s+){5}[A-Za-z0-9]{4}/,
+  "Application Password-shaped value must not appear in the example",
+);
+assert.doesNotMatch(
+  envExampleSource,
+  /AIza[0-9A-Za-z_-]{30,}/,
+  "Gemini API key-shaped value must not appear in the example",
+);
+
+const packageJson = JSON.parse(packageSource);
+assert.ok(
+  packageJson.scripts["test:wp-phase0-security"].includes(
+    "php ../tests/php/check-ai-update-route-security.php",
+  ),
+  "Phase 0 package test must execute the production PHP behavior test",
+);
 
 assert.doesNotMatch(functionsSource, /opcache_reset\s*\(/);
 assert.doesNotMatch(functionsSource, /@?unlink\s*\(/);
@@ -27,12 +97,8 @@ assert.doesNotMatch(
   functionsSource,
   /Missing API key[\s\S]{0,900}return null/,
 );
-const dailyMetaKeysConstant = ["ES", "COMI_DAILY_UPDATE_META_KEYS"].join("");
-assert.match(aiSource, /'ES'\s*\.\s*'COMI_DAILY_UPDATE_META_KEYS'/);
-assert.equal(
-  dailyMetaKeysConstant,
-  ["ES", "COMI", "_DAILY_UPDATE_META_KEYS"].join(""),
-);
+assert.match(aiSource, /const ESKOMI_DAILY_UPDATE_META_KEYS\s*=\s*array\s*\(/);
+assert.doesNotMatch(aiSource, /'ES'\s*\.\s*'COMI_DAILY_UPDATE_META_KEYS'/);
 assert.match(
   aiSource,
   /current_user_can\(\s*['"]edit_post['"]\s*,\s*\$shop_id\s*\)/,

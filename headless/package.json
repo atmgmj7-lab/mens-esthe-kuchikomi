@@ -55,7 +55,7 @@
     "test:next-cache-tags": "node scripts/check-next-non-ascii-cache-tags.mjs",
     "test:five-area-decision-guide": "node scripts/check-five-area-decision-guide.mjs",
     "test:nodemailer-security": "node scripts/check-nodemailer-security-contract.mjs",
-    "test:wp-phase0-security": "node scripts/check-wp-phase0-security-contract.mjs"
+    "test:wp-phase0-security": "node scripts/check-wp-phase0-security-contract.mjs && php ../tests/php/check-ai-update-route-security.php"
   },
   "dependencies": {
     "next": "16.2.10",

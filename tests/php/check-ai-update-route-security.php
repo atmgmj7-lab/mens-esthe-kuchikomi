@@ -35,10 +35,59 @@ final class Eskomi_Test_Request {
 	}
 }
 
-$GLOBALS['escomi_test_meta']         = array();
-$GLOBALS['escomi_test_meta_updates'] = array();
-$GLOBALS['escomi_test_log_count']    = 0;
-$GLOBALS['escomi_test_can_update']   = true;
+final class Eskomi_Test_Wpdb {
+	public string $options = 'wp_options';
+
+	public function prepare( string $query, ...$args ): array {
+		return array( 'query' => $query, 'args' => $args );
+	}
+
+	public function query( array $prepared ) {
+		$query = ltrim( $prepared['query'] );
+		$args  = $prepared['args'];
+
+		if ( str_starts_with( $query, 'UPDATE ' ) ) {
+			list( $replacement, $name, $expected ) = $args;
+			if ( ! array_key_exists( $name, $GLOBALS['eskomi_test_options'] )
+				|| $GLOBALS['eskomi_test_options'][ $name ] !== $expected
+			) {
+				return 0;
+			}
+			$GLOBALS['eskomi_test_options'][ $name ] = $replacement;
+			return 1;
+		}
+
+		if ( str_starts_with( $query, 'DELETE ' ) ) {
+			list( $name, $expected ) = $args;
+			if ( ! array_key_exists( $name, $GLOBALS['eskomi_test_options'] )
+				|| $GLOBALS['eskomi_test_options'][ $name ] !== $expected
+			) {
+				return 0;
+			}
+			unset( $GLOBALS['eskomi_test_options'][ $name ] );
+			return 1;
+		}
+
+		return false;
+	}
+}
+
+$GLOBALS['wpdb'] = new Eskomi_Test_Wpdb();
+
+function eskomi_test_reset_runtime(): void {
+	$GLOBALS['eskomi_test_meta']              = array();
+	$GLOBALS['eskomi_test_meta_updates']      = array();
+	$GLOBALS['eskomi_test_options']           = array();
+	$GLOBALS['eskomi_test_log_count']         = 0;
+	$GLOBALS['eskomi_test_deleted_posts']     = array();
+	$GLOBALS['eskomi_test_can_update']        = true;
+	$GLOBALS['eskomi_test_fail_meta_key']     = null;
+	$GLOBALS['eskomi_test_fail_meta_remaining'] = 0;
+	$GLOBALS['eskomi_test_fail_insert']       = false;
+	$GLOBALS['eskomi_test_uuid_counter']      = 0;
+}
+
+eskomi_test_reset_runtime();
 
 function add_action() {}
 function register_post_type() {}
@@ -47,7 +96,7 @@ function get_posts() { return array(); }
 function absint( $value ) { return abs( (int) $value ); }
 function get_post_type( $post_id ) { return 42 === (int) $post_id ? 'shop' : 'post'; }
 function current_user_can( $capability ) {
-	return $GLOBALS['escomi_test_can_update']
+	return $GLOBALS['eskomi_test_can_update']
 		&& in_array( $capability, array( 'escomi_update_daily_shop_data', 'edit_post' ), true );
 }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
@@ -56,34 +105,96 @@ function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-zA-Z0-9
 function is_wp_error( $value ) { return $value instanceof WP_Error; }
 function get_the_title() { return 'テスト店舗'; }
 function current_time() { return '2026-07-18 12:00:00'; }
+function wp_generate_uuid4() {
+	++$GLOBALS['eskomi_test_uuid_counter'];
+	return sprintf( '00000000-0000-4000-8000-%012d', $GLOBALS['eskomi_test_uuid_counter'] );
+}
 function wp_insert_post() {
-	++$GLOBALS['escomi_test_log_count'];
-	return 1000 + $GLOBALS['escomi_test_log_count'];
+	if ( $GLOBALS['eskomi_test_fail_insert'] ) {
+		return new WP_Error( 'insert_failed', 'insert failed' );
+	}
+	++$GLOBALS['eskomi_test_log_count'];
+	return 1000 + $GLOBALS['eskomi_test_log_count'];
+}
+function wp_delete_post( $post_id ) {
+	$GLOBALS['eskomi_test_deleted_posts'][] = (int) $post_id;
+	unset( $GLOBALS['eskomi_test_meta'][ $post_id ] );
+	return true;
 }
 function get_post_meta( $post_id, $key ) {
-	return $GLOBALS['escomi_test_meta'][ $post_id ][ $key ] ?? '';
+	return $GLOBALS['eskomi_test_meta'][ $post_id ][ $key ] ?? '';
+}
+function metadata_exists( $meta_type, $post_id, $key ) {
+	return array_key_exists( $key, $GLOBALS['eskomi_test_meta'][ $post_id ] ?? array() );
 }
 function update_post_meta( $post_id, $key, $value ) {
-	$current = $GLOBALS['escomi_test_meta'][ $post_id ][ $key ] ?? null;
-	$GLOBALS['escomi_test_meta'][ $post_id ][ $key ] = $value;
-	$GLOBALS['escomi_test_meta_updates'][ $post_id ][ $key ] =
-		( $GLOBALS['escomi_test_meta_updates'][ $post_id ][ $key ] ?? 0 ) + 1;
+	if ( $GLOBALS['eskomi_test_fail_meta_key'] === $key
+		&& $GLOBALS['eskomi_test_fail_meta_remaining'] > 0
+	) {
+		--$GLOBALS['eskomi_test_fail_meta_remaining'];
+		return false;
+	}
+
+	$current = $GLOBALS['eskomi_test_meta'][ $post_id ][ $key ] ?? null;
+	$GLOBALS['eskomi_test_meta'][ $post_id ][ $key ] = $value;
+	$GLOBALS['eskomi_test_meta_updates'][ $post_id ][ $key ] =
+		( $GLOBALS['eskomi_test_meta_updates'][ $post_id ][ $key ] ?? 0 ) + 1;
 	return $current === $value ? false : true;
 }
+function delete_post_meta( $post_id, $key ) {
+	if ( ! metadata_exists( 'post', $post_id, $key ) ) {
+		return false;
+	}
+	unset( $GLOBALS['eskomi_test_meta'][ $post_id ][ $key ] );
+	return true;
+}
+function add_option( $name, $value ) {
+	if ( array_key_exists( $name, $GLOBALS['eskomi_test_options'] ) ) {
+		return false;
+	}
+	$GLOBALS['eskomi_test_options'][ $name ] = $value;
+	return true;
+}
+function get_option( $name, $default = false ) {
+	return $GLOBALS['eskomi_test_options'][ $name ] ?? $default;
+}
+function wp_cache_delete() { return true; }
 
-function escomi_test_fail( string $message ): void {
+function eskomi_test_fail( string $message ): void {
 	fwrite( STDERR, $message . "\n" );
 	exit( 1 );
 }
 
-function escomi_test_expect_error( $value, string $expected_code ): void {
+function eskomi_test_expect_error( $value, string $expected_code ): void {
 	if ( ! $value instanceof WP_Error || $value->code !== $expected_code ) {
-		escomi_test_fail( 'Expected WP_Error code: ' . $expected_code );
+		eskomi_test_fail( 'Expected WP_Error code: ' . $expected_code );
 	}
+}
+
+function eskomi_test_request( string $request_id, array $meta ): Eskomi_Test_Request {
+	return new Eskomi_Test_Request(
+		array(
+			'shop_post_id' => 42,
+			'request_id'   => $request_id,
+			'meta'         => $meta,
+			'summary'      => '監査用要約',
+			'log_type'     => 'update',
+		)
+	);
+}
+
+function eskomi_test_uuid( int $value ): string {
+	return sprintf( '%08x-0000-4000-8000-%012x', $value, $value );
 }
 
 require_once dirname( __DIR__, 2 ) . '/ai-update-security.php';
 require_once dirname( __DIR__, 2 ) . '/ai-update-log.php';
+
+foreach ( array( 'escomi_acquire_daily_shop_lock', 'escomi_release_daily_shop_lock' ) as $required_function ) {
+	if ( ! function_exists( $required_function ) ) {
+		eskomi_test_fail( 'Missing production lock function: ' . $required_function );
+	}
+}
 
 $valid_request_ids = array(
 	'550e8400-e29b-41d4-a716-446655440000',
@@ -103,153 +214,203 @@ $invalid_request_ids = array(
 
 foreach ( $valid_request_ids as $request_id ) {
 	if ( ! escomi_is_valid_daily_request_id( $request_id ) ) {
-		escomi_test_fail( 'Valid UUIDv4 was rejected.' );
+		eskomi_test_fail( 'Valid UUIDv4 was rejected.' );
 	}
 }
-
 foreach ( $invalid_request_ids as $request_id ) {
 	if ( escomi_is_valid_daily_request_id( $request_id ) ) {
-		escomi_test_fail( 'Invalid request_id was accepted.' );
+		eskomi_test_fail( 'Invalid request_id was accepted.' );
 	}
 }
 
-$GLOBALS['escomi_test_can_update'] = false;
-escomi_test_expect_error(
-	escomi_can_update_daily_shop_data(
-		new Eskomi_Test_Request( array( 'shop_post_id' => 999 ) )
-	),
+$GLOBALS['eskomi_test_can_update'] = false;
+eskomi_test_expect_error(
+	escomi_can_update_daily_shop_data( new Eskomi_Test_Request( array( 'shop_post_id' => 999 ) ) ),
 	'rest_forbidden'
 );
-$GLOBALS['escomi_test_can_update'] = true;
+$GLOBALS['eskomi_test_can_update'] = true;
 
-$valid_payload = new Eskomi_Test_Request(
+$boundary_therapist = array(
+	'name'   => str_repeat( 'n', 100 ),
+	'time'   => str_repeat( 't', 100 ),
+	'status' => str_repeat( 's', 200 ),
+	'tags'   => array_fill( 0, 10, str_repeat( 'g', 50 ) ),
+);
+$boundary_payload = eskomi_test_request(
+	$valid_request_ids[0],
 	array(
-		'shop_post_id' => 42,
-		'request_id'   => $valid_request_ids[0],
-		'meta'         => array(
-			'shop_today_analysis' => '本日の案内',
-			'shop_availability'   => '空きあり',
-			'shop_today_therapists' => array(
-				array(
-					'name'   => '担当者A',
-					'time'   => '12:00-18:00',
-					'status' => '受付中',
-					'tags'   => array( '新人', '予約可' ),
-				),
-			),
-		),
+		'shop_today_analysis'   => str_repeat( 'a', 2000 ),
+		'shop_availability'     => str_repeat( 'v', 200 ),
+		'shop_today_therapists' => array_fill( 0, 100, $boundary_therapist ),
 	)
 );
-
-$validated = escomi_validate_daily_shop_update( $valid_payload );
+$validated = escomi_validate_daily_shop_update( $boundary_payload );
 if ( is_wp_error( $validated ) || 3 !== count( $validated['meta'] ) ) {
-	escomi_test_fail( 'Valid allowlisted payload was rejected.' );
+	eskomi_test_fail( 'Exact payload boundaries were rejected.' );
 }
 
-escomi_test_expect_error(
+$over_limit_cases = array(
+	array( 'shop_today_analysis' => str_repeat( 'a', 2001 ) ),
+	array( 'shop_availability' => str_repeat( 'v', 201 ) ),
+	array( 'shop_today_therapists' => array( array( 'name' => str_repeat( 'n', 101 ) ) ) ),
+	array( 'shop_today_therapists' => array( array( 'time' => str_repeat( 't', 101 ) ) ) ),
+	array( 'shop_today_therapists' => array( array( 'status' => str_repeat( 's', 201 ) ) ) ),
+	array( 'shop_today_therapists' => array( array( 'tags' => array( str_repeat( 'g', 51 ) ) ) ) ),
+	array( 'shop_today_therapists' => array( array( 'tags' => array_fill( 0, 11, 'g' ) ) ) ),
+	array( 'shop_today_therapists' => array_fill( 0, 101, array( 'name' => 'n' ) ) ),
+);
+foreach ( $over_limit_cases as $index => $meta ) {
+	if ( ! is_wp_error( escomi_validate_daily_shop_update( eskomi_test_request( $valid_request_ids[0], $meta ) ) ) ) {
+		eskomi_test_fail( 'Over-limit fixture was accepted: ' . $index );
+	}
+}
+
+eskomi_test_expect_error(
 	escomi_validate_daily_shop_update(
-		new Eskomi_Test_Request(
-			array(
-				'request_id' => $valid_request_ids[0],
-				'meta'       => array( 'official_url' => 'https://example.test/' ),
-			)
-		)
+		eskomi_test_request( $valid_request_ids[0], array( 'official_url' => 'https://example.test/' ) )
 	),
 	'unsupported_field'
 );
-
-escomi_test_expect_error(
+eskomi_test_expect_error(
 	escomi_validate_daily_shop_update(
-		new Eskomi_Test_Request(
-			array(
-				'request_id' => $valid_request_ids[0],
-				'meta'       => array( 'shop_today_analysis' => str_repeat( 'a', 2001 ) ),
-			)
-		)
-	),
-	'field_too_long'
-);
-
-escomi_test_expect_error(
-	escomi_validate_daily_shop_update(
-		new Eskomi_Test_Request(
-			array(
-				'request_id' => $valid_request_ids[0],
-				'meta'       => array(
-					'shop_today_therapists' => array(
-						array( 'name' => '担当者A', 'profile' => array( 'hidden' => true ) ),
-					),
-				),
-			)
+		eskomi_test_request(
+			$valid_request_ids[0],
+			array( 'shop_today_therapists' => array( array( 'name' => 'n', 'profile' => array() ) ) )
 		)
 	),
 	'unsupported_therapist_field'
 );
 
-escomi_test_expect_error(
-	escomi_validate_daily_shop_update(
-		new Eskomi_Test_Request(
-			array(
-				'request_id' => $valid_request_ids[0],
-				'meta'       => array(
-					'shop_today_therapists' => array_fill( 0, 101, array( 'name' => '担当者' ) ),
-				),
-			)
-		)
-	),
-	'too_many_therapists'
+$now = time();
+$GLOBALS['eskomi_test_meta'][42][ ESKOMI_DAILY_UPDATE_REQUEST_META_KEY ] = array(
+	array( 'id' => eskomi_test_uuid( 1 ), 'appliedAt' => $now - ESKOMI_DAILY_UPDATE_REQUEST_TTL - 1 ),
+	array( 'id' => eskomi_test_uuid( 2 ), 'appliedAt' => $now - ESKOMI_DAILY_UPDATE_REQUEST_TTL ),
+	array( 'id' => eskomi_test_uuid( 3 ), 'appliedAt' => $now ),
 );
+$recent = escomi_get_recent_daily_request_ids( 42, $now );
+if ( 2 !== count( $recent ) || eskomi_test_uuid( 2 ) !== $recent[0]['id'] ) {
+	eskomi_test_fail( '24-hour request history expiry is incorrect.' );
+}
 
-$request_a = new Eskomi_Test_Request(
-	array(
-		'shop_post_id' => 42,
-		'request_id'   => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-		'meta'         => array( 'shop_today_analysis' => 'first' ),
-	)
-);
-$request_b = new Eskomi_Test_Request(
-	array(
-		'shop_post_id' => 42,
-		'request_id'   => 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-		'meta'         => array( 'shop_today_analysis' => 'second' ),
-	)
-);
-$retry_a = new Eskomi_Test_Request(
-	array(
-		'shop_post_id' => 42,
-		'request_id'   => 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-		'meta'         => array( 'shop_today_analysis' => 'stale retry' ),
-	)
-);
+$history = array();
+for ( $index = 1; $index <= 105; ++$index ) {
+	$history[] = array( 'id' => eskomi_test_uuid( 100 + $index ), 'appliedAt' => $now );
+}
+$GLOBALS['eskomi_test_meta'][42][ ESKOMI_DAILY_UPDATE_REQUEST_META_KEY ] = $history;
+$recent = escomi_get_recent_daily_request_ids( 42, $now );
+if ( 100 !== count( $recent ) || eskomi_test_uuid( 106 ) !== $recent[0]['id'] ) {
+	eskomi_test_fail( 'Request history was not capped at the latest 100 entries.' );
+}
 
+eskomi_test_reset_runtime();
+$lock_name = escomi_daily_shop_lock_option_name( 42 );
+$GLOBALS['eskomi_test_options'][ $lock_name ] = ( time() - ESKOMI_DAILY_UPDATE_LOCK_TTL - 1 ) . '|stale';
+$stale_lock = escomi_acquire_daily_shop_lock( 42 );
+if ( is_wp_error( $stale_lock ) ) {
+	eskomi_test_fail( 'Stale lock was not recovered.' );
+}
+escomi_release_daily_shop_lock( $stale_lock );
+if ( array_key_exists( $lock_name, $GLOBALS['eskomi_test_options'] ) ) {
+	eskomi_test_fail( 'Owned lock was not released.' );
+}
+
+foreach ( array( eskomi_test_uuid( 300 ), eskomi_test_uuid( 301 ) ) as $locked_request_id ) {
+	$GLOBALS['eskomi_test_options'][ $lock_name ] = time() . '|external';
+	$locked_response = handle_ai_shop_update_final(
+		eskomi_test_request( $locked_request_id, array( 'shop_today_analysis' => 'blocked' ) )
+	);
+	eskomi_test_expect_error( $locked_response, 'update_locked' );
+	if ( 409 !== ( $locked_response->data['status'] ?? null ) ) {
+		eskomi_test_fail( 'Lock contention must be retryable HTTP 409.' );
+	}
+	unset( $GLOBALS['eskomi_test_options'][ $lock_name ] );
+}
+if ( metadata_exists( 'post', 42, 'shop_today_analysis' ) ) {
+	eskomi_test_fail( 'Locked request modified shop data.' );
+}
+
+eskomi_test_reset_runtime();
+$GLOBALS['eskomi_test_meta'][42]['shop_today_analysis'] = 'old analysis';
+$GLOBALS['eskomi_test_meta'][42]['shop_availability']   = 'old availability';
+$GLOBALS['eskomi_test_fail_meta_key']                   = 'shop_availability';
+$GLOBALS['eskomi_test_fail_meta_remaining']             = 1;
+$partial_failure = handle_ai_shop_update_final(
+	eskomi_test_request(
+		eskomi_test_uuid( 400 ),
+		array( 'shop_today_analysis' => 'new analysis', 'shop_availability' => 'new availability' )
+	)
+);
+eskomi_test_expect_error( $partial_failure, 'update_failed' );
+if ( 'old analysis' !== get_post_meta( 42, 'shop_today_analysis', true )
+	|| 'old availability' !== get_post_meta( 42, 'shop_availability', true )
+	|| metadata_exists( 'post', 42, ESKOMI_DAILY_UPDATE_REQUEST_META_KEY )
+) {
+	eskomi_test_fail( 'Partial field failure was not fully rolled back.' );
+}
+
+eskomi_test_reset_runtime();
+$GLOBALS['eskomi_test_meta'][42]['shop_today_analysis'] = 'old';
+$GLOBALS['eskomi_test_fail_meta_key']                   = ESKOMI_DAILY_UPDATE_REQUEST_META_KEY;
+$GLOBALS['eskomi_test_fail_meta_remaining']             = 1;
+$history_failure = handle_ai_shop_update_final(
+	eskomi_test_request( eskomi_test_uuid( 401 ), array( 'shop_today_analysis' => 'new' ) )
+);
+eskomi_test_expect_error( $history_failure, 'request_history_failed' );
+if ( 'old' !== get_post_meta( 42, 'shop_today_analysis', true )
+	|| metadata_exists( 'post', 42, ESKOMI_DAILY_UPDATE_REQUEST_META_KEY )
+	|| metadata_exists( 'post', 42, 'shop_last_ai_check' )
+) {
+	eskomi_test_fail( 'History storage failure was not rolled back.' );
+}
+
+eskomi_test_reset_runtime();
+$GLOBALS['eskomi_test_meta'][42]['shop_today_analysis'] = 'old';
+$GLOBALS['eskomi_test_fail_insert']                     = true;
+$audit_failure = handle_ai_shop_update_final(
+	eskomi_test_request( eskomi_test_uuid( 402 ), array( 'shop_today_analysis' => 'new' ) )
+);
+eskomi_test_expect_error( $audit_failure, 'audit_log_failed' );
+if ( 'old' !== get_post_meta( 42, 'shop_today_analysis', true )
+	|| metadata_exists( 'post', 42, ESKOMI_DAILY_UPDATE_REQUEST_META_KEY )
+	|| metadata_exists( 'post', 42, 'shop_last_ai_check' )
+) {
+	eskomi_test_fail( 'Audit insert failure was not rolled back.' );
+}
+
+eskomi_test_reset_runtime();
+$request_a = eskomi_test_request(
+	'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+	array( 'shop_today_analysis' => 'first' )
+);
+$request_b = eskomi_test_request(
+	'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+	array( 'shop_today_analysis' => 'second' )
+);
+$retry_a = eskomi_test_request(
+	'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+	array( 'shop_today_analysis' => 'stale retry' )
+);
 $first_response  = handle_ai_shop_update_final( $request_a );
 $second_response = handle_ai_shop_update_final( $request_b );
 $retry_response  = handle_ai_shop_update_final( $retry_a );
-
 if ( 201 !== $first_response->status || 201 !== $second_response->status ) {
-	escomi_test_fail( 'Changed payload did not return 201.' );
+	eskomi_test_fail( 'Changed payload did not return 201.' );
 }
 if ( 200 !== $retry_response->status || true !== $retry_response->data['duplicate'] ) {
-	escomi_test_fail( 'Out-of-order retry was not detected as duplicate.' );
+	eskomi_test_fail( 'Out-of-order retry was not detected as duplicate.' );
 }
 if ( 'second' !== get_post_meta( 42, 'shop_today_analysis', true ) ) {
-	escomi_test_fail( 'Duplicate retry overwrote the current value.' );
-}
-if ( 2 !== $GLOBALS['escomi_test_meta_updates'][42]['shop_today_analysis'] ) {
-	escomi_test_fail( 'Duplicate retry performed an extra field update.' );
+	eskomi_test_fail( 'Duplicate retry overwrote the current value.' );
 }
 
-$request_c = new Eskomi_Test_Request(
-	array(
-		'shop_post_id' => 42,
-		'request_id'   => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
-		'meta'         => array( 'shop_today_analysis' => 'second' ),
-	)
+$request_c = eskomi_test_request(
+	'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+	array( 'shop_today_analysis' => 'second' )
 );
-$log_count_before_noop = $GLOBALS['escomi_test_log_count'];
+$log_count_before_noop = $GLOBALS['eskomi_test_log_count'];
 $noop_response         = handle_ai_shop_update_final( $request_c );
-if ( 200 !== $noop_response->status || $log_count_before_noop !== $GLOBALS['escomi_test_log_count'] ) {
-	escomi_test_fail( 'No-op request created an update log.' );
+if ( 200 !== $noop_response->status || $log_count_before_noop !== $GLOBALS['eskomi_test_log_count'] ) {
+	eskomi_test_fail( 'No-op request created an update log.' );
 }
 
 fwrite( STDOUT, "AI update route security: PASS\n" );

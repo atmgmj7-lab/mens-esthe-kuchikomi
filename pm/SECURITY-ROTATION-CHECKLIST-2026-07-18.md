@@ -6,7 +6,12 @@ Status: `required`
 
 | 完了 | 確認項目 | 実施者 | 確認時刻（JST） | 証跡URL |
 |---|---|---|---|---|
-| [ ] | 旧Application Passwordを失効する |  |  |  |
+| [ ] | 過去に追跡された`ai-site-monitor/.env`とGit履歴に含まれる全WordPress Application Password候補を、値を転記せず提供元で特定する |  |  |  |
+| [ ] | 本実装中の端末出力へ表示されたWordPress Application Password候補を、値を転記せず失効対象へ含める |  |  |  |
+| [ ] | 特定した全WordPress Application Password候補を失効する |  |  |  |
+| [ ] | 過去に追跡された`ai-site-monitor/.env`とGit履歴に含まれるGemini API key候補を、値を転記せず提供元で特定して失効する |  |  |  |
+| [ ] | Gemini API keyを再発行し、必要な実行環境だけへ登録する |  |  |  |
+| [ ] | `ai-site-monitor/.env`がGit追跡外かつignore対象であることを確認する |  |  |  |
 | [ ] | GitHubの旧`WP_USER` secretを削除する |  |  |  |
 | [ ] | GitHubの旧`WP_APP_PASSWORD` secretを削除する |  |  |  |
 | [ ] | 日次更新専用WordPress userを1名作成する |  |  |  |
