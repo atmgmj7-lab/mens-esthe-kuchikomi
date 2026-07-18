@@ -569,3 +569,12 @@
 - スマホmenuは通常・動作軽減設定で3回連続、open後先頭link、Escape後button、route後main、320px横はみ出し0を確認した。
 - 実装・レビュー修正commitは`e4dcff9`、`a752f78`、`e790d8c`、`59e5b4e`。旧dashboard 5/5、新Headless 441/441 build、全test、型、lint、PHP fixtureが成功した。
 - 独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready。旧dashboard依存のaudit low 1 / moderate 3は今回差分外の既知リスクとして別管理し、push、deploy、本番操作は未実施。
+
+## 2026-07-18 Phase 17 Task 5 承認済み口コミの公開contract
+
+- WordPressへ読取専用の店舗別口コミRESTを追加し、公開中の店舗に紐づく`publish`・`approved`だけを店舗ID正本で返すようにした。氏名、メール、IP、審査状態、管理メモ、debugは公開しない。
+- 評価値を1〜5だけに限定し、同じ承認済み全件から平均・回答数・投稿日範囲を集計する。正常0件は空状態、通信・応答不正は取得不能として分離した。
+- 店舗詳細は地域と最新口コミを並行取得し、ACFの自由記述口コミを公開口コミとして使わない。口コミ一覧はcanonical、パンくず、前後page、範囲外404を持つ。
+- レビュー修正でpathの店舗IDをqueryで上書きできないようにし、Next側のpage・件数検証と、0件・取得不能・範囲外の`noindex, follow`を追加した。
+- 実装commitは`27b9f33`、レビュー修正は`b01888e`。focused contract、PHP fixture、3 PHP構文、通常`npm test`、型、lint、824ページbuild、差分・PII・秘密値確認が成功した。
+- 独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。push、deploy、本番WordPress/Supabase操作は未実施し、資格情報ローテーションの本番前条件を維持する。

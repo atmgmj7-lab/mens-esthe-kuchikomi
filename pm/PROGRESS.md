@@ -3222,3 +3222,12 @@ pm/PROGRESS.md
 - GA proxyは未設定・取得失敗を503とし、実0/0件はlive、rowありの必須値欠損・非数値は拒否する。新旧折れ線graphは1点・全0・短期間でも有限座標と一意keyを維持する。
 - focused、PHP実行fixture、通常`npm test`、型、lint、旧5/5・新441/441 build、通常/reduced motion browser 3連続が成功。独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready。
 - 旧dashboard依存の`npm audit` low 1 / moderate 3は今回差分外の既知リスクとして依存更新taskへ分離。push、deploy、本番操作は未実施。
+
+## 2026-07-18 Phase 17 Task 5 承認済み口コミの公開contract
+
+- 公開中の店舗IDに紐づく`publish`・`approved`の口コミだけを返す読取専用RESTを追加した。公開項目は本文、投稿日、4評価に限定し、氏名、メール、IP、審査情報、管理情報、debugを除外した。
+- 評価は整数1〜5だけを採用し、同じ承認済み全件集合から平均、回答数、投稿日範囲を集計する。正常0件と通信・応答不正を別状態にした。
+- 店舗詳細へ最新3件、専用口コミ一覧へ20件ずつを接続し、ACF自由記述口コミを公開口コミの正本から外した。canonical、パンくず、前後page、範囲外404、保存・承認・削除時のcache再検証を実装した。
+- レビュー修正でpathの店舗IDをqueryから分離し、応答page・件数を厳格検証した。口コミ0件、取得不能、範囲外は`noindex, follow`、有効な口コミpageだけをindex対象にした。
+- 実装commitは`27b9f33`、レビュー修正は`b01888e`。focused、PHP fixture、通常`npm test`、型、lint、824ページbuild、差分・PII・秘密値確認が成功した。
+- 独立再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。push、deploy、本番操作は未実施し、Task 1の資格情報ローテーション完了までは本番反映不可を維持する。

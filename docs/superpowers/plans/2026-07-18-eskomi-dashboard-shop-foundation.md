@@ -467,7 +467,7 @@ git commit -m "feat: unify dashboard analytics shell"
 - Consumes: WordPress `reviews` CPT fields。
 - Produces: `GET /wp-json/escomi/v1/shops/{id}/reviews`、`ApprovedShopReviewPage`、`getApprovedShopReviews(shopId, page, perPage)`、`/shops/{slug}/reviews/`。
 
-- [ ] **Step 1: 口コミ正本の失敗testを書く**
+- [x] **Step 1: 口コミ正本の失敗testを書く**
 
 ```js
 assert.match(restSource, /post_type['"]?\s*=>\s*['"]reviews['"]/);
@@ -482,13 +482,13 @@ assert.doesNotMatch(shopDetailSource, /extractShopUserReviewItems/);
 assert.match(functionsSource, /save_post_reviews/);
 ```
 
-- [ ] **Step 2: REDを確認する**
+- [x] **Step 2: REDを確認する**
 
 Run: `cd headless && node scripts/check-public-review-contract.mjs`
 
 Expected: 専用REST不在でFAIL。
 
-- [ ] **Step 3: WordPress read-only RESTを実装する**
+- [x] **Step 3: WordPress read-only RESTを実装する**
 
 routeはpathの`shop_id`が公開`shop`であることを確認し、`reviews`から`post_status=publish`、`approval_status=approved`、`review_shop_id=shop_id`だけを新しい順で取得する。公開responseの`items`は次だけとする。
 
@@ -506,7 +506,7 @@ array(
 
 ratingは1〜5以外を`null`にする。`per_page`は1〜20、`page`は正整数とする。同じ承認済みquery全件から4評価別に`average`と`responseCount`、有効な投稿日から`oldestSubmittedAt`と`latestSubmittedAt`を集計し、responseを`{ items, total, totalPages, page, metrics, dateRange }`にする。平均は有効な1〜5だけを分母にして小数1桁へ丸める。reviewer email、名前、審査状態、管理メモ、IPを返さない。slugはrelation正本に使わず、不一致をresponseの管理用debugへ出さない。
 
-- [ ] **Step 4: Next server adapterを実装する**
+- [x] **Step 4: Next server adapterを実装する**
 
 ```ts
 export type ApprovedShopReview = {
@@ -540,7 +540,7 @@ export type ApprovedShopReviewResult =
 
 `getApprovedShopReviews()`は`use cache`、`cacheLife("minutes")`、`cacheTag("wp", `reviews:${shopId}`)`を使う。WordPressが正常に0件を返した場合だけ`status: "available"`・total 0とする。network失敗、非2xx、不正responseは`status: "unavailable"`とし、0件へ変換しない。schemaとgraphは`available`時の同じ`metrics`だけを使い、表示と構造化データの分母を分けない。
 
-- [ ] **Step 5: 店舗pageへ同時取得を接続する**
+- [x] **Step 5: 店舗pageへ同時取得を接続する**
 
 shop取得後、`getAreas()`とreviews最大3件だけを`Promise.all`で開始する。parent areaは取得済みarea collectionから解決し、同じarea RESTを重複取得しない。`ShopDetail`へreview resultを明示propとして渡し、ACFの`user_reviews`・`reviews`を店舗詳細の公開口コミとして使わない。
 
@@ -548,13 +548,13 @@ shop取得後、`getAreas()`とreviews最大3件だけを`Promise.all`で開始�
 
 `reviews`の保存・削除・審査状態変更時は`save_post_reviews`等から既存の`wp`再検証をqueueし、店舗詳細と口コミ一覧のcacheを同時に失効させる。
 
-- [ ] **Step 6: GREENを確認する**
+- [x] **Step 6: GREENを確認する**
 
 Run: `cd headless && node scripts/check-public-review-contract.mjs && npm run test:final-design-preservation && npm run typecheck && npm run lint`
 
 Expected: contract、typecheck、lint PASS。
 
-- [ ] **Step 7: commitする**
+- [x] **Step 7: commitする**
 
 ```bash
 git add reviews-public-rest.php reviews-cpt.php functions.php headless/lib/wp/reviews.ts headless/lib/wp/types.ts headless/app/shops/\[slug\]/page.tsx headless/app/shops/\[slug\]/reviews/page.tsx headless/components/ShopDetail.tsx headless/scripts/check-public-review-contract.mjs headless/scripts/check-final-design-preservation.mjs headless/package.json
