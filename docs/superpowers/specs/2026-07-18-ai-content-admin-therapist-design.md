@@ -64,6 +64,54 @@ AI出力はそのまま公開せず、WordPressの現在値との差分、出典
 
 ## 4. 管理画面の情報構造
 
+既存の分析ダッシュボードを管理画面全体の親とする。`/dashboard/`はGA4・Search Console・SEO状況を把握する概要画面のまま維持し、`/dashboard/analytics/`を詳細分析、`/dashboard/content/`配下を店舗情報の確認・入力・公開作業として同じ共通shellへ統合する。分析画面と管理画面を別製品のように分けず、同じheader、PC用side navigation、スマホ用drawer、状態表示、footerを使う。
+
+共通navigationは次の3groupとする。
+
+- 分析: 概要、詳細分析。
+- コンテンツ: 店舗、口コミ、セラピスト、出勤、ポータル評価・順位。
+- 運用: AI一括取込、公開待ち、公開履歴、公式サイト取得。
+
+初期表示は分析概要だけを取得し、管理一覧、取込file、差分、履歴を同時取得しない。menu badgeは実在する公開待ち件数等だけに使い、未連携値や固定件数を表示しない。管理routeが未実装の期間は空のmenuを先行表示せず、そのrouteが読取可能になったtaskでnavigationへ登録する。
+
+Dashboard IRは次のとおりとする。
+
+```yaml
+page_purpose: 分析結果から修正対象を判断し、同じ管理画面内で店舗情報の確認・承認・公開へ進む
+users: 初期版は共有管理者。将来は管理者、審査担当、店舗責任者へ分離
+decisions:
+  - SEOで優先する地域・店舗を決める
+  - 未確認情報と公開待ち変更を処理する
+  - セラピスト・出勤情報の公開可否を判断する
+filters:
+  - 分析期間
+  - 地域
+  - 公開・確認・取込状態
+kpi_cards:
+  - GA4とSearch Consoleの既存指標
+  - 実データがある場合だけ公開待ち件数・未確認店舗数
+charts:
+  - 既存分析chartを維持
+tables:
+  - 店舗・口コミ・セラピスト・出勤・取込差分・履歴
+drilldowns:
+  - 分析から店舗管理
+  - 店舗管理から差分・出典・公開履歴
+empty_states:
+  - 未連携、データ不足、対象なしを0と区別
+data_requirements:
+  - 分析は既存GA4・Search Console接続
+  - 公開情報はWordPress
+  - 未承認取込はSupabase非公開staging
+performance_notes:
+  - 初期画面で管理一覧を取得しない
+  - 重いtableはpagination、差分editorは操作時load
+review_checklist:
+  - 共通shellと権限が全routeで一致
+  - 未確認値・mock値を本番表示しない
+  - スマホで横切れせず1カラムへ変形
+```
+
 `/dashboard/content/`配下へ次のmenuを置く。
 
 | menu | 役割 |

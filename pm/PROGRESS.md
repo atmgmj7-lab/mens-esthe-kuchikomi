@@ -3177,3 +3177,16 @@ pm/PROGRESS.md
 - security読取監査で既存REST保護解除、匿名debug、任意meta更新、Authorization転送、cache fail-openを確認した。実装順0番の安全化が完了するまで新管理書込を接続しない。
 - architecture・securityの独立再レビューはCritical 0 / Important 0 / Go。Google評価は対象外、公式site crawlerと外部portal月次取得は後工程とした。
 - 現在はユーザーの改訂設計書確認待ち。コード実装、WordPress/Supabase書込、push、deploy、本番公開は未実施。
+
+## 2026-07-18 Phase 17 設計承認・実装計画作成
+
+- ユーザー承認により、既存の分析ダッシュボードを共通管理shellとし、管理routeを実装済みのものから同じnavigationへ追加する方針を確定した。
+- 実装計画を8タスクへ分割した。最初にWordPress REST、日次更新bridge、Dashboard認証・再検証を安全化し、その後に共通shell、承認済み口コミ、評価graph/schema、確認状況・順位・1カラム二層menu、全幅QAを行う。
+- 日次jobの互換性を維持するため、callerの認証headerを転送せず、専用secretとserver-only WordPress Application Passwordを使うexact path bridgeを計画した。
+- push・deploy・本番WordPress/Supabase操作は実装と独立レビューの完了後も別の明示許可まで行わない。
+
+## 2026-07-18 Phase 17 実装計画承認
+
+- 8タスク実装計画を独立レビューし、Critical 0 / Important 0 / Goを確認した。計画上のMinor 1件は3つのPHP構文確認という正しい文言へ修正した。
+- Phase 0安全化から順に、各Taskを実装担当と別担当レビューへ分離して進める。
+- 計画承認時点でコード実装、WordPress/Supabase書込、push、deploy、本番公開は行っていない。

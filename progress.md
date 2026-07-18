@@ -522,3 +522,17 @@
 - Google評価は対象外とし、公式サイトはURL・取得方式・最終実行・状態の管理項目だけを初期実装する。crawlerと外部portal月次自動取得は後工程へ分離した。
 - 現時点は設計のみ。コード実装、WordPress/Supabase書込、push、deploy、本番公開は行っていない。
 - 反映後の独立再レビューはarchitecture・securityともCritical 0 / Important 0 / Go。実装計画へ進める設計品質を確認した。
+
+## 2026-07-18 Phase 17 設計承認・実装計画レビュー開始
+
+- ユーザーが改訂設計書を承認した。既存の分析ダッシュボードを管理画面全体の共通入口とし、分析・店舗・口コミ・AI取込・セラピスト・出勤・公開管理を同じshellへ段階追加する方針を確定した。
+- Phase 0安全化、日次更新専用bridge、Dashboard認証、共通shell、承認済み口コミREST、口コミgraph/schema、6項目確認状況・明示順位・1カラム二層menu、全幅QAの8タスク実装計画を作成した。
+- 現行日次更新を壊さないため、公開POST全削除ではなく、専用secretで許可した`escomi/v1/update`だけをHeadlessがserver-only認証で中継する計画へ修正した。
+- 追跡中の移行scriptに残る固定WordPress認証値をPhase 0で削除し、月次・料金移行・汎用crawlerから日次routeへの公開直書きを停止する項目を追加した。認証値そのものは記録へ転記していない。
+- 現在は実装計画の独立レビュー中。コード実装、WordPress/Supabase書込、push、deploy、本番公開は未実施。
+
+## 2026-07-18 Phase 17 実装計画承認
+
+- 8タスク計画を独立レビューし、UUIDv4検証、旧直接POST文書、安全な日次bridge、認証0件表示、将来module登録、対象外店舗previewまで修正した。
+- 最終判定はCritical 0 / Important 0 / Go。文言だけのMinor 1件も計画書上で修正した。
+- 次はTask 1のWordPress REST安全化を、実装担当と別担当レビューに分けて開始する。push、deploy、本番WordPress/Supabase操作は未実施。
