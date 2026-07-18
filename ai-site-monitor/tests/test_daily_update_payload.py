@@ -162,6 +162,38 @@ class DailyUpdatePayloadTests(unittest.TestCase):
         self.assertNotIn("user", config)
         self.assertNotIn("app_password", config)
 
+    def test_manual_target_filters_to_one_requested_shop(self):
+        shops = [
+            {"id": 1221, "slug": "riru-cheri"},
+            {"id": 1290, "slug": "rinse"},
+        ]
+        self.assertEqual(
+            self.auto.filter_shops_by_post_id(shops, 1221),
+            [{"id": 1221, "slug": "riru-cheri"}],
+        )
+        self.assertEqual(self.auto.filter_shops_by_post_id(shops, None), shops)
+
+    def test_manual_target_and_required_update_flags_are_read_from_env(self):
+        with mock.patch.dict(
+            os.environ,
+            {
+                "TARGET_SHOP_POST_ID": "1221",
+                "REQUIRE_AT_LEAST_ONE_UPDATE": "1",
+            },
+            clear=True,
+        ):
+            self.assertEqual(self.auto.target_shop_post_id(), 1221)
+            self.assertTrue(self.auto.require_at_least_one_update())
+
+    def test_targeted_fetch_uses_include_and_ignores_area_filter(self):
+        get = mock.Mock(return_value=FakeResponse(200, []))
+        self.auto.requests.get = get
+        self.auto.fetch_shops("https://example.test/", 7, 1221)
+        args, kwargs = get.call_args
+        self.assertEqual(args[0], "https://example.test/wp-json/wp/v2/shop/")
+        self.assertEqual(kwargs["params"]["include"], 1221)
+        self.assertNotIn("area", kwargs["params"])
+
 
 if __name__ == "__main__":
     unittest.main()

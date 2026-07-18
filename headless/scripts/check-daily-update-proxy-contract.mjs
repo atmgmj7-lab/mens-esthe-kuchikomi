@@ -69,6 +69,9 @@ assert.doesNotMatch(monthlyWorkflow, /schedule:/);
 assert.match(monthlyWorkflow, /Supabase staging/);
 assert.match(dailyWorkflow, /DAILY_UPDATE_PROXY_SECRET/);
 assert.doesNotMatch(dailyWorkflow, /secrets\.WP_(?:USER|APP_PASSWORD)/);
+assert.match(dailyWorkflow, /shop_post_id:/);
+assert.match(dailyWorkflow, /TARGET_SHOP_POST_ID/);
+assert.match(dailyWorkflow, /REQUIRE_AT_LEAST_ONE_UPDATE/);
 assert.match(
   dailyWorkflow,
   /WP_SITE_URL="\$\{WP_SITE_URL%\/\}"/,

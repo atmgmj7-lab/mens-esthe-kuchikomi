@@ -87,6 +87,33 @@ def shop_delay_seconds() -> float:
         return 0.0
 
 
+def target_shop_post_id() -> Optional[int]:
+    """手動検証で指定された1店舗の投稿ID。未指定なら絞り込まない。"""
+    raw = (os.environ.get("TARGET_SHOP_POST_ID") or "").strip()
+    if not raw:
+        return None
+    try:
+        post_id = int(raw)
+    except ValueError:
+        print(f"ERROR: TARGET_SHOP_POST_ID は整数である必要があります: {raw!r}")
+        sys.exit(1)
+    if post_id <= 0:
+        print("ERROR: TARGET_SHOP_POST_ID は正の整数である必要があります。")
+        sys.exit(1)
+    return post_id
+
+
+def require_at_least_one_update() -> bool:
+    raw = (os.environ.get("REQUIRE_AT_LEAST_ONE_UPDATE") or "").strip().lower()
+    return raw in {"1", "true", "yes"}
+
+
+def filter_shops_by_post_id(shops: List[Dict], post_id: Optional[int]) -> List[Dict]:
+    if post_id is None:
+        return shops
+    return [shop for shop in shops if int(shop.get("id") or 0) == post_id]
+
+
 def parse_cli_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="店舗公式URLを巡回し、本日出勤等を WordPress REST に反映する",
@@ -419,11 +446,14 @@ def _hint_if_rest_blocked_at_edge(status_code: int, body: Optional[str]) -> None
 def fetch_shops(
     site_url: str,
     area_term_id: Optional[int] = None,
+    include_post_id: Optional[int] = None,
 ) -> List[Dict]:
-    """公開REST APIで店舗を取得。area_term_id指定時はareaで絞り込む。"""
-    url = f"{site_url}/wp-json/wp/v2/shop"
+    """公開REST APIで店舗を取得。手動対象IDはareaより優先する。"""
+    url = f"{site_url.rstrip('/')}/wp-json/wp/v2/shop/"
     params: Dict[str, Any] = {"per_page": 100, "_fields": "id,title,official_url,acf"}
-    if area_term_id is not None:
+    if include_post_id is not None:
+        params["include"] = include_post_id
+    elif area_term_id is not None:
         params["area"] = area_term_id
 
     all_shops = []
@@ -794,13 +824,18 @@ async def main_async(args: argparse.Namespace) -> None:
     crawl_limit = resolve_crawl_limit(args)
     delay_sec = shop_delay_seconds()
     area_term_id = config.get("area_term_id")
-    if area_term_id is not None:
+    requested_post_id = target_shop_post_id()
+    if area_term_id is not None and requested_post_id is None:
         print(f"REST API エリアフィルタ: area={area_term_id}（AREA_TERM_ID）")
 
     shops = fetch_shops(
         config["site_url"],
         area_term_id,
+        requested_post_id,
     )
+    shops = filter_shops_by_post_id(shops, requested_post_id)
+    if requested_post_id is not None:
+        print(f"手動検証の対象店舗: post_id={requested_post_id}")
 
     valid_shops = []
     for shop in shops:
@@ -844,6 +879,12 @@ async def main_async(args: argparse.Namespace) -> None:
         print(
             "ERROR: 対象店舗はあるが WordPress への更新成功が 0 件で、"
             "更新 API の失敗のみが発生しました（サイレント障害防止のため異常終了します）。",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if require_at_least_one_update() and wp_stats["ok"] == 0:
+        print(
+            "ERROR: 手動検証ではWordPress更新成功が1件以上必要です。",
             file=sys.stderr,
         )
         sys.exit(1)

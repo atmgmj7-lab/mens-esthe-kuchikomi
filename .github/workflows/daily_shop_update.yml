@@ -11,6 +11,11 @@ on:
         required: false
         type: string
         default: ''
+      shop_post_id:
+        description: '手動検証で1店舗を指定するWordPress投稿ID。指定時は保存0件を失敗として扱います。'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   update-shops:
@@ -19,6 +24,8 @@ jobs:
     env:
       # workflow_dispatch のときのみ inputs を参照し、schedule では短絡評価で読まないこと
       MAX_SHOPS_MANUAL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.max_shops || '' }}
+      TARGET_SHOP_POST_ID: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.shop_post_id || '' }}
+      REQUIRE_AT_LEAST_ONE_UPDATE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.shop_post_id != '' && '1' || '' }}
 
     steps:
       - name: Checkout
@@ -106,7 +113,10 @@ jobs:
           AREA_TERM_ID: '7'
         run: |
           cd ai-site-monitor
-          if [ -n "${MAX_SHOPS_MANUAL}" ]; then
+          if [ -n "${TARGET_SHOP_POST_ID}" ]; then
+            echo "::notice::Manual target run: post_id=${TARGET_SHOP_POST_ID}, --limit 1"
+            python ai_auto_updater.py --limit 1
+          elif [ -n "${MAX_SHOPS_MANUAL}" ]; then
             echo "::notice::Manual run: --limit ${MAX_SHOPS_MANUAL}"
             python ai_auto_updater.py --limit "${MAX_SHOPS_MANUAL}"
           else
