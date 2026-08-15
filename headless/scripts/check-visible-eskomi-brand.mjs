@@ -44,6 +44,7 @@ const EXCLUDED_DIRECTORY_NAMES = new Set([
   ".superpowers",
   ".turbo",
   ".venv",
+  ".vscode",
   ".worktrees",
   "__pycache__",
   "build",
@@ -146,13 +147,6 @@ const STRICT_ALLOWED_LINES = [
     reason: "CSS section comment"
   },
   {
-    path: ".vscode/sftp.json",
-    lineHash: "fdeb77809950d9d8bd56b50be048052e792cf0144d6955f769e7728ce9cef34c",
-    counts: { title: 1, upper: 0 },
-    category: "internal-identifier",
-    reason: "local deployment connection name"
-  },
-  {
     path: "functions.php",
     lineHash: "38157551f2cdfec1737f43be37b2b2e6944399777c8b4fca26e233cd318b0ff5",
     counts: { title: 0, upper: 2 },
@@ -221,11 +215,15 @@ function toRepositoryPath(path) {
   return relative(repositoryRoot, path).split(sep).join("/");
 }
 
+function shouldTraverseDirectory(name) {
+  return !EXCLUDED_DIRECTORY_NAMES.has(name);
+}
+
 function listSourceFiles(directory) {
   const files = [];
   for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
     if (entry.isDirectory()) {
-      if (!EXCLUDED_DIRECTORY_NAMES.has(entry.name)) {
+      if (shouldTraverseDirectory(entry.name)) {
         files.push(...listSourceFiles(join(directory, entry.name)));
       }
       continue;
@@ -236,6 +234,17 @@ function listSourceFiles(directory) {
   }
   return files;
 }
+
+assert.equal(
+  shouldTraverseDirectory(".vscode"),
+  false,
+  "Secret系local config directoryはブランド走査対象外である必要があります"
+);
+assert.equal(
+  shouldTraverseDirectory("headless"),
+  true,
+  "通常のsource directoryまでブランド走査対象外にしてはいけません"
+);
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
