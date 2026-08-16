@@ -6,7 +6,30 @@
 
 ## Current Phase
 
-UX-PROD-T2-RESUME Phase 7（結果記録・T3前で停止）
+UX-AREA-PRIMARY-CONTRACT-01 Phase 6（commit・T3-A前で停止）
+
+## UX-AREA-PRIMARY-CONTRACT-01
+
+### Goal
+
+base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area関係を壊さず、各店舗が明示保存値に基づくPrimary Areaを0または1つ持てる契約と移行候補をローカルで作る。本番WordPress/Supabase、T3-A UI、SEO本文、URL/canonical/sitemapは変更しない。
+
+### Phases
+
+- [x] Phase 1: 専用worktree、正本、既存保存方式、Area関係、reader境界を調査する
+- [x] Phase 2: 承認済み設計を詳細実装計画へ落とし、fail-first検査を追加する
+- [x] Phase 3: WordPress保存・公開reader・Next `primaryArea`契約を最小実装する
+- [x] Phase 4: 全公開店舗の移行候補をread-onlyで生成し、分類と集計を検証する
+- [x] Phase 5: focused/full検証と独立reviewを行う
+- [x] Phase 6: 対象pathだけをcommitし、T3-A・本番変更前で停止する
+
+### Stop Conditions
+
+- Primary Area保存に大規模schema変更が必要
+- 既存WordPress契約または公開SEO/URLへ影響する
+- 本番データ書込み、Secret、production接続が必要
+- package/dependency、T3-A UI、SEO本文変更が必要
+- 同一原因で3回失敗
 
 ## UX-PROD-T2-RESUME
 

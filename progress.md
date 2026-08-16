@@ -1,5 +1,27 @@
 # Progress Log
 
+## Session 2026-08-16: UX-AREA-PRIMARY-CONTRACT-01 start
+
+- base `649d2474f6029de16b10cd4bf53f55338843cadf`から専用worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-area-primary-contract-01`、branch `codex/ux-area-primary-contract-01`を作成した。
+- AGENTS.md、`.cursorrules`、task_plan.md、progress.md、findings.md、pm/PROGRESS.md、pm/BLOCKER.mdを確認した。`docs/ai-skills.md`と`RTK.md`はbaseに存在しない。
+- 既存WordPressには正式なPrimary Area meta/ACFがなく、`area_slug`は`get_the_terms()`の子Area優先・取得順依存であるため正式所属に使えないと確認した。
+- 既存Supabaseの`app.shop_areas.is_primary`は全件falseで、field mapも配列順から推測せず人間または明示ルールで確定すると定義している。公開データ正本は引き続きWordPressである。
+- 保存名は既存`shop_*`規則に合わせた`shop_primary_area_term_id`、公開readerは明示IDが店舗の正式Area関係に含まれる場合だけ`primaryArea`へ正規化し、それ以外は`null`とする設計にした。
+- 移行候補はtaxonomy関係だけを使い、AreaなしはUNCLASSIFIED、単一Areaまたは祖先だけを伴う一意の末端AreaはAUTO_SAFE、複数末端・無関係・不完全な階層はNEEDS_REVIEWとする。名前・住所・順序から推測しない。
+- 現在地: Phase 1完了。設計書を保存し、書面確認後にTDD実装へ進む。WordPress/Supabase本番書込み、T3-A、push、deployは0。
+- ユーザーが設計書を承認した。`docs/superpowers/plans/2026-08-16-shop-primary-area-contract.md`へTDD実装計画を保存した。
+- 現在地: Phase 2。次はbaselineを固定し、PHP/Next/classifierの期待契約を先に失敗させる。
+- baselineはNode `v26.0.0`、npm `11.12.1`、`npm ci` exit 0（vulnerabilities 0）、変更前`npm test` exit 0。
+- RED `npm run test:shop-primary-area`: exit 1、`validator must exist`。明示Primary Area validator未実装を確認した。
+- WordPressへsingle integer meta `shop_primary_area_term_id`を登録し、匿名REST writerへは公開せず、公開readerで`area` taxonomyとShop relationを再検証する契約を追加した。
+- Next `ShopView`へ`primaryArea: {id, slug, name} | null`を追加した。明示ID、relation、taxonomy、slug/nameが揃う場合だけobject化し、legacy `terms[]`と`areaSlug`は保持した。
+- taxonomy graphだけを使う分類器とGET-only generatorを追加した。ページ総数header欠落・途中変化・部分件数・重複ID・`shop.area`欠落・非Area taxonomyは正式成果物を作らずfail closedする。
+- 公開WordPress RESTの取得時総数はShop 380、Area 34。候補成果物はAUTO_SAFE 175、NEEDS_REVIEW 130、UNCLASSIFIED 75、multi-area 229、no-area 75。過去382件との差2件は既に意図的にdraft化された温泉投稿で、公開Shop母集団に含まれない。
+- 独立CODE_QUALITY_SECURITY初回reviewはCritical 0 / Important 4。taxonomy未検証、`shop.area`欠落、slug/name欠落、pagination failure test不足をRED追加後に修正した。
+- 最終SPEC_COMPLIANCEとCODE_QUALITY_SECURITYはともにCritical 0 / Important 0 / Minor 0 / Ready Yes。
+- 最終`php -l shop-public-meta.php`、PHP fixture、focused primary-area、area-integrity、area-list-route、ux-production-data-contract、`npm test`、lint、typecheck、`git diff --check`はすべてexit 0。
+- package-lock/dependency、UI/CSS、T3-A、SEO本文、URL/canonical/sitemap、WordPress/Supabase本番、Secret、push、deployの変更は0。対象pathだけをcommitして停止する。
+
 ## Session 2026-08-16: UX-PROD-T2-RESUME start
 
 - base `b785315a2a3cd490772fd70cd18bb1f8b21f2f75`から専用worktree/branchを作成した。

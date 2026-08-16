@@ -20,6 +20,7 @@ export type WpTerm = {
   name: string;
   slug: string;
   parent: number;
+  taxonomy?: string;
   description?: string;
   acf?: Record<string, unknown>;
 };
@@ -71,7 +72,14 @@ export type ShopAreaRankingSnapshot = {
 export type WpShop = WpPostBase & {
   official_url?: string;
   area_slug?: string;
+  area?: number[];
 };
+
+export type ShopPrimaryAreaView = Readonly<{
+  id: number;
+  slug: string;
+  name: string;
+}>;
 
 export type ShopMediaView = {
   mediaId: number | null;
@@ -98,6 +106,7 @@ export type ShopView = {
   acf: Record<string, unknown>;
   officialUrl: string;
   areaSlug: string;
+  primaryArea: ShopPrimaryAreaView | null;
   ranking: LegacyShopRecommendationRanking;
   strictRanking: StrictRankingAvailability;
 };

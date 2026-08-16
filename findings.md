@@ -1,5 +1,25 @@
 # Findings & Decisions
 
+## 2026-08-16 UX-AREA-PRIMARY-CONTRACT-01
+
+- 専用branchは`codex/ux-area-primary-contract-01`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-area-primary-contract-01`、baseは`649d2474f6029de16b10cd4bf53f55338843cadf`である。
+- T3-Aの未commit draft worktreeと元のcheckoutは変更しない。
+- WordPress実コードにはPrimary Area相当のACF/metaが存在しない。`shop-public-meta.php`の既存正式metaは`shop_fact_provenance`と`shop_area_ranking_snapshot`で、`shop_*`命名と権限付き保存を採用している。
+- `functions.php`の`area_slug`は`get_the_terms()`から最初の子term、なければ配列先頭を返すlegacy値である。これは明示値ではなく、今回のPrimary Areaとして使用しない。
+- 既存Supabaseには`app.shop_areas.is_primary`と1店舗1件のpartial unique indexがあるが、既存移行値はfalseで、`docs/data/supabase-wp-field-map-2026-07-14.md`も「配列順から推測しない」と明記している。今回Supabaseは変更しない。
+- 正式保存keyは既存命名規則に合わせて`shop_primary_area_term_id`とする。値は単一の正整数term IDだけを受け、taxonomyが`area`かつ対象Shopの正式Area関係に含まれる場合だけ有効とする。
+- 保存値0、空、不正形式、存在しないterm、別taxonomy、関係外termは公開readerで`null`にする。別Areaや`area_slug`へのfallbackは行わない。
+- REST書込み契約は今回追加しない。公開read値は既存`acf` envelopeへ安全に追加し、Next側で埋込みArea termと照合して`ShopView.primaryArea = { id, slug, name } | null`へ正規化する。
+- `ShopView.terms`とlegacy `areaSlug`は互換維持のため残す。公開Area一覧・Area SEO・将来Area rankingがPrimary Areaへ切り替わるのはT3-A以降の別taskである。
+- 移行候補のAUTO_SAFEは、(1)有効Area関係が1つだけ、または(2)一意の末端Areaがあり他の関係がすべてその祖先、に限定する。複数末端、無関係term、階層cycle、親情報欠落はNEEDS_REVIEW、Area関係0はUNCLASSIFIEDとする。
+- 候補生成は店舗名、住所、slug文字列、検索結果、REST配列順、既存`area_slug`を判断材料にしない。同名店舗でもWP IDが異なれば別Shopとして1行ずつ扱う。
+- 候補JSONはread-only公開WordPressから全Shopと全Areaを取得し、`wpShopId`、slug、表示名、全関係、提案Primary、分類、機械判定理由を記録する。書込み処理は持たせない。
+- `docs/ai-skills.md`と`RTK.md`はbaseに存在しない。既存AGENTS.md、`.cursorrules`、pm資料、repo実コードを使う。
+- 2026-08-16の公開RESTはShop 380、Area 34。過去382件から減った2件は既存運用で意図的にdraft化した温泉投稿ID 1259/1255であり、今回の公開Shop候補母集団は380件である。
+- 380件の分類結果はAUTO_SAFE 175、NEEDS_REVIEW 130、UNCLASSIFIED 75。AUTO_SAFE内訳は単一relation 76、一意leaf+ancestor 99。NEEDS_REVIEW 130はすべて複数leaf、Areaなし75はUNCLASSIFIEDである。
+- generatorの初回Node fetchは公開domain接続timeoutとなり、成果物を書かず停止した。既存正式origin IPへHost名/TLS検証を保ったGET接続へ変え、2回目は全ページ取得に成功した。
+- 初回security reviewのImportant 4件により、Area source rowの`taxonomy=area`必須、`shop.area`欠落時のreport failure、Next termの非空slug/name、pagination header/途中変化/部分件数のruntime fixtureを追加した。最終再reviewはCritical/Important/Minor 0。
+
 ## 2026-08-16 UX-PROD-T2-RESUME
 
 - 専用branch `codex/eskomi-ux-production-t2-resume`、worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-production-t2-resume` をbase `b785315a2a3cd490772fd70cd18bb1f8b21f2f75`から作成した。

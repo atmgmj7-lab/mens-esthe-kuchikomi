@@ -2,7 +2,7 @@ import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
 import { rendered, safeText, stripHtml } from "@/lib/wp/client";
 import { encodeBrowserWpContentPath } from "@/lib/wp/path-encoding";
-import type { BlogPostView, ShopMediaView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
+import type { BlogPostView, ShopMediaView, ShopPrimaryAreaView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
 
 const SITE_WP_CONTENT_PREFIXES = [
   "http://mens-esthe-kuchikomi.com/wp-content/",
@@ -181,10 +181,45 @@ export function embeddedTerms(post: WpPostBase): WpTerm[] {
   return (post._embedded?.["wp:term"] || []).flat().filter(Boolean);
 }
 
+function explicitPositiveInteger(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function normalizePrimaryArea(
+  post: WpShop,
+  terms: WpTerm[],
+  acf: Record<string, unknown>,
+): ShopPrimaryAreaView | null {
+  const explicitId = explicitPositiveInteger(acf.shop_primary_area_term_id);
+  if (!explicitId) return null;
+
+  const relatedAreaIds = Array.isArray(post.area)
+    ? new Set(post.area.map(explicitPositiveInteger).filter((id): id is number => id !== null))
+    : null;
+  if (relatedAreaIds && !relatedAreaIds.has(explicitId)) return null;
+
+  const term = terms.find((candidate) => candidate.id === explicitId);
+  if (!term) return null;
+  if (term.taxonomy !== "area" && !(term.taxonomy === undefined && relatedAreaIds?.has(explicitId))) {
+    return null;
+  }
+  if (typeof term.slug !== "string" || !term.slug.trim() || typeof term.name !== "string" || !term.name.trim()) {
+    return null;
+  }
+
+  return Object.freeze({ id: term.id, slug: term.slug, name: term.name });
+}
+
 export function normalizeShop(post: WpShop): ShopView {
   const title = stripHtml(rendered(post.title));
   const acf = post.acf || {};
   const cardSquare = shopCardMedia(post, title);
+  const terms = embeddedTerms(post);
   return {
     id: post.id,
     slug: post.slug,
@@ -197,10 +232,11 @@ export function normalizeShop(post: WpShop): ShopView {
       cardSquare,
       detailBanner: null,
     },
-    terms: embeddedTerms(post),
+    terms,
     acf,
     officialUrl: safeText(post.official_url || acf.official_url),
     areaSlug: safeText(post.area_slug),
+    primaryArea: normalizePrimaryArea(post, terms, acf),
     ranking: normalizeShopRanking(acf),
     strictRanking: unavailableStrictRanking("shop")
   };

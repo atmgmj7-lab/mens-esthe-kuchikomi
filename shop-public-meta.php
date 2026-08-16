@@ -112,6 +112,45 @@ function escomi_shop_public_meta_auth( $allowed, $meta_key, $post_id ) {
     return current_user_can( 'edit_post', (int) $post_id ) && current_user_can( 'manage_shop_public_meta' );
 }
 
+/** Normalize a single explicit area term ID without inferring from other fields. */
+function escomi_sanitize_shop_primary_area_term_id( $value ) {
+    if ( ! is_int( $value ) && ! ( is_string( $value ) && preg_match( '/^[1-9]\d*$/', $value ) ) ) {
+        return 0;
+    }
+    $term_id = filter_var( $value, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+    return false === $term_id ? 0 : (int) $term_id;
+}
+
+/** Return the explicit primary area only when it belongs to the shop's area relations. */
+function escomi_validate_shop_primary_area_term_id( $shop_id, $value ) {
+    $shop_id = filter_var( $shop_id, FILTER_VALIDATE_INT, array( 'options' => array( 'min_range' => 1 ) ) );
+    $term_id = escomi_sanitize_shop_primary_area_term_id( $value );
+    if ( false === $shop_id || ! $term_id ) {
+        return 0;
+    }
+
+    $term = get_term( $term_id, 'area' );
+    if ( ! $term || is_wp_error( $term ) || ! isset( $term->taxonomy ) || 'area' !== $term->taxonomy ) {
+        return 0;
+    }
+
+    $relations = get_the_terms( (int) $shop_id, 'area' );
+    if ( ! is_array( $relations ) || is_wp_error( $relations ) ) {
+        return 0;
+    }
+
+    foreach ( $relations as $relation ) {
+        if (
+            isset( $relation->term_id, $relation->taxonomy )
+            && 'area' === $relation->taxonomy
+            && $term_id === (int) $relation->term_id
+        ) {
+            return $term_id;
+        }
+    }
+    return 0;
+}
+
 function escomi_register_shop_public_meta() {
     $common = array(
         'single'        => true,
@@ -137,6 +176,14 @@ function escomi_register_shop_public_meta() {
             ),
         ),
     ) ) );
+    register_post_meta( 'shop', 'shop_primary_area_term_id', array(
+        'single'            => true,
+        'type'              => 'integer',
+        'default'           => 0,
+        'sanitize_callback' => 'escomi_sanitize_shop_primary_area_term_id',
+        'auth_callback'     => 'escomi_shop_public_meta_auth',
+        'show_in_rest'      => false,
+    ) );
 }
 add_action( 'init', 'escomi_register_shop_public_meta' );
 
@@ -153,6 +200,11 @@ function escomi_prepare_shop_public_meta( $response, $post ) {
     $acf['shop_area_ranking_snapshot'] = escomi_sanitize_shop_area_ranking_snapshot(
         get_post_meta( $post->ID, 'shop_area_ranking_snapshot', true )
     );
+    $primary_area_term_id = escomi_validate_shop_primary_area_term_id(
+        $post->ID,
+        get_post_meta( $post->ID, 'shop_primary_area_term_id', true )
+    );
+    $acf['shop_primary_area_term_id'] = $primary_area_term_id ?: null;
     $data['acf'] = $acf;
     $response->set_data( $data );
     return $response;
