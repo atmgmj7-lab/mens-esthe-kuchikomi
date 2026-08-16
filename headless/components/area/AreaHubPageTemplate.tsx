@@ -211,8 +211,17 @@ export function AreaHubPageTemplate({
       </section>
 
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-content-shell">
-        <AreaHubDecisionGuide hubContext={hubContext} shops={mainShops} />
-        <AreaHubLocalGuideSection hubContext={hubContext} />
+        <AreaHubDecisionGuide
+          hubContext={hubContext}
+          shops={mainShops}
+          precisionMode={precisionMode}
+          capabilities={capabilities}
+        />
+        <AreaHubLocalGuideSection
+          hubContext={hubContext}
+          precisionMode={precisionMode}
+          capabilities={capabilities}
+        />
         <AreaHubRankingTop
           rankingShops={mainShops}
           targetArea={area}

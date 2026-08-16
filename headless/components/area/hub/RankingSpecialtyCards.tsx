@@ -18,17 +18,21 @@ type Variant = "late-night" | "beginner" | "station";
 export function RankingSpecialtyCards({
   shops,
   targetArea,
-  variant
+  variant,
+  stationAccessByShopId,
 }: {
   shops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   variant: Variant;
+  stationAccessByShopId?: Readonly<Record<number, string>>;
 }) {
   return (
     <div className={`ranking-specialty-cards ranking-specialty-cards--${variant}`}>
       {shops.map((shop) => {
         const hours = shopHoursText(shop);
-        const station = shopNearestStation(shop);
+        const station = stationAccessByShopId
+          ? stationAccessByShopId[shop.id] ?? ""
+          : shopNearestStation(shop);
         const relation = resolveShopRelationLabel(shop, targetArea);
         const beginnerFeature = shopBeginnerFeatureLabel(shop);
 

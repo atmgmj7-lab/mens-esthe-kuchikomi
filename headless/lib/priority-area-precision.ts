@@ -1,6 +1,8 @@
 import {
-  isBeginnerFriendlyShop,
-} from "@/lib/area-shop-utils";
+  matchesShopListFilter,
+  type ShopListFilterId,
+  type ShopListFilterPredicate,
+} from "@/lib/area-shop-list-controls";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 const PRIORITY_AREA_IDS = new Set([17, 13, 7, 46, 4]);
@@ -15,6 +17,8 @@ export type PriorityAreaShopGroups = Readonly<{
 export type PriorityAreaCapabilities = Readonly<{
   beginner: boolean;
   station: boolean;
+  price: boolean;
+  lateNight: boolean;
 }>;
 
 const PRIORITY_STATION_FIELDS = ["shop_station", "nearest_station", "station"] as const;
@@ -76,11 +80,13 @@ export function classifyPriorityAreaShops(
 
 export function resolvePriorityAreaCapabilities(
   shops: readonly ShopView[],
-  _targetArea: Pick<AreaView, "slug" | "name">,
+  targetArea: Pick<AreaView, "slug" | "name">,
 ): PriorityAreaCapabilities {
   return Object.freeze({
-    beginner: shops.some(isBeginnerFriendlyShop),
-    station: shops.some(hasPriorityStationWalk),
+    beginner: shops.some((shop) => matchesPriorityAreaShopListFilter(shop, "beginner", targetArea)),
+    station: shops.some((shop) => matchesPriorityAreaShopListFilter(shop, "station", targetArea)),
+    price: shops.some((shop) => matchesPriorityAreaShopListFilter(shop, "price", targetArea)),
+    lateNight: shops.some((shop) => matchesPriorityAreaShopListFilter(shop, "late-night", targetArea)),
   });
 }
 
@@ -90,16 +96,40 @@ function normalizeField(value: unknown): string {
 }
 
 export function hasPriorityStationWalk(shop: Pick<ShopView, "acf">): boolean {
+  return priorityStationAccessText(shop) !== "";
+}
+
+export function priorityStationAccessText(shop: Pick<ShopView, "acf">): string {
   const station = PRIORITY_STATION_FIELDS
     .map((field) => normalizeField(shop.acf[field]))
     .find((value) => /駅/u.test(value));
-  if (!station) return false;
-  if (WALK_MINUTES_PATTERN.test(station)) return true;
+  if (!station) return "";
+  if (WALK_MINUTES_PATTERN.test(station)) return station;
 
   for (const field of PRIORITY_WALK_FIELDS) {
     const walk = normalizeField(shop.acf[field]);
-    if (WALK_MINUTES_PATTERN.test(walk)) return true;
-    if (/^[1-9][0-9]*$/u.test(walk)) return true;
+    if (WALK_MINUTES_PATTERN.test(walk)) return `${station} ${walk}`;
+    if (/^[1-9１-９][0-9０-９]*$/u.test(walk)) return `${station} 徒歩${walk}分`;
+    if (/^[1-9１-９][0-9０-９]*\s*分$/u.test(walk)) return `${station} 徒歩${walk}`;
   }
-  return false;
+  return "";
+}
+
+export const matchesPriorityAreaShopListFilter: ShopListFilterPredicate = (
+  shop,
+  filter: ShopListFilterId,
+  targetArea,
+) => filter === "station"
+  ? hasPriorityStationWalk(shop)
+  : matchesShopListFilter(shop, filter, targetArea);
+
+export function priorityAreaFragmentAvailable(
+  fragment: string,
+  capabilities: PriorityAreaCapabilities,
+): boolean {
+  if (fragment === "#price-table") return capabilities.price;
+  if (fragment === "#late-night") return capabilities.lateNight;
+  if (fragment === "#station") return capabilities.station;
+  if (fragment === "#beginner") return capabilities.beginner;
+  return true;
 }

@@ -7,6 +7,7 @@ import { AreaShopCard } from "@/components/common/AreaShopCard";
 import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
   hasPriorityStationWalk,
+  matchesPriorityAreaShopListFilter,
   resolvePriorityAreaCapabilities,
   type PriorityAreaCapabilities,
 } from "@/lib/priority-area-precision";
@@ -107,10 +108,7 @@ export function AreaShopList({
     if (!precisionMode) {
       return prepareAreaShopListView(shops, activeFilters, activeSort, targetArea, rankingEntries);
     }
-    const stationRequested = activeFilters.includes("station");
-    const filtersWithoutStation = activeFilters.filter((filter) => filter !== "station");
-    const filtered = filterAreaShops(shops, filtersWithoutStation, targetArea)
-      .filter((shop) => !stationRequested || hasPriorityStationWalk(shop));
+    const filtered = filterAreaShops(shops, activeFilters, targetArea, matchesPriorityAreaShopListFilter);
     if (activeSort === "recommended") return filtered;
     if (activeSort === "station") {
       return [...filtered].sort((left, right) => Number(hasPriorityStationWalk(right)) - Number(hasPriorityStationWalk(left)));
@@ -118,8 +116,14 @@ export function AreaShopList({
     return prepareAreaShopListView(filtered, [], activeSort, targetArea, []);
   }, [shops, activeFilters, activeSort, targetArea, rankingEntries, precisionMode]);
   const relaxSuggestions = useMemo(
-    () => getFilterRelaxationSuggestions(shops, activeFilters, targetArea),
-    [shops, activeFilters, targetArea]
+    () => getFilterRelaxationSuggestions(
+      shops,
+      activeFilters,
+      targetArea,
+      3,
+      precisionMode ? matchesPriorityAreaShopListFilter : undefined,
+    ),
+    [shops, activeFilters, targetArea, precisionMode]
   );
 
   useEffect(() => {

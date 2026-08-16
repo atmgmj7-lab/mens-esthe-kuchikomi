@@ -5,6 +5,10 @@ import {
   isLateNightShop,
   type AreaHubContext
 } from "@/lib/area-shop-utils";
+import {
+  priorityAreaFragmentAvailable,
+  type PriorityAreaCapabilities,
+} from "@/lib/priority-area-precision";
 import type { ShopView } from "@/lib/wp/types";
 
 type DecisionCard = {
@@ -19,10 +23,14 @@ type DecisionCard = {
 
 export function AreaHubDecisionGuide({
   hubContext,
-  shops
+  shops,
+  precisionMode = false,
+  capabilities,
 }: {
   hubContext: AreaHubContext;
   shops: ShopView[];
+  precisionMode?: boolean;
+  capabilities?: PriorityAreaCapabilities;
 }) {
   const guide = hubContext.decisionGuide;
   if (!guide) return null;
@@ -78,6 +86,9 @@ export function AreaHubDecisionGuide({
       cta: "口コミを見る"
     }
   ];
+  const visibleCards = precisionMode && capabilities
+    ? cards.filter((card) => priorityAreaFragmentAvailable(card.href, capabilities))
+    : cards;
 
   return (
     <section
@@ -87,12 +98,12 @@ export function AreaHubDecisionGuide({
     >
       <header className="area-decision-guide__header">
         <p className="area-decision-guide__eyebrow">QUICK GUIDE</p>
-        <h2 id="area-decision-guide-title">{hubContext.name}で選ぶ4つの要点</h2>
+        <h2 id="area-decision-guide-title">{hubContext.name}で選ぶ{visibleCards.length}つの要点</h2>
         <p className="area-decision-guide__intro">{guide.intro}</p>
       </header>
 
       <div className="area-decision-guide__grid">
-        {cards.map((card) => (
+        {visibleCards.map((card) => (
           <Link
             key={card.key}
             href={card.href}

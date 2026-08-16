@@ -420,6 +420,16 @@
 - 公開`wp-json` proxyは受信AuthorizationをWordPressへ転送し、cache再検証routeはsecret未設定時に通るため、専用server clientとfail-closedへ分ける必要がある。
 - セラピスト、年齢、出勤の公開正本を`therapist`と`therapist_schedule`へ統一し、旧3枠・年齢帯meta・当日出勤metaは移行とshadow比較だけに限定する。
 - 外部順位は45日でstaleにし、Eskomi順位とは別snapshotへ保存する。Google評価は初期・将来範囲から除外した。
+
+## 2026-08-16 UX-PROD-T3A 最終再レビュー修正
+
+- priority表示能力を`beginner / station / price / lateNight`の1つの契約へ統一した。案内カード、地域ガイド、filter、tabは同じ能力値を使い、対応sectionがない`#price-table`、`#late-night`、`#station`、`#beginner`へのlinkを出さない。
+- priorityの一覧本体と絞込解除候補は同じpredicateを使う。専用駅情報の店舗と汎用accessだけの店舗が混在するfixtureで、駅+料金0件、解除後1件、表示件数1件が一致する。predicate未指定の非priorityは汎用accessを駅情報として扱う従来動作を維持する。
+- priority駅表示は専用駅fieldと専用徒歩fieldだけから`駅名 徒歩N分`を作る。汎用`shop_access`は判定にも表示にも使わず、PagedListからCardまで同じformat済み値を渡す。
+- 実component fixtureはGit追跡fileだけを複製し、project内symlinkを拒否する。子processは秘密値を持たない最小env、本番build/start、一時routeだけで動かし、browser・server・rootを独立した`Promise.allSettled` cleanupで閉じる。
+- security fixtureは追跡外env除外、symlink拒否、secret継承0、途中失敗後のprocess/temp残存0を実行確認する。旧runnerが残した明示2pathは内容確認後にゴミ箱へ移し、残存0、新security実行後も残存0を確認した。
+- browser最終値はfixture 55 + current-data 55 = 110 scenarios、1,600 assertions、20 screenshots、failures 0。fixture単独は1,105 assertions。320/1440pxのfixture/live代表4画像を目視し、横崩れ・開発問題表示・欠落先linkは0だった。
+- `test:priority-area-precision-browser-security`を`npm test`へ接続した。package定義だけを変更し、dependencyと`package-lock.json`は変更していない。
 # 2026-08-16 UX-PROD-T3A Primary-aware Area Precision
 
 - 重点5Areaはslugや名称ではなくterm ID `17/13/7/46/4`だけで精密表示を有効化する。主一覧は`primaryArea.id`完全一致だけ、旧Area関係があってPrimaryが別IDなら関連、Primary未設定なら確認中へ分けた。

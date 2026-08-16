@@ -11,13 +11,15 @@ export function RankingSpecialtyPagedList({
   targetArea,
   variant,
   pageSize = 5,
-  ariaLabel
+  ariaLabel,
+  stationAccessByShopId,
 }: {
   shops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   variant: Variant;
   pageSize?: number;
   ariaLabel: string;
+  stationAccessByShopId?: Readonly<Record<number, string>>;
 }) {
   const totalPages = Math.max(1, Math.ceil(shops.length / pageSize));
   const [page, setPage] = useState(0);
@@ -25,7 +27,12 @@ export function RankingSpecialtyPagedList({
 
   return (
     <div className="ranking-slice-pager">
-      <RankingSpecialtyCards shops={slice} targetArea={targetArea} variant={variant} />
+      <RankingSpecialtyCards
+        shops={slice}
+        targetArea={targetArea}
+        variant={variant}
+        stationAccessByShopId={stationAccessByShopId}
+      />
       {shops.length > pageSize ? (
         <nav className="ranking-slice-pager__nav" aria-label={ariaLabel}>
           <button

@@ -32,6 +32,8 @@ import {
 } from "@/lib/shop-ranking";
 import {
   hasPriorityStationWalk,
+  priorityAreaFragmentAvailable,
+  priorityStationAccessText,
   resolvePriorityAreaCapabilities,
   type PriorityAreaCapabilities,
 } from "@/lib/priority-area-precision";
@@ -125,9 +127,21 @@ export function AreaFaqSection({
   );
 }
 
-export function AreaHubLocalGuideSection({ hubContext }: { hubContext: AreaHubContext }) {
+export function AreaHubLocalGuideSection({
+  hubContext,
+  precisionMode = false,
+  capabilities,
+}: {
+  hubContext: AreaHubContext;
+  precisionMode?: boolean;
+  capabilities?: PriorityAreaCapabilities;
+}) {
   const guide = hubContext.localGuide;
   if (!guide || guide.items.length === 0) return null;
+  const items = precisionMode && capabilities
+    ? guide.items.filter((item) => !item.href || priorityAreaFragmentAvailable(item.href, capabilities))
+    : guide.items;
+  if (items.length === 0) return null;
 
   return (
     <AreaHubSectionShell theme="guide" areaSlug={hubContext.slug} id="local-guide">
@@ -136,7 +150,7 @@ export function AreaHubLocalGuideSection({ hubContext }: { hubContext: AreaHubCo
         {guide.lead}
       </p>
       <div className="area-hub-guide-cards area-hub-local-guide-cards">
-        {guide.items.map((item, index) => (
+        {items.map((item, index) => (
           <article key={item.title} className="area-hub-guide-card area-hub-local-guide-card">
             <span className="area-hub-guide-card__num">{index + 1}</span>
             <div>
@@ -324,7 +338,7 @@ export function AreaHubCompareTabsSections({
   const specialtyPageSize = 5;
 
   const tabs: RankingTabItem[] = [];
-  if (!precisionMode || pricedShops.length > 0) tabs.push({
+  if (!precisionMode || capabilities.price) tabs.push({
       id: "price-table",
       label: "料金比較",
       content: (
@@ -333,7 +347,7 @@ export function AreaHubCompareTabsSections({
         </CompareTabPanel>
       ),
   });
-  if (!precisionMode || lateNightShops.length > 0) tabs.push({
+  if (!precisionMode || capabilities.lateNight) tabs.push({
       id: "late-night",
       label: "深夜営業",
       content: (
@@ -365,7 +379,16 @@ export function AreaHubCompareTabsSections({
     content: (
       <CompareTabPanel theme="station" areaSlug={targetArea.slug} ja={`駅名・徒歩案内がある${hubContext.name}メンズエステ`} intro={precisionMode ? "WordPressの専用駅名項目と徒歩情報が明示されている店舗だけを掲載しています。" : "WordPressの駅名と徒歩分数が明示されている店舗だけを掲載しています。"}>
         {stationShops.length > 0 ? (
-          <RankingSpecialtyPagedList shops={stationShops} targetArea={targetArea} variant="station" pageSize={specialtyPageSize} ariaLabel="駅名・徒歩案内がある店舗のページ送り" />
+          <RankingSpecialtyPagedList
+            shops={stationShops}
+            targetArea={targetArea}
+            variant="station"
+            pageSize={specialtyPageSize}
+            ariaLabel="駅名・徒歩案内がある店舗のページ送り"
+            stationAccessByShopId={precisionMode
+              ? Object.fromEntries(stationShops.map((shop) => [shop.id, priorityStationAccessText(shop)]))
+              : undefined}
+          />
         ) : (
           <p className="area-hub-section__empty">駅名と徒歩分数を確認できる店舗はありません。</p>
         )}

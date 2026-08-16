@@ -50,8 +50,17 @@ const areaUtils = {
   isBeginnerFriendlyShop: (shop) => Boolean(shop.acf?.shop_features?.includes("初心者向け")),
   isStationNearShop: (shop) => Boolean(shop.acf?.shop_station && shop.acf?.shop_walk_minutes),
 };
+const listFilterStub = {
+  matchesShopListFilter: (shop, filter) => {
+    if (filter === "beginner") return areaUtils.isBeginnerFriendlyShop(shop);
+    if (filter === "price") return Boolean(shop.acf?.price);
+    if (filter === "late-night") return Boolean(shop.acf?.late_night);
+    return true;
+  },
+};
 const precision = compileModule("lib/priority-area-precision.ts", {
   "@/lib/area-shop-utils": areaUtils,
+  "@/lib/area-shop-list-controls": listFilterStub,
 });
 const areaRanking = compileModule("lib/area-shop-ranking.ts", {
   "@/lib/shop-ranking": { sortShopsForRanking: (shops) => shops },
@@ -108,20 +117,34 @@ assert.equal(
 );
 const realPrecision = compileModule("lib/priority-area-precision.ts", {
   "@/lib/area-shop-utils": realAreaUtils,
+  "@/lib/area-shop-list-controls": listFilterStub,
 });
+assert.equal(typeof realPrecision.priorityAreaFragmentAvailable, "function", "priority fragment capability resolver must exist");
+assert.equal(typeof realPrecision.matchesPriorityAreaShopListFilter, "function", "priority filter predicate must exist");
+assert.equal(typeof realPrecision.priorityStationAccessText, "function", "priority station formatter must exist");
 assert.deepEqual(
   JSON.parse(JSON.stringify(realPrecision.resolvePriorityAreaCapabilities([
     stationFixture({ shop_access: "日本橋駅 徒歩1分" }),
   ], { slug: "nihonbashi", name: "大阪日本橋" }))),
-  { beginner: false, station: false },
+  { beginner: false, station: false, price: false, lateNight: false },
   "priority capability must reject generic shop_access even when non-priority routes accept it",
 );
 assert.deepEqual(
   JSON.parse(JSON.stringify(realPrecision.resolvePriorityAreaCapabilities([
     stationFixture({ shop_station: "日本橋駅", shop_walk_minutes: 3 }),
   ], { slug: "nihonbashi", name: "大阪日本橋" }))),
-  { beginner: false, station: true },
+  { beginner: false, station: true, price: false, lateNight: false },
   "priority capability must accept a dedicated station field plus explicit walk data",
+);
+assert.equal(
+  realPrecision.priorityStationAccessText(stationFixture({ shop_station: "日本橋駅", shop_walk_minutes: 3, shop_access: "別の汎用案内" })),
+  "日本橋駅 徒歩3分",
+  "priority station formatter must join dedicated station and walk fields",
+);
+assert.equal(
+  realPrecision.priorityStationAccessText(stationFixture({ shop_access: "日本橋駅 徒歩1分" })),
+  "",
+  "priority station formatter must ignore generic shop_access",
 );
 
 const priorityAreas = [
@@ -221,7 +244,7 @@ const noCapabilities = precision.resolvePriorityAreaCapabilities([
 ], target);
 assert.deepEqual(
   JSON.parse(JSON.stringify(noCapabilities)),
-  { beginner: false, station: false },
+  { beginner: false, station: false, price: false, lateNight: false },
   "generic access copy must not enable beginner/station UI",
 );
 const capabilities = precision.resolvePriorityAreaCapabilities([
@@ -235,9 +258,66 @@ const capabilities = precision.resolvePriorityAreaCapabilities([
 ], target);
 assert.deepEqual(
   JSON.parse(JSON.stringify(capabilities)),
-  { beginner: true, station: true },
+  { beginner: true, station: true, price: false, lateNight: false },
   "validated data must enable the matching UI only",
 );
+assert.equal(realPrecision.priorityAreaFragmentAvailable("#shop-list", noCapabilities), true, "shop list fragment is always available");
+assert.equal(realPrecision.priorityAreaFragmentAvailable("#reviews", noCapabilities), true, "reviews fragment is always available");
+for (const fragment of ["#price-table", "#late-night", "#station", "#beginner"]) {
+  assert.equal(realPrecision.priorityAreaFragmentAvailable(fragment, noCapabilities), false, `${fragment} must be unavailable without matching data`);
+}
+
+const listControls = compileModule("lib/area-shop-list-controls.ts", {
+  "@/lib/area-shop-utils": {
+    areaRankingScore: () => 0,
+    classifyShopRelation: () => "core",
+    extractShopConfirmedPriceYen: (item) => item.acf?.price ? Number(item.acf.price) : null,
+    hasPublishedPrice: (item) => Boolean(item.acf?.price),
+    isBeginnerFriendlyShop: realAreaUtils.isBeginnerFriendlyShop,
+    isLateNightShop: (item) => Boolean(item.acf?.late_night),
+    isStationNearShop: realAreaUtils.isStationNearShop,
+    shopReviewCount: () => 0,
+    shopUpdatedTimestamp: () => 0,
+    sortShopsForRanking: (items) => items,
+  },
+  "@/lib/area-shop-ranking": {
+    areaRankForShop: () => null,
+    orderShopsForAreaRanking: (items) => items,
+  },
+});
+const dedicatedStation = stationFixture({ shop_station: "日本橋駅", shop_walk_minutes: 3 });
+const genericStationWithPrice = stationFixture({ shop_access: "日本橋駅 徒歩1分", price: 10000 });
+const relaxationFixture = [dedicatedStation, genericStationWithPrice];
+const priorityPredicate = realPrecision.matchesPriorityAreaShopListFilter;
+assert.equal(
+  listControls.filterAreaShops(relaxationFixture, ["station", "price"], target).length,
+  1,
+  "non-priority filter behavior must continue accepting generic access text",
+);
+assert.equal(
+  listControls.filterAreaShops(relaxationFixture, ["station", "price"], target, priorityPredicate).length,
+  0,
+  "priority filter body must use the priority station predicate",
+);
+const suggestions = listControls.getFilterRelaxationSuggestions(
+  relaxationFixture,
+  ["station", "price"],
+  target,
+  3,
+  priorityPredicate,
+);
+assert.deepEqual(
+  Array.from(suggestions, (suggestion) => ({ id: suggestion.id, count: suggestion.count })),
+  [{ id: "station", count: 1 }, { id: "price", count: 1 }],
+  "priority relaxation counts must use the same predicate as the filter body",
+);
+for (const suggestion of suggestions) {
+  assert.equal(
+    suggestion.count,
+    listControls.filterAreaShops(relaxationFixture, suggestion.filters, target, priorityPredicate).length,
+    `relaxation count must equal the result after selecting ${suggestion.id}`,
+  );
+}
 
 const runtimeSourceFiles = ["app", "components", "lib"].flatMap(runtimeFiles);
 for (const file of runtimeSourceFiles) {

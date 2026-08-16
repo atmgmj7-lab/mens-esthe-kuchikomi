@@ -31,6 +31,11 @@ export type ShopListFilterId =
 
 export type ShopListSortId = "recommended" | "updated" | "price-asc" | "late-night" | "station";
 export type AreaShopListRoute = "hub" | "area" | "shops";
+export type ShopListFilterPredicate = (
+  shop: ShopView,
+  filter: ShopListFilterId,
+  targetArea: Pick<AreaView, "slug" | "name">,
+) => boolean;
 
 export const SHOP_LIST_FILTER_OPTIONS: Array<{ id: ShopListFilterId; label: string }> = [
   { id: "late-night", label: "深夜営業" },
@@ -75,42 +80,49 @@ function hasShopReviews(shop: ShopView): boolean {
   return shopReviewCount(shop) > 0;
 }
 
+export function matchesShopListFilter(
+  shop: ShopView,
+  filter: ShopListFilterId,
+  targetArea: Pick<AreaView, "slug" | "name">,
+): boolean {
+  switch (filter) {
+    case "late-night":
+      return isLateNightShop(shop);
+    case "station":
+      return isStationNearShop(shop, targetArea);
+    case "price":
+      return hasPublishedPrice(shop);
+    case "official":
+      return Boolean(shop.officialUrl);
+    case "beginner":
+      return isBeginnerFriendlyShop(shop);
+    case "dispatch":
+      return isDispatchShop(shop, targetArea);
+    case "reviews":
+      return hasShopReviews(shop);
+    default:
+      return true;
+  }
+}
+
 export function matchesShopListFilters(
   shop: ShopView,
   filters: ShopListFilterId[],
-  targetArea: Pick<AreaView, "slug" | "name">
+  targetArea: Pick<AreaView, "slug" | "name">,
+  predicate: ShopListFilterPredicate = matchesShopListFilter,
 ): boolean {
   if (filters.length === 0) return true;
-
-  return filters.every((filter) => {
-    switch (filter) {
-      case "late-night":
-        return isLateNightShop(shop);
-      case "station":
-        return isStationNearShop(shop, targetArea);
-      case "price":
-        return hasPublishedPrice(shop);
-      case "official":
-        return Boolean(shop.officialUrl);
-      case "beginner":
-        return isBeginnerFriendlyShop(shop);
-      case "dispatch":
-        return isDispatchShop(shop, targetArea);
-      case "reviews":
-        return hasShopReviews(shop);
-      default:
-        return true;
-    }
-  });
+  return filters.every((filter) => predicate(shop, filter, targetArea));
 }
 
 export function filterAreaShops(
   shops: ShopView[],
   filters: ShopListFilterId[],
-  targetArea: Pick<AreaView, "slug" | "name">
+  targetArea: Pick<AreaView, "slug" | "name">,
+  predicate: ShopListFilterPredicate = matchesShopListFilter,
 ): ShopView[] {
   if (filters.length === 0) return shops;
-  return shops.filter((shop) => matchesShopListFilters(shop, filters, targetArea));
+  return shops.filter((shop) => matchesShopListFilters(shop, filters, targetArea, predicate));
 }
 
 export function sortAreaShops(
@@ -166,7 +178,8 @@ export function getFilterRelaxationSuggestions(
   shops: ShopView[],
   filters: ShopListFilterId[],
   targetArea: Pick<AreaView, "slug" | "name">,
-  limit = 3
+  limit = 3,
+  predicate: ShopListFilterPredicate = matchesShopListFilter,
 ): Array<{ id: ShopListFilterId; label: string; count: number; filters: ShopListFilterId[] }> {
   if (filters.length === 0) return [];
 
@@ -178,7 +191,7 @@ export function getFilterRelaxationSuggestions(
       return {
         id: option.id,
         label: `${option.label}を外す`,
-        count: filterAreaShops(shops, nextFilters, targetArea).length,
+        count: filterAreaShops(shops, nextFilters, targetArea, predicate).length,
         filters: nextFilters
       };
     })
@@ -194,7 +207,7 @@ export function getFilterRelaxationSuggestions(
     .map((option) => ({
       id: option.id,
       label: `${option.label}だけにする`,
-      count: filterAreaShops(shops, [option.id], targetArea).length,
+      count: filterAreaShops(shops, [option.id], targetArea, predicate).length,
       filters: [option.id]
     }))
     .filter((suggestion) => suggestion.count > 0)

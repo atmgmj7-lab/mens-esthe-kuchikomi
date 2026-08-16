@@ -6,6 +6,13 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import {
+  buildMinimalChildEnv,
+  cleanupHarnessResources,
+  copyTrackedProjectFiles,
+  listTrackedProjectFiles,
+  stopChildProcess,
+} from "./lib/priority-area-browser-harness.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(projectRoot, "..");
@@ -71,26 +78,57 @@ function buildFixtureData(preview) {
       primaryArea: null,
     };
     const exactRecords = accepted.filter((record) => record.primaryArea.id === area.id);
+    const fixtureRecords = accepted.map((record) => {
+      if (area.slug !== "umeda" || record.primaryArea.id !== area.id) return record;
+      const exactIndex = exactRecords.findIndex((exactRecord) => exactRecord.id === record.id);
+      if (exactIndex === 0) return {
+        ...record,
+        acf: { shop_station: "梅田駅", shop_walk_minutes: 3, shop_access: "汎用案内は表示しない" },
+      };
+      if (exactIndex === 1) return {
+        ...record,
+        acf: { shop_access: "大阪駅 徒歩1分", shop_price_60min: "10,000円" },
+      };
+      return record;
+    });
     return [area.slug, {
       area,
-      records: [...accepted, related, unclassified],
+      records: [...fixtureRecords, related, unclassified],
       legacyRankingEntries: exactRecords.map((record, index) => ({ shopSlug: record.slug, rank: index + 1 })),
       promotedShopId: exactRecords[0]?.id ?? null,
     }];
   }));
 }
 
-function cloneDirectory(source, destination) {
-  return new Promise((resolve, reject) => {
-    const child = spawn("cp", ["-cR", source, destination], { stdio: ["ignore", "pipe", "pipe"] });
-    let errorOutput = "";
-    child.stderr.on("data", (chunk) => { errorOutput += chunk; });
-    child.once("error", reject);
-    child.once("exit", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`copy-on-write node_modules clone failed (${code})\n${errorOutput}`));
-    });
+async function runCommand(command, args, cwd, timeoutMs = 180_000) {
+  const child = spawn(command, args, {
+    cwd,
+    detached: true,
+    env: buildMinimalChildEnv(process.env),
+    stdio: ["ignore", "pipe", "pipe"],
   });
+  let output = "";
+  const remember = (chunk) => { output = `${output}${chunk}`.slice(-30_000); };
+  child.stdout.on("data", remember);
+  child.stderr.on("data", remember);
+  let timeout;
+  try {
+    const code = await Promise.race([
+      new Promise((resolve, reject) => {
+        child.once("error", reject);
+        child.once("exit", resolve);
+      }),
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${command} timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+    if (code !== 0) throw new Error(`${command} ${args.join(" ")} failed (${code})\n${output}`);
+  } catch (error) {
+    await stopChildProcess(child);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function harnessPageSource(fixtureData) {
@@ -101,15 +139,20 @@ import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 const fixtures = ${JSON.stringify(fixtureData)} as const;
+export const instant = false;
+type FixtureRecord = (typeof fixtures)[keyof typeof fixtures]["records"][number] & {
+  readonly acf?: Readonly<Record<string, unknown>>;
+};
 
 function toTerm(record: { id: number; slug: string; name: string }): WpTerm {
   return { ...record, count: 1, parent: 2, taxonomy: "area" };
 }
 
-function toShop(record: (typeof fixtures)[keyof typeof fixtures]["records"][number], promotedShopId: number | null): ShopView {
+function toShop(record: FixtureRecord, promotedShopId: number | null): ShopView {
   const acf: Record<string, unknown> = {
     ranking_enabled: true,
     area_rank: 1,
+    ...(record.acf ?? {}),
     ...(record.id === promotedShopId ? { is_pr: true } : {}),
   };
   return {
@@ -135,6 +178,7 @@ function toShop(record: (typeof fixtures)[keyof typeof fixtures]["records"][numb
 }
 
 export default async function PriorityFixturePage({ params }: { params: Promise<{ slug: string }> }) {
+  if (process.env.ESKOMI_QA_SECRET_SENTINEL) throw new Error("secret environment inherited by fixture server");
   const { slug } = await params;
   const fixture = fixtures[slug as keyof typeof fixtures];
   if (!fixture) notFound();
@@ -158,23 +202,14 @@ export default async function PriorityFixturePage({ params }: { params: Promise<
 `;
 }
 
-async function createHarness(preview) {
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "eskomi-t3a-browser-"));
-  await fs.cp(projectRoot, tempRoot, {
-    recursive: true,
-    filter: (source) => {
-      const relative = path.relative(projectRoot, source);
-      if (!relative) return true;
-      const first = relative.split(path.sep)[0];
-      if ([".next", "node_modules", "reports"].includes(first)) return false;
-      return !path.basename(source).startsWith(".env");
-    },
-  });
-  await cloneDirectory(path.join(projectRoot, "node_modules"), path.join(tempRoot, "node_modules"));
+async function createHarness(preview, tempRoot) {
+  const trackedFiles = await listTrackedProjectFiles(projectRoot);
+  await copyTrackedProjectFiles(projectRoot, tempRoot, trackedFiles);
+  await runCommand("cp", ["-cR", path.join(projectRoot, "node_modules"), path.join(tempRoot, "node_modules")], projectRoot);
   const routeDir = path.join(tempRoot, "app", "qa-priority-fixture", "[slug]");
   await fs.mkdir(routeDir, { recursive: true });
   await fs.writeFile(path.join(routeDir, "page.tsx"), harnessPageSource(buildFixtureData(preview)));
-  return tempRoot;
+  await runCommand("npm", ["run", "build"], tempRoot);
 }
 
 function isPortOpen() {
@@ -186,28 +221,21 @@ function isPortOpen() {
   });
 }
 
-async function stopServer(child) {
-  if (!child || child.exitCode !== null) return;
-  try { process.kill(-child.pid, "SIGTERM"); } catch (error) { if (error?.code !== "ESRCH") throw error; }
-  await Promise.race([new Promise((resolve) => child.once("exit", resolve)), new Promise((resolve) => setTimeout(resolve, 3000))]);
-  if (child.exitCode === null) {
-    try { process.kill(-child.pid, "SIGKILL"); } catch (error) { if (error?.code !== "ESRCH") throw error; }
-  }
-}
-
-async function startServer(root, mode) {
+async function startServer(root, readinessPath) {
   if (await isPortOpen()) throw new Error(`${baseUrl} is already in use`);
-  const args = mode === "dev"
-    ? ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(port)]
-    : ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(port)];
-  const child = spawn("npm", args, { cwd: root, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+  const args = ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(port)];
+  const child = spawn("npm", args, {
+    cwd: root,
+    detached: true,
+    env: buildMinimalChildEnv(process.env),
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   let log = "";
   const remember = (chunk) => {
     if (log.length < 30_000) log = `${log}${chunk}`.slice(0, 30_000);
   };
   child.stdout.on("data", remember);
   child.stderr.on("data", remember);
-  const readinessPath = mode === "dev" ? "/qa-priority-fixture/umeda/" : "/area/umeda/";
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`server exited before ready\n${log}`);
@@ -219,12 +247,12 @@ async function startServer(root, mode) {
     if (response && response.status >= 500) {
       const responseBody = await response.text().catch(() => "");
       await new Promise((resolve) => setTimeout(resolve, 250));
-      await stopServer(child);
+      await stopChildProcess(child);
       throw new Error(`server returned ${response.status} during readiness\n${log}\nresponse body:\n${responseBody.slice(0, 8000)}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
-  await stopServer(child);
+  await stopChildProcess(child);
   throw new Error(`server was not ready\n${log}`);
 }
 
@@ -263,10 +291,35 @@ async function runFixtureQa(browser) {
       check(sameNameIds.length === 2 && new Set(sameNameIds).size === 2, `fixture ${area.slug} ${viewport.width}px same-name distinct`);
       check(await page.locator("#ranking").count() === 0, `fixture ${area.slug} ${viewport.width}px ranking module=0`);
       check(await page.locator('[aria-label^="おすすめランキング"]').count() === 0, `fixture ${area.slug} ${viewport.width}px rank badge=0`);
-      check(await page.locator("#compare-tabs").count() === 0, `fixture ${area.slug} ${viewport.width}px empty compare tabs=0`);
-      check(await page.locator("#price-guide").count() === 0, `fixture ${area.slug} ${viewport.width}px empty price module=0`);
+      const stationFixture = area.slug === "umeda";
+      check(await page.locator("#compare-tabs").count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px capability-aware compare tabs`);
+      check(await page.locator("#price-guide").count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px capability-aware price module`);
       check(await page.getByRole("button", { name: "初心者向け", exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px beginner controls=0`);
-      check(await page.getByRole("button", { name: "駅名・徒歩案内あり", exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px station controls=0`);
+      check(await page.getByRole("tab", { name: "駅名・徒歩案内あり", exact: true }).count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px station controls`);
+      if (stationFixture) {
+        check(await page.locator(".ranking-specialty-card--station").count() === 1, `fixture ${area.slug} ${viewport.width}px dedicated station only`);
+        check(await page.getByText("梅田駅 徒歩3分", { exact: true }).count() === 1, `fixture ${area.slug} ${viewport.width}px dedicated station walk text`);
+        check(await page.locator(".ranking-specialty-card--station").getByText("大阪駅 徒歩1分", { exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px generic access excluded`);
+        if (viewport.width === 320) {
+          await page.locator("details.area-shop-list-mobile-drawer > summary").click();
+          const filters = page.locator(".area-filter-chips:visible");
+          await filters.getByRole("button", { name: "駅名・徒歩案内あり", exact: true }).click();
+          await filters.getByRole("button", { name: "料金掲載あり", exact: true }).click();
+          const relaxStation = page.getByRole("button", { name: "駅名・徒歩案内ありを外す（1件）", exact: true });
+          const relaxPrice = page.getByRole("button", { name: "料金掲載ありを外す（1件）", exact: true });
+          check(await relaxStation.count() === 1 && await relaxPrice.count() === 1, `fixture ${area.slug} ${viewport.width}px relaxation counts`);
+          await relaxStation.click();
+          check(await page.locator(".area-shop-list-interactive__item:not([hidden])").count() === 1, `fixture ${area.slug} ${viewport.width}px relaxation count equals result`);
+          await page.getByRole("button", { name: "絞り込みを解除", exact: true }).click();
+        }
+      }
+      const danglingFragments = await page.locator('a[href^="#"]').evaluateAll((links) => links
+        .map((link) => link.getAttribute("href"))
+        .filter((href) => href && href.length > 1 && !document.getElementById(href.slice(1))));
+      check(danglingFragments.length === 0, `fixture ${area.slug} ${viewport.width}px dangling fragments=0`, { danglingFragments });
+      check(await page.locator("nextjs-portal").count() === 0, `fixture ${area.slug} ${viewport.width}px development issue portal=0`);
+      const issueText = await page.locator("body").innerText();
+      check(!/\b\d+ Issues?\b/u.test(issueText), `fixture ${area.slug} ${viewport.width}px development issue text=0`);
       const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
       check(geometry.body <= geometry.viewport + 1, `fixture ${area.slug} ${viewport.width}px overflow=0`, geometry);
       if (viewport.width === 320 || viewport.width === 1440) {
@@ -320,28 +373,50 @@ const preview = JSON.parse(await fs.readFile(path.join(repositoryRoot, "docs", "
 let browser;
 let server;
 let harnessRoot;
+let tempParent;
+let ownsTempParent = false;
 try {
+  if (process.env.BROWSER_QA_TEMP_PARENT) {
+    tempParent = path.resolve(process.env.BROWSER_QA_TEMP_PARENT);
+    await fs.mkdir(tempParent, { recursive: true });
+  } else {
+    tempParent = await fs.mkdtemp(path.join(os.tmpdir(), "eskomi-t3a-browser-parent-"));
+    ownsTempParent = true;
+  }
+  harnessRoot = await fs.mkdtemp(path.join(tempParent, "harness-"));
+  await createHarness(preview, harnessRoot);
   browser = await chromium.launch({ headless });
-  harnessRoot = await createHarness(preview);
-  server = await startServer(harnessRoot, "dev");
+  server = await startServer(harnessRoot, "/qa-priority-fixture/umeda/");
+  if (process.env.BROWSER_QA_INJECT_FAILURE === "after-server") {
+    throw new Error("injected failure after server");
+  }
   await runFixtureQa(browser);
-  await stopServer(server);
+  await stopChildProcess(server);
   server = undefined;
   if (!fixtureOnly) {
     await fs.access(path.join(projectRoot, ".next", "BUILD_ID"));
-    server = await startServer(projectRoot, "start");
+    server = await startServer(projectRoot, "/area/umeda/");
     await runLiveFailSafeQa(browser);
   }
 } catch (error) {
   failures.push({ label: "browser runner completed", details: { message: String(error?.stack || error) } });
 } finally {
-  await browser?.close();
-  await stopServer(server);
-  if (harnessRoot) await fs.rm(harnessRoot, { recursive: true, force: true });
+  const cleanupResults = await Promise.allSettled([
+    browser?.close(),
+    cleanupHarnessResources({
+      children: [server],
+      roots: [harnessRoot, ownsTempParent ? tempParent : undefined],
+    }),
+  ]);
+  for (const result of cleanupResults) {
+    if (result.status === "rejected") {
+      failures.push({ label: "browser harness cleanup", details: { message: String(result.reason?.stack || result.reason) } });
+    }
+  }
 }
 
 const summary = {
-  harness: "temporary Next app importing actual AreaHubPageTemplate and production CSS",
+  harness: "temporary production Next app from tracked files importing actual AreaHubPageTemplate and production CSS",
   modes: { fixture: 55, liveFailSafe: fixtureOnly ? 0 : 55 },
   scenarios,
   assertions,

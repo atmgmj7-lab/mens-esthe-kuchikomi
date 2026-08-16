@@ -754,3 +754,12 @@
 - browser runnerは実`AreaHubPageTemplate`/`AreaShopList`/`AreaShopCard`とproduction CSSを一時routeで直接検証する。GREENはfixture 55 + current-data fail-safe 55 = 110 scenarios、1,400 assertions、20 screenshots、failures 0。堺筋本町fixtureと梅田liveの320/1440px代表4画像を目視し、横崩れなし、副次一覧の大幅短縮を確認した。
 - corrective最終確認はfocusedと関連15検査、通常`npm test`、lint、typecheck、821ページbuild、`npm audit --audit-level=high`（vulnerabilities 0）、`git diff --check`がすべてexit 0。仕様・品質安全性・表示セルフレビューはCritical 0 / Important 0。
 - dependency、`package-lock.json`、本番route、T3-B/T4、Primary backfill、WordPress/Supabase本番data、push、deployは変更・実施していない。レビュー修正だけを別commitにして停止する。
+
+## 2026-08-16 UX-PROD-T3A 最終再レビュー指摘修正
+
+- REDはfocusedで`priority fragment capability resolver must exist`、実component browserで欠落先fragmentとpriority駅表示、securityで一時harness helper不在を確認した。実装後はfocusedとsecurityをGREENへし、mobile絞込fixtureの操作不足も検査側で修正した。
+- 表示能力、priority絞込predicate、絞込解除候補、専用駅徒歩formatを共通化した。非priority既定動作は契約テストで維持し、案内と地域ガイドから欠落sectionへのlinkを除去した。
+- 一時fixtureを追跡file/明示allowlist、symlink拒否、最小env、本番`next build` + `next start`へ変更した。途中失敗でもbrowser/server/rootを独立cleanupし、secret、process、一時folder、開発問題表示の残存0を確認した。
+- 実component browserはfixture 55 + current-data 55 = 110 scenarios、1,600 assertions、20 screenshots、failures 0。320/1440pxのfixture/live代表4画像を目視し、Critical 0 / Important 0と判定した。
+- focused、安全性、関連15本、通常`npm test`、lint、typecheck、821/821 build、audit high（vulnerabilities 0）はすべてexit 0。旧runner残存2folderは指定pathだけをゴミ箱へ移し、新security実行後も残存0を確認した。
+- package script追加以外のpackage変更、dependency、`package-lock.json`、恒久QA route、T3-B/T4、Primary backfill、本番data、push、deployは変更・実施していない。指定差分だけを別commitにして停止する。
