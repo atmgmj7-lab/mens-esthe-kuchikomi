@@ -6,7 +6,30 @@
 
 ## Current Phase
 
-UX-AREA-PRIMARY-CONTRACT-01 Phase 6（commit・T3-A前で停止）
+UX-AREA-PRIMARY-BACKFILL-PREVIEW-01 完了（本番書込・T3-A前で停止）
+
+## UX-AREA-PRIMARY-BACKFILL-PREVIEW-01
+
+### Goal
+
+base `72f432c266eab2bb03edd0794e790e17584e22b8`から、Work検証済み44件の`VERIFIED_EXACT`だけを対象に、公開WordPressの現在値とPrimary Area契約を再照合し、本番書込を行わないbackfill previewを作る。既存Area relation、UI、dependency、T3-A、本番は変更しない。
+
+### Phases
+
+- [x] Phase 1: 専用worktree、正本、入力SHA/count、変更前testを固定する
+- [x] Phase 2: preview分類・拒否条件のfail-first testを追加する
+- [x] Phase 3: 公開WordPress 44件をread-only取得し、最小generatorとpreview成果物を作る
+- [x] Phase 4: focused/Primary/Area/full検証と独立reviewを行う
+- [x] Phase 5: 対象pathだけをcommitし、本番書込・T3-A前で停止する
+
+### Stop Conditions
+
+- 入力の件数・status・evidence・observedAtが指定条件と一致しない
+- 公開WordPressの対象やcanonical Area mappingを一意に確認できない
+- Primary Areaを名前・住所・taxonomy順から推測する必要がある
+- WordPress/Supabase書込、dependency、UI、SEO、URL変更が必要
+- Secretまたは認証付きproduction接続が必要
+- 同一原因で3回失敗
 
 ## UX-AREA-PRIMARY-CONTRACT-01
 

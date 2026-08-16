@@ -1,0 +1,2263 @@
+{
+  "taskId": "UX-AREA-PRIMARY-BACKFILL-PREVIEW-01",
+  "generatedAt": "2026-08-16T08:11:43.924Z",
+  "input": {
+    "sha256": "0c64cec9c8be2e96495abc0c9acc9149e779de2fefeef08de1c614c77964309e",
+    "totalRecords": 214,
+    "statusCounts": {
+      "VERIFIED_EXACT": 44,
+      "VERIFIED_NEARBY": 1,
+      "REVIEW_REQUIRED": 156,
+      "UNRESOLVED": 13
+    }
+  },
+  "source": {
+    "mode": "public-read-only",
+    "apiBase": "https://mens-esthe-kuchikomi.com/wp-json/wp/v2",
+    "requestedShopCount": 44,
+    "receivedShopCount": 44,
+    "areaCount": 34,
+    "shopResponseDate": "Sun, 16 Aug 2026 08:11:43 GMT",
+    "areaResponseDate": "Sun, 16 Aug 2026 08:11:43 GMT"
+  },
+  "policy": {
+    "metaKey": "shop_primary_area_term_id",
+    "exactOnly": true,
+    "existingAreaRelationRequired": true,
+    "legacyAreaRelationsUnchanged": true,
+    "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+    "productionWritePerformed": false
+  },
+  "summary": {
+    "totalVerifiedExact": 44,
+    "byStatus": {
+      "READY_PRIMARY_ONLY": 44,
+      "NEEDS_AREA_RELATION_ADD": 0,
+      "STALE_OR_IDENTITY_CONFLICT": 0,
+      "EVIDENCE_OR_MAPPING_CONFLICT": 0
+    },
+    "byArea": {
+      "sakai": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東",
+        "total": 6,
+        "READY_PRIMARY_ONLY": 6,
+        "NEEDS_AREA_RELATION_ADD": 0,
+        "STALE_OR_IDENTITY_CONFLICT": 0,
+        "EVIDENCE_OR_MAPPING_CONFLICT": 0
+      },
+      "shinosaka": {
+        "termId": 13,
+        "slug": "shinosaka",
+        "label": "新大阪",
+        "total": 3,
+        "READY_PRIMARY_ONLY": 3,
+        "NEEDS_AREA_RELATION_ADD": 0,
+        "STALE_OR_IDENTITY_CONFLICT": 0,
+        "EVIDENCE_OR_MAPPING_CONFLICT": 0
+      },
+      "nihonbashi": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋",
+        "total": 12,
+        "READY_PRIMARY_ONLY": 12,
+        "NEEDS_AREA_RELATION_ADD": 0,
+        "STALE_OR_IDENTITY_CONFLICT": 0,
+        "EVIDENCE_OR_MAPPING_CONFLICT": 0
+      },
+      "sakaisujihonmachi": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町",
+        "total": 18,
+        "READY_PRIMARY_ONLY": 18,
+        "NEEDS_AREA_RELATION_ADD": 0,
+        "STALE_OR_IDENTITY_CONFLICT": 0,
+        "EVIDENCE_OR_MAPPING_CONFLICT": 0
+      },
+      "umeda": {
+        "termId": 4,
+        "slug": "umeda",
+        "label": "梅田",
+        "total": 5,
+        "READY_PRIMARY_ONLY": 5,
+        "NEEDS_AREA_RELATION_ADD": 0,
+        "STALE_OR_IDENTITY_CONFLICT": 0,
+        "EVIDENCE_OR_MAPPING_CONFLICT": 0
+      }
+    }
+  },
+  "records": [
+    {
+      "wpShopId": 654,
+      "shopSlug": "1st-the-best%ef%bc%88%e3%83%95%e3%82%a1%e3%83%bc%e3%82%b9%e3%83%88%e3%82%b6%e3%83%99%e3%82%b9%e3%83%88%ef%bc%89",
+      "shopName": "1st the best（ファーストザベスト）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://www.1st5610.net/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:02:24",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:02:24"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 663,
+      "shopSlug": "en%ef%bc%88%e3%82%a8%e3%83%b3%ef%bc%89",
+      "shopName": "en（エン）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://osaka-mensesthe.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:05:13",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:05:13"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 673,
+      "shopSlug": "%e5%ba%b5%ef%bc%88%e3%81%84%e3%81%8a%e3%82%8a%ef%bc%89",
+      "shopName": "庵（いおり）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://osaka-iori.com/map.php",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:06:44",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:06:44"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 676,
+      "shopSlug": "kiss-mint%ef%bc%88%e3%82%ad%e3%82%b9%e3%83%9f%e3%83%b3%e3%83%88%ef%bc%89",
+      "shopName": "Kiss Mint（キスミント）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://osaka-kissmint.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:07:18",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:07:18"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 682,
+      "shopSlug": "%e3%83%a1%e3%83%b3%e3%82%ba%e3%82%a8%e3%82%b9%e3%83%86%e3%81%ae%e4%bc%9a",
+      "shopName": "メンズエステの会",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://mens-esutenokai.com/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:08:49",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:08:49"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 684,
+      "shopSlug": "mother-complex%ef%bc%88%e3%83%9e%e3%82%b6%e3%83%bc%e3%82%b3%e3%83%b3%e3%83%97%e3%83%ac%e3%83%83%e3%82%af%e3%82%b9%ef%bc%89",
+      "shopName": "Mother Complex（マザーコンプレックス）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://mothercomplex.com/schedule/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:09:23",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:09:23"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 685,
+      "shopSlug": "mrs-fancy%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%95%e3%82%a1%e3%83%b3%e3%82%b7%e3%83%bc%ef%bc%89",
+      "shopName": "Mrs.Fancy（ミセスファンシー）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://www.mrs-fancy.net/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:09:30",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:09:30"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 690,
+      "shopSlug": "artist%ef%bc%88%e3%82%a2%e3%83%bc%e3%83%86%e3%82%a3%e3%82%b9%e3%83%88%ef%bc%89",
+      "shopName": "Artist（アーティスト）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 4,
+          "slug": "umeda",
+          "label": "梅田"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://www.ms-artist.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:10:12",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:10:12"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 695,
+      "shopSlug": "muse%ef%bc%88%e3%83%9f%e3%83%a5%e3%83%bc%e3%82%ba%ef%bc%89",
+      "shopName": "MUSE（ミューズ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://osaka-muse.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:10:56",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:10:56"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 699,
+      "shopSlug": "%e3%81%b7%e3%81%a1%e3%81%a9%e3%82%8a%ef%bd%9e%e3%82%80",
+      "shopName": "ぷちどり～む",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://petitpetit-dream.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:11:16",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:11:16"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 705,
+      "shopSlug": "%e5%a0%ba%e7%ad%8b%e6%9c%ac%e7%94%ba%e5%80%b6%e6%a5%bd%e9%83%a8",
+      "shopName": "堺筋本町倶楽部",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://sakahon-club.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:12:18",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:12:18"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 707,
+      "shopSlug": "seven-luck-%e5%a0%ba%e7%ad%8b%e6%9c%ac%e7%94%ba%ef%bc%88%e3%82%bb%e3%83%96%e3%83%b3%e3%83%a9%e3%83%83%e3%82%af%ef%bc%89",
+      "shopName": "Seven Luck 堺筋本町（セブンラック）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 12,
+          "slug": "shinsaibashi",
+          "label": "心斎橋"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://sevenluck-sakahon.com/access.html",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:12:38",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:12:38"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 711,
+      "shopSlug": "chaton%ef%bc%88%e3%82%b7%e3%83%a3%e3%83%88%e3%83%b3%ef%bc%89",
+      "shopName": "Chaton（シャトン）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://spa-chaton.com/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:12:50",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:12:50"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 715,
+      "shopSlug": "the-gloss%ef%bc%88%e3%82%b6%e3%83%bb%e3%82%b0%e3%83%ad%e3%82%b9%ef%bc%89",
+      "shopName": "The.gloss（ザ・グロス）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://gloss-osaka.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:13:21",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:13:21"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 716,
+      "shopSlug": "%e6%a1%83%e6%ba%90%e9%83%b7%ef%bc%88%e3%81%a8%e3%81%86%e3%81%92%e3%82%93%e3%81%8d%e3%82%87%e3%81%86%ef%bc%89",
+      "shopName": "桃源郷（とうげんきょう）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://tougenkyou-osaka.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:13:32",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:13:32"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 717,
+      "shopSlug": "union%ef%bc%8b%ef%bc%88%e3%83%a6%e3%83%8b%e3%82%aa%e3%83%b3%e3%83%97%e3%83%a9%e3%82%b9%ef%bc%89",
+      "shopName": "UNION＋（ユニオンプラス）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://union-plus-es.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:13:36",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:13:36"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 725,
+      "shopSlug": "bambi-spa%ef%bc%88%e3%83%90%e3%83%b3%e3%83%93%e3%82%b9%e3%83%91%ef%bc%89",
+      "shopName": "BAMBI SPA（バンビスパ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 17,
+          "slug": "sakai",
+          "label": "堺東"
+        }
+      ],
+      "evidenceUrl": "https://bambispa.com/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:03:23",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 17,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:03:23"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 727,
+      "shopSlug": "mrs-bell%ef%bc%86rose-spa%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%99%e3%83%ab%e3%82%a2%e3%83%b3%e3%83%89%e3%83%ad%e3%83%bc%e3%82%ba%e3%82%b9%e3%83%91%ef%bc%89",
+      "shopName": "Mrs.Bell＆Rose SPA（ミセスベルアンドローズスパ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 17,
+          "slug": "sakai",
+          "label": "堺東"
+        }
+      ],
+      "evidenceUrl": "https://bellrose-osaka.com/rec",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:03:41",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 17,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:03:41"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 728,
+      "shopSlug": "crown-mermaid%ef%bc%88%e3%82%af%e3%83%a9%e3%82%a6%e3%83%b3%e3%83%9e%e3%83%bc%e3%83%a1%e3%82%a4%e3%83%89%ef%bc%89",
+      "shopName": "CROWN MERMAID（クラウンマーメイド）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 17,
+          "slug": "sakai",
+          "label": "堺東"
+        }
+      ],
+      "evidenceUrl": "http://www.crown-mermaid.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:04:42",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 17,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:04:42"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 731,
+      "shopSlug": "leon-spa%ef%bc%88%e3%83%ac%e3%82%aa%e3%83%b3%e3%82%b9%e3%83%91%ef%bc%89",
+      "shopName": "LEON SPA（レオンスパ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 17,
+          "slug": "sakai",
+          "label": "堺東"
+        }
+      ],
+      "evidenceUrl": "https://leonspa.net/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:08:04",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 17,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:08:04"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 733,
+      "shopSlug": "oil-madrid%ef%bc%88%e3%82%aa%e3%82%a4%e3%83%ab%e3%83%9e%e3%83%89%e3%83%aa%e3%83%bc%e3%83%89%ef%bc%89",
+      "shopName": "Oil Madrid（オイルマドリード）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 17,
+          "slug": "sakai",
+          "label": "堺東"
+        }
+      ],
+      "evidenceUrl": "https://oilmadrid.com/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:10:40",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 17,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:10:40"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 747,
+      "shopSlug": "sanando%ef%bc%88%e3%82%b5%e3%83%8a%e3%83%b3%e3%83%89%ef%bc%89",
+      "shopName": "Sanando（サナンド）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        },
+        {
+          "termId": 12,
+          "slug": "shinsaibashi",
+          "label": "心斎橋"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://sanando.jp/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:12:23",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:12:23"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 766,
+      "shopSlug": "mrs-lamant%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%a9%e3%83%9e%e3%83%b3%ef%bc%89",
+      "shopName": "Mrs.L’Amant（ミセスラマン）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 13,
+        "slug": "shinosaka",
+        "label": "新大阪"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 13,
+          "slug": "shinosaka",
+          "label": "新大阪"
+        }
+      ],
+      "evidenceUrl": "https://mrs-laman-esthe.com/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-01T17:52:23",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 13,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-01T17:52:23"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 769,
+      "shopSlug": "mrs-emmy%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%82%a8%e3%83%9f%e3%83%bc%ef%bc%89",
+      "shopName": "Mrs.Emmy（ミセスエミー）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 13,
+        "slug": "shinosaka",
+        "label": "新大阪"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 13,
+          "slug": "shinosaka",
+          "label": "新大阪"
+        }
+      ],
+      "evidenceUrl": "https://salon-emmy.com/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:10:00",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 13,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:10:00"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 773,
+      "shopSlug": "venus%ef%bc%88%e3%83%b4%e3%82%a3%e3%83%bc%e3%83%8a%e3%82%b9%ef%bc%89",
+      "shopName": "Venus（ヴィーナス）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 13,
+        "slug": "shinosaka",
+        "label": "新大阪"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 13,
+          "slug": "shinosaka",
+          "label": "新大阪"
+        }
+      ],
+      "evidenceUrl": "https://venusesthe.com/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:13:45",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 13,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:13:45"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 782,
+      "shopSlug": "%e7%99%92%e3%81%97%e3%81%aa%e3%81%a7%e3%81%97%e3%81%93",
+      "shopName": "癒しなでしこ",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://iyashinadeshiko.com/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:06:53",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:06:53"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 789,
+      "shopSlug": "ana-spacia%ef%bc%88%e3%82%a2%e3%83%8a%e3%82%b9%e3%83%91%e3%82%b7%e3%82%a2%ef%bc%89",
+      "shopName": "ANA SPACIA（アナスパシア）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://anaspacia.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:02:38",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:02:38"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 793,
+      "shopSlug": "%e3%81%b6%e3%82%8b%e3%83%bc%e3%81%b9%e3%82%8a%e3%83%bcspa",
+      "shopName": "ぶるーべりーSPA",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://blueberryspa.net/contents/view/26",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:03:52",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:03:52"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 796,
+      "shopSlug": "dear%ef%bc%88%e3%83%87%e3%82%a3%e3%82%a2%e3%83%bc%ef%bc%89",
+      "shopName": "DEAR（ディアー）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://job.dear-osaka.com/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:04:53",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:04:53"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 808,
+      "shopSlug": "%e7%85%8c%e3%82%81%e3%81%8dspa%ef%bc%88%e3%81%8d%e3%82%89%e3%82%81%e3%81%8d%e3%82%b9%e3%83%91%ef%bc%89",
+      "shopName": "煌めきSPA（きらめきスパ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://kiramekispa.com/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:07:12",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:07:12"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 810,
+      "shopSlug": "spa-maybe%ef%bc%88%e3%83%a1%e3%82%a4%e3%83%93%e3%83%bc%ef%bc%89",
+      "shopName": "spa MAYBE（メイビー）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://spamaybe.com/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:08:42",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:08:42"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 821,
+      "shopSlug": "restspa-premium%ef%bc%88%e3%83%ac%e3%82%b9%e3%83%88%e3%82%b9%e3%83%91%e3%83%97%e3%83%ac%e3%83%9f%e3%82%a2%e3%83%a0%ef%bc%89",
+      "shopName": "RESTSPA PREMIUM（レストスパプレミアム）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://restspa-premium.com/access/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:11:50",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:11:50"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 823,
+      "shopSlug": "smoothie%ef%bc%88%e3%82%b9%e3%83%a0%e3%83%bc%e3%82%b8%e3%83%bc%ef%bc%89",
+      "shopName": "Smoothie（スムージー）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://smoothie-esthe.net/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:12:46",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:12:46"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 827,
+      "shopSlug": "violetspa%ef%bc%88%e3%83%b4%e3%82%a3%e3%82%aa%e3%83%ac%e3%82%b9%e3%83%91%ef%bc%89",
+      "shopName": "VIOLETSPA（ヴィオレスパ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://violet-spa.net/access.html",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:13:46",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:13:46"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 830,
+      "shopSlug": "zenith-spa%ef%bc%88%e3%82%bc%e3%83%8b%e3%82%b9%e3%82%b9%e3%83%91%ef%bc%89",
+      "shopName": "ZENITH spa（ゼニススパ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://zenithspa.jp/topics1/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:14:27",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:14:27"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 831,
+      "shopSlug": "alasso%ef%bc%88%e3%82%a2%e3%83%a9%e3%83%83%e3%82%bd%ef%bc%89",
+      "shopName": "ALASSO（アラッソ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 4,
+        "slug": "umeda",
+        "label": "梅田"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 4,
+          "slug": "umeda",
+          "label": "梅田"
+        }
+      ],
+      "evidenceUrl": "https://alasso-osaka.com/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-01T17:52:24",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 4,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-01T17:52:24"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 844,
+      "shopSlug": "good-spa-evolution%ef%bc%88%e3%82%b0%e3%83%83%e3%83%89%e3%82%b9%e3%83%91%e3%82%a8%e3%83%9c%e3%83%aa%e3%83%a5%e3%83%bc%e3%82%b7%e3%83%a7%e3%83%b3%ef%bc%89",
+      "shopName": "Good Spa Evolution（グッドスパエボリューション）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 4,
+        "slug": "umeda",
+        "label": "梅田"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 4,
+          "slug": "umeda",
+          "label": "梅田"
+        }
+      ],
+      "evidenceUrl": "https://goodspa-evo.com/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:06:22",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 4,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:06:22"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 858,
+      "shopSlug": "pershia%ef%bc%88%e3%83%9a%e3%83%ab%e3%82%b7%e3%82%a2%ef%bc%89",
+      "shopName": "Pershia（ペルシア）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 4,
+        "slug": "umeda",
+        "label": "梅田"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 4,
+          "slug": "umeda",
+          "label": "梅田"
+        }
+      ],
+      "evidenceUrl": "https://pershia.jp/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:11:14",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 4,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:11:14"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 1176,
+      "shopSlug": "preseine-%e5%a0%ba%e5%ba%97%ef%bc%88%e3%83%97%e3%83%aa%e3%82%bb%e3%83%bc%e3%83%8c%ef%bc%89",
+      "shopName": "Preseine 堺店（プリセーヌ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 17,
+        "slug": "sakai",
+        "label": "堺東"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 17,
+          "slug": "sakai",
+          "label": "堺東"
+        }
+      ],
+      "evidenceUrl": "https://www.esthe-sakai.jp/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:11:20",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 17,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:11:20"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 1195,
+      "shopSlug": "spa%e3%83%8f%e3%82%a4%e3%82%b9%e3%83%9a",
+      "shopName": "SPAハイスペ",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 7,
+        "slug": "nihonbashi",
+        "label": "大阪日本橋"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 47,
+          "slug": "tanimachi",
+          "label": "谷町九丁目"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 7,
+          "slug": "nihonbashi",
+          "label": "日本橋"
+        }
+      ],
+      "evidenceUrl": "https://highspec-osaka.com/map/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:06:33",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 7,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:06:33"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 1221,
+      "shopSlug": "riru-cheri%ef%bc%88%e3%83%aa%e3%83%ab%e3%82%b7%e3%82%a7%ef%bc%89",
+      "shopName": "Riru cheri（リルシェ）",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://riru-cheri.com/access.html",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:12:03",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:12:03"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 1230,
+      "shopSlug": "%e3%83%9e%e3%83%80%e3%83%a0%e3%81%a8%e7%b4%b3%e5%a3%ab",
+      "shopName": "マダムと紳士",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 4,
+        "slug": "umeda",
+        "label": "梅田"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 4,
+          "slug": "umeda",
+          "label": "梅田"
+        }
+      ],
+      "evidenceUrl": "https://madam-and-gentleman.net/access",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:08:23",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 4,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:08:23"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 1237,
+      "shopSlug": "%e6%ae%bf%e6%a7%98%e6%b0%97%e5%88%86",
+      "shopName": "殿様気分",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 46,
+        "slug": "sakaisujihonmachi",
+        "label": "堺筋本町"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 46,
+          "slug": "sakaisujihonmachi",
+          "label": "堺筋本町"
+        },
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 16,
+          "slug": "honmachi",
+          "label": "本町"
+        }
+      ],
+      "evidenceUrl": "https://spa-tono.com/",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:13:28",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 46,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:13:28"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    },
+    {
+      "wpShopId": 1273,
+      "shopSlug": "%e3%81%a1%e3%82%83%e3%81%a1%e3%82%83",
+      "shopName": "ちゃちゃ",
+      "verifiedStatus": "VERIFIED_EXACT",
+      "targetPrimaryArea": {
+        "termId": 4,
+        "slug": "umeda",
+        "label": "梅田"
+      },
+      "currentAreaRelations": [
+        {
+          "termId": 2,
+          "slug": "osaka",
+          "label": "大阪"
+        },
+        {
+          "termId": 4,
+          "slug": "umeda",
+          "label": "梅田"
+        }
+      ],
+      "evidenceUrl": "https://chacha503.com/?page_id=187",
+      "observedAt": "2026-08-16T00:00:00+09:00",
+      "expectedWpModifiedGmt": "2026-02-28T23:04:17",
+      "currentPrimaryStatus": "NOT_VERIFIED_CONTRACT_NOT_PRODUCTION",
+      "previewStatus": "READY_PRIMARY_ONLY",
+      "reason": "verified-target-is-current-area-relation",
+      "writePlan": {
+        "operation": "SET_META",
+        "metaKey": "shop_primary_area_term_id",
+        "value": 4,
+        "precondition": {
+          "expectedWpModifiedGmt": "2026-02-28T23:04:17"
+        },
+        "unchanged": [
+          "title",
+          "slug",
+          "post status",
+          "other meta",
+          "existing area relations",
+          "canonical",
+          "URL"
+        ]
+      }
+    }
+  ]
+}

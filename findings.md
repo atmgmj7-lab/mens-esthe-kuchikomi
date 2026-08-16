@@ -1,5 +1,17 @@
 # Findings & Decisions
 
+## 2026-08-16 UX-AREA-PRIMARY-BACKFILL-PREVIEW-01
+
+- 今回の書込候補母集団はWork成果物214件のうち`VERIFIED_EXACT` 44件だけであり、他statusはpreview recordへ混入させない。
+- 現行Primary契約が本番へ反映済みとは確認できないため、公開RESTに明示値がなくても`null`とは断定せず`NOT_VERIFIED_CONTRACT_NOT_PRODUCTION`として記録する。
+- `READY_PRIMARY_ONLY`は対象termが現在のArea relationに含まれる場合だけ許可し、legacy relationは削除・置換しない。
+- 指定名`priority5-area-mapping.json`の独立fileはworkspace/Downloadsに存在しなかった。Work JSONの`canonicalAreas`を読み、taskで固定された5組（ID・slug・label・route）と完全一致する場合だけ採用し、さらに公開WordPress Area 34件のID/slugへ照合する。
+- 入力SHA-256は`0c64cec9c8be2e96495abc0c9acc9149e779de2fefeef08de1c614c77964309e`。214件、EXACT 44、NEARBY 1、REVIEW 156、UNRESOLVED 13、重複ID 0、source/observedAt欠損0、Exact以外のPrimary候補0を確認した。
+- 変更前`npm test`はexit 0。focused REDは判定module不存在でexit 1、次のREDはGET専用generator不存在でexit 1となり、意図した未実装点を確認した。
+- 公開WordPress RESTをGETのみで再取得し、要求44件に対して44件、Area 34件を受信した。44件すべてID/slug/publish/title/modified_gmt/target relationが一致した。
+- preview分類はREADY_PRIMARY_ONLY 44、NEEDS_AREA_RELATION_ADD 0、STALE_OR_IDENTITY_CONFLICT 0、EVIDENCE_OR_MAPPING_CONFLICT 0。legacy複数relationを含むShopもrelationを保持するwrite previewである。
+- 独立security reviewの初回Important 3を再現した。`unofficial-portal`の誤通過、userinfo付きURL、空identity一致をtestへ追加し、official source type明示許可、URL credential拒否、identity非空必須へ修正した。
+
 ## 2026-08-16 UX-AREA-PRIMARY-CONTRACT-01
 
 - 専用branchは`codex/ux-area-primary-contract-01`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-area-primary-contract-01`、baseは`649d2474f6029de16b10cd4bf53f55338843cadf`である。

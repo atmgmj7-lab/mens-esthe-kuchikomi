@@ -1,5 +1,18 @@
 # Progress Log
 
+## Session 2026-08-16: UX-AREA-PRIMARY-BACKFILL-PREVIEW-01 start
+
+- base `72f432c266eab2bb03edd0794e790e17584e22b8`から専用worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-area-primary-backfill-preview-01`、branch `codex/ux-area-primary-backfill-preview-01`を作成した。
+- 元のmain checkoutには既存差分があるため触れず、今回の計画・test・preview成果物は専用worktreeだけで扱う。
+- 現在地: Phase 1。次はWork検証JSONのSHA/count/evidenceを先に検証し、変更前testと公開WordPress read-only照合へ進む。
+- 入力validationと変更前`npm test`を通過し、fail-first testを2段階でREDにした後、explicit ID/relationだけを使う判定moduleとGET専用generatorを追加した。
+- 公開WordPress 44/44件とArea 34件をread-only取得し、preview JSONとsummaryを生成した。分類はREADY 44、他3分類0で、本番書込は0。
+- 現在地: Phase 4。次はfocused/Primary/Area/full検証と独立reviewを実行する。
+- 独立SPEC_COMPLIANCEはCritical 0 / Important 0 / Minor 1、CODE_QUALITY_SECURITY再reviewはCritical 0 / Important 0 / Minor 0。term ID 7のcanonical label「大阪日本橋」と現WP term name「日本橋」の差はsummaryへ注記した。
+- 最終generator、focused preview、Primary Area contract、Area integrity、`npm test`、lint、typecheck、`git diff --check`はすべてexit 0。package/lock、application UI/CSS、WordPress/Supabase、本番の変更は0。
+- 現在地: 指定pathだけをcommitし、branch/worktreeを保持したまま本番書込・relation修正・T3-A再開前で停止する。
+
+
 ## Session 2026-08-16: UX-AREA-PRIMARY-CONTRACT-01 start
 
 - base `649d2474f6029de16b10cd4bf53f55338843cadf`から専用worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-area-primary-contract-01`、branch `codex/ux-area-primary-contract-01`を作成した。
