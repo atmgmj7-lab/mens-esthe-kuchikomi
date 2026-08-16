@@ -1,8 +1,74 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 const CHILD_ENV_KEYS = ["PATH", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "CI", "TERM"];
+const BROWSER_REPORT_OWNER_PREFIX = "eskomi-t3a-browser-report-";
+const BROWSER_REPORT_OWNER_MARKER_CONTENT = "owned by priority area browser QA\n";
+export const BROWSER_REPORT_OWNER_MARKER = ".eskomi-t3a-browser-report-owner";
+
+function isPathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return Boolean(relative) && !relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative);
+}
+
+async function assertNoSymbolicLinkSegments(root, candidate) {
+  const relative = path.relative(root, candidate);
+  let current = root;
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    const stat = await fs.lstat(current);
+    if (stat.isSymbolicLink()) throw new Error(`browser report owner symbolic link is not allowed: ${candidate}`);
+  }
+}
+
+export async function resolveBrowserReportDirectory({ projectRoot, override } = {}) {
+  const canonicalReport = path.join(path.resolve(projectRoot), "reports", "ux-prod-t3a-primary-aware");
+  if (!override) return canonicalReport;
+
+  const temporaryRoot = path.resolve(os.tmpdir());
+  const owner = path.resolve(override);
+  if (!isPathInside(temporaryRoot, owner)) {
+    throw new Error(`browser report owner must be inside the temporary directory: ${owner}`);
+  }
+  if (!path.basename(owner).startsWith(BROWSER_REPORT_OWNER_PREFIX)) {
+    throw new Error(`browser report owner must use the dedicated report prefix: ${owner}`);
+  }
+  await assertNoSymbolicLinkSegments(temporaryRoot, owner);
+  const ownerStat = await fs.lstat(owner);
+  if (!ownerStat.isDirectory()) throw new Error(`browser report owner must be a directory: ${owner}`);
+  const [realTemporaryRoot, realOwner] = await Promise.all([
+    fs.realpath(temporaryRoot),
+    fs.realpath(owner),
+  ]);
+  if (!isPathInside(realTemporaryRoot, realOwner)) {
+    throw new Error(`browser report owner must resolve inside the temporary directory: ${owner}`);
+  }
+
+  const marker = path.join(owner, BROWSER_REPORT_OWNER_MARKER);
+  const markerStat = await fs.lstat(marker).catch((error) => {
+    if (error?.code === "ENOENT") throw new Error(`browser report owner marker is missing: ${owner}`);
+    throw error;
+  });
+  if (!markerStat.isFile() || markerStat.isSymbolicLink()) {
+    throw new Error(`browser report owner marker must be a regular file: ${owner}`);
+  }
+  const markerContent = await fs.readFile(marker, "utf8");
+  if (markerContent !== BROWSER_REPORT_OWNER_MARKER_CONTENT) {
+    throw new Error(`browser report owner marker is invalid: ${owner}`);
+  }
+
+  const report = path.join(owner, "report");
+  const reportStat = await fs.lstat(report).catch((error) => {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  });
+  if (reportStat?.isSymbolicLink() || (reportStat && !reportStat.isDirectory())) {
+    throw new Error(`browser report directory must be an owned directory: ${report}`);
+  }
+  return report;
+}
 
 export function buildMinimalChildEnv(source = process.env) {
   const env = {};

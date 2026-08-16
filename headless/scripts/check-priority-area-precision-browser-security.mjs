@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import {
+  BROWSER_REPORT_OWNER_MARKER,
   buildMinimalChildEnv,
   cleanupHarnessResources,
   copyTrackedProjectFiles,
+  resolveBrowserReportDirectory,
 } from "./lib/priority-area-browser-harness.mjs";
 
 function run(command, args, options = {}) {
@@ -32,8 +35,76 @@ function portOpen(port) {
   });
 }
 
+async function snapshotReportDirectory(root) {
+  const files = [];
+  async function visit(directory, prefix = "") {
+    let entries;
+    try {
+      entries = await fs.readdir(directory, { withFileTypes: true });
+    } catch (error) {
+      if (error?.code === "ENOENT" && prefix === "") return false;
+      throw error;
+    }
+    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+      const relativePath = path.join(prefix, entry.name);
+      const absolutePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        await visit(absolutePath, relativePath);
+      } else {
+        const stat = await fs.lstat(absolutePath);
+        const content = await fs.readFile(absolutePath);
+        files.push({
+          path: relativePath,
+          size: stat.size,
+          mtimeMs: stat.mtimeMs,
+          sha256: createHash("sha256").update(content).digest("hex"),
+        });
+      }
+    }
+    return true;
+  }
+  const exists = await visit(root);
+  return exists === false ? null : files;
+}
+
 const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), "eskomi-t3a-harness-security-"));
 try {
+  const projectRoot = process.cwd();
+  const canonicalReport = path.join(projectRoot, "reports", "ux-prod-t3a-primary-aware");
+  const canonicalBefore = await snapshotReportDirectory(canonicalReport);
+  assert.equal(
+    await resolveBrowserReportDirectory({ projectRoot }),
+    canonicalReport,
+    "the default report must remain the canonical repository report",
+  );
+
+  const reportOwner = await fs.mkdtemp(path.join(sandbox, "eskomi-t3a-browser-report-"));
+  await fs.writeFile(path.join(reportOwner, BROWSER_REPORT_OWNER_MARKER), "owned by priority area browser QA\n");
+  assert.equal(
+    await resolveBrowserReportDirectory({ projectRoot, override: reportOwner }),
+    path.join(reportOwner, "report"),
+    "a marked temporary owner must resolve to its dedicated report child",
+  );
+  await assert.rejects(
+    resolveBrowserReportDirectory({ projectRoot, override: "/" }),
+    /temporary|owner|report/iu,
+  );
+  await assert.rejects(
+    resolveBrowserReportDirectory({ projectRoot, override: projectRoot }),
+    /temporary|owner|report/iu,
+  );
+  const unmarkedOwner = await fs.mkdtemp(path.join(sandbox, "eskomi-t3a-browser-report-"));
+  await assert.rejects(
+    resolveBrowserReportDirectory({ projectRoot, override: unmarkedOwner }),
+    /marker/iu,
+  );
+  const linkedOwner = path.join(sandbox, "eskomi-t3a-browser-report-linked");
+  await fs.symlink(reportOwner, linkedOwner);
+  await assert.rejects(
+    resolveBrowserReportDirectory({ projectRoot, override: linkedOwner }),
+    /symbolic link/iu,
+  );
+
   const source = path.join(sandbox, "source");
   const destination = path.join(sandbox, "destination");
   await fs.mkdir(path.join(source, "app"), { recursive: true });
@@ -87,6 +158,7 @@ try {
       BROWSER_QA_HEADLESS: "1",
       BROWSER_QA_INJECT_FAILURE: "after-server",
       BROWSER_QA_TEMP_PARENT: integrationParent,
+      BROWSER_QA_REPORT_OWNER: reportOwner,
       ESKOMI_QA_SECRET_SENTINEL: "must-not-cross",
     },
   });
@@ -94,6 +166,11 @@ try {
   assert.match(result.stdout, /injected failure after server/iu);
   assert.deepEqual(await fs.readdir(integrationParent), [], "failure injection must leave no temporary root");
   assert.equal(await portOpen(3113), false, "failure injection must leave no server process");
+  assert.deepEqual(
+    await snapshotReportDirectory(canonicalReport),
+    canonicalBefore,
+    "failure injection must not change the canonical report evidence",
+  );
 } finally {
   await fs.rm(sandbox, { recursive: true, force: true });
 }

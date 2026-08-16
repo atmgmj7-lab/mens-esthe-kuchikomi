@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 最終再レビュー修正完了（T3-B・本番backfill前で停止）
+UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 最終セキュリティ修正完了（T3-B・本番backfill前で停止）
 
 ## UX-PROD-T3A-RESUME-PRIMARY-AWARE-01
 
@@ -25,6 +25,7 @@ base `2bc9fb07de4830bb266d246ccae20b4273a563a8`から、重点5Area Hubだけを
 - [x] Phase 7: 独立レビューのCritical/ImportantをREDで再現し、legacy順位遮断・非priority回帰・副次一覧短縮・実component browser fixtureへ修正する
 - [x] Phase 8: corrective focused/full/build/audit/browser QAと代表画像目視を行い、Critical/Important 0を再確認する
 - [x] Phase 9: 最終再レビューの表示能力・絞込・駅徒歩・一時browser安全性をTDDで揃え、全検証と記録を完了する
+- [x] Phase 10: security failure injectionの出力を所有確認済み一時reportへ隔離し、正規browser証拠を再生成する
 
 ### Stop Conditions
 

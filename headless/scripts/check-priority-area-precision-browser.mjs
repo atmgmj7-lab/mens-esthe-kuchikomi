@@ -11,12 +11,16 @@ import {
   cleanupHarnessResources,
   copyTrackedProjectFiles,
   listTrackedProjectFiles,
+  resolveBrowserReportDirectory,
   stopChildProcess,
 } from "./lib/priority-area-browser-harness.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(projectRoot, "..");
-const reportDir = path.join(projectRoot, "reports", "ux-prod-t3a-primary-aware");
+const reportDir = await resolveBrowserReportDirectory({
+  projectRoot,
+  override: process.env.BROWSER_QA_REPORT_OWNER,
+});
 const screenshotDir = path.join(reportDir, "screenshots");
 const port = 3113;
 const baseUrl = `http://127.0.0.1:${port}`;

@@ -430,6 +430,9 @@
 - security fixtureは追跡外env除外、symlink拒否、secret継承0、途中失敗後のprocess/temp残存0を実行確認する。旧runnerが残した明示2pathは内容確認後にゴミ箱へ移し、残存0、新security実行後も残存0を確認した。
 - browser最終値はfixture 55 + current-data 55 = 110 scenarios、1,600 assertions、20 screenshots、failures 0。fixture単独は1,105 assertions。320/1440pxのfixture/live代表4画像を目視し、横崩れ・開発問題表示・欠落先linkは0だった。
 - `test:priority-area-precision-browser-security`を`npm test`へ接続した。package定義だけを変更し、dependencyと`package-lock.json`は変更していない。
+- 最終security reviewで、failure injectionも固定の正規report先を開始時に削除し、失敗summaryで上書きする問題を確認した。原因はserver/tempの隔離とは別にreport出力先が固定値のままだったことである。
+- report overrideはOS一時領域内、`eskomi-t3a-browser-report-`接頭辞、固定owner marker、symlinkなしをすべて満たす既存dirだけ許可し、その直下の`report`だけを削除対象にする。root、repo、symlink、markerなしは実行前に拒否する。
+- security fixtureは固有sandbox reportを使い、正規summary/screenshotsのpath・size・mtime・SHA-256を前後比較する。通常`npm test`の前後でも正規証拠は不変で、最後のfull browserで110 scenarios・1,600 assertions・20 screenshots・failures 0を正規reportへ再生成した。
 # 2026-08-16 UX-PROD-T3A Primary-aware Area Precision
 
 - 重点5Areaはslugや名称ではなくterm ID `17/13/7/46/4`だけで精密表示を有効化する。主一覧は`primaryArea.id`完全一致だけ、旧Area関係があってPrimaryが別IDなら関連、Primary未設定なら確認中へ分けた。

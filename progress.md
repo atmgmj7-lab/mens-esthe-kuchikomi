@@ -763,3 +763,11 @@
 - 実component browserはfixture 55 + current-data 55 = 110 scenarios、1,600 assertions、20 screenshots、failures 0。320/1440pxのfixture/live代表4画像を目視し、Critical 0 / Important 0と判定した。
 - focused、安全性、関連15本、通常`npm test`、lint、typecheck、821/821 build、audit high（vulnerabilities 0）はすべてexit 0。旧runner残存2folderは指定pathだけをゴミ箱へ移し、新security実行後も残存0を確認した。
 - package script追加以外のpackage変更、dependency、`package-lock.json`、恒久QA route、T3-B/T4、Primary backfill、本番data、push、deployは変更・実施していない。指定差分だけを別commitにして停止する。
+
+## 2026-08-16 UX-PROD-T3A browser security report隔離
+
+- 最終security reviewのImportant 1を受け、failure injectionが固定の正規reportを削除・上書きする原因を確認した。
+- REDはowner marker API不在でsecurity test exit 1。OS一時領域内の専用prefix・固定marker・symlinkなしを要求するreport owner境界を追加し、root/repo/symlink/markerなしをfail closedにした。
+- security fixtureは自分のsandbox内`report`だけを使用する。正規summary/screenshotsはpath・size・mtime・SHA-256を前後比較し、failure injection前後で完全不変を確認した。
+- security、focused、通常`npm test`、lint、typecheck、821/821 build、audit high（vulnerabilities 0）はすべてexit 0。最後に正規full browserを再実行し、110 scenarios、1,600 assertions、20 screenshots、failures 0へ復元した。
+- 一時folder残存0。dependency、`package-lock.json`、恒久route、本番、backfill、T3-B/T4、push、deployは変更・実施していない。
