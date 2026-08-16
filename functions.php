@@ -1778,6 +1778,19 @@ if (!function_exists('escomi_headless_on_area_taxonomy_delete')) {
     }
 }
 
+if (!function_exists('escomi_headless_on_primary_area_meta_change')) {
+    function escomi_headless_on_primary_area_meta_change($meta_id, $object_id, $meta_key, $meta_value = null) {
+        unset($meta_id, $meta_value);
+        if (
+            'shop_primary_area_term_id' === $meta_key
+            && 'shop' === get_post_type($object_id)
+            && 'publish' === get_post_status($object_id)
+        ) {
+            escomi_headless_queue_revalidate('shop_primary_area:' . (int) $object_id);
+        }
+    }
+}
+
 add_action('save_post_shop', 'escomi_headless_on_save_post', 20, 3);
 add_action('save_post_post', 'escomi_headless_on_save_post', 20, 3);
 add_action('save_post_page', 'escomi_headless_on_save_post', 20, 3);
@@ -1791,3 +1804,6 @@ add_action('created_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
 add_action('delete_area', 'escomi_headless_on_area_taxonomy_delete', 20, 4);
 add_action('added_term_relationship', 'escomi_headless_on_area_relationship_added', 20, 3);
 add_action('deleted_term_relationships', 'escomi_headless_on_area_relationship_deleted', 20, 3);
+add_action('added_post_meta', 'escomi_headless_on_primary_area_meta_change', 20, 4);
+add_action('updated_post_meta', 'escomi_headless_on_primary_area_meta_change', 20, 4);
+add_action('deleted_post_meta', 'escomi_headless_on_primary_area_meta_change', 20, 4);

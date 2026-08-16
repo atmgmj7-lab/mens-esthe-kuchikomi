@@ -190,6 +190,36 @@ if ( ! function_exists( 'escomi_public_review_request_error' ) ) {
 	}
 }
 
+if ( ! function_exists( 'escomi_public_review_area_slug' ) ) {
+	function escomi_public_review_area_slug( $value ) {
+		if ( ! is_string( $value ) || '' === $value || strlen( $value ) > 200 ) {
+			return null;
+		}
+		return preg_match( '/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $value ) ? $value : null;
+	}
+}
+
+if ( ! function_exists( 'escomi_public_review_primary_area' ) ) {
+	function escomi_public_review_primary_area( $shop_id, $areas ) {
+		$stored_values = get_post_meta( (int) $shop_id, 'shop_primary_area_term_id', false );
+		if ( ! is_array( $stored_values ) || 1 !== count( $stored_values ) ) {
+			return null;
+		}
+
+		$primary_area_id = escomi_public_review_positive_integer( $stored_values[0], null );
+		if ( null === $primary_area_id ) {
+			return null;
+		}
+
+		foreach ( $areas as $area ) {
+			if ( isset( $area['id'] ) && $primary_area_id === (int) $area['id'] ) {
+				return $area;
+			}
+		}
+		return null;
+	}
+}
+
 if ( ! function_exists( 'escomi_global_public_reviews_posts_clauses' ) ) {
 	function escomi_global_public_reviews_posts_clauses( $clauses, $query ) {
 		if ( ! $query->get( 'escomi_global_public_reviews' ) ) {
@@ -228,13 +258,40 @@ if ( ! function_exists( 'escomi_global_public_reviews_posts_clauses' ) ) {
 		$clauses['where'] .= " AND escomi_review_shop_relation.meta_value REGEXP '^[1-9][0-9]*$'
 			AND escomi_review_approval_duplicate.meta_id IS NULL
 			AND escomi_review_shop_relation_duplicate.meta_id IS NULL";
+
+		$primary_area_term_id = (int) $query->get( 'escomi_primary_area_term_id' );
+		if ( $primary_area_term_id > 0 ) {
+			$clauses['join'] .= $wpdb->prepare(
+				" INNER JOIN {$wpdb->postmeta} AS escomi_review_shop_primary_area
+					ON escomi_review_shop_primary_area.post_id = escomi_review_shop.ID
+					AND escomi_review_shop_primary_area.meta_key = %s
+					AND BINARY escomi_review_shop_primary_area.meta_value = BINARY %s
+				LEFT JOIN {$wpdb->postmeta} AS escomi_review_shop_primary_duplicate
+					ON escomi_review_shop_primary_duplicate.post_id = escomi_review_shop_primary_area.post_id
+					AND escomi_review_shop_primary_duplicate.meta_key = %s
+					AND escomi_review_shop_primary_duplicate.meta_id <> escomi_review_shop_primary_area.meta_id
+				INNER JOIN {$wpdb->term_relationships} AS escomi_review_shop_primary_relation
+					ON escomi_review_shop_primary_relation.object_id = escomi_review_shop.ID
+				INNER JOIN {$wpdb->term_taxonomy} AS escomi_review_shop_primary_taxonomy
+					ON escomi_review_shop_primary_taxonomy.term_taxonomy_id = escomi_review_shop_primary_relation.term_taxonomy_id
+					AND escomi_review_shop_primary_taxonomy.taxonomy = %s
+					AND escomi_review_shop_primary_taxonomy.term_id = %d",
+				'shop_primary_area_term_id',
+				(string) $primary_area_term_id,
+				'shop_primary_area_term_id',
+				'area',
+				$primary_area_term_id
+			);
+			$clauses['where'] .= " AND escomi_review_shop_primary_area.meta_value REGEXP '^[1-9][0-9]*$'
+				AND escomi_review_shop_primary_duplicate.meta_id IS NULL";
+		}
 		$clauses['groupby'] = "{$wpdb->posts}.ID";
 		return $clauses;
 	}
 }
 
 if ( ! function_exists( 'escomi_global_public_reviews_query' ) ) {
-	function escomi_global_public_reviews_query( $page, $per_page ) {
+	function escomi_global_public_reviews_query( $page, $per_page, $primary_area_term_id = null ) {
 		add_filter( 'posts_clauses', 'escomi_global_public_reviews_posts_clauses', 10, 2 );
 		try {
 			$query = new WP_Query(
@@ -251,6 +308,7 @@ if ( ! function_exists( 'escomi_global_public_reviews_query' ) ) {
 					'update_post_meta_cache'          => true,
 					'update_post_term_cache'          => false,
 					'escomi_global_public_reviews'    => true,
+					'escomi_primary_area_term_id'     => null === $primary_area_term_id ? 0 : (int) $primary_area_term_id,
 				)
 			);
 			global $wpdb;
@@ -275,8 +333,8 @@ if ( ! function_exists( 'escomi_global_public_review_area_item' ) ) {
 }
 
 if ( ! function_exists( 'escomi_global_public_reviews_query_page' ) ) {
-	function escomi_global_public_reviews_query_page( $page, $per_page ) {
-		$query = escomi_global_public_reviews_query( $page, $per_page );
+	function escomi_global_public_reviews_query_page( $page, $per_page, $primary_area_term_id = null ) {
+		$query = escomi_global_public_reviews_query( $page, $per_page, $primary_area_term_id );
 		if ( is_wp_error( $query ) ) {
 			return $query;
 		}
@@ -311,6 +369,8 @@ if ( ! function_exists( 'escomi_global_public_reviews_query_page' ) ) {
 				'posts_per_page' => count( $shop_ids ),
 				'orderby'        => 'post__in',
 				'no_found_rows'  => true,
+				'update_post_meta_cache' => true,
+				'update_post_term_cache' => false,
 			)
 		);
 		$shops_by_id = array();
@@ -337,18 +397,29 @@ if ( ! function_exists( 'escomi_global_public_reviews_query_page' ) ) {
 		}
 		unset( $areas );
 
+		$primary_areas_by_shop_id = array();
+		if ( null !== $primary_area_term_id ) {
+			foreach ( $areas_by_shop_id as $shop_id => $areas ) {
+				$primary_areas_by_shop_id[ $shop_id ] = escomi_public_review_primary_area( $shop_id, $areas );
+			}
+		}
+
 		$items = array();
 		foreach ( $reviews as $review ) {
 			$shop_id = $review_shop_ids[ (int) $review->ID ];
 			$shop    = $shops_by_id[ $shop_id ];
+			$shop_item = array(
+				'id'   => (int) $shop->ID,
+				'slug' => (string) $shop->post_name,
+				'name' => trim( wp_strip_all_tags( (string) $shop->post_title, true ) ),
+			);
+			if ( null !== $primary_area_term_id ) {
+				$shop_item['primaryArea'] = $primary_areas_by_shop_id[ $shop_id ];
+			}
 			$items[] = array_merge(
 				escomi_public_review_item( $review ),
 				array(
-					'shop'  => array(
-						'id'   => (int) $shop->ID,
-						'slug' => (string) $shop->post_name,
-						'name' => trim( wp_strip_all_tags( (string) $shop->post_title, true ) ),
-					),
+					'shop'  => $shop_item,
 					'areas' => $areas_by_shop_id[ $shop_id ],
 				)
 			);
@@ -397,7 +468,7 @@ if ( ! function_exists( 'escomi_get_public_shop_reviews' ) ) {
 if ( ! function_exists( 'escomi_get_global_public_reviews' ) ) {
 	function escomi_get_global_public_reviews( $request ) {
 		$query_params   = $request->get_query_params();
-		$allowed_params = array( 'page', 'per_page' );
+		$allowed_params = array( 'page', 'per_page', 'primary_area_slug' );
 		foreach ( array_keys( $query_params ) as $param ) {
 			if ( ! in_array( $param, $allowed_params, true ) ) {
 				return escomi_public_review_request_error( '未対応のパラメーターです。' );
@@ -410,7 +481,20 @@ if ( ! function_exists( 'escomi_get_global_public_reviews' ) ) {
 			return escomi_public_review_request_error( 'pageとper_pageには有効な整数を指定してください。' );
 		}
 
-		$result = escomi_global_public_reviews_query_page( $page, $per_page );
+		$primary_area_term_id = null;
+		if ( array_key_exists( 'primary_area_slug', $query_params ) ) {
+			$primary_area_slug = escomi_public_review_area_slug( $query_params['primary_area_slug'] );
+			if ( null === $primary_area_slug ) {
+				return escomi_public_review_request_error( 'primary_area_slugには有効な地域slugを指定してください。' );
+			}
+			$primary_area = get_term_by( 'slug', $primary_area_slug, 'area' );
+			if ( ! $primary_area || is_wp_error( $primary_area ) || ! isset( $primary_area->term_id, $primary_area->taxonomy ) || 'area' !== $primary_area->taxonomy ) {
+				return new WP_Error( 'area_not_found', '地域が見つかりません。', array( 'status' => 404 ) );
+			}
+			$primary_area_term_id = (int) $primary_area->term_id;
+		}
+
+		$result = escomi_global_public_reviews_query_page( $page, $per_page, $primary_area_term_id );
 		return is_wp_error( $result ) ? $result : rest_ensure_response( $result );
 	}
 }

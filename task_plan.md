@@ -6,7 +6,38 @@
 
 ## Current Phase
 
-UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 最終セキュリティ修正完了（T3-B・本番backfill前で停止）
+UX-PROD-T3B-AREA-REVIEW-READER-01 完了（Area UI・本番backfill・push/deploy前で停止）
+
+## UX-PROD-T3B-AREA-REVIEW-READER-01
+
+### Goal
+
+base `cfc1d35e15ac874f5d1a9df289a81cfe1f4c98f9`から、既存のglobal approved reviews REST/Next readerを後方互換で拡張し、明示的で有効なPrimary Areaに完全一致する公開店舗の承認済み口コミだけをArea単位で取得できるようにする。Area UI・SEO本文・dependency・本番dataは変更しない。
+
+### Phases
+
+- [x] Phase 1: 承認済み設計、専用worktree、正本、baselineを確認する
+- [x] Phase 2: PHP/NextのPrimary Area filter契約をfail-firstで固定する
+- [x] Phase 3: 既存query/serializer/cache adapterを最小拡張する
+- [x] Phase 4: focused/full/lint/typecheck/build/auditを検証する
+- [x] Phase 5: 仕様・品質安全性レビューでCritical/Important 0を確認する
+- [x] Phase 6: 指定pathだけをcommitし、Area UI・backfill・push/deploy前で停止する
+
+### Stop Conditions
+
+- efficientなserver-side filterに新storageまたはPrimary contract変更が必要
+- unsafeなcustom SQL、dependency変更、Secret/production接続が必要
+- Area UI、SEO本文、URL/canonical/sitemap、WordPress/Supabase本番変更が必要
+- 同一原因で3回失敗する
+
+### Errors Encountered
+
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+| 初回計画patchが`findings.md`の実見出しと一致せず失敗 | 1 | 実見出しを確認し、対象ファイルごとの小さいpatchで更新した |
+| cache invalidation fixtureが関数抽出だけでhook登録を実行せず失敗 | 1 | 実際のcallback登録順を保つfixtureへ修正した |
+| focused一括確認で存在しない`test:home-t2-contract`を指定 | 1 | package scriptsを確認し、正式な`test:home-ux-production`と`test:reviews-hub`を実行して両方PASS |
+| 初回独立レビューでMySQL PAD SPACEと独立rollout互換性をImportant判定 | 1 | Primary値を正整数+BINARY完全一致にし、未絞り込みREST shapeを維持。RED fixture追加後の再レビューでImportant 0 |
 
 ## UX-PROD-T3A-RESUME-PRIMARY-AWARE-01
 
@@ -108,6 +139,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 
 | Error | Attempt | Resolution |
 |-------|---------|------------|
+| 初回計画patchが`findings.md`の見出しを誤認して失敗 | 1 | 実見出しを確認し、正しいcontextの小さいpatchで更新した |
 | 初回計画更新patchが古いCurrent Phase文言を期待して失敗 | 1 | 現在行を再確認し、小さいpatchへ分割した |
 | render contract helperが`react/jsx-runtime`を解決できずfeature assertion前に停止 | 1 | test helperへ実React JSX runtimeを追加し、mock assertionは増やさない |
 | Home順序testの`掲載店舗`がHeroの`掲載店舗数`へ先に一致 | 1 | H2のid付きmarkerへ絞り、利用者向け順序を正しく測る |

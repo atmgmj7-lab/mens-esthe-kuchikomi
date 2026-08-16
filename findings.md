@@ -1,5 +1,15 @@
 # Findings & Decisions
 
+## 2026-08-16 UX-PROD-T3B Area Review Reader
+
+- 既存global RESTは`GET /wp-json/escomi/v1/reviews?page=&per_page=`で、1回の`WP_Query`に承認meta、canonical shop relation、公開Shop条件をjoinし、page内Shop/Areaを一括取得している。
+- Next readerは`getApprovedReviewsPage(page, perPage)`と既存validator/serializerを持ち、`wp`と`reviews:global`のtagを付ける。Area filterはまだない。
+- Primary正式値は`shop_primary_area_term_id`で、taxonomy=areaかつShopの既存Area relation内にある場合だけ有効。display name、slug、term順からの推測は禁止。
+- 後方互換を保つ最小案は、既存endpointへ任意`primary_area_slug`を追加し、WordPress内でcanonical term IDへ解決して、既存global queryへPrimary metaとterm relationの一致条件を加える方式。
+- Next cacheは関数引数にslugを含めてArea間を分離し、既存`wp` invalidationでfreshnessを維持する。個別Area tagは追加しない。
+- 既存`save_post_shop`とArea relation hookだけでは、将来のbackfillがPrimary metaを直接更新した場合にArea feedが即時失効しない。`shop_primary_area_term_id`のadd/update/deleteを公開Shopだけ`wp`再検証queueへ接続する必要がある。
+- Filtered queryは既存global review queryへPrimary meta・重複拒否・term relation・taxonomy/term ID一致をprepared JOINで加える。review 1 query、page Shop 1 bulk query、Area relation 1 bulk queryで、店舗別REST取得は0。
+
 ## 2026-08-16 UX-PROD-T3A-RESUME-PRIMARY-AWARE-01
 
 - 専用branchは`codex/eskomi-ux-production-t3a-primary-aware`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-eskomi-ux-production-t3a-primary-aware`、baseは`2bc9fb07de4830bb266d246ccae20b4273a563a8`である。

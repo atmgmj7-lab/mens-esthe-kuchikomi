@@ -1,5 +1,18 @@
 # Progress Log
 
+## 2026-08-16 UX-PROD-T3B-AREA-REVIEW-READER-01 開始
+
+- base `cfc1d35e15ac874f5d1a9df289a81cfe1f4c98f9`からbranch `codex/eskomi-ux-production-t3b-area-review-reader`と専用worktreeを作成した。
+- `npm ci`はexit 0、vulnerability 0。変更前`npm test`もexit 0でbaselineを確認した。
+- 承認済み設計に従い、既存global endpoint/serializer/Next reader/cacheを後方互換で拡張し、Area UI・本番dataへ進まない。
+- 初回計画更新は`findings.md`の見出しを`# Findings`と誤認して失敗した。実見出し`# Findings & Decisions`へ合わせた小さいpatchで解消した。
+- RED: `npm run test:public-reviews`はexit 1で、既存Next validatorが新しい`shop.primaryArea`を受理できないことを確認した。
+- RED: `php tests/php/check-public-review-contract.php`はexit 1で、既存global responseに検証済みPrimary Areaが存在しないことを確認した。
+- Primary meta invalidation追加後の初回fixtureは、抽出した関数だけを読みhook登録行を実行していなかったためexit 1。fixture内で同じ3hookを登録し、production sourceにも登録があることを別assertで固定した。
+- GREEN: `npm run test:public-reviews`はexit 0。EXACTのみ、RELATED/UNCLASSIFIED/invalid/draft/pending/duplicate除外、filtered pagination/order、Primary応答検証、Area別cache key、N-shop REST 0、Primary meta add/update/delete失効を確認した。
+- 関連focused、PHP構文4件、`npm test`、lint、typecheck、821/821 build、audit（vulnerability 0）、`git diff --check`はすべてexit 0。package/lock、UI/component/CSS、URL/canonical/sitemap/robots差分は0。
+- 追加REDでuppercase・先頭末尾hyphen・underscore・percent形式のArea slugがNextから5回WordPressへ到達することを確認した。PHPと同じlowercase英数字・単語間hyphen・200字上限へ揃えた後、focusedは再びexit 0。
+
 ## Session 2026-08-16: UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 start
 
 - base `2bc9fb07de4830bb266d246ccae20b4273a563a8`から専用worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-eskomi-ux-production-t3a-primary-aware`、branch `codex/eskomi-ux-production-t3a-primary-aware`を作成した。
@@ -771,3 +784,12 @@
 - security fixtureは自分のsandbox内`report`だけを使用する。正規summary/screenshotsはpath・size・mtime・SHA-256を前後比較し、failure injection前後で完全不変を確認した。
 - security、focused、通常`npm test`、lint、typecheck、821/821 build、audit high（vulnerabilities 0）はすべてexit 0。最後に正規full browserを再実行し、110 scenarios、1,600 assertions、20 screenshots、failures 0へ復元した。
 - 一時folder残存0。dependency、`package-lock.json`、恒久route、本番、backfill、T3-B/T4、push、deployは変更・実施していない。
+
+## 2026-08-16 UX-PROD-T3B Area Review Reader
+
+- 既存`GET /wp-json/escomi/v1/reviews`へ任意`primary_area_slug`を追加し、正式Area term、公開Shop、承認済み公開口コミ、明示Primary meta、ShopのArea relationがすべて一致するEXACT口コミだけをserver-sideで返すようにした。RELATED、UNCLASSIFIED、relation外、重複・不正Primary、非公開Shop/口コミは除外する。
+- 既存のreview query、serializer、page単位Shop/Area一括取得を再利用した。口コミ1回、Shop 1回、Area 1回で、店舗別REST取得は0。pageは1〜1000、perPageは1〜20、投稿日降順+ID降順、total/totalPagesは絞込後の値を使う。
+- NextはArea slugをcache引数へ含め、filtered responseの`primaryArea`存在・requested slug・Area relation一致を厳密検証する。未絞り込みWordPress payloadは既存shapeを保ち、Nextが`primaryArea: null`へ正規化するため、WordPress/Nextの独立反映も後方互換である。
+- Primary metaの追加・更新・削除を既存の認証済み`wp`再検証queueへ接続した。新しいcache方式、tag、Secret、storage、mutation endpointは追加していない。
+- REDは未対応Primary field、Primary meta変更時のcache未失効、不正slugの送信、末尾空白PrimaryのMySQL一致、独立rollout時の旧payload拒否を個別に確認した。修正後はfocused、全`npm test`、lint、typecheck、821/821 build、audit（vulnerabilities 0）、PHP構文、差分検査がすべてexit 0。
+- 独立SPEC_COMPLIANCEとCODE_QUALITY_SECURITYの最終再レビューはいずれもCritical 0 / Important 0 / Minor 0、Ready Yes。UI/CSS、SEO本文、dependency、package/lock、URL/canonical/sitemap、WordPress/Supabase本番、backfill、push、deployは変更・実施していない。

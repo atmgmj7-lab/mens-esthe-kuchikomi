@@ -73,6 +73,13 @@ assert.match(functionsSource, /save_post_reviews/);
 assert.match(functionsSource, /untrashed_post/);
 assert.match(functionsSource, /add_action\(\s*["']added_term_relationship["']\s*,\s*["']escomi_headless_on_area_relationship_added["']/);
 assert.match(functionsSource, /add_action\(\s*["']deleted_term_relationships["']\s*,\s*["']escomi_headless_on_area_relationship_deleted["']/);
+for (const hook of ["added_post_meta", "updated_post_meta", "deleted_post_meta"]) {
+  assert.match(
+    functionsSource,
+    new RegExp(`add_action\\(\\s*["']${hook}["']\\s*,\\s*["']escomi_headless_on_primary_area_meta_change["']`),
+    `${hook} must invalidate Area-scoped review caches when explicit Primary changes`,
+  );
+}
 assert.doesNotMatch(functionsSource, /add_action\(\s*["']set_object_terms["']/);
 assert.match(functionsSource, /add_action\(\s*["']before_delete_post["']\s*,\s*["']escomi_headless_on_before_delete_post["']/);
 assert.match(reviewsCptSource, /transition_post_status/);
@@ -300,7 +307,12 @@ assert.deepEqual(approvedShopReviewRobots(availableOutOfRange, 2), { index: fals
 const globalPayload = {
   items: [{
     ...validPayload.items[0],
-    shop: { id: 42, slug: "shop-forty-two", name: "公開店舗42" },
+    shop: {
+      id: 42,
+      slug: "shop-forty-two",
+      name: "公開店舗42",
+      primaryArea: { id: 11, slug: "umeda", name: "梅田" },
+    },
     areas: [
       { id: 10, slug: "osaka", name: "大阪" },
       { id: 11, slug: "umeda", name: "梅田" },
@@ -310,12 +322,19 @@ const globalPayload = {
   totalPages: 1,
   page: 1,
 };
+const legacyGlobalPayload = {
+  ...globalPayload,
+  items: globalPayload.items.map((item) => ({
+    ...item,
+    shop: { id: item.shop.id, slug: item.shop.slug, name: item.shop.name },
+  })),
+};
 const globalRequests = [];
 const globalCacheTags = [];
 const globalReader = loadReviewModule(
   async (path) => {
     globalRequests.push(path);
-    return globalPayload;
+    return path.includes("primary_area_slug=") ? globalPayload : legacyGlobalPayload;
   },
   (...tags) => globalCacheTags.push(tags),
 );
@@ -323,12 +342,23 @@ assert.equal(typeof globalReader.validateApprovedGlobalReviewPage, "function", "
 const validatedGlobal = globalReader.validateApprovedGlobalReviewPage(globalPayload, 1, 20);
 assert.ok(validatedGlobal, "valid global approved-review payload must pass");
 assert.equal(validatedGlobal.reviews[0].shop.id, 42);
+assert.equal(validatedGlobal.reviews[0].shop.primaryArea.slug, "umeda");
 assert.deepEqual(validatedGlobal.reviews[0].areas.map((area) => area.slug), ["osaka", "umeda"]);
+const validatedLegacyGlobal = globalReader.validateApprovedGlobalReviewPage(legacyGlobalPayload, 1, 20);
+assert.ok(validatedLegacyGlobal, "the deployed unfiltered payload must remain valid during independent rollout");
+assert.equal(validatedLegacyGlobal.reviews[0].shop.primaryArea, null, "missing unfiltered Primary must normalize to null");
+assert.equal(
+  globalReader.validateApprovedGlobalReviewPage(legacyGlobalPayload, 1, 20, "umeda"),
+  null,
+  "Area-filtered validation must still require explicit Primary identity",
+);
 
 const invalidGlobalPayloads = [
   { ...globalPayload, items: [{ ...globalPayload.items[0], reviewerEmail: "private@example.test" }] },
   { ...globalPayload, items: [{ ...globalPayload.items[0], shop: { ...globalPayload.items[0].shop, id: 0 } }] },
   { ...globalPayload, items: [{ ...globalPayload.items[0], shop: { ...globalPayload.items[0].shop, slug: "" } }] },
+  { ...globalPayload, items: [{ ...globalPayload.items[0], shop: { ...globalPayload.items[0].shop, primaryArea: { id: 99, slug: "umeda", name: "梅田" } } }] },
+  { ...globalPayload, items: [{ ...globalPayload.items[0], shop: { ...globalPayload.items[0].shop, primaryArea: { id: 11, slug: "missing-relation", name: "梅田" } } }] },
   { ...globalPayload, items: [{ ...globalPayload.items[0], areas: [{ id: 10, slug: "osaka", name: "大阪" }, { id: 10, slug: "umeda", name: "梅田" }] }] },
   { ...globalPayload, items: [{ ...globalPayload.items[0], areas: [{ id: 10, slug: "bad/slug", name: "大阪" }] }] },
   { ...globalPayload, totalPages: 2 },
@@ -350,6 +380,40 @@ const globalResult = await globalReader.getApprovedReviewsPage(1, 20);
 assert.equal(globalResult.status, "available");
 assert.deepEqual(globalRequests, ["/escomi/v1/reviews?page=1&per_page=20"], "global reader must make one request and never call shop endpoints");
 assert.deepEqual(globalCacheTags, [["wp", "reviews:global"]]);
+
+const areaRequestCountBeforeInvalid = globalRequests.length;
+for (const invalidAreaSlug of ["../umeda", "UMEDA", "-umeda", "umeda-", "ume_da", "%2e"]) {
+  assert.deepEqual(
+    await globalReader.getApprovedReviewsPage(1, 20, invalidAreaSlug),
+    { status: "unavailable", reason: "invalid-response" },
+    "invalid Area slugs must fail before reaching WordPress",
+  );
+}
+assert.equal(globalRequests.length, areaRequestCountBeforeInvalid, "invalid Area slugs must not create a request or cache entry");
+
+const umedaResult = await globalReader.getApprovedReviewsPage(1, 20, "umeda");
+assert.equal(umedaResult.status, "available", "matching Primary Area payload must be accepted");
+assert.equal(
+  globalRequests.at(-1),
+  "/escomi/v1/reviews?page=1&per_page=20&primary_area_slug=umeda",
+  "Area reader must use the existing global endpoint exactly once",
+);
+assert.deepEqual(globalCacheTags.at(-1), ["wp", "reviews:global"], "Area cache must keep the common freshness tags");
+
+assert.deepEqual(
+  await globalReader.getApprovedReviewsPage(1, 20, "shinosaka"),
+  { status: "unavailable", reason: "invalid-response" },
+  "a response whose Primary Area does not match the request must fail closed",
+);
+assert.ok(
+  globalRequests.every((path) => !path.includes("/shops/")),
+  "global and Area reads must never call one endpoint per Shop",
+);
+assert.match(
+  nextSource,
+  /getApprovedReviewsPageCached\s*\(\s*page:\s*number,\s*perPage:\s*number,\s*primaryAreaSlug:/,
+  "the Area slug must be an input to the cached function so Area cache keys cannot collide",
+);
 assert.equal(
   typeof globalReader.freezeApprovedGlobalReviewResult,
   "function",
@@ -363,6 +427,7 @@ assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews), true, "cache-re
 assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0]), true, "cache-restored review must be frozen");
 assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].ratings), true, "cache-restored ratings must be frozen");
 assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].shop), true, "cache-restored shop relation must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].shop.primaryArea), true, "cache-restored Primary Area must be frozen");
 assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].areas), true, "cache-restored area list must be frozen");
 assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].areas[0]), true, "cache-restored area relation must be frozen");
 const refrozenUnavailable = globalReader.freezeApprovedGlobalReviewResult({
@@ -484,6 +549,9 @@ for (const scenario of [
   "area_relation_remove",
   "area_relation_replace",
   "area_relation_unrelated",
+  "primary_area_meta_added",
+  "primary_area_meta_updated",
+  "primary_area_meta_deleted",
 ]) {
   execFileSync(
     "php",

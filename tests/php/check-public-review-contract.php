@@ -28,12 +28,14 @@ final class WP_Term {
 	public string $slug;
 	public string $name;
 	public int $object_id;
+	public string $taxonomy;
 
-	public function __construct( int $term_id, string $slug, string $name, int $object_id ) {
+	public function __construct( int $term_id, string $slug, string $name, int $object_id, string $taxonomy = 'area' ) {
 		$this->term_id   = $term_id;
 		$this->slug      = $slug;
 		$this->name      = $name;
 		$this->object_id = $object_id;
+		$this->taxonomy  = $taxonomy;
 	}
 }
 
@@ -62,11 +64,18 @@ final class WP_REST_Response {
 final class Eskomi_Public_Review_Test_Wpdb {
 	public string $posts = 'wp_posts';
 	public string $postmeta = 'wp_postmeta';
+	public string $term_relationships = 'wp_term_relationships';
+	public string $term_taxonomy = 'wp_term_taxonomy';
 	public string $last_error = '';
 
 	public function prepare( string $query, ...$values ): string {
 		foreach ( $values as $value ) {
-			$query = preg_replace( '/%s/', "'" . addslashes( (string) $value ) . "'", $query, 1 );
+			$query = preg_replace_callback(
+				'/%[sd]/',
+				fn( $match ) => '%d' === $match[0] ? (string) (int) $value : "'" . addslashes( (string) $value ) . "'",
+				$query,
+				1
+			);
 		}
 		return $query;
 	}
@@ -122,9 +131,21 @@ $GLOBALS['escomi_global_shop_query_count']   = 0;
 $GLOBALS['escomi_global_area_query_count']   = 0;
 $GLOBALS['escomi_filter_callbacks']          = array();
 $GLOBALS['escomi_public_review_meta_counts'] = array();
+$GLOBALS['escomi_public_shop_meta_counts']   = array();
 $GLOBALS['escomi_global_query_args']         = array();
 $GLOBALS['escomi_global_query_clauses']      = array();
+$GLOBALS['escomi_public_area_terms_by_slug'] = array(
+	'umeda'             => new WP_Term( 11, 'umeda', '梅田', 0 ),
+	'nihonbashi'        => new WP_Term( 12, 'nihonbashi', '大阪日本橋', 0 ),
+	'shinosaka'         => new WP_Term( 13, 'shinosaka', '新大阪', 0 ),
+	'other-shinosaka'   => new WP_Term( 46, 'other-shinosaka', '新大阪', 0 ),
+);
 $GLOBALS['wpdb']                             = new Eskomi_Public_Review_Test_Wpdb();
+
+$GLOBALS['escomi_public_review_meta'][42]['shop_primary_area_term_id'] = '11';
+$GLOBALS['escomi_public_review_meta'][45]['shop_primary_area_term_id'] = '12';
+$GLOBALS['escomi_public_shop_meta_counts'][42]['shop_primary_area_term_id'] = 1;
+$GLOBALS['escomi_public_shop_meta_counts'][45]['shop_primary_area_term_id'] = 1;
 
 function add_action( $hook, $callback ) {
 	if ( 'rest_api_init' === $hook ) {
@@ -148,8 +169,19 @@ function rest_ensure_response( $data ) {
 function get_post( $post_id ) {
 	return $GLOBALS['escomi_public_shops'][ (int) $post_id ] ?? null;
 }
-function get_post_meta( $post_id, $key ) {
-	return $GLOBALS['escomi_public_review_meta'][ (int) $post_id ][ $key ] ?? '';
+function get_post_meta( $post_id, $key, $single = true ) {
+	$value = $GLOBALS['escomi_public_review_meta'][ (int) $post_id ][ $key ] ?? '';
+	if ( $single ) {
+		return $value;
+	}
+	$count = $GLOBALS['escomi_public_shop_meta_counts'][ (int) $post_id ][ $key ] ?? ( '' === $value ? 0 : 1 );
+	return array_fill( 0, $count, $value );
+}
+function get_term_by( $field, $value, $taxonomy ) {
+	if ( 'slug' !== $field || 'area' !== $taxonomy ) {
+		return false;
+	}
+	return $GLOBALS['escomi_public_area_terms_by_slug'][ (string) $value ] ?? false;
 }
 function wp_strip_all_tags( $value ) {
 	return trim( strip_tags( (string) $value ) );
@@ -239,20 +271,36 @@ final class WP_Query {
 			&& str_contains( $clauses['where'], 'escomi_review_approval_duplicate.meta_id IS NULL' );
 		$rejects_duplicate_relation = str_contains( $clauses['join'], 'escomi_review_shop_relation_duplicate' )
 			&& str_contains( $clauses['where'], 'escomi_review_shop_relation_duplicate.meta_id IS NULL' );
+		$requested_primary_area_id = (int) ( $args['escomi_primary_area_term_id'] ?? 0 );
+		$filters_primary_area = $requested_primary_area_id > 0
+			&& str_contains( $clauses['join'], 'escomi_review_shop_primary_area' )
+			&& str_contains( $clauses['join'], 'escomi_review_shop_primary_relation' )
+			&& str_contains( $clauses['join'], 'escomi_review_shop_primary_taxonomy' );
+		$rejects_duplicate_primary = str_contains( $clauses['join'], 'escomi_review_shop_primary_duplicate' )
+			&& str_contains( $clauses['where'], 'escomi_review_shop_primary_duplicate.meta_id IS NULL' );
+		$enforces_canonical_primary = str_contains( $clauses['join'], 'BINARY escomi_review_shop_primary_area.meta_value = BINARY' )
+			&& str_contains( $clauses['where'], "escomi_review_shop_primary_area.meta_value REGEXP '^[1-9][0-9]*$'" );
 		$items = array_values(
 			array_filter(
 				$GLOBALS['escomi_public_review_posts'],
-				function ( $review ) use ( $args, $filters_approved, $filters_public_shop, $rejects_duplicate_approval, $rejects_duplicate_relation ) {
+				function ( $review ) use ( $args, $filters_approved, $filters_public_shop, $rejects_duplicate_approval, $rejects_duplicate_relation, $requested_primary_area_id, $filters_primary_area, $rejects_duplicate_primary, $enforces_canonical_primary ) {
 					$shop_id = (int) get_post_meta( $review->ID, 'review_shop_id', true );
 					$shop    = $GLOBALS['escomi_public_shops'][ $shop_id ] ?? null;
 					$approval_count = $GLOBALS['escomi_public_review_meta_counts'][ $review->ID ]['approval_status'] ?? 0;
 					$relation_count = $GLOBALS['escomi_public_review_meta_counts'][ $review->ID ]['review_shop_id'] ?? 0;
+					$raw_primary_area = get_post_meta( $shop_id, 'shop_primary_area_term_id', true );
+					$primary_area_id = (int) $raw_primary_area;
+					$area_relation_ids = array_map( fn( $term ) => (int) $term->term_id, $GLOBALS['escomi_public_shop_terms'][ $shop_id ] ?? array() );
+					$primary_count = $GLOBALS['escomi_public_shop_meta_counts'][ $shop_id ]['shop_primary_area_term_id'] ?? 0;
 					return $review->post_type === $args['post_type']
 						&& $review->post_status === $args['post_status']
 						&& ( ! $filters_approved || 'approved' === get_post_meta( $review->ID, 'approval_status', true ) )
 						&& ( ! $filters_public_shop || ( $shop instanceof WP_Post && 'shop' === $shop->post_type && 'publish' === $shop->post_status ) )
 						&& ( ! $rejects_duplicate_approval || 1 === $approval_count )
-						&& ( ! $rejects_duplicate_relation || 1 === $relation_count );
+						&& ( ! $rejects_duplicate_relation || 1 === $relation_count )
+						&& ( ! $filters_primary_area || ( $primary_area_id === $requested_primary_area_id && in_array( $requested_primary_area_id, $area_relation_ids, true ) ) )
+						&& ( ! $filters_primary_area || ! $enforces_canonical_primary || ( is_string( $raw_primary_area ) && 1 === preg_match( '/^[1-9][0-9]*$/D', $raw_primary_area ) ) )
+						&& ( ! $rejects_duplicate_primary || 1 === $primary_count );
 				}
 			)
 		);
@@ -516,8 +564,12 @@ escomi_public_review_test_expect( 42 === $global_response->data['items'][0]['sho
 escomi_public_review_test_expect( 'shop-forty-two' === $global_response->data['items'][0]['shop']['slug'], 'Global review must expose the canonical shop slug.' );
 escomi_public_review_test_expect( '公開店舗42' === $global_response->data['items'][0]['shop']['name'], 'Global review must expose the public shop name.' );
 escomi_public_review_test_expect(
+	! array_key_exists( 'primaryArea', $global_response->data['items'][0]['shop'] ),
+	'Unfiltered global response must keep the deployed payload shape for independent rollout safety.'
+);
+escomi_public_review_test_expect(
 	array( 'osaka', 'umeda' ) === array_column( $global_response->data['items'][0]['areas'], 'slug' ),
-	'All canonical area relations must be returned without inventing a primary area.'
+	'All canonical area relations must remain available alongside the explicit primary area.'
 );
 escomi_public_review_test_expect( 1 === $GLOBALS['escomi_global_review_query_count'], 'Global feed must use one bounded review query.' );
 escomi_public_review_test_expect( 1 === $GLOBALS['escomi_global_shop_query_count'], 'Page shops must be resolved in one bulk query.' );
@@ -526,6 +578,74 @@ $global_serialized = json_encode( $global_response->data, JSON_UNESCAPED_UNICODE
 foreach ( array( 'private@example.test', '192.0.2.1', '非公開氏名', '管理用メモ', 'approval_status', 'review_shop_id', '非公開店舗' ) as $private_value ) {
 	escomi_public_review_test_expect( ! str_contains( $global_serialized, $private_value ), 'Private global review data leaked: ' . $private_value );
 }
+
+$GLOBALS['escomi_public_shops'][50] = new WP_Post( 50, 'shop', 'publish', '', '2026-01-01 00:00:00', 'exact-shinosaka', '新大阪EXACT' );
+$GLOBALS['escomi_public_shops'][51] = new WP_Post( 51, 'shop', 'publish', '', '2026-01-01 00:00:00', 'related-shinosaka', '新大阪RELATED' );
+$GLOBALS['escomi_public_shops'][52] = new WP_Post( 52, 'shop', 'publish', '', '2026-01-01 00:00:00', 'unclassified-shinosaka', '新大阪UNCLASSIFIED' );
+$GLOBALS['escomi_public_shops'][53] = new WP_Post( 53, 'shop', 'publish', '', '2026-01-01 00:00:00', 'invalid-primary', 'Primary relation外' );
+$GLOBALS['escomi_public_shops'][54] = new WP_Post( 54, 'shop', 'draft', '', '2026-01-01 00:00:00', 'draft-exact', '非公開EXACT' );
+$GLOBALS['escomi_public_shops'][55] = new WP_Post( 55, 'shop', 'publish', '', '2026-01-01 00:00:00', 'duplicate-primary', 'Primary重複' );
+$GLOBALS['escomi_public_shops'][56] = new WP_Post( 56, 'shop', 'publish', '', '2026-01-01 00:00:00', 'noncanonical-primary', 'Primary不正形式' );
+$GLOBALS['escomi_public_shop_terms'][50] = array( new WP_Term( 13, 'shinosaka', '新大阪', 50 ) );
+$GLOBALS['escomi_public_shop_terms'][51] = array(
+	new WP_Term( 13, 'shinosaka', '新大阪', 51 ),
+	new WP_Term( 46, 'other-shinosaka', '新大阪', 51 ),
+);
+$GLOBALS['escomi_public_shop_terms'][52] = array( new WP_Term( 13, 'shinosaka', '新大阪', 52 ) );
+$GLOBALS['escomi_public_shop_terms'][53] = array( new WP_Term( 46, 'other-shinosaka', '新大阪', 53 ) );
+$GLOBALS['escomi_public_shop_terms'][54] = array( new WP_Term( 13, 'shinosaka', '新大阪', 54 ) );
+$GLOBALS['escomi_public_shop_terms'][55] = array( new WP_Term( 13, 'shinosaka', '新大阪', 55 ) );
+$GLOBALS['escomi_public_shop_terms'][56] = array( new WP_Term( 13, 'shinosaka', '新大阪', 56 ) );
+foreach ( array( 50 => 13, 51 => 46, 53 => 13, 54 => 13, 55 => 13 ) as $shop_id => $primary_area_id ) {
+	$GLOBALS['escomi_public_review_meta'][ $shop_id ]['shop_primary_area_term_id'] = (string) $primary_area_id;
+	$GLOBALS['escomi_public_shop_meta_counts'][ $shop_id ]['shop_primary_area_term_id'] = 1;
+}
+$GLOBALS['escomi_public_shop_meta_counts'][55]['shop_primary_area_term_id'] = 2;
+$GLOBALS['escomi_public_review_meta'][56]['shop_primary_area_term_id'] = '13 ';
+$GLOBALS['escomi_public_shop_meta_counts'][56]['shop_primary_area_term_id'] = 1;
+
+escomi_public_review_test_record( 120, 50, 'publish', 'approved', '2026-08-15 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 121, 50, 'publish', 'approved', '2026-08-15 03:00:00', array( 'rating_total' => 4 ) );
+escomi_public_review_test_record( 122, 51, 'publish', 'approved', '2026-08-16 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 123, 52, 'publish', 'approved', '2026-08-17 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 124, 53, 'publish', 'approved', '2026-08-18 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 125, 50, 'publish', 'pending', '2026-08-19 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 126, 54, 'publish', 'approved', '2026-08-20 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 127, 55, 'publish', 'approved', '2026-08-21 03:00:00', array( 'rating_total' => 5 ) );
+escomi_public_review_test_record( 128, 56, 'publish', 'approved', '2026-08-22 03:00:00', array( 'rating_total' => 5 ) );
+
+$query_counts_before_area = array(
+	'review' => $GLOBALS['escomi_global_review_query_count'],
+	'shop'   => $GLOBALS['escomi_global_shop_query_count'],
+	'area'   => $GLOBALS['escomi_global_area_query_count'],
+);
+$area_response = $global_callback(
+	new Eskomi_Public_Review_Test_Request(
+		array(),
+		array( 'page' => 1, 'per_page' => 1, 'primary_area_slug' => 'shinosaka' )
+	)
+);
+escomi_public_review_test_expect( $area_response instanceof WP_REST_Response, 'Valid primary Area filter must return a REST response.' );
+escomi_public_review_test_expect( 2 === $area_response->data['total'], 'Filtered total must include only Primary EXACT approved reviews.' );
+escomi_public_review_test_expect( 2 === $area_response->data['totalPages'], 'Filtered totalPages must derive from the filtered result.' );
+escomi_public_review_test_expect( array( 121 ) === array_column( $area_response->data['items'], 'id' ), 'Area reviews must keep date DESC and ID DESC ordering.' );
+escomi_public_review_test_expect( 50 === $area_response->data['items'][0]['shop']['id'], 'Area response must preserve the canonical Shop ID.' );
+escomi_public_review_test_expect( 13 === $area_response->data['items'][0]['shop']['primaryArea']['id'], 'Area response must expose the requested canonical Primary term.' );
+escomi_public_review_test_expect( 13 === $GLOBALS['escomi_global_query_args']['escomi_primary_area_term_id'], 'Review query must receive the canonical Area term ID.' );
+escomi_public_review_test_expect( str_contains( $GLOBALS['escomi_global_query_clauses']['join'], 'escomi_review_shop_primary_area' ), 'Primary Area must be enforced by the bounded review query.' );
+escomi_public_review_test_expect( str_contains( $GLOBALS['escomi_global_query_clauses']['join'], 'escomi_review_shop_primary_relation' ), 'Primary must also be an existing Area relation.' );
+escomi_public_review_test_expect( str_contains( $GLOBALS['escomi_global_query_clauses']['where'], 'escomi_review_shop_primary_duplicate.meta_id IS NULL' ), 'Duplicate Primary meta must fail closed.' );
+escomi_public_review_test_expect( str_contains( $GLOBALS['escomi_global_query_clauses']['join'], 'BINARY escomi_review_shop_primary_area.meta_value = BINARY' ), 'Primary comparison must not accept collation padding.' );
+escomi_public_review_test_expect( str_contains( $GLOBALS['escomi_global_query_clauses']['where'], "escomi_review_shop_primary_area.meta_value REGEXP '^[1-9][0-9]*$'" ), 'Primary meta must use the canonical positive-integer format.' );
+escomi_public_review_test_expect( $query_counts_before_area['review'] + 1 === $GLOBALS['escomi_global_review_query_count'], 'Area feed must use one bounded review query.' );
+escomi_public_review_test_expect( $query_counts_before_area['shop'] + 1 === $GLOBALS['escomi_global_shop_query_count'], 'Area feed must resolve page Shops in one bulk query.' );
+escomi_public_review_test_expect( $query_counts_before_area['area'] + 1 === $GLOBALS['escomi_global_area_query_count'], 'Area feed must resolve page Area relations in one bulk query.' );
+
+$unknown_area = $global_callback( new Eskomi_Public_Review_Test_Request( array(), array( 'primary_area_slug' => 'missing-area' ) ) );
+escomi_public_review_test_expect( $unknown_area instanceof WP_Error && 404 === $unknown_area->data['status'], 'Unknown Area must return 404 without fallback.' );
+$invalid_area = $global_callback( new Eskomi_Public_Review_Test_Request( array(), array( 'primary_area_slug' => '../shinosaka' ) ) );
+escomi_public_review_test_expect( $invalid_area instanceof WP_Error && 400 === $invalid_area->data['status'], 'Malformed Area slug must return 400.' );
+
 foreach ( array( array( 'per_page' => 21 ), array( 'page' => 0 ), array( 'page' => 1001 ), array( 'shop' => 42 ) ) as $invalid_params ) {
 	$response = $global_callback( new Eskomi_Public_Review_Test_Request( array(), $invalid_params ) );
 	escomi_public_review_test_expect( $response instanceof WP_Error && 400 === $response->data['status'], 'Invalid global pagination or filter must be rejected.' );

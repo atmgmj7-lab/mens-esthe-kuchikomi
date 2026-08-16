@@ -155,7 +155,11 @@ eval( escomi_cache_extract_function( $functions_source, 'escomi_headless_on_dele
 eval( escomi_cache_extract_function( $functions_source, 'escomi_headless_on_area_taxonomy_change' ) );
 eval( escomi_cache_extract_function( $functions_source, 'escomi_headless_on_area_relationship_added' ) );
 eval( escomi_cache_extract_function( $functions_source, 'escomi_headless_on_area_relationship_deleted' ) );
+eval( escomi_cache_extract_function( $functions_source, 'escomi_headless_on_primary_area_meta_change' ) );
 require_once dirname( __DIR__, 2 ) . '/reviews-cpt.php';
+add_action( 'added_post_meta', 'escomi_headless_on_primary_area_meta_change', 20, 4 );
+add_action( 'updated_post_meta', 'escomi_headless_on_primary_area_meta_change', 20, 4 );
+add_action( 'deleted_post_meta', 'escomi_headless_on_primary_area_meta_change', 20, 4 );
 
 $scenario = $argv[1] ?? '';
 switch ( $scenario ) {
@@ -262,6 +266,18 @@ switch ( $scenario ) {
 	case 'area_relation_unrelated':
 		escomi_cache_set_post( 84, 'shop', 'publish' );
 		escomi_headless_on_area_relationship_added( 84, 10, 'shop_category' );
+		break;
+	case 'primary_area_meta_added':
+		escomi_cache_set_post( 84, 'shop', 'publish' );
+		escomi_cache_call_hook( 'added_post_meta', 12, 84, 'shop_primary_area_term_id', 13 );
+		break;
+	case 'primary_area_meta_updated':
+		escomi_cache_set_post( 84, 'shop', 'publish' );
+		escomi_cache_call_hook( 'updated_post_meta', 12, 84, 'shop_primary_area_term_id', 13 );
+		break;
+	case 'primary_area_meta_deleted':
+		escomi_cache_set_post( 84, 'shop', 'publish' );
+		escomi_cache_call_hook( 'deleted_post_meta', array( 12 ), 84, 'shop_primary_area_term_id', 13 );
 		break;
 	default:
 		escomi_cache_fail( 'Unknown fixture scenario.' );

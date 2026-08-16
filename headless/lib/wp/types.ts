@@ -167,6 +167,7 @@ export type ApprovedGlobalReview = Readonly<{
     id: number;
     slug: string;
     name: string;
+    primaryArea: ApprovedGlobalReviewArea | null;
   }>;
   areas: readonly ApprovedGlobalReviewArea[];
 }>;

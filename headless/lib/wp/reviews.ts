@@ -26,6 +26,11 @@ type PublicGlobalReviewPayload = PublicReviewPayload & {
     id: number;
     slug: string;
     name: string;
+    primaryArea?: {
+      id: number;
+      slug: string;
+      name: string;
+    } | null;
   };
   areas: Array<{
     id: number;
@@ -116,6 +121,12 @@ function isCanonicalSlug(value: unknown): value is string {
     && !/[/?#\s]/u.test(value);
 }
 
+function isCanonicalAreaSlug(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length <= 200
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
 function isPublicName(value: unknown): value is string {
   return typeof value === "string" && value.trim() === value && value.length > 0;
 }
@@ -191,7 +202,10 @@ function validateGlobalArea(value: unknown): ApprovedGlobalReviewArea | null {
   return { id: value.id, slug: value.slug, name: value.name };
 }
 
-function validateGlobalReview(value: unknown): ApprovedGlobalReview | null {
+function validateGlobalReview(
+  value: unknown,
+  expectedPrimaryAreaSlug: string | null,
+): ApprovedGlobalReview | null {
   if (
     !isRecord(value) ||
     !hasExactKeys(value, [
@@ -206,11 +220,18 @@ function validateGlobalReview(value: unknown): ApprovedGlobalReview | null {
       "areas",
     ]) ||
     !isRecord(value.shop) ||
-    !hasExactKeys(value.shop, ["id", "slug", "name"]) ||
     !isPositiveInteger(value.shop.id) ||
     !isCanonicalSlug(value.shop.slug) ||
     !isPublicName(value.shop.name) ||
     !Array.isArray(value.areas)
+  ) {
+    return null;
+  }
+
+  const hasPrimaryArea = hasExactKeys(value.shop, ["id", "slug", "name", "primaryArea"]);
+  if (
+    (!hasPrimaryArea && !hasExactKeys(value.shop, ["id", "slug", "name"])) ||
+    (expectedPrimaryAreaSlug !== null && !hasPrimaryArea)
   ) {
     return null;
   }
@@ -237,6 +258,18 @@ function validateGlobalReview(value: unknown): ApprovedGlobalReview | null {
     areas.push(area);
   }
 
+  const primaryAreaValue = hasPrimaryArea ? value.shop.primaryArea : null;
+  const primaryArea = primaryAreaValue === null
+    ? null
+    : validateGlobalArea(primaryAreaValue);
+  if (
+    (primaryAreaValue !== null && !primaryArea) ||
+    (primaryArea !== null && !areas.some((area) => area.id === primaryArea.id && area.slug === primaryArea.slug)) ||
+    (expectedPrimaryAreaSlug !== null && primaryArea?.slug !== expectedPrimaryAreaSlug)
+  ) {
+    return null;
+  }
+
   const payload = value as PublicGlobalReviewPayload;
   return {
     ...review,
@@ -244,6 +277,7 @@ function validateGlobalReview(value: unknown): ApprovedGlobalReview | null {
       id: payload.shop.id,
       slug: payload.shop.slug,
       name: payload.shop.name,
+      primaryArea,
     },
     areas,
   };
@@ -253,6 +287,7 @@ export function validateApprovedGlobalReviewPage(
   value: unknown,
   expectedPage: number,
   perPage: number,
+  expectedPrimaryAreaSlug: string | null = null,
 ): ApprovedGlobalReviewPage | null {
   if (
     !isPositiveInteger(expectedPage) ||
@@ -260,6 +295,7 @@ export function validateApprovedGlobalReviewPage(
     !isPositiveInteger(perPage) ||
     perPage > 20 ||
     expectedPage - 1 > Math.floor(Number.MAX_SAFE_INTEGER / perPage) ||
+    (expectedPrimaryAreaSlug !== null && !isCanonicalAreaSlug(expectedPrimaryAreaSlug)) ||
     !isRecord(value) ||
     !hasExactKeys(value, ["items", "total", "totalPages", "page"]) ||
     !Array.isArray(value.items) ||
@@ -284,7 +320,7 @@ export function validateApprovedGlobalReviewPage(
   const reviews: ApprovedGlobalReview[] = [];
   const reviewIds = new Set<number>();
   for (const item of value.items) {
-    const review = validateGlobalReview(item);
+    const review = validateGlobalReview(item, expectedPrimaryAreaSlug);
     if (!review || reviewIds.has(review.id)) return null;
     reviewIds.add(review.id);
     reviews.push(review);
@@ -302,6 +338,7 @@ export async function resolveApprovedGlobalReviewRequest(
   request: () => Promise<unknown>,
   expectedPage: number,
   perPage: number,
+  expectedPrimaryAreaSlug: string | null = null,
 ): Promise<ApprovedGlobalReviewResult> {
   let payload: unknown;
   try {
@@ -310,7 +347,7 @@ export async function resolveApprovedGlobalReviewRequest(
     return freezeApprovedGlobalReviewResult({ status: "unavailable", reason: "request-failed" });
   }
 
-  const page = validateApprovedGlobalReviewPage(payload, expectedPage, perPage);
+  const page = validateApprovedGlobalReviewPage(payload, expectedPage, perPage, expectedPrimaryAreaSlug);
   if (!page) return freezeApprovedGlobalReviewResult({ status: "unavailable", reason: "invalid-response" });
 
   return freezeApprovedGlobalReviewResult({ status: "available", page });
@@ -326,7 +363,12 @@ export function freezeApprovedGlobalReviewResult(
   const reviews = Object.freeze(result.page.reviews.map((review) => Object.freeze({
     ...review,
     ratings: Object.freeze({ ...review.ratings }),
-    shop: Object.freeze({ ...review.shop }),
+    shop: Object.freeze({
+      ...review.shop,
+      primaryArea: review.shop.primaryArea === null
+        ? null
+        : Object.freeze({ ...review.shop.primaryArea }),
+    }),
     areas: Object.freeze(review.areas.map((area) => Object.freeze({ ...area }))),
   })));
   return Object.freeze({
@@ -484,26 +526,37 @@ export async function getApprovedShopReviews(
 async function getApprovedReviewsPageCached(
   page: number,
   perPage: number,
+  primaryAreaSlug: string | null,
 ): Promise<ApprovedGlobalReviewResult> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "reviews:global");
 
   return resolveApprovedGlobalReviewRequest(
-    () => wpFetch<unknown>(`/escomi/v1/reviews?page=${page}&per_page=${perPage}`),
+    () => wpFetch<unknown>(
+      `/escomi/v1/reviews?page=${page}&per_page=${perPage}${primaryAreaSlug === null ? "" : `&primary_area_slug=${encodeURIComponent(primaryAreaSlug)}`}`,
+    ),
     page,
     perPage,
+    primaryAreaSlug,
   );
 }
 
 export async function getApprovedReviewsPage(
   page = 1,
   perPage = 20,
+  primaryAreaSlug: string | null = null,
 ): Promise<ApprovedGlobalReviewResult> {
-  if (!isPositiveInteger(page) || page > GLOBAL_REVIEW_MAX_PAGE || !isPositiveInteger(perPage) || perPage > 20) {
+  if (
+    !isPositiveInteger(page) ||
+    page > GLOBAL_REVIEW_MAX_PAGE ||
+    !isPositiveInteger(perPage) ||
+    perPage > 20 ||
+    (primaryAreaSlug !== null && !isCanonicalAreaSlug(primaryAreaSlug))
+  ) {
     return freezeApprovedGlobalReviewResult({ status: "unavailable", reason: "invalid-response" });
   }
-  return freezeApprovedGlobalReviewResult(await getApprovedReviewsPageCached(page, perPage));
+  return freezeApprovedGlobalReviewResult(await getApprovedReviewsPageCached(page, perPage, primaryAreaSlug));
 }
 
 export function isApprovedGlobalReviewSource(
@@ -517,11 +570,18 @@ export function isApprovedGlobalReviewSource(
 export async function getApprovedReviewsPageWithSource(
   page = 1,
   perPage = 20,
+  primaryAreaSlug: string | null = null,
 ): Promise<ApprovedGlobalReviewSource | null> {
-  if (!isPositiveInteger(page) || page > GLOBAL_REVIEW_MAX_PAGE || !isPositiveInteger(perPage) || perPage > 20) return null;
+  if (
+    !isPositiveInteger(page) ||
+    page > GLOBAL_REVIEW_MAX_PAGE ||
+    !isPositiveInteger(perPage) ||
+    perPage > 20 ||
+    (primaryAreaSlug !== null && !isCanonicalAreaSlug(primaryAreaSlug))
+  ) return null;
 
   const source = Object.freeze({
-    result: await getApprovedReviewsPage(page, perPage),
+    result: await getApprovedReviewsPage(page, perPage, primaryAreaSlug),
   }) as ApprovedGlobalReviewSource;
   approvedGlobalReviewSources.add(source);
   return source;
