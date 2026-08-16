@@ -647,3 +647,11 @@
 - 最終mainは`bf9346b`。Vercel run `29663069657`は成功。PC 1440pxとSP 390pxで5routeずつ計10条件を本番確認し、HTTP 200、H1、main、横はみ出し0、店舗詳細の可視電話予約1件を確認した。対象外2店舗は404、旧GA PHP originは404。
 - 全`npm test`、lint、typecheck、日次8 unit、SSH deploy契約、YAML、差分検査が成功。独立最終レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。
 - 旧`FTP_PASSWORD`、`FTP_HOST`、`FTP_USERNAME`、`FTP_PATH` GitHub secretsは削除済み。公開データ元はWordPressのままで、Supabase公開切替は行っていない。
+
+## 2026-08-16 UX-REVIEWS-GLOBAL-READER-01
+
+- WordPressへ読取専用`GET /wp-json/escomi/v1/reviews`を追加し、公開中店舗に紐づく`publish`・承認済み・正規店舗IDが1件だけの口コミを、投稿日降順・ID降順で最大20件ずつ返すようにした。氏名、メール、IP、審査情報などは返さない。
+- 店舗情報と全area relationはpage単位の一括取得にし、店舗ごとの追加REST呼出しを行わない。重複meta、非公開店舗、DB取得失敗、壊れたrelationは公開せず取得不能として閉じる。
+- Next側へ厳密validator、`wp`と`reviews:global`のcache tag、出典identityを追加した。Next.js cache復元後もキャッシュ外で全階層を再固定し、relationの書換えを防ぐ回帰testを追加した。
+- focused、関連contract、通常`npm test`、lint、typecheck、PHP構文、差分検査が成功した。独立SPECおよびCODE_QUALITY_SECURITY再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。
+- UI、CSS、dependency、保存先、WordPress/Supabase本番、push、deployは変更していない。UX-PROD-T2の画面実装へは進まず停止した。

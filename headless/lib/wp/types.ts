@@ -138,6 +138,41 @@ export type ApprovedShopReviewResult =
   | { status: "available"; page: ApprovedShopReviewPage }
   | { status: "unavailable"; reason: "request-failed" | "invalid-response" };
 
+export type ApprovedGlobalReviewArea = Readonly<{
+  id: number;
+  slug: string;
+  name: string;
+}>;
+
+export type ApprovedGlobalReview = Readonly<{
+  id: number;
+  body: string;
+  submittedAt: string | null;
+  ratings: Readonly<{
+    total: number | null;
+    price: number | null;
+    service: number | null;
+    cleanliness: number | null;
+  }>;
+  shop: Readonly<{
+    id: number;
+    slug: string;
+    name: string;
+  }>;
+  areas: readonly ApprovedGlobalReviewArea[];
+}>;
+
+export type ApprovedGlobalReviewPage = Readonly<{
+  reviews: readonly ApprovedGlobalReview[];
+  total: number;
+  totalPages: number;
+  page: number;
+}>;
+
+export type ApprovedGlobalReviewResult =
+  | Readonly<{ status: "available"; page: ApprovedGlobalReviewPage }>
+  | Readonly<{ status: "unavailable"; reason: "request-failed" | "invalid-response" }>;
+
 export type AreaView = {
   id: number;
   slug: string;

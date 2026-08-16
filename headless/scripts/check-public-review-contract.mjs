@@ -81,7 +81,7 @@ assert.ok(
   "normal npm test must include the public review contract",
 );
 
-function loadReviewModule(wpFetchImpl) {
+function loadReviewModule(wpFetchImpl, cacheTagImpl = () => undefined) {
   const result = ts.transpileModule(nextSource, {
     compilerOptions: {
       esModuleInterop: true,
@@ -100,7 +100,7 @@ function loadReviewModule(wpFetchImpl) {
   const localRequire = (specifier) => {
     if (specifier === "@/lib/wp/client") return { wpFetch: wpFetchImpl };
     if (specifier === "next/cache") {
-      return { cacheLife: () => undefined, cacheTag: () => undefined };
+      return { cacheLife: () => undefined, cacheTag: cacheTagImpl };
     }
     throw new Error(`Unexpected review adapter import: ${specifier}`);
   };
@@ -256,6 +256,101 @@ assert.deepEqual(
   { index: false, follow: true },
 );
 assert.deepEqual(approvedShopReviewRobots(availableOutOfRange, 2), { index: false, follow: true });
+
+const globalPayload = {
+  items: [{
+    ...validPayload.items[0],
+    shop: { id: 42, slug: "shop-forty-two", name: "公開店舗42" },
+    areas: [
+      { id: 10, slug: "osaka", name: "大阪" },
+      { id: 11, slug: "umeda", name: "梅田" },
+    ],
+  }],
+  total: 1,
+  totalPages: 1,
+  page: 1,
+};
+const globalRequests = [];
+const globalCacheTags = [];
+const globalReader = loadReviewModule(
+  async (path) => {
+    globalRequests.push(path);
+    return globalPayload;
+  },
+  (...tags) => globalCacheTags.push(tags),
+);
+assert.equal(typeof globalReader.validateApprovedGlobalReviewPage, "function", "global payload validator must exist");
+const validatedGlobal = globalReader.validateApprovedGlobalReviewPage(globalPayload, 1, 20);
+assert.ok(validatedGlobal, "valid global approved-review payload must pass");
+assert.equal(validatedGlobal.reviews[0].shop.id, 42);
+assert.deepEqual(validatedGlobal.reviews[0].areas.map((area) => area.slug), ["osaka", "umeda"]);
+
+const invalidGlobalPayloads = [
+  { ...globalPayload, items: [{ ...globalPayload.items[0], reviewerEmail: "private@example.test" }] },
+  { ...globalPayload, items: [{ ...globalPayload.items[0], shop: { ...globalPayload.items[0].shop, id: 0 } }] },
+  { ...globalPayload, items: [{ ...globalPayload.items[0], shop: { ...globalPayload.items[0].shop, slug: "" } }] },
+  { ...globalPayload, items: [{ ...globalPayload.items[0], areas: [{ id: 10, slug: "osaka", name: "大阪" }, { id: 10, slug: "umeda", name: "梅田" }] }] },
+  { ...globalPayload, items: [{ ...globalPayload.items[0], areas: [{ id: 10, slug: "bad/slug", name: "大阪" }] }] },
+  { ...globalPayload, totalPages: 2 },
+];
+for (const payload of invalidGlobalPayloads) {
+  assert.equal(globalReader.validateApprovedGlobalReviewPage(payload, 1, 20), null, "invalid global relation must fail closed");
+}
+assert.equal(globalReader.validateApprovedGlobalReviewPage(globalPayload, 1, 21), null, "global per-page upper bound must be enforced");
+const requestCountBeforeRejectedPage = globalRequests.length;
+assert.deepEqual(
+  await globalReader.getApprovedReviewsPage(1001, 20),
+  { status: "unavailable", reason: "invalid-response" },
+  "global reader must reject pages that would create excessive WordPress offsets",
+);
+assert.equal(globalRequests.length, requestCountBeforeRejectedPage, "rejected pages must not reach WordPress");
+assert.equal(await globalReader.getApprovedReviewsPageWithSource(1001, 20), null, "invalid pages must not receive a source identity");
+
+const globalResult = await globalReader.getApprovedReviewsPage(1, 20);
+assert.equal(globalResult.status, "available");
+assert.deepEqual(globalRequests, ["/escomi/v1/reviews?page=1&per_page=20"], "global reader must make one request and never call shop endpoints");
+assert.deepEqual(globalCacheTags, [["wp", "reviews:global"]]);
+assert.equal(
+  typeof globalReader.freezeApprovedGlobalReviewResult,
+  "function",
+  "global reader must expose the cache-boundary deep-freeze helper",
+);
+const cacheRoundTrippedGlobalResult = JSON.parse(JSON.stringify(globalResult));
+const refrozenGlobalResult = globalReader.freezeApprovedGlobalReviewResult(cacheRoundTrippedGlobalResult);
+assert.equal(Object.isFrozen(refrozenGlobalResult), true, "cache-restored global result must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page), true, "cache-restored global page must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews), true, "cache-restored review list must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0]), true, "cache-restored review must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].ratings), true, "cache-restored ratings must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].shop), true, "cache-restored shop relation must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].areas), true, "cache-restored area list must be frozen");
+assert.equal(Object.isFrozen(refrozenGlobalResult.page.reviews[0].areas[0]), true, "cache-restored area relation must be frozen");
+const refrozenUnavailable = globalReader.freezeApprovedGlobalReviewResult({
+  status: "unavailable",
+  reason: "request-failed",
+});
+assert.equal(Object.isFrozen(refrozenUnavailable), true, "cache-restored unavailable result must be frozen");
+const globalSource = await globalReader.getApprovedReviewsPageWithSource(1, 20);
+assert.equal(globalReader.isApprovedGlobalReviewSource(globalSource), true, "real global reader source must be authenticated locally");
+assert.throws(
+  () => {
+    globalSource.result.page.reviews[0].shop.id = 99;
+  },
+  TypeError,
+  "authenticated global source relations must be deeply immutable",
+);
+assert.equal(globalSource.result.page.reviews[0].shop.id, 42);
+assert.equal(
+  globalReader.isApprovedGlobalReviewSource({ result: globalSource.result }),
+  false,
+  "caller-assembled global source must be rejected",
+);
+assert.equal(
+  globalReader.approvedGlobalReviewFromSource(globalSource, 10, 42)?.shop.id,
+  42,
+  "matching review and canonical shop IDs must resolve from an authenticated source",
+);
+assert.equal(globalReader.approvedGlobalReviewFromSource(globalSource, 10, 99), null, "shop identity mismatch must be rejected");
 
 execFileSync("php", [join(repositoryRoot, "tests/php/check-public-review-contract.php")], {
   cwd: repositoryRoot,

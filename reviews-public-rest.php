@@ -190,6 +190,179 @@ if ( ! function_exists( 'escomi_public_review_request_error' ) ) {
 	}
 }
 
+if ( ! function_exists( 'escomi_global_public_reviews_posts_clauses' ) ) {
+	function escomi_global_public_reviews_posts_clauses( $clauses, $query ) {
+		if ( ! $query->get( 'escomi_global_public_reviews' ) ) {
+			return $clauses;
+		}
+
+		global $wpdb;
+		$clauses['join'] .= $wpdb->prepare(
+			" INNER JOIN {$wpdb->postmeta} AS escomi_review_approval
+				ON escomi_review_approval.post_id = {$wpdb->posts}.ID
+				AND escomi_review_approval.meta_key = %s
+				AND escomi_review_approval.meta_value = %s
+			INNER JOIN {$wpdb->postmeta} AS escomi_review_shop_relation
+				ON escomi_review_shop_relation.post_id = {$wpdb->posts}.ID
+				AND escomi_review_shop_relation.meta_key = %s
+			LEFT JOIN {$wpdb->postmeta} AS escomi_review_approval_duplicate
+				ON escomi_review_approval_duplicate.post_id = escomi_review_approval.post_id
+				AND escomi_review_approval_duplicate.meta_key = %s
+				AND escomi_review_approval_duplicate.meta_id <> escomi_review_approval.meta_id
+			LEFT JOIN {$wpdb->postmeta} AS escomi_review_shop_relation_duplicate
+				ON escomi_review_shop_relation_duplicate.post_id = escomi_review_shop_relation.post_id
+				AND escomi_review_shop_relation_duplicate.meta_key = %s
+				AND escomi_review_shop_relation_duplicate.meta_id <> escomi_review_shop_relation.meta_id
+			INNER JOIN {$wpdb->posts} AS escomi_review_shop
+				ON escomi_review_shop.ID = CAST(escomi_review_shop_relation.meta_value AS UNSIGNED)
+				AND escomi_review_shop.post_type = %s
+				AND escomi_review_shop.post_status = %s",
+			'approval_status',
+			'approved',
+			'review_shop_id',
+			'approval_status',
+			'review_shop_id',
+			'shop',
+			'publish'
+		);
+		$clauses['where'] .= " AND escomi_review_shop_relation.meta_value REGEXP '^[1-9][0-9]*$'
+			AND escomi_review_approval_duplicate.meta_id IS NULL
+			AND escomi_review_shop_relation_duplicate.meta_id IS NULL";
+		$clauses['groupby'] = "{$wpdb->posts}.ID";
+		return $clauses;
+	}
+}
+
+if ( ! function_exists( 'escomi_global_public_reviews_query' ) ) {
+	function escomi_global_public_reviews_query( $page, $per_page ) {
+		add_filter( 'posts_clauses', 'escomi_global_public_reviews_posts_clauses', 10, 2 );
+		try {
+			$query = new WP_Query(
+				array(
+					'post_type'                       => 'reviews',
+					'post_status'                     => 'publish',
+					'posts_per_page'                  => $per_page,
+					'paged'                           => $page,
+					'orderby'                         => array(
+						'date' => 'DESC',
+						'ID'   => 'DESC',
+					),
+					'ignore_sticky_posts'             => true,
+					'update_post_meta_cache'          => true,
+					'update_post_term_cache'          => false,
+					'escomi_global_public_reviews'    => true,
+				)
+			);
+			global $wpdb;
+			if ( ! empty( $wpdb->last_error ) ) {
+				return new WP_Error( 'review_query_failed', '口コミ情報を取得できません。', array( 'status' => 503 ) );
+			}
+			return $query;
+		} finally {
+			remove_filter( 'posts_clauses', 'escomi_global_public_reviews_posts_clauses', 10 );
+		}
+	}
+}
+
+if ( ! function_exists( 'escomi_global_public_review_area_item' ) ) {
+	function escomi_global_public_review_area_item( $term ) {
+		return array(
+			'id'   => (int) $term->term_id,
+			'slug' => (string) $term->slug,
+			'name' => trim( wp_strip_all_tags( (string) $term->name, true ) ),
+		);
+	}
+}
+
+if ( ! function_exists( 'escomi_global_public_reviews_query_page' ) ) {
+	function escomi_global_public_reviews_query_page( $page, $per_page ) {
+		$query = escomi_global_public_reviews_query( $page, $per_page );
+		if ( is_wp_error( $query ) ) {
+			return $query;
+		}
+
+		$reviews = is_array( $query->posts ) ? $query->posts : array();
+		$total   = (int) $query->found_posts;
+
+		if ( empty( $reviews ) ) {
+			return array(
+				'items'      => array(),
+				'total'      => $total,
+				'totalPages' => $total > 0 ? (int) ceil( $total / $per_page ) : 0,
+				'page'       => $page,
+			);
+		}
+
+		$review_shop_ids = array();
+		foreach ( $reviews as $review ) {
+			$shop_id = escomi_public_review_positive_integer( get_post_meta( $review->ID, 'review_shop_id', true ), null );
+			if ( null === $shop_id ) {
+				return new WP_Error( 'invalid_review_relation', '口コミの店舗情報を取得できません。', array( 'status' => 503 ) );
+			}
+			$review_shop_ids[ (int) $review->ID ] = $shop_id;
+		}
+
+		$shop_ids = array_values( array_unique( array_values( $review_shop_ids ) ) );
+		$shops    = get_posts(
+			array(
+				'post_type'      => 'shop',
+				'post_status'    => 'publish',
+				'post__in'       => $shop_ids,
+				'posts_per_page' => count( $shop_ids ),
+				'orderby'        => 'post__in',
+				'no_found_rows'  => true,
+			)
+		);
+		$shops_by_id = array();
+		foreach ( $shops as $shop ) {
+			$shops_by_id[ (int) $shop->ID ] = $shop;
+		}
+		if ( count( $shops_by_id ) !== count( $shop_ids ) ) {
+			return new WP_Error( 'invalid_review_relation', '口コミの店舗情報を取得できません。', array( 'status' => 503 ) );
+		}
+
+		$terms = wp_get_object_terms( $shop_ids, 'area', array( 'fields' => 'all_with_object_id' ) );
+		if ( is_wp_error( $terms ) ) {
+			return new WP_Error( 'invalid_review_relation', '口コミの地域情報を取得できません。', array( 'status' => 503 ) );
+		}
+		$areas_by_shop_id = array_fill_keys( $shop_ids, array() );
+		foreach ( $terms as $term ) {
+			$object_id = (int) $term->object_id;
+			if ( isset( $areas_by_shop_id[ $object_id ] ) ) {
+				$areas_by_shop_id[ $object_id ][] = escomi_global_public_review_area_item( $term );
+			}
+		}
+		foreach ( $areas_by_shop_id as &$areas ) {
+			usort( $areas, fn( $left, $right ) => $left['id'] <=> $right['id'] );
+		}
+		unset( $areas );
+
+		$items = array();
+		foreach ( $reviews as $review ) {
+			$shop_id = $review_shop_ids[ (int) $review->ID ];
+			$shop    = $shops_by_id[ $shop_id ];
+			$items[] = array_merge(
+				escomi_public_review_item( $review ),
+				array(
+					'shop'  => array(
+						'id'   => (int) $shop->ID,
+						'slug' => (string) $shop->post_name,
+						'name' => trim( wp_strip_all_tags( (string) $shop->post_title, true ) ),
+					),
+					'areas' => $areas_by_shop_id[ $shop_id ],
+				)
+			);
+		}
+
+		return array(
+			'items'      => $items,
+			'total'      => $total,
+			'totalPages' => $total > 0 ? (int) ceil( $total / $per_page ) : 0,
+			'page'       => $page,
+		);
+	}
+}
+
 if ( ! function_exists( 'escomi_get_public_shop_reviews' ) ) {
 	function escomi_get_public_shop_reviews( $request ) {
 		$url_params     = $request->get_url_params();
@@ -221,9 +394,41 @@ if ( ! function_exists( 'escomi_get_public_shop_reviews' ) ) {
 	}
 }
 
+if ( ! function_exists( 'escomi_get_global_public_reviews' ) ) {
+	function escomi_get_global_public_reviews( $request ) {
+		$query_params   = $request->get_query_params();
+		$allowed_params = array( 'page', 'per_page' );
+		foreach ( array_keys( $query_params ) as $param ) {
+			if ( ! in_array( $param, $allowed_params, true ) ) {
+				return escomi_public_review_request_error( '未対応のパラメーターです。' );
+			}
+		}
+
+		$page     = escomi_public_review_positive_integer( $query_params['page'] ?? null, 1 );
+		$per_page = escomi_public_review_positive_integer( $query_params['per_page'] ?? null, 20, 20 );
+		if ( null === $page || null === $per_page || $page > 1000 || $page - 1 > intdiv( PHP_INT_MAX, $per_page ) ) {
+			return escomi_public_review_request_error( 'pageとper_pageには有効な整数を指定してください。' );
+		}
+
+		$result = escomi_global_public_reviews_query_page( $page, $per_page );
+		return is_wp_error( $result ) ? $result : rest_ensure_response( $result );
+	}
+}
+
 add_action(
 	'rest_api_init',
 	function () {
+		register_rest_route(
+			'escomi/v1',
+			'/reviews',
+			array(
+				'methods'             => array( 'GET' ),
+				'callback'            => 'escomi_get_global_public_reviews',
+				'permission_callback' => function () {
+					return true;
+				},
+			)
+		);
 		register_rest_route(
 			'escomi/v1',
 			'/shops/(?P<shop_id>[1-9][0-9]*)/reviews',
