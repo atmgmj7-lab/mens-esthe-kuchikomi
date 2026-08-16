@@ -655,3 +655,11 @@
 - Next側へ厳密validator、`wp`と`reviews:global`のcache tag、出典identityを追加した。Next.js cache復元後もキャッシュ外で全階層を再固定し、relationの書換えを防ぐ回帰testを追加した。
 - focused、関連contract、通常`npm test`、lint、typecheck、PHP構文、差分検査が成功した。独立SPECおよびCODE_QUALITY_SECURITY再レビューはCritical 0 / Important 0 / Minor 0、Ready Yes。
 - UI、CSS、dependency、保存先、WordPress/Supabase本番、push、deployは変更していない。UX-PROD-T2の画面実装へは進まず停止した。
+
+## 2026-08-16 UX-REVIEWS-GLOBAL-READER-01-CACHE-CLOSE
+
+- globalと店舗別口コミcacheはいずれも`minutes` profileと共通`wp` tagを持ち、WordPressの認証済み再検証routeが`revalidateTag('wp', { expire: 0 })`で両方を同時に失効する契約を実行fixtureで固定した。`reviews:global`の個別送信は不要。
+- 旧20秒transient throttleが別リクエストの公開変更を捨てる問題をREDで再現し、request間の抑制を撤去した。同一request内は既存static queueで1回にまとめ、無限・重複送信を防ぐ。
+- 新規公開、承認追加/解除、本文・評価・店舗relation更新、非公開化、公開済み削除を通知対象にし、pending投稿・pending評価・公開性を変えない承認変更・pending削除・draft復元は通知しない。
+- global feedへ埋め込む店舗・area・店舗area関係も保証し、実関係追加`added_term_relationship`と直接解除`deleted_term_relationships`を捕捉する。追加と解除が同一requestで起きても通知は1回。
+- 25状態fixture、global/shop cache fixture、通常`npm test`、lint、typecheck、PHP構文、差分検査が成功した。独立SPEC_COMPLIANCEとCODE_QUALITY_SECURITYはいずれもCritical 0 / Important 0 / Minor 0、Ready Yes。UI、dependency、storage、本番、push、deploy、T2は未変更・未実施。

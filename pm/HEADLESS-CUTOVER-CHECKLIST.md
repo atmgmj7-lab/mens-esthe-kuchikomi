@@ -278,7 +278,7 @@ Search Console の **ページ** → **インデックス作成** で、切替�
 3. WP で店舗・投稿・エリアを 1 件更新 → 本番 Headless の表示が追従するか確認。
 4. API 直接確認: `pm/RUNBOOK.md` **A-5** の `POST /api/revalidate/` + `x-revalidate-secret`。GETやquery secretは使わない。
 
-自動通知は 20 秒 throttle。autosave / revision は除外。
+自動通知は別リクエストの公開データ変更を捨てず、同一リクエスト内だけ1回にまとめる。autosave / revision、および未承認・非公開の口コミ投稿は除外。
 
 ---
 

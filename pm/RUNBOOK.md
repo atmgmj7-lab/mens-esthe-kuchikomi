@@ -321,7 +321,7 @@ curl -sS -o /dev/null -w "%{http_code}\n" -u 'WP_USER:WP_APP_PASSWORD' \
 
 ## A-5. WordPress → Headless キャッシュ再検証（即時反映）
 
-店舗・投稿・固定ページ・`area` タクソノミーを WordPress で保存すると、子テーマ `functions.php` の `escomi_headless_*` が Next の `/api/revalidate/` へ POST します（20 秒 throttle・同一リクエストは 1 回）。
+店舗・投稿・固定ページ・`area` タクソノミーなど公開データを WordPress で変更すると、子テーマ `functions.php` の `escomi_headless_*` が Next の `/api/revalidate/` へ POST します。別リクエストの変更は捨てず、同一リクエスト内で複数hookが動いた場合だけ1回にまとめます。未承認・非公開の口コミ投稿は公開cacheを再検証しません。
 
 ### C. 初回設定（`wp-config.php`・手動）
 

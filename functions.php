@@ -1606,18 +1606,6 @@ if (!function_exists('escomi_headless_revalidate_is_relevant_post_type')) {
     }
 }
 
-if (!function_exists('escomi_headless_revalidate_is_throttled')) {
-    function escomi_headless_revalidate_is_throttled() {
-        return (bool) get_transient('escomi_headless_revalidate_throttle');
-    }
-}
-
-if (!function_exists('escomi_headless_revalidate_set_throttle')) {
-    function escomi_headless_revalidate_set_throttle() {
-        set_transient('escomi_headless_revalidate_throttle', 1, 20);
-    }
-}
-
 if (!function_exists('escomi_headless_send_revalidate')) {
     function escomi_headless_send_revalidate($reason = 'content_update') {
         $url = escomi_headless_revalidate_get_url();
@@ -1661,20 +1649,13 @@ if (!function_exists('escomi_headless_send_revalidate')) {
 
 if (!function_exists('escomi_headless_queue_revalidate')) {
     function escomi_headless_queue_revalidate($reason = 'content_update') {
-        if (escomi_headless_revalidate_is_throttled()) {
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('[escomi_headless] revalidate skipped (throttled): ' . $reason);
-            }
-            return;
-        }
-
-        escomi_headless_revalidate_set_throttle();
+        $reason = (string) $reason;
 
         static $queued_reason = null;
         if ($queued_reason !== null) {
             return;
         }
-        $queued_reason = (string) $reason;
+        $queued_reason = $reason;
 
         add_action('shutdown', function () use ($queued_reason) {
             escomi_headless_send_revalidate($queued_reason);
@@ -1697,6 +1678,9 @@ if (!function_exists('escomi_headless_on_save_post')) {
         if (!escomi_headless_revalidate_is_relevant_post_type($post->post_type)) {
             return;
         }
+        if ('reviews' === $post->post_type && ('publish' !== $post->post_status || 'approved' !== get_post_meta($post_id, 'approval_status', true))) {
+            return;
+        }
         escomi_headless_queue_revalidate('save_' . $post->post_type . ':' . $post_id);
     }
 }
@@ -1708,6 +1692,9 @@ if (!function_exists('escomi_headless_on_trashed_post')) {
         }
         $post_type = get_post_type($post_id);
         if (!$post_type || !escomi_headless_revalidate_is_relevant_post_type($post_type)) {
+            return;
+        }
+        if ('reviews' === $post_type) {
             return;
         }
         escomi_headless_queue_revalidate('trashed_' . $post_type . ':' . $post_id);
@@ -1723,7 +1710,22 @@ if (!function_exists('escomi_headless_on_untrashed_post')) {
         if (!$post_type || !escomi_headless_revalidate_is_relevant_post_type($post_type)) {
             return;
         }
+        if ('reviews' === $post_type) {
+            return;
+        }
         escomi_headless_queue_revalidate('untrashed_' . $post_type . ':' . $post_id);
+    }
+}
+
+if (!function_exists('escomi_headless_on_before_delete_post')) {
+    function escomi_headless_on_before_delete_post($post_id, $post = null) {
+        if (escomi_headless_revalidate_skip_post($post_id) || !($post instanceof WP_Post)) {
+            return;
+        }
+        if ('reviews' !== $post->post_type || 'publish' !== $post->post_status || 'approved' !== get_post_meta($post_id, 'approval_status', true)) {
+            return;
+        }
+        escomi_headless_queue_revalidate('deleted_reviews:' . $post_id);
     }
 }
 
@@ -1736,7 +1738,28 @@ if (!function_exists('escomi_headless_on_deleted_post')) {
         if (!$post_type || !escomi_headless_revalidate_is_relevant_post_type($post_type)) {
             return;
         }
+        if ('reviews' === $post_type) {
+            return;
+        }
         escomi_headless_queue_revalidate('deleted_' . $post_type . ':' . $post_id);
+    }
+}
+
+if (!function_exists('escomi_headless_on_area_relationship_added')) {
+    function escomi_headless_on_area_relationship_added($object_id, $tt_id, $taxonomy) {
+        unset($tt_id);
+        if ('area' === $taxonomy && 'shop' === get_post_type($object_id)) {
+            escomi_headless_queue_revalidate('area_shop_relation_added:' . (int) $object_id);
+        }
+    }
+}
+
+if (!function_exists('escomi_headless_on_area_relationship_deleted')) {
+    function escomi_headless_on_area_relationship_deleted($object_id, $tt_ids, $taxonomy) {
+        unset($tt_ids);
+        if ('area' === $taxonomy && 'shop' === get_post_type($object_id)) {
+            escomi_headless_queue_revalidate('area_shop_relation_deleted:' . (int) $object_id);
+        }
     }
 }
 
@@ -1761,7 +1784,10 @@ add_action('save_post_page', 'escomi_headless_on_save_post', 20, 3);
 add_action('save_post_reviews', 'escomi_headless_on_save_post', 20, 3);
 add_action('trashed_post', 'escomi_headless_on_trashed_post', 20, 1);
 add_action('untrashed_post', 'escomi_headless_on_untrashed_post', 20, 1);
+add_action('before_delete_post', 'escomi_headless_on_before_delete_post', 20, 2);
 add_action('deleted_post', 'escomi_headless_on_deleted_post', 20, 2);
 add_action('edited_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
 add_action('created_area', 'escomi_headless_on_area_taxonomy_change', 20, 2);
 add_action('delete_area', 'escomi_headless_on_area_taxonomy_delete', 20, 4);
+add_action('added_term_relationship', 'escomi_headless_on_area_relationship_added', 20, 3);
+add_action('deleted_term_relationships', 'escomi_headless_on_area_relationship_deleted', 20, 3);

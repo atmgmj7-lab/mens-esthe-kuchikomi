@@ -25,6 +25,7 @@ const restSource = readRepository("reviews-public-rest.php");
 const functionsSource = readRepository("functions.php");
 const reviewsCptSource = readRepository("reviews-cpt.php");
 const nextSource = readHeadless("lib/wp/reviews.ts");
+const revalidateSource = readHeadless("app/api/revalidate/route.ts");
 const shopPageSource = readHeadless("app/shops/[slug]/page.tsx");
 const reviewPageSource = readHeadless("app/shops/[slug]/reviews/page.tsx");
 const shopDetailSource = readHeadless("components/ShopDetail.tsx");
@@ -70,6 +71,10 @@ assert.match(reviewPageSource, /rel="next"/);
 assert.match(functionsSource, /require_once[\s\S]{0,120}reviews-public-rest\.php/);
 assert.match(functionsSource, /save_post_reviews/);
 assert.match(functionsSource, /untrashed_post/);
+assert.match(functionsSource, /add_action\(\s*["']added_term_relationship["']\s*,\s*["']escomi_headless_on_area_relationship_added["']/);
+assert.match(functionsSource, /add_action\(\s*["']deleted_term_relationships["']\s*,\s*["']escomi_headless_on_area_relationship_deleted["']/);
+assert.doesNotMatch(functionsSource, /add_action\(\s*["']set_object_terms["']/);
+assert.match(functionsSource, /add_action\(\s*["']before_delete_post["']\s*,\s*["']escomi_headless_on_before_delete_post["']/);
 assert.match(reviewsCptSource, /transition_post_status/);
 
 assert.ok(
@@ -108,6 +113,41 @@ function loadReviewModule(wpFetchImpl, cacheTagImpl = () => undefined) {
     localRequire,
     module,
     module.exports,
+  );
+  return module.exports;
+}
+
+function loadRevalidateRoute(revalidateTagImpl) {
+  const result = ts.transpileModule(revalidateSource, {
+    compilerOptions: {
+      esModuleInterop: true,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: "app/api/revalidate/route.ts",
+    reportDiagnostics: true,
+  });
+  const errors = (result.diagnostics ?? []).filter(
+    (diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error,
+  );
+  assert.equal(errors.length, 0, "production revalidate route must transpile for cache fixtures");
+
+  const module = { exports: {} };
+  const localRequire = (specifier) => {
+    if (specifier === "next/cache") return { revalidateTag: revalidateTagImpl };
+    if (specifier === "next/server") {
+      return { NextResponse: { json: (body, init) => Response.json(body, init) } };
+    }
+    if (specifier === "@/lib/server/secure-secret") {
+      return { secretsMatch: (expected, actual) => expected === actual };
+    }
+    throw new Error(`Unexpected revalidate route import: ${specifier}`);
+  };
+  new Function("require", "module", "exports", "process", result.outputText)(
+    localRequire,
+    module,
+    module.exports,
+    { env: { REVALIDATE_SECRET: "fixture-secret" } },
   );
   return module.exports;
 }
@@ -352,9 +392,104 @@ assert.equal(
 );
 assert.equal(globalReader.approvedGlobalReviewFromSource(globalSource, 10, 99), null, "shop identity mismatch must be rejected");
 
+const emptyGlobalPayload = { items: [], total: 0, totalPages: 0, page: 1 };
+let currentGlobalPayload = emptyGlobalPayload;
+let currentShopPayload = emptyPayload;
+let activeCacheTags = [];
+const taggedCache = new Map();
+const cacheReader = loadReviewModule(
+  async (path) => path.startsWith("/escomi/v1/reviews?") ? currentGlobalPayload : currentShopPayload,
+  (...tags) => activeCacheTags.push(...tags),
+);
+async function readTaggedCache(key, reader) {
+  if (taggedCache.has(key)) return taggedCache.get(key).value;
+  activeCacheTags = [];
+  const value = await reader();
+  taggedCache.set(key, { tags: [...activeCacheTags], value });
+  return value;
+}
+function invalidateFixtureTag(tag) {
+  for (const [key, entry] of taggedCache.entries()) {
+    if (entry.tags.includes(tag)) taggedCache.delete(key);
+  }
+}
+async function sendWpRevalidation() {
+  const invalidations = [];
+  const route = loadRevalidateRoute((tag, profile) => {
+    invalidations.push({ tag, profile });
+    invalidateFixtureTag(tag);
+  });
+  const response = await route.POST({
+    headers: new Headers({ "x-revalidate-secret": "fixture-secret" }),
+    json: async () => ({ tag: "wp" }),
+  });
+  assert.equal(response.status, 200, "authenticated WordPress revalidation must succeed");
+  assert.deepEqual(invalidations, [{ tag: "wp", profile: { expire: 0 } }]);
+}
+
+const readGlobalFixture = () => readTaggedCache(
+  "reviews:global",
+  () => cacheReader.getApprovedReviewsPage(1, 20),
+);
+const readShopFixture = () => readTaggedCache(
+  "reviews:42",
+  () => cacheReader.getApprovedShopReviews(42, 1, 20),
+);
+assert.equal((await readGlobalFixture()).page.total, 0);
+assert.equal((await readShopFixture()).page.total, 0);
+assert.deepEqual(taggedCache.get("reviews:global").tags, ["wp", "reviews:global"]);
+assert.deepEqual(taggedCache.get("reviews:42").tags, ["wp", "reviews:42"]);
+
+currentGlobalPayload = globalPayload;
+currentShopPayload = validPayload;
+assert.equal((await readGlobalFixture()).page.total, 0, "approved review must remain hidden until the mutation invalidates cache");
+await sendWpRevalidation();
+assert.equal((await readGlobalFixture()).page.total, 1, "approved review must appear on the next global read after wp invalidation");
+assert.equal((await readShopFixture()).page.total, 1, "shop and global review caches must refresh from the same wp invalidation");
+
+currentGlobalPayload = emptyGlobalPayload;
+currentShopPayload = emptyPayload;
+assert.equal((await readGlobalFixture()).page.total, 1, "cached approved review must exist before removal invalidation");
+await sendWpRevalidation();
+assert.equal((await readGlobalFixture()).page.total, 0, "non-approved or non-public review must not remain in the global cache");
+assert.equal((await readShopFixture()).page.total, 0, "shop review cache must remove the same no-longer-public review");
+
 execFileSync("php", [join(repositoryRoot, "tests/php/check-public-review-contract.php")], {
   cwd: repositoryRoot,
   stdio: "inherit",
 });
+for (const scenario of [
+  "new_publish",
+  "new_publish_pending",
+  "approval",
+  "pending_to_rejected",
+  "added_approval_meta",
+  "added_pending_meta",
+  "deleted_approval_meta",
+  "deleted_pending_meta",
+  "rating_update",
+  "rating_pending",
+  "body_update",
+  "pending_submission",
+  "nonpublic",
+  "nonapproval",
+  "trash",
+  "restore",
+  "delete",
+  "delete_pending",
+  "multi_hook_publish",
+  "shop_change_after_throttle",
+  "area_change_after_throttle",
+  "area_relation_add",
+  "area_relation_remove",
+  "area_relation_replace",
+  "area_relation_unrelated",
+]) {
+  execFileSync(
+    "php",
+    [join(repositoryRoot, "tests/php/check-review-cache-invalidation.php"), scenario],
+    { cwd: repositoryRoot, stdio: "inherit" },
+  );
+}
 
 console.log("Public approved review contract: PASS");

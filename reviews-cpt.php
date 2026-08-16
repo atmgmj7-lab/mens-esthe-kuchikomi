@@ -100,6 +100,12 @@ add_action(
 		if ( ! ( $post instanceof WP_Post ) || 'reviews' !== $post->post_type || $new_status === $old_status ) {
 			return;
 		}
+		if ( 'publish' !== $new_status && 'publish' !== $old_status ) {
+			return;
+		}
+		if ( 'approved' !== get_post_meta( $post->ID, 'approval_status', true ) ) {
+			return;
+		}
 		if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
 			escomi_headless_queue_revalidate( 'review_status:' . (int) $post->ID );
 		}
@@ -108,15 +114,77 @@ add_action(
 	3
 );
 
-function escomi_review_approval_meta_revalidate( $meta_id, $post_id, $meta_key ) {
-	unset( $meta_id );
-	if ( 'approval_status' !== $meta_key || 'reviews' !== get_post_type( $post_id ) ) {
+function escomi_review_has_approved_meta_value( $post_id ) {
+	foreach ( get_post_meta( $post_id, 'approval_status', false ) as $value ) {
+		if ( is_scalar( $value ) && 'approved' === (string) $value ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function escomi_review_approval_update_revalidate( $check, $post_id, $meta_key, $meta_value, $prev_value ) {
+	unset( $prev_value );
+	if ( null !== $check || 'approval_status' !== $meta_key || 'reviews' !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) ) {
+		return $check;
+	}
+	$new_approval = is_scalar( $meta_value ) ? (string) $meta_value : '';
+	if ( 'approved' !== $new_approval && ! escomi_review_has_approved_meta_value( $post_id ) ) {
+		return $check;
+	}
+	if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
+		escomi_headless_queue_revalidate( 'review_approval_update:' . (int) $post_id );
+	}
+	return $check;
+}
+add_filter( 'update_post_metadata', 'escomi_review_approval_update_revalidate', 20, 5 );
+
+function escomi_review_approval_delete_revalidate( $delete, $post_id, $meta_key, $meta_value, $delete_all ) {
+	unset( $meta_value, $delete_all );
+	if ( null !== $delete || 'approval_status' !== $meta_key || 'reviews' !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) || ! escomi_review_has_approved_meta_value( $post_id ) ) {
+		return $delete;
+	}
+	if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
+		escomi_headless_queue_revalidate( 'review_approval_delete:' . (int) $post_id );
+	}
+	return $delete;
+}
+add_filter( 'delete_post_metadata', 'escomi_review_approval_delete_revalidate', 20, 5 );
+
+function escomi_review_public_meta_revalidate( $meta_id, $post_id, $meta_key, $meta_value ) {
+	unset( $meta_id, $meta_value );
+	$public_meta_keys = array(
+		'review_shop_id',
+		'rating_total',
+		'rating_price',
+		'rating_service',
+		'rating_cleanliness',
+	);
+	if ( ! in_array( $meta_key, $public_meta_keys, true ) || 'reviews' !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) ) {
+		return;
+	}
+	if ( 'approved' !== get_post_meta( $post_id, 'approval_status', true ) ) {
 		return;
 	}
 	if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
-		escomi_headless_queue_revalidate( 'review_approval:' . (int) $post_id );
+		escomi_headless_queue_revalidate( 'review_public_meta:' . (int) $post_id . ':' . $meta_key );
 	}
 }
-add_action( 'added_post_meta', 'escomi_review_approval_meta_revalidate', 20, 3 );
-add_action( 'updated_post_meta', 'escomi_review_approval_meta_revalidate', 20, 3 );
-add_action( 'deleted_post_meta', 'escomi_review_approval_meta_revalidate', 20, 3 );
+add_action( 'added_post_meta', 'escomi_review_public_meta_revalidate', 20, 4 );
+add_action( 'updated_post_meta', 'escomi_review_public_meta_revalidate', 20, 4 );
+add_action( 'deleted_post_meta', 'escomi_review_public_meta_revalidate', 20, 4 );
+
+function escomi_review_approval_added_revalidate( $meta_id, $post_id, $meta_key, $meta_value ) {
+	unset( $meta_id );
+	if ( 'approval_status' !== $meta_key || 'reviews' !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) ) {
+		return;
+	}
+	$added_approval = is_scalar( $meta_value ) ? (string) $meta_value : '';
+	if ( 'approved' !== $added_approval && ! escomi_review_has_approved_meta_value( $post_id ) ) {
+		return;
+	}
+	if ( function_exists( 'escomi_headless_queue_revalidate' ) ) {
+		escomi_headless_queue_revalidate( 'review_approval_add:' . (int) $post_id );
+	}
+}
+add_action( 'added_post_meta', 'escomi_review_approval_added_revalidate', 20, 4 );
