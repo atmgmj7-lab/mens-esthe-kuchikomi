@@ -72,18 +72,87 @@ export function approvedReviewRelation(
 
 export type ReviewContentKind =
   | "approved-user-review"
+  | "editorial-comment"
   | "editorial-article"
   | "shop-reply";
 
 export type ReviewContentAvailability =
-  | { status: "available"; authority: "wordpress-approved-reviews" }
-  | { status: "unavailable"; reason: "formal-reader-not-configured" };
+  | {
+      status: "available";
+      authority:
+        | "wordpress-approved-reviews"
+        | "wordpress-shop-editorial-field"
+        | "wordpress-editorial-post";
+    }
+  | {
+      status: "unavailable";
+      reason: "formal-reader-not-configured" | "formal-source-not-configured";
+    };
+
+export type EditorialArticleSourceIdentity = {
+  wpPostId: number;
+  postType: "post" | "article" | "editorial" | "editorial-article";
+  slug: string;
+  link: string;
+};
+
+export type EditorialCommentSourceIdentity = {
+  field: "editorial_comment" | "editor_comment" | "shop_editor_comment";
+};
+
+export type ReviewContentSourceIdentity =
+  | EditorialArticleSourceIdentity
+  | EditorialCommentSourceIdentity;
+
+function isHttpUrl(value: unknown): value is string {
+  if (typeof value !== "string" || !value) return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:")
+      && url.hostname === "mens-esthe-kuchikomi.com"
+      && !url.username
+      && !url.password;
+  } catch {
+    return false;
+  }
+}
+
+function isEditorialArticleSourceIdentity(
+  value: unknown,
+): value is EditorialArticleSourceIdentity {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Partial<EditorialArticleSourceIdentity>;
+  return isPositiveInteger(source.wpPostId)
+    && ["post", "article", "editorial", "editorial-article"].includes(source.postType || "")
+    && isCanonicalSlug(source.slug)
+    && !/[/?#\s]/u.test(source.slug)
+    && isHttpUrl(source.link);
+}
+
+function isEditorialCommentSourceIdentity(
+  value: unknown,
+): value is EditorialCommentSourceIdentity {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Partial<EditorialCommentSourceIdentity>;
+  return ["editorial_comment", "editor_comment", "shop_editor_comment"].includes(source.field || "");
+}
 
 export function reviewContentAvailability(
   kind: ReviewContentKind,
+  source?: ReviewContentSourceIdentity,
 ): ReviewContentAvailability {
   if (kind === "approved-user-review") {
     return { status: "available", authority: "wordpress-approved-reviews" };
+  }
+  if (kind === "editorial-comment") {
+    return isEditorialCommentSourceIdentity(source)
+      ? { status: "available", authority: "wordpress-shop-editorial-field" }
+      : { status: "unavailable", reason: "formal-source-not-configured" };
+  }
+  if (kind === "editorial-article") {
+    return isEditorialArticleSourceIdentity(source)
+      ? { status: "available", authority: "wordpress-editorial-post" }
+      : { status: "unavailable", reason: "formal-source-not-configured" };
   }
   return { status: "unavailable", reason: "formal-reader-not-configured" };
 }
@@ -102,5 +171,6 @@ export const REVIEW_EXPERIENCE_CAPABILITIES = {
   therapistId: unavailableReviewCapability(),
   helpfulCount: unavailableReviewCapability(),
   shopReply: unavailableReviewCapability(),
+  qa: unavailableReviewCapability(),
   experienceVerified: unavailableReviewCapability(),
 } as const;

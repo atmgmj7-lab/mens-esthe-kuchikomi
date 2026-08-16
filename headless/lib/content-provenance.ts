@@ -66,6 +66,14 @@ export type ContentProvenanceInput = {
   post_type?: unknown;
   sourcePostId?: unknown;
   source_post_id?: unknown;
+  sourcePostSlug?: unknown;
+  source_post_slug?: unknown;
+  postSlug?: unknown;
+  post_slug?: unknown;
+  sourcePostLink?: unknown;
+  source_post_link?: unknown;
+  postLink?: unknown;
+  post_link?: unknown;
   sourceField?: unknown;
   source_field?: unknown;
   status?: unknown;
@@ -116,6 +124,8 @@ export type NormalizedContentItem = {
   rating: unknown;
   sourcePostType: string | null;
   sourcePostId: string | null;
+  sourcePostSlug: string | null;
+  sourcePostLink: string | null;
   sourceField: string | null;
   canCountAsUserReview: boolean;
   canDisplayAsUserReview: boolean;
@@ -133,6 +143,8 @@ const PROMOTION_SOURCE_TYPES = new Set(["promotion", "pr", "sponsored", "ad", "a
 
 const REVIEW_POST_TYPES = new Set(["review", "reviews", "user_review", "user_reviews"]);
 const REVIEW_FIELDS = new Set(["reviews", "user_reviews", "review", "review_body", "reviewBody"]);
+const EDITORIAL_ARTICLE_POST_TYPES = new Set(["post", "article", "editorial", "editorial-article", "editorial_article"]);
+const EDITORIAL_COMMENT_FIELDS = new Set(["editorial_comment", "editor_comment", "shop_editor_comment"]);
 
 const FIELD_SOURCE_TYPES: Record<string, ContentSourceType> = {
   shop_ai_summary: "ai-generated",
@@ -193,6 +205,35 @@ function idValue(value: unknown): string | null {
   return null;
 }
 
+function positiveIntegerId(value: unknown): string | null {
+  const normalized = idValue(value);
+  if (!normalized || !/^\d+$/u.test(normalized)) return null;
+  const number = Number(normalized);
+  return Number.isSafeInteger(number) && number > 0 ? normalized : null;
+}
+
+function canonicalSlug(value: unknown): string | null {
+  if (typeof value !== "string" || value.trim() !== value || !value || /[/?#\s]/u.test(value)) {
+    return null;
+  }
+  return value;
+}
+
+function canonicalHttpLink(value: unknown): string | null {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:")
+      && url.hostname === "mens-esthe-kuchikomi.com"
+      && !url.username
+      && !url.password
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function truthyFlag(value: unknown): boolean {
   const token = normalizeToken(value);
   return value === true || token === "1" || token === "true" || token === "yes" || token === "approved" || token === "published" || token === "publish";
@@ -251,6 +292,19 @@ function hasUserReviewOrigin(input: ContentProvenanceInput): boolean {
   const sourcePostType = normalizeToken(firstDefined(input.sourcePostType, input.source_post_type, input.postType, input.post_type));
   const sourceField = normalizeToken(firstDefined(input.sourceField, input.source_field));
   return REVIEW_POST_TYPES.has(sourcePostType) || REVIEW_FIELDS.has(sourceField);
+}
+
+function hasFormalEditorialArticleOrigin(input: ContentProvenanceInput): boolean {
+  const sourceField = normalizeToken(firstDefined(input.sourceField, input.source_field));
+  if (EDITORIAL_COMMENT_FIELDS.has(sourceField)) return false;
+
+  const sourcePostType = normalizeToken(
+    firstDefined(input.sourcePostType, input.source_post_type, input.postType, input.post_type),
+  );
+  return EDITORIAL_ARTICLE_POST_TYPES.has(sourcePostType)
+    && positiveIntegerId(firstDefined(input.sourcePostId, input.source_post_id)) !== null
+    && canonicalSlug(firstDefined(input.sourcePostSlug, input.source_post_slug, input.postSlug, input.post_slug)) !== null
+    && canonicalHttpLink(firstDefined(input.sourcePostLink, input.source_post_link, input.postLink, input.post_link)) !== null;
 }
 
 function resolveSourceType(input: ContentProvenanceInput): ContentSourceType {
@@ -321,7 +375,9 @@ export function normalizeContentItem(input: ContentProvenanceInput): NormalizedC
   const contentKind: ReviewContentKind | null = canDisplayAsUserReview
     ? "approved-user-review"
     : sourceType === "editorial-comment"
-      ? "editorial-article"
+      ? hasFormalEditorialArticleOrigin(input)
+        ? "editorial-article"
+        : "editorial-comment"
       : sourceType === "shop-reply"
         ? "shop-reply"
         : null;
@@ -341,6 +397,8 @@ export function normalizeContentItem(input: ContentProvenanceInput): NormalizedC
     rating: firstDefined(input.rating, input.ratingTotal, input.rating_total) ?? null,
     sourcePostType: textValue(firstDefined(input.sourcePostType, input.source_post_type, input.postType, input.post_type)) || null,
     sourcePostId: idValue(firstDefined(input.sourcePostId, input.source_post_id)),
+    sourcePostSlug: canonicalSlug(firstDefined(input.sourcePostSlug, input.source_post_slug, input.postSlug, input.post_slug)),
+    sourcePostLink: canonicalHttpLink(firstDefined(input.sourcePostLink, input.source_post_link, input.postLink, input.post_link)),
     sourceField: sourceFieldValue(input),
     canCountAsUserReview: canDisplayAsUserReview,
     canDisplayAsUserReview,

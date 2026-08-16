@@ -9,6 +9,7 @@ import type {
   ReviewRelationContext,
   ReviewRelationView,
 } from "@/lib/ux-production-data-boundary";
+import type { ApprovedShopReviewSource } from "@/lib/wp/reviews";
 
 export type ShopReviewMetric = {
   key: "total" | "price" | "service" | "cleanliness";
@@ -142,26 +143,21 @@ function normalizeDateRange(
   return { oldestSubmittedAt, latestSubmittedAt };
 }
 
-export type ApprovedShopReviewRelationSource = {
-  shopId: number;
-  result: ApprovedShopReviewResult;
-};
-
 export async function buildApprovedShopReviewRelations(
-  source: ApprovedShopReviewRelationSource,
+  source: ApprovedShopReviewSource | null,
   relationContext?: ReviewRelationContext,
 ): Promise<ReviewRelationView[]> {
-  if (
-    !Number.isSafeInteger(source.shopId) ||
-    source.shopId <= 0 ||
-    source.result.status === "unavailable"
-  ) {
+  const [reviewReader, boundary] = await Promise.all([
+    import("@/lib/wp/reviews"),
+    import("@/lib/ux-production-data-boundary"),
+  ]);
+  if (!reviewReader.isApprovedShopReviewSource(source)) return [];
+  if (source.result.status === "unavailable") {
     return [];
   }
 
-  const { approvedReviewRelation } = await import("@/lib/ux-production-data-boundary");
   return source.result.page.reviews.flatMap((review) => {
-    const relation = approvedReviewRelation(
+    const relation = boundary.approvedReviewRelation(
       review.id,
       source.shopId,
       relationContext,

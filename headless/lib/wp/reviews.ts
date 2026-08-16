@@ -17,6 +17,16 @@ type PublicReviewPayload = {
   ratingCleanliness: number | null;
 };
 
+declare const approvedShopReviewSource: unique symbol;
+
+export type ApprovedShopReviewSource = Readonly<{
+  shopId: number;
+  result: ApprovedShopReviewResult;
+  [approvedShopReviewSource]: true;
+}>;
+
+const approvedShopReviewSources = new WeakSet<object>();
+
 const METRIC_KEYS = ["total", "price", "service", "cleanliness"] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -269,4 +279,27 @@ export async function getApprovedShopReviews(
     page,
     perPage,
   );
+}
+
+export function isApprovedShopReviewSource(
+  value: unknown,
+): value is ApprovedShopReviewSource {
+  return typeof value === "object"
+    && value !== null
+    && approvedShopReviewSources.has(value);
+}
+
+export async function getApprovedShopReviewsWithSource(
+  shopId: number,
+  page = 1,
+  perPage = 20,
+): Promise<ApprovedShopReviewSource | null> {
+  if (!isPositiveInteger(shopId)) return null;
+
+  const source = Object.freeze({
+    shopId,
+    result: await getApprovedShopReviews(shopId, page, perPage),
+  }) as ApprovedShopReviewSource;
+  approvedShopReviewSources.add(source);
+  return source;
 }

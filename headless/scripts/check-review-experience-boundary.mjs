@@ -77,12 +77,7 @@ assert.equal(aggregate.ratingValue, 4);
 
 const boundary = compileModule("lib/ux-production-data-boundary.ts");
 assert.equal(boundary.reviewContentAvailability("approved-user-review").status, "available");
-for (const kind of ["editorial-article", "shop-reply"]) {
-  const availability = boundary.reviewContentAvailability(kind);
-  assert.equal(availability.status, "unavailable");
-  assert.equal(availability.reason, "formal-reader-not-configured");
-}
-for (const capability of ["therapistId", "helpfulCount", "shopReply", "experienceVerified"]) {
+for (const capability of ["therapistId", "helpfulCount", "shopReply", "qa", "experienceVerified"]) {
   assert.equal(boundary.REVIEW_EXPERIENCE_CAPABILITIES[capability].status, "unavailable");
 }
 
@@ -105,27 +100,48 @@ const observedBoundary = {
   }
 };
 
-const viewModel = compileModule("lib/shop-review-view-model.ts", {
-  "server-only": {},
-  "@/lib/ux-production-data-boundary": observedBoundary
-});
-const result = {
-  status: "available",
-  page: {
-    reviews: [{ id: 501, body: "承認済み口コミ", submittedAt: "2026-08-15T00:00:00+09:00", ratings: { total: 5, price: 5, service: 5, cleanliness: 5 } }],
-    total: 1,
-    totalPages: 1,
-    page: 1,
-    metrics: {
-      total: { average: 5, responseCount: 1 },
-      price: { average: 5, responseCount: 1 },
-      service: { average: 5, responseCount: 1 },
-      cleanliness: { average: 5, responseCount: 1 }
-    },
-    dateRange: { oldestSubmittedAt: "2026-08-15T00:00:00+09:00", latestSubmittedAt: "2026-08-15T00:00:00+09:00" }
+const readerPayload = {
+  items: [{
+    id: 501,
+    body: "承認済み口コミ",
+    submittedAt: "2026-08-15T00:00:00+09:00",
+    ratingTotal: 5,
+    ratingPrice: 5,
+    ratingService: 5,
+    ratingCleanliness: 5
+  }],
+  total: 1,
+  totalPages: 1,
+  page: 1,
+  metrics: {
+    total: { average: 5, responseCount: 1 },
+    price: { average: 5, responseCount: 1 },
+    service: { average: 5, responseCount: 1 },
+    cleanliness: { average: 5, responseCount: 1 }
+  },
+  dateRange: {
+    oldestSubmittedAt: "2026-08-15T00:00:00+09:00",
+    latestSubmittedAt: "2026-08-15T00:00:00+09:00"
   }
 };
-const source = { shopId: 101, result };
+const reviewReader = compileModule("lib/wp/reviews.ts", {
+  "next/cache": { cacheLife: () => undefined, cacheTag: () => undefined },
+  "@/lib/wp/client": { wpFetch: async () => readerPayload }
+});
+assert.equal(
+  typeof reviewReader.getApprovedShopReviewsWithSource,
+  "function",
+  "the real approved-review reader must expose a source-bound wrapper"
+);
+const source = await reviewReader.getApprovedShopReviewsWithSource(101, 1, 20);
+assert.equal(source.shopId, 101);
+assert.equal(reviewReader.isApprovedShopReviewSource(source), true);
+
+const viewModel = compileModule("lib/shop-review-view-model.ts", {
+  "server-only": {},
+  "@/lib/ux-production-data-boundary": observedBoundary,
+  "@/lib/wp/reviews": reviewReader
+});
 const relations = await viewModel.buildApprovedShopReviewRelations(source, relationContext);
 assert.equal(relations.length, 1);
 assert.equal(relations[0].reviewId, 501);
@@ -135,6 +151,11 @@ assert.equal(relations[0].areaId, 10);
 assert.equal(relations[0].areaSlug, "osaka");
 assert.equal(relations[0].therapistId, null);
 assert.equal(commonRelationCalls, 1, "the relation adapter must call the shared production relation function");
+assert.equal(
+  (await viewModel.buildApprovedShopReviewRelations({ shopId: 101, result: source.result }, relationContext)).length,
+  0,
+  "caller-assembled result and shop ID objects must not be accepted as canonical reader sources"
+);
 assert.equal((await viewModel.buildApprovedShopReviewRelations(source)).length, 0, "reviews without canonical shop/area context must not enter discovery");
 assert.equal((await viewModel.buildApprovedShopReviewRelations(source, { ...relationContext, areaId: 0 })).length, 0);
 assert.equal(
@@ -142,6 +163,35 @@ assert.equal(
   0,
   "the local source shop identity must reject a different caller context"
 );
+
+assert.equal(boundary.reviewContentAvailability("editorial-comment").status, "unavailable");
+const editorialFieldAvailability = boundary.reviewContentAvailability("editorial-comment", {
+  field: "editorial_comment"
+});
+assert.equal(editorialFieldAvailability.status, "available");
+assert.equal(editorialFieldAvailability.authority, "wordpress-shop-editorial-field");
+assert.equal(boundary.reviewContentAvailability("editorial-article").status, "unavailable");
+const formalEditorialSource = {
+  wpPostId: 9001,
+  postType: "post",
+  slug: "osaka-esthe-guide",
+  link: "https://mens-esthe-kuchikomi.com/osaka-esthe-guide/"
+};
+const editorialArticleAvailability = boundary.reviewContentAvailability("editorial-article", formalEditorialSource);
+assert.equal(editorialArticleAvailability.status, "available");
+assert.equal(editorialArticleAvailability.authority, "wordpress-editorial-post");
+assert.equal(
+  boundary.reviewContentAvailability("editorial-article", { ...formalEditorialSource, slug: "" }).status,
+  "unavailable"
+);
+assert.equal(
+  boundary.reviewContentAvailability("editorial-article", {
+    ...formalEditorialSource,
+    link: "https://external.example.test/osaka-esthe-guide/"
+  }).status,
+  "unavailable"
+);
+assert.equal(boundary.reviewContentAvailability("shop-reply").status, "unavailable");
 
 const links = compileModule("lib/review-links.ts");
 assert.equal(links.buildReviewSubmitUrl("fixture-shop"), "/reviews/submit?shop=fixture-shop", "existing shop payload contract must remain unchanged");

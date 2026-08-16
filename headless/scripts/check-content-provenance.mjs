@@ -12,7 +12,7 @@ const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText;
 const module = { exports: {} };
-vm.runInNewContext(compiled, { module, exports: module.exports, console }, { filename: "content-provenance.cjs" });
+vm.runInNewContext(compiled, { module, exports: module.exports, console, URL }, { filename: "content-provenance.cjs" });
 
 const { normalizeContentItem, normalizeContentItems } = module.exports;
 
@@ -49,14 +49,49 @@ assert.equal(rejected.canCountAsUserReview, false);
 assert.equal(rejected.reason, "moderation-rejected");
 
 const editorial = item({
-  sourceType: "editorial-comment",
+  sourceField: "editorial_comment",
+  sourcePostType: "shop",
+  sourcePostId: 101,
+  sourcePostSlug: "fixture-shop",
+  sourcePostLink: "https://mens-esthe-kuchikomi.com/shops/fixture-shop/",
   approvalStatus: "approved",
   status: "publish",
   shopId: 101,
   body: "編集部が整理したコメントです。"
 });
 assert.equal(editorial.sourceType, "editorial-comment");
+assert.equal(editorial.contentKind, "editorial-comment", "a shop editorial field must not be promoted to an editorial article");
 assert.equal(editorial.canDisplayAsUserReview, false);
+
+const editorialArticle = item({
+  sourceType: "editorial",
+  sourcePostType: "post",
+  sourcePostId: 9001,
+  sourcePostSlug: "osaka-esthe-guide",
+  sourcePostLink: "https://mens-esthe-kuchikomi.com/osaka-esthe-guide/",
+  approvalStatus: "approved",
+  status: "publish",
+  shopId: 101,
+  body: "固有URLを持つ編集部記事です。"
+});
+assert.equal(editorialArticle.contentKind, "editorial-article");
+
+const externalEditorial = item({
+  ...editorialArticle,
+  sourcePostLink: "https://external.example.test/osaka-esthe-guide/"
+});
+assert.equal(externalEditorial.contentKind, "editorial-comment");
+
+const editorialWithoutFormalIdentity = item({
+  sourceType: "editorial",
+  sourcePostType: "post",
+  sourcePostId: 9002,
+  approvalStatus: "approved",
+  status: "publish",
+  shopId: 101,
+  body: "slugとlinkがないため記事として扱えません。"
+});
+assert.equal(editorialWithoutFormalIdentity.contentKind, "editorial-comment");
 
 const shopDescription = item({
   sourceField: "content",

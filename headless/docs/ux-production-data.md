@@ -9,8 +9,8 @@ This adapter records only what the current public sources can prove. It does not
 | Shop identity | WordPress `shop` post ID and slug | Keep the positive post ID and canonical slug. Never join by display name. |
 | Card/header image | WordPress `featured_media` plus embedded media, then legacy ACF URL | Preserve the featured media ID with the chosen embedded URL, alt, and available dimensions. ACF remains a legacy URL fallback with `mediaId: null`. |
 | Detail banner | No approved role/rights storage | `null`; do not reuse the card image as a banner. |
-| Approved user reviews | Existing read-only WordPress `reviews` contract | Reuse only `publish` and `approved` results returned for a public shop. |
-| Review relation | Review ID, the local reader's canonical source shop ID, and the already-resolved public shop/area context | One `ReviewRelationView` per canonical review. The source shop ID must equal the context shop ID; a mismatch or missing shop/area identity excludes the item from public discovery. |
+| Approved user reviews | Existing read-only WordPress `reviews` contract | Reuse only `publish` and `approved` results returned for a public shop. The local `getApprovedShopReviewsWithSource()` wrapper binds the requested shop ID to that reader result; caller-assembled ID/result pairs are rejected. |
+| Review relation | Review ID, the authenticated local reader wrapper, and the already-resolved public shop/area context | One `ReviewRelationView` per canonical review. The wrapper's source shop ID must equal the context shop ID; a mismatch or missing shop/area identity excludes the item from public discovery. |
 | Existing recommendation/ranking snapshot | Existing WordPress/Next.js recommendation helpers | Legacy display order only. It is not the strict, audited ranking contract. |
 | Strict overall/area/shop ranking | No approved storage | `unavailable / storage-not-configured`; no empty record, synthetic ID, or conversion from legacy ranking. |
 
@@ -18,7 +18,7 @@ The same `ShopView.media.cardSquare` object is the normalization result for list
 
 ## Review entity separation
 
-`approved-user-review`, `editorial-article`, and `shop-reply` are separate content kinds. Only the existing approved WordPress review reader is available in this phase. Editorial articles, shop replies, Q&A, PR, pending reviews, rejected reviews, and private reviews do not count as user reviews and do not enter review graphs or `AggregateRating`.
+`approved-user-review`, `editorial-comment`, `editorial-article`, and `shop-reply` are separate content kinds. Existing shop editorial fields remain comments and never become articles. An editorial article is available only with a positive WordPress post ID, an approved post type, a canonical slug, and a canonical Eskomi WordPress link. Shop replies and Q&A remain unavailable. Editorial content, replies, Q&A, PR, pending reviews, rejected reviews, and private reviews do not count as user reviews and do not enter review graphs or `AggregateRating`.
 
 The current response has no formal therapist relation, helpful count, shop-reply reader, or experience-verification field. Those capabilities remain explicitly unavailable. Display names and body text must not be used to infer IDs or verification.
 
