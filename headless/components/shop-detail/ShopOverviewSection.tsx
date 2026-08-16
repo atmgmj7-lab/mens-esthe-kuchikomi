@@ -1,20 +1,16 @@
 import type {
-  ShopInformationCoverage as Coverage,
-  ShopRankingSnapshot as Ranking
+  ShopInformationCoverage as Coverage
 } from "@/lib/shop-information-coverage";
 import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import styles from "./ShopDetail.module.css";
 import { ShopInformationCoverage } from "./ShopInformationCoverage";
-import { ShopRankingSnapshot } from "./ShopRankingSnapshot";
 
 export function ShopOverviewSection({
   coverage,
-  model,
-  ranking
+  model
 }: {
   coverage: Coverage | null;
   model: ShopDetailViewModel;
-  ranking: Ranking | null;
 }) {
   const hasDescription = Boolean(
     model.catchText || model.introductionText || model.recommendText || model.summaryText
@@ -23,12 +19,11 @@ export function ShopOverviewSection({
     <section id="shop-information" className={styles.section}>
       <div className={styles.sectionHeading}>
         <p className={styles.kicker}>SHOP INFORMATION</p>
-        <h2>店舗情報</h2>
+        <h2>こだわり・店舗紹介</h2>
       </div>
-      {coverage || ranking ? (
+      {coverage ? (
         <div className={styles.informationDashboard}>
-          {coverage ? <ShopInformationCoverage coverage={coverage} /> : null}
-          {ranking ? <ShopRankingSnapshot areaName={model.areaName} ranking={ranking} /> : null}
+          <ShopInformationCoverage coverage={coverage} />
         </div>
       ) : null}
       {hasDescription ? (
@@ -45,7 +40,7 @@ export function ShopOverviewSection({
             </div>
           ) : null}
         </div>
-      ) : !coverage && !ranking ? (
+      ) : !coverage ? (
         <p className={styles.sourceNote}>
           現在公開されている店舗情報を{model.infoRows.length}項目掲載しています。
         </p>

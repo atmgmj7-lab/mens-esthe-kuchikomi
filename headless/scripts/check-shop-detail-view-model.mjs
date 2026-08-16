@@ -184,9 +184,10 @@ const localAndDuplicateImages = buildShopDetailViewModel(
   "堺筋本町"
 );
 assert.deepEqual(Array.from(localAndDuplicateImages.images, (image) => image.url), [
-  "/wp-content/uploads/main.jpg",
-  "https://example.jp/gallery.jpg"
+  "/wp-content/uploads/main.jpg"
 ]);
+assert.equal(localAndDuplicateImages.images[0].role, "shop_card_square");
+assert.equal(localAndDuplicateImages.detailBanner, null);
 
 const explicit = buildShopDetailViewModel(
   {
@@ -314,12 +315,12 @@ task8Contract("conditional-section-links", () => {
       ({ id, label, layer }) => ({ id, label, layer })
     ),
     [
-      { id: "reviews", label: "口コミ", layer: "primary" },
-      { id: "shop-information", label: "店舗情報", layer: "primary" },
-      { id: "prices", label: "料金", layer: "primary" },
+      { id: "reviews", label: "口コミ・体験", layer: "primary" },
+      { id: "prices", label: "料金・予約", layer: "primary" },
       { id: "features", label: "こだわり", layer: "secondary" },
+      { id: "shop-information", label: "店舗紹介", layer: "secondary" },
       { id: "basic-information", label: "基本情報", layer: "secondary" },
-      { id: "nearby", label: "周辺情報", layer: "secondary" }
+      { id: "nearby", label: "関連情報", layer: "secondary" }
     ]
   );
   assert.deepEqual(
@@ -340,7 +341,7 @@ task8Contract("conditional-section-links", () => {
       })),
       ({ id, label, layer }) => ({ id, label, layer })
     ),
-    [{ id: "reviews", label: "口コミ", layer: "primary" }],
+    [{ id: "reviews", label: "口コミ・体験", layer: "primary" }],
     "空セクションのmenu linkを作らないでください"
   );
 });

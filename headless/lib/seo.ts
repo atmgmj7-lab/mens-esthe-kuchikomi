@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { resolveShopAreaTerm } from "@/lib/shop-contact";
 import { formatPriceForDisplay, resolveShopPrimaryPrice, shouldOutputPriceSchema } from "@/lib/price-normalization";
 import { normalizeShopAddress } from "@/lib/shop-fact-normalization";
 import type { ShopReviewViewModel } from "@/lib/shop-review-view-model";
@@ -191,7 +190,6 @@ export function shopLocalBusinessJsonLd(
 ): Record<string, unknown> {
   const tel = stripHtml(shop.acf.shop_tel);
   const address = normalizeShopAddress(shop.acf.shop_address);
-  const areaTerm = resolveShopAreaTerm(shop);
   const primaryPrice = resolveShopPrimaryPrice(shop.acf);
 
   const data: Record<string, unknown> = {
@@ -213,12 +211,18 @@ export function shopLocalBusinessJsonLd(
     data.priceRange = formatPriceForDisplay(primaryPrice, "〜");
   }
 
-  const areaServed = areaTerm?.name;
-  if (areaServed) {
+  if (shop.primaryArea) {
     data.areaServed = {
       "@type": "Place",
-      name: areaServed
+      name: shop.primaryArea.name
     };
+  }
+
+  const cardSquare = shop.media?.cardSquare;
+  if (cardSquare && cardSquare.source !== "fallback" && /^https?:\/\//.test(cardSquare.url)) {
+    data.image = cardSquare.url;
+  } else if (cardSquare && cardSquare.source !== "fallback" && cardSquare.url.startsWith("/")) {
+    data.image = `${SITE_URL}${cardSquare.url}`;
   }
 
   if (
@@ -235,11 +239,43 @@ export function shopLocalBusinessJsonLd(
     data.aggregateRating = {
       "@type": "AggregateRating",
       ratingValue: reviewModel.aggregateRating,
-      reviewCount: reviewModel.aggregateRatingCount,
+      ratingCount: reviewModel.aggregateRatingCount,
+      reviewCount: reviewModel.totalApproved,
       bestRating: 5,
       worstRating: 1,
     };
   }
 
   return data;
+}
+
+export function shopBreadcrumbJsonLd(
+  shop: ShopView,
+  parent?: AreaView | null,
+): Record<string, unknown> {
+  const items: Array<{ name: string; item: string }> = [
+    { name: "ホーム", item: canonicalUrl("/") },
+    { name: "店舗情報", item: canonicalUrl("/shops/") },
+  ];
+  if (shop.primaryArea) {
+    if (parent && parent.id !== shop.primaryArea.id) {
+      items.push({ name: parent.name, item: canonicalUrl(`/area/${parent.slug}/`) });
+    }
+    items.push({
+      name: shop.primaryArea.name,
+      item: canonicalUrl(`/area/${shop.primaryArea.slug}/`),
+    });
+  }
+  items.push({ name: shop.title, item: canonicalUrl(`/shops/${shop.slug}/`) });
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((entry, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: entry.name,
+      item: entry.item,
+    })),
+  };
 }

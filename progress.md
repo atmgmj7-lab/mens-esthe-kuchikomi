@@ -808,3 +808,13 @@
 - 初回独立reviewの非priority回帰、旧口コミfilter、内部用語、地域ガイド不足、section順回帰をREDで再現して修正した。最終SPEC/CODE_QUALITY_SECURITY/VISIBLEは全てCritical 0 / Important 0 / Minor 0 / Ready Yes。
 - dependency、`package-lock.json`、storage、T4、Primary backfill、URL/canonical/sitemap/robots、WordPress/Supabase本番、Secret、push、deployは変更・実施していない。現在は最終全検証と指定path commit前。
 - 最終`npm test`、lint、typecheck、821/821 build、`npm audit --audit-level=high`（0 vulnerabilities）、browser security単独再検証、`git diff --check`は全てexit 0。指定pathだけをcommitし、T3完了・T4/backfill/push/deploy前で停止する。
+# 2026-08-17 UX-PROD-T4 Shop Detail SEO Asset 完了
+
+- T3 final `f3e93d5797eab5f8c66b1b97ab5bb7a0354eec7a`から`codex/eskomi-ux-production-t4-shop-detail`を作成した。
+- `npm ci`はexit 0、vulnerability 0。変更前`npm test`はexit 0で全契約PASS。
+- Shop Detailを正式dataだけで、店舗上部→口コミ・体験→料金・予約→こだわり・編集情報→店舗情報→アクセス→基本情報→関連導線へ整理した。legacy ranking、正式recordのないcoupon/therapist/schedule/reply/helpful/Q&Aは表示していない。
+- 店舗画像は`media.cardSquare`を正方形で1枚だけ使い、`detailBanner`がnullならbannerを作らない。metadata、breadcrumb、LocalBusiness、関連Area linkは明示Primaryだけを使い、taxonomy順・名称・住所から推測しない。
+- 承認済み口コミは料金より前へ置き、有効rating 3件以上でだけgraphと`AggregateRating`を出す。`ratingCount`と`reviewCount`を分離し、正式著者のない個別`Review` schemaは出さない。
+- T4/T2/T3 focused 20検査、全`npm test`、lint、typecheck、821/821 build、audit（vulnerabilities 0）、`git diff --check`はすべてexit 0。専用browserは33 scenarios・1,072 assertions・8 screenshots・failures 0、Portal横断は98 scenarios・87,395 assertions・56 screenshots・failures 0だった。
+- 独立再レビューはSPEC `Critical 0 / Important 0 / Minor 1`、CODE_QUALITY_SECURITY `0 / 0 / 0`、VISIBLE `0 / 0 / 0`、READY Yes。唯一のMinorだったtask plan/progressの未更新をこの記録で解消した。
+- dependencyと`package-lock.json`、PHP、storage、Phase19、URL/canonical/sitemap/robots、Primary backfill、WordPress/Supabase本番、Secretは変更していない。指定pathだけをcommitし、push/deploy/本番変更前で停止する。

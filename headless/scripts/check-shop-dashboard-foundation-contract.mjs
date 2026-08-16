@@ -232,7 +232,7 @@ const { SHOP_DETAIL_MODULES, getVisibleShopDetailModules, buildShopSectionLinks 
 assert.ok(Array.isArray(SHOP_DETAIL_MODULES));
 assert.deepEqual(
   Array.from(SHOP_DETAIL_MODULES, ({ id }) => String(id)),
-  ["reviews", "shop-information", "prices", "features", "map-access", "basic-information", "nearby"]
+  ["reviews", "prices", "features", "shop-information", "map-access", "basic-information", "nearby"]
 );
 assert.ok(SHOP_DETAIL_MODULES.some((item) => item.layer === "primary"));
 assert.ok(SHOP_DETAIL_MODULES.some((item) => item.layer === "secondary"));
@@ -295,7 +295,7 @@ const hoursOnlyModel = {
 const hoursOnlyModules = getVisibleShopDetailModules({ ...emptyContext, model: hoursOnlyModel });
 assert.deepEqual(
   Array.from(hoursOnlyModules, ({ id }) => id),
-  ["reviews", "shop-information", "basic-information"],
+  ["reviews", "basic-information"],
   "hours-only shops must expose their basic information module"
 );
 const hoursOnlyHtml = renderToStaticMarkup(
@@ -361,10 +361,10 @@ for (const staleCondition of ["model.prices.length > 0", "model.infoRows.length 
 const detailSource = read("components/ShopDetail.tsx");
 assert.ok(detailSource.includes("getVisibleShopDetailModules"));
 assert.ok(detailSource.includes("buildShopInformationCoverage"));
-assert.ok(detailSource.includes("normalizeShopRankingSnapshot"));
-assert.ok(
-  detailSource.includes("normalizeShopRankingSnapshot(\n    shop.acf.shop_area_ranking_snapshot,\n    areaSlugForNav"),
-  "ShopDetail must scope ranking snapshots to the area used by navigation and labels"
+assert.equal(
+  detailSource.includes("normalizeShopRankingSnapshot"),
+  false,
+  "Shop Detail must not promote a legacy snapshot while strict ranking storage is unavailable"
 );
 
 const cssSource = read("components/shop-detail/ShopDetail.module.css");

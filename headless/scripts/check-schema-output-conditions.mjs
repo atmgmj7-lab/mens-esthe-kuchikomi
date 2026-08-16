@@ -195,7 +195,8 @@ assert.deepEqual(
   {
     "@type": "AggregateRating",
     ratingValue: 4.5,
-    reviewCount: 3,
+    ratingCount: 3,
+    reviewCount: 4,
     bestRating: 5,
     worstRating: 1
   },

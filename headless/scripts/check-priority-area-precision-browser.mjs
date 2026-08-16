@@ -37,7 +37,9 @@ const areas = [
 ];
 const fixtureSourceFiles = [
   "components/area/hub/AreaHubPriorityLinks.tsx",
+  "components/shop-detail/ShopRelatedLinks.tsx",
   "lib/priority-area-hub.ts",
+  "lib/shop-detail-area.ts",
 ];
 
 let scenarios = 0;

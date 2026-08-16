@@ -2,7 +2,7 @@ import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import styles from "./ShopDetail.module.css";
 
 export function ShopAccessSection({ model }: { model: ShopDetailViewModel }) {
-  const rows = model.infoRows.filter((row) => row.key === "address" || row.key === "station");
+  const rows = model.infoRows.filter((row) => row.key === "address" || row.key === "station" || row.key === "access");
   return (
     <section id="map-access" className={styles.section}>
       <span id="hours-access" className={styles.sectionAnchor} aria-hidden="true" />

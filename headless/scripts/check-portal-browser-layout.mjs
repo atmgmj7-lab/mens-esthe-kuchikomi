@@ -372,29 +372,34 @@ async function waitForStableLayout(page) {
 }
 
 async function waitForRouteReady(page, route) {
-  const required = route.kind === "shop"
-    ? [
+  if (route.kind === "shop") {
+    await Promise.all([
         page.locator("main[data-shop-detail-root] h1"),
         page.locator('main[data-shop-detail-root] section[aria-label="店舗画像"] img'),
         page.getByRole("navigation", { name: "店舗詳細のページ内メニュー" }),
         page.locator("main[data-shop-detail-root] [data-shop-cta-kind]:visible")
-      ]
-    : [
-        page.locator('article[data-area-shop-card="true"]'),
-        page.locator('[data-shop-cta-position="listing"]')
-      ];
-  if (route.kind === "hub") {
-    required.push(
-      page.getByRole("table", { name: "店舗比較" }),
-      page.locator('[role="table"][aria-label="店舗比較"] [data-comparison-row]')
+      ].map((locator) => locator.first().waitFor({ state: "visible", timeout: 15_000 }))
     );
+    return;
   }
-  await Promise.all(
-    // Cache Components streams the completed route into a hidden container before
-    // replacing the visible fallback. `attached` would accept that hidden payload
-    // and measure the still-empty fallback, so every required part must be visible.
-    required.map((locator) => locator.first().waitFor({ state: "visible", timeout: 15_000 }))
-  );
+
+  // Cache Components streams the completed route into a hidden container before
+  // replacing the visible fallback. Wait for the final H1 and for either real
+  // cards or the route's explicit, production-safe empty state.
+  await page.locator("main h1").first().waitFor({ state: "visible", timeout: 15_000 });
+  if (route.kind === "hub") {
+    await page.locator('[data-area-precision-mode="true"]').first().waitFor({ state: "visible", timeout: 15_000 });
+    return;
+  }
+  await page.waitForFunction(() => {
+    const visible = (element) => {
+      if (!element) return false;
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return box.width > 0 && box.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+    };
+    return [...document.querySelectorAll('article[data-area-shop-card="true"], .empty-state')].some(visible);
+  }, undefined, { timeout: 15_000 });
 }
 
 async function collectMetrics(page) {
@@ -586,6 +591,8 @@ async function collectMetrics(page) {
         visibleUnrankedCardCount: cards.filter((card) => !card.rank).length,
         comparisonCount: comparisons.length,
         comparisonRowCount: comparison?.querySelectorAll("[data-comparison-row]").length ?? 0,
+        precisionRootCount: document.querySelectorAll('[data-area-precision-mode="true"]').length,
+        explicitEmptyStateCount: document.querySelectorAll(".area-hub-section__empty, .empty-state").length,
         visibleRouteCtaCount: ctas.length
       },
       shop: shopRoot
@@ -675,9 +682,21 @@ function assertShopGeometry(metrics, viewport, label) {
     actual: shop.profileGrid.width,
     expected: expectedInnerWidth
   });
-  check(approximately(shop.mainImage.x, expectedInnerLeft, 2), `${label} shop image start`, {
+  const expectedImageWidth = viewport.width <= 760
+    ? expectedInnerWidth
+    : viewport.width <= 1024
+      ? Math.min(520, expectedInnerWidth)
+      : 460;
+  const expectedImageLeft = viewport.width > 760 && viewport.width <= 1024
+    ? expectedInnerLeft + (expectedInnerWidth - expectedImageWidth) / 2
+    : expectedInnerLeft;
+  check(approximately(shop.mainImage.x, expectedImageLeft, 2), `${label} shop image start`, {
     actual: shop.mainImage.x,
-    expected: expectedInnerLeft
+    expected: expectedImageLeft
+  });
+  check(approximately(shop.mainImage.width, expectedImageWidth, 2), `${label} shop image width`, {
+    actual: shop.mainImage.width,
+    expected: expectedImageWidth
   });
 
   const maxTitleSize = viewport.width <= 760 ? 26 : 34;
@@ -747,13 +766,14 @@ function assertShopGeometry(metrics, viewport, label) {
   }
 
   if (viewport.width > 1024) {
-    check(approximately(shop.hero.width, 320, 2), `${label} shop hero width`, {
+    const expectedHeroWidth = expectedInnerWidth - expectedImageWidth - 48;
+    check(approximately(shop.hero.width, expectedHeroWidth, 2), `${label} shop hero width`, {
       actual: shop.hero.width,
-      expected: 320
+      expected: expectedHeroWidth
     });
-    check(approximately(shop.hero.x - shop.visual.right, 32, 4), `${label} shop column gap`, {
+    check(approximately(shop.hero.x - shop.visual.right, 48, 4), `${label} shop column gap`, {
       actual: shop.hero.x - shop.visual.right,
-      expected: 32
+      expected: 48
     });
     check(approximately(shop.title.x, shop.hero.x, 2), `${label} shop title in hero column`, {
       titleX: shop.title.x,
@@ -933,31 +953,32 @@ function assertRequiredRouteDom(metrics, route, label) {
     return;
   }
 
-  check(dom.visibleCardCount >= 1, `${label} requires visible shop cards`, {
-    count: dom.visibleCardCount
-  });
+  check(
+    dom.visibleCardCount >= 1 || dom.explicitEmptyStateCount >= 1,
+    `${label} requires visible shop cards or an explicit empty state`,
+    { cards: dom.visibleCardCount, emptyStates: dom.explicitEmptyStateCount }
+  );
   // Sparse WordPress records intentionally render zero per-card actions; the shared
   // AreaShopCard action slot remains mandatory and each representative route must
   // still expose at least one real, non-invented CTA across its visible cards.
-  check(dom.visibleRouteCtaCount >= 1, `${label} requires a real route CTA`, {
-    count: dom.visibleRouteCtaCount
-  });
+  check(
+    dom.visibleCardCount === 0 || dom.visibleRouteCtaCount >= 1,
+    `${label} requires a real route CTA when cards are visible`,
+    { cards: dom.visibleCardCount, ctas: dom.visibleRouteCtaCount }
+  );
 
-  if (route.kind === "hub" || route.kind === "area") {
-    check(dom.visibleRankedCardCount >= 1, `${label} requires ranked shop cards`, {
-      count: dom.visibleRankedCardCount
+  if (route.kind === "hub") {
+    check(dom.precisionRootCount >= 1, `${label} requires Primary Area precision boundary`, {
+      count: dom.precisionRootCount
     });
-    check(dom.visibleUnrankedCardCount >= 1, `${label} requires unranked shop cards`, {
-      count: dom.visibleUnrankedCardCount
+    check(dom.visibleRankedCardCount === 0, `${label} hides legacy ranking`, {
+      count: dom.visibleRankedCardCount
     });
   }
 
-  if (route.kind === "hub") {
-    check(dom.comparisonCount === 1, `${label} requires one comparison`, {
-      count: dom.comparisonCount
-    });
-    check(dom.comparisonRowCount >= 1, `${label} requires comparison rows`, {
-      count: dom.comparisonRowCount
+  if (route.kind === "area" && dom.visibleCardCount > 0) {
+    check(dom.visibleUnrankedCardCount >= 1, `${label} requires unranked shop cards`, {
+      count: dom.visibleUnrankedCardCount
     });
   }
 }
@@ -978,7 +999,8 @@ function assertRuntimeGeometry(metrics, route, viewport) {
 
   for (const [index, image] of metrics.images.entries()) {
     const ratio = image.box.width / image.box.height;
-    check(Math.abs(ratio - 4 / 3) / (4 / 3) <= 0.005, `${label} image ${index + 1} ratio 4:3`, {
+    const expectedRatio = route.kind === "shop" ? 1 : 4 / 3;
+    check(Math.abs(ratio - expectedRatio) / expectedRatio <= 0.005, `${label} image ${index + 1} ratio ${route.kind === "shop" ? "1:1" : "4:3"}`, {
       alt: image.alt,
       width: image.box.width,
       height: image.box.height,
@@ -1000,9 +1022,7 @@ function assertRuntimeGeometry(metrics, route, viewport) {
     assertCardGeometry(metrics, viewport, label);
   }
 
-  if (route.kind === "hub") {
-    check(Boolean(metrics.comparison), `${label} comparison exists`);
-    if (metrics.comparison) {
+  if (route.kind === "hub" && metrics.comparison) {
       const mobile = viewport.width <= 760;
       check(
         mobile ? metrics.comparison.headerDisplay === "none" : metrics.comparison.headerDisplay !== "none",
@@ -1016,7 +1036,6 @@ function assertRuntimeGeometry(metrics, route, viewport) {
           { row: metrics.comparison.row, table: metrics.comparison.box }
         );
       }
-    }
   }
 }
 
@@ -1141,7 +1160,7 @@ async function checkShopInteractions(page, viewport) {
   }));
   check(fallback.src === "/images/eskomi-shop-fallback.svg", `${label} broken image fallback source`, fallback);
   check(fallback.alt === "Eskomi 店舗画像準備中", `${label} broken image fallback alt`, fallback);
-  check(Math.abs(fallback.ratio - 4 / 3) / (4 / 3) <= 0.005, `${label} broken image fallback ratio`, fallback);
+  check(Math.abs(fallback.ratio - 1) <= 0.005, `${label} broken image fallback ratio 1:1`, fallback);
 }
 
 function basicAuthorization(username, password) {

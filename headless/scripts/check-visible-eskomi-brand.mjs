@@ -530,20 +530,19 @@ const fallbackImageContracts = [
     source: shopDetailGallerySource,
     required: [
       "image.alt = SHOP_FALLBACK_IMAGE_ALT;",
-      "Object.assign(image.style, SHOP_FALLBACK_IMAGE_STYLE);",
+      "Object.assign(image.style, SHOP_DETAIL_FALLBACK_IMAGE_STYLE);",
       "alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}",
-      "style={mainImageFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
-      "alt={image.isFallback ? SHOP_FALLBACK_IMAGE_ALT : image.alt}",
-      "style={image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
-      "width={960}",
-      "height={720}",
-      "width={240}",
-      "height={180}"
+      "style={mainImageFallback ? SHOP_DETAIL_FALLBACK_IMAGE_STYLE : undefined}",
+      'data-media-role={mainImage.role}',
+      'data-detail-banner="absent"',
+      "width={mainImage.width ?? 960}",
+      "height={mainImage.height ?? 960}"
     ],
     altMarker: "alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}",
-    styleMarker: "style={mainImageFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}",
-    ratioMarker: "height={720}",
-    wrongRatioMarker: "height={640}"
+    styleMarker: "style={mainImageFallback ? SHOP_DETAIL_FALLBACK_IMAGE_STYLE : undefined}",
+    styleToken: "SHOP_DETAIL_FALLBACK_IMAGE_STYLE",
+    ratioMarker: "height={mainImage.height ?? 960}",
+    wrongRatioMarker: "height={mainImage.height ?? 720}"
   },
   {
     label: "ShopImageThumb",
@@ -587,7 +586,7 @@ for (const contract of fallbackImageContracts) {
       "cover",
       contract.styleMarker,
       contract.styleMarker.replace(
-        "SHOP_FALLBACK_IMAGE_STYLE",
+        contract.styleToken ?? "SHOP_FALLBACK_IMAGE_STYLE",
         '{ aspectRatio: "4 / 3", objectFit: "cover" }'
       )
     ],

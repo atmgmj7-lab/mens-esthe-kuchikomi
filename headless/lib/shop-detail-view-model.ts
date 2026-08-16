@@ -27,6 +27,9 @@ export type ShopDetailImage = {
   url: string;
   alt: string;
   isFallback: boolean;
+  role: "shop_card_square";
+  width?: number;
+  height?: number;
 };
 
 export type ShopDetailInfoRow = {
@@ -45,6 +48,7 @@ export type ShopDetailViewModel = {
   facts: ShopDetailFact[];
   actions: ShopDetailAction[];
   images: ShopDetailImage[];
+  detailBanner: null;
   prices: ReturnType<typeof resolveShopCoursePrices>;
   infoRows: ShopDetailInfoRow[];
   introductionText: string;
@@ -53,26 +57,6 @@ export type ShopDetailViewModel = {
   summaryText: string;
   featureNames: string[];
 };
-
-const VISUAL_KEYS = [
-  "shop_header_image",
-  "header_image",
-  "shop_top_image",
-  "top_image",
-  "shop_hero_image",
-  "hero_image",
-  "shop_main_visual",
-  "main_visual",
-  "shop_image",
-  "shop_main_image",
-  "main_image",
-  "image",
-  "shop_photo",
-  "photo",
-  "gallery_image",
-  "store_image",
-  "thumbnail"
-] as const;
 
 function text(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -141,34 +125,33 @@ function verifiedDate(value: unknown): string | null {
   return `${year}年${month}月${day}日`;
 }
 
-function imageUrl(value: unknown): string | null {
-  if (typeof value === "string") return assetUrl(value);
-  if (!value || typeof value !== "object") return null;
-  const item = value as Record<string, unknown>;
-  return assetUrl(item.url) || assetUrl(item.source_url);
-}
-
 function shopImages(shop: ShopView): ShopDetailImage[] {
-  const candidates = [assetUrl(shop.imageUrl), ...VISUAL_KEYS.map((key) => imageUrl(shop.acf[key]))].filter(
-    (url): url is string => Boolean(url)
-  );
-  const unique = [...new Set(candidates)].slice(0, 4);
-
-  if (unique.length === 0) {
+  const card = shop.media?.cardSquare ?? {
+    mediaId: null,
+    source: shop.imageUrl ? "legacy-acf" as const : "fallback" as const,
+    url: shop.imageUrl,
+    alt: shop.title,
+  };
+  const cardUrl = assetUrl(card.url);
+  if (!cardUrl || card.source === "fallback") {
     return [
       {
         url: DEFAULT_SHOP_IMAGE,
         alt: `${shop.title} 画像準備中`,
-        isFallback: true
+        isFallback: true,
+        role: "shop_card_square",
       }
     ];
   }
 
-  return unique.map((url, index) => ({
-    url,
-    alt: index === 0 ? shop.title : `${shop.title} 店舗画像 ${index + 1}`,
-    isFallback: false
-  }));
+  return [{
+    url: cardUrl,
+    alt: displayText(card.alt) || shop.title,
+    isFallback: false,
+    role: "shop_card_square",
+    ...(Number.isSafeInteger(card.width) && Number(card.width) > 0 ? { width: card.width } : {}),
+    ...(Number.isSafeInteger(card.height) && Number(card.height) > 0 ? { height: card.height } : {}),
+  }];
 }
 
 function explicitFeatureNames(acf: Record<string, unknown>): string[] {
@@ -188,7 +171,8 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
   const acf = shop.acf;
   const primaryPrice = resolveShopPrimaryPrice(acf);
   const priceLabel = formatPriceForDisplay(primaryPrice, "〜");
-  const station = firstText(acf, ["shop_station", "nearest_station", "station", "shop_access"]);
+  const station = firstText(acf, ["shop_station", "nearest_station", "station"]);
+  const access = firstText(acf, ["shop_access"]);
   const address = normalizeShopAddress(acf.shop_address);
   const hours = firstText(acf, ["shop_hours"]);
   const bookingUrl =
@@ -216,7 +200,7 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
   const bookingAction = actions.find((action) => action.kind !== "official");
   const facts: ShopDetailFact[] = [];
   if (priceLabel) facts.push({ key: "price", label: "料金目安", value: priceLabel });
-  if (station) facts.push({ key: "station", label: "アクセス", value: station });
+  if (station || access) facts.push({ key: "station", label: "アクセス", value: station || access });
   if (hours) facts.push({ key: "hours", label: "営業時間", value: hours });
   if (bookingAction) facts.push({ key: "booking", label: "予約方法", value: bookingAction.label });
 
@@ -229,7 +213,8 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
     });
   }
   for (const [key, label, value] of [
-    ["station", "駅・アクセス案内", station],
+    ["station", "最寄駅", station],
+    ["access", "アクセス案内", access],
     ["hours", "営業時間", hours],
     ["holiday", "定休日", firstText(acf, ["shop_holiday"])],
     ["booking", "予約", firstText(acf, ["shop_booking"])],
@@ -250,6 +235,7 @@ export function buildShopDetailViewModel(shop: ShopView, areaName: string): Shop
     facts,
     actions,
     images: shopImages(shop),
+    detailBanner: null,
     prices: resolveShopCoursePrices(acf),
     infoRows,
     introductionText: normalizeShopDisplayText(shop.contentHtml),

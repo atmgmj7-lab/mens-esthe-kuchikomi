@@ -33,20 +33,21 @@ const shopDetail = [
   read("components/shop-detail/ShopDetailModuleList.tsx")
 ].join("\n");
 assert.ok(
-  shopDetail.includes("ShopAreaHubLinks") && shopDetail.includes('id="nearby"'),
-  "shop detail must expose a real nearby anchor for same-area links"
+  shopDetail.includes("ShopRelatedLinks") && shopDetail.includes('id="nearby"'),
+  "shop detail must expose a focused related-page section"
 );
 assert.ok(
-  shopDetail.includes("この店舗の口コミを投稿する") &&
+  shopDetail.includes("この店舗の口コミを書く") &&
     shopDetail.includes("buildReviewSubmitUrl(shop.slug)") &&
     shopDetail.includes("reviewSubmitUrl={reviewSubmitUrl}") &&
     shopDetail.includes("href={reviewSubmitUrl}"),
   "shop detail must link to review submission"
 );
-const shopAreaLinks = read("components/common/ShopAreaHubLinks.tsx");
-for (const href of ["#ranking", "#price-table", "#reviews"]) {
-  assert.ok(shopAreaLinks.includes(href), `shop area related links must include ${href}`);
+const shopRelatedLinks = read("components/shop-detail/ShopRelatedLinks.tsx");
+for (const href of ["/area/", "/reviews/", "/shops/"]) {
+  assert.ok(shopRelatedLinks.includes(href), `shop related links must include ${href}`);
 }
+assert.ok(shopRelatedLinks.includes("href={reviewSubmitUrl}"), "shop related links must use the approved submit URL");
 
 const fullShopDetailHtml = shopDetailIntegrationEvidence.full.html;
 for (const href of [
@@ -54,7 +55,7 @@ for (const href of [
   'href="#map-access"',
   'href="#reviews"',
   'href="#nearby"',
-  'href="/reviews/submit/?shop=integration-shop"'
+  'href="/reviews/submit?shop=integration-shop"'
 ]) {
   assert.ok(fullShopDetailHtml.includes(href), `rendered full shop detail must include ${href}`);
 }
@@ -63,16 +64,16 @@ const sparseShopDetailHtml = shopDetailIntegrationEvidence.sparse.html;
 assert.ok(!sparseShopDetailHtml.includes('href="#prices"'));
 assert.ok(!sparseShopDetailHtml.includes('href="#map-access"'));
 assert.ok(sparseShopDetailHtml.includes('href="#reviews"'));
-assert.ok(!sparseShopDetailHtml.includes('href="#nearby"'));
+assert.ok(sparseShopDetailHtml.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailHtml.includes("#ranking"));
 assert.ok(!sparseShopDetailHtml.includes("#price-table"));
 assert.ok(
-  sparseShopDetailHtml.includes('href="/reviews/submit/?shop=sparse-shop"'),
+  sparseShopDetailHtml.includes('href="/reviews/submit?shop=sparse-shop"'),
   "rendered sparse shop detail must keep the review submission link"
 );
-assert.equal(shopDetailIntegrationEvidence.full.captures.areaHubProps.length, 1);
-assert.equal(shopDetailIntegrationEvidence.full.captures.areaQuickProps[0].current, "osaka");
-assert.equal(shopDetailIntegrationEvidence.sparse.captures.areaHubProps.length, 0);
+assert.equal(shopDetailIntegrationEvidence.full.captures.relatedProps.length, 1);
+assert.equal(shopDetailIntegrationEvidence.full.captures.relatedProps[0].primaryArea.slug, "osaka");
+assert.equal(shopDetailIntegrationEvidence.sparse.captures.relatedProps[0].primaryArea, null);
 
 const css = read("app/globals.css");
 assert.ok(

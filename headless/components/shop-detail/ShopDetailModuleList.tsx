@@ -28,26 +28,31 @@ function ReviewsModule({ context, reviewResult, reviewSubmitUrl }: ModuleRendere
   const reviews = reviewPage?.reviews ?? [];
   return (
     <section id="reviews" className={styles.section}>
-      <div className={styles.sectionHeading}><p className={styles.kicker}>USER REVIEWS</p><h2>ユーザー口コミ</h2></div>
+      <div className={styles.sectionHeading}><p className={styles.kicker}>REVIEWS &amp; EXPERIENCE</p><h2>口コミ・体験</h2></div>
       <div className={styles.reviews}><ShopReviewDashboard model={context.review} /></div>
-      <p className={styles.sourceNote}>掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません。</p>
-      {reviewPage && reviewPage.total > reviews.length ? (
-        <Link href={`/shops/${shopSlug}/reviews/`} className={styles.textLink}>承認済み口コミをすべて見る（{reviewPage.total}件）</Link>
+      <p className={styles.sourceNote}>承認済みユーザー口コミを、店舗紹介や掲載情報コメントとは分けて掲載しています。</p>
+      {shopSlug ? (
+        reviewPage && reviewPage.total > reviews.length ? (
+          <Link href={`/shops/${shopSlug}/reviews/`} className={styles.textLink}>口コミをもっと見る（{reviewPage.total}件）</Link>
+        ) : (
+          <Link href={`/shops/${shopSlug}/reviews/`} className={styles.textLink}>この店舗の口コミ・体験一覧を見る</Link>
+        )
       ) : null}
-      <Link href={reviewSubmitUrl} className={styles.textLink}>この店舗の口コミを投稿する</Link>
+      <Link href="/reviews/" className={styles.textLink}>関西の口コミ・体験を探す</Link>
+      <Link href={reviewSubmitUrl} className={styles.reviewSubmitLink}>この店舗の口コミを書く</Link>
     </section>
   );
 }
 
 function InformationModule({ context }: ModuleRendererProps) {
-  return <ShopOverviewSection model={context.model} coverage={context.coverage} ranking={context.ranking} />;
+  return <ShopOverviewSection model={context.model} coverage={context.coverage} />;
 }
 function PricesModule({ context }: ModuleRendererProps) { return <ShopPricesSection model={context.model} />; }
 function FeaturesModule({ context }: ModuleRendererProps) { return <ShopFeaturesSection model={context.model} />; }
 function AccessModule({ context }: ModuleRendererProps) { return <ShopAccessSection model={context.model} />; }
 function BasicModule({ context, rel }: ModuleRendererProps) { return <ShopBasicInformationSection model={context.model} rel={rel} />; }
 function NearbyModule({ nearbyContent }: ModuleRendererProps) {
-  return <section id="nearby" className={styles.section}><div className={styles.sectionHeading}><p className={styles.kicker}>AREA LINKS</p><h2>周辺・関連情報</h2></div><div className={styles.nearbyContent}>{nearbyContent}</div></section>;
+  return <section id="nearby" className={styles.section}><div className={styles.sectionHeading}><p className={styles.kicker}>RELATED LINKS</p><h2>関連ページ</h2></div><div className={styles.nearbyContent}>{nearbyContent}</div></section>;
 }
 
 const MODULE_RENDERERS = {

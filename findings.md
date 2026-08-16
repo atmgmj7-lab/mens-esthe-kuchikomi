@@ -470,3 +470,17 @@
 - 駅名表示は専用駅fieldと徒歩情報の両方がある場合だけ有効とし、汎用`shop_access`だけでは駅filter・駅tab・駅tagを出さない。初心者情報も明示featureが0件なら関連UIとFAQを出さない。
 - 正式順位recordがない場合は順位moduleを出さず、明示された順位の空きを詰めない。RELATED/UNCLASSIFIEDには順位を付けない。
 - 任意追加で実行した旧`test:portal-browser-layout`は、堺筋本町Hubに旧自動順位・比較表を必須とする前提が新しいfail-closed仕様と衝突した。Task指定の2-mode browser QAは別runnerで成功しており、停止条件に従い旧runnerの変更は残していない。
+# 2026-08-17 UX-PROD-T4 Shop Detail SEO Asset
+
+- T3 final `f3e93d5797eab5f8c66b1b97ab5bb7a0354eec7a`の専用worktreeはcleanで、`npm ci`はvulnerability 0、変更前`npm test`は全契約PASSだった。
+- 現行Shop Detailはすでにmodule registry、approved Shop review reader、3件閾値review ViewModel、price normalizer、LocalBusiness schema、2層section navを持つため、全面rewriteや新storageは不要。
+- 現行route metadataとbreadcrumb/Area navはtaxonomyの先頭・末尾や`areaSlug`へfallbackしており、T4の明示Primary Area契約へ揃える必要がある。
+- 現行galleryはlegacy ACF画像も複数採用する4:3表示だが、T1契約では`media.cardSquare`が正式なlegacy互換画像、`media.detailBanner`はnull。T4上部はcardSquare 1枚を正方形で使う。
+- 現行`ShopOverviewSection`はlegacy ranking snapshotを描画し得るが、`strictRanking`はstorage-not-configuredのため、T4 Shop Detailではranking moduleを完全非表示にする。
+- coupon、therapist、schedule、shop reply、helpful、Q&Aの正式reader/entityは存在しないため、このtaskでは空moduleも仮値も作らない。
+- Shop Detailの正式順序は、店舗上部→口コミ・体験→料金・予約→こだわり・編集情報→店舗情報→アクセス→基本情報→関連導線とする。口コミは料金や店舗情報より後ろへ隠さない。
+- `AggregateRating`は有効rating回答3件以上のときだけ表示し、`ratingCount`は有効rating件数、`reviewCount`は承認済み口コミ総数を使う。正式な公開著者がないため、個別`Review` schemaは出さない。
+- ShopのArea metadata、breadcrumb、関連Area linkは`primaryArea`の明示値だけを採用し、taxonomy順・名称・住所からfallbackしない。Primary未設定時はArea表現を省略する。
+- `shop_card_square`は上部で1枚だけ正方形表示し、正式画像がなければ安全なfallbackを使う。`shop_detail_banner`がnullの現在はbannerを生成・引き伸ばししない。
+- 専用browser QAはrich 4件、sparse 2件、price-only 0件の3fixtureを11幅で確認し、33 scenarios・1,072 assertions・8 screenshots・failures 0。Portal横断も98 scenarios・87,395 assertions・56 screenshots・failures 0だった。
+- 独立再レビューはSPEC `Critical 0 / Important 0 / Minor 1`、CODE_QUALITY_SECURITY `0 / 0 / 0`、VISIBLE `0 / 0 / 0`、READY Yes。SPEC Minorは完了記録の更新だけで、この最終更新により解消した。

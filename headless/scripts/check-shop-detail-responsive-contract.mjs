@@ -28,14 +28,13 @@ const componentClassContract = {
   ],
   "components/shop-detail/ShopDetailGallery.tsx": [
     "gallery",
-    "mainImage",
-    "thumbnail",
-    "thumbnails"
+    "mainImage"
   ],
   "components/shop-detail/ShopDetailHero.tsx": [
     "facts",
     "hero",
     "kicker",
+    "heroReviewSummary",
     "title",
     "titleRow",
     "verified"
@@ -45,6 +44,7 @@ const componentClassContract = {
     "kicker",
     "nearbyContent",
     "reviews",
+    "reviewSubmitLink",
     "section",
     "sectionHeading",
     "sections",
@@ -52,7 +52,7 @@ const componentClassContract = {
     "textLink"
   ],
   "components/shop-detail/ShopOverviewSection.tsx": ["catch", "informationDashboard", "kicker", "overviewBody", "richText", "section", "sectionHeading", "sourceNote", "sourceSeparated"],
-  "components/shop-detail/ShopPricesSection.tsx": ["kicker", "section", "sectionHeading", "table"],
+  "components/shop-detail/ShopPricesSection.tsx": ["kicker", "section", "sectionHeading", "sourceNote", "table"],
   "components/shop-detail/ShopFeaturesSection.tsx": ["features", "kicker", "section", "sectionHeading"],
   "components/shop-detail/ShopAccessSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading"],
   "components/shop-detail/ShopBasicInformationSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading", "sourceNote"],
@@ -63,6 +63,7 @@ const componentClassContract = {
     "ownerCta",
     "ownerHeading"
   ],
+  "components/shop-detail/ShopRelatedLinks.tsx": ["relatedLinks"],
   "components/shop-detail/ShopSectionNav.tsx": [
     "sectionNav",
     "sectionNavLayer",
@@ -433,6 +434,12 @@ function renderShopTitleFixture(ShopDetailHero, fixture) {
         facts: [],
         title: fixture.value,
         verifiedAt: null
+      },
+      review: {
+        status: "available",
+        totalApproved: 0,
+        showGraph: false,
+        aggregateRating: null
       },
       rel: "nofollow sponsored noopener"
     })
@@ -925,24 +932,23 @@ assertClassDeclarationIn(
 assertClassDeclarationIn(
   baseCss,
   "detailGrid",
-  /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+320px/,
-  "desktop detail grid must reserve a fixed 320px profile column"
+  /grid-template-columns:\s*minmax\(0,\s*460px\)\s+minmax\(0,\s*1fr\)/,
+  "desktop detail grid must reserve a compact 460px square-media column"
 );
 assertClassDeclarationIn(
   baseCss,
   "detailGrid",
-  /(?:gap:\s*(?:0\s+)?32px|column-gap:\s*32px)/,
-  "desktop detail columns need a 32px gap"
+  /(?:gap:\s*(?:0\s+)?48px|column-gap:\s*48px)/,
+  "desktop detail columns need a 48px editorial gap"
 );
 
-for (const [viewportWidth, expectedShellWidth, expectedMainWidth] of [
-  [1440, 1200, 800],
-  [1280, 1200, 800]
+for (const [viewportWidth, expectedShellWidth, expectedMediaWidth] of [
+  [1440, 1200, 460],
+  [1280, 1200, 460]
 ]) {
   const shellWidth = Math.min(1200, viewportWidth - 80);
-  const mainWidth = shellWidth - 24 - 32 - 320 - 24;
   assert.equal(shellWidth, expectedShellWidth, `${viewportWidth}px shell width must be ${expectedShellWidth}px`);
-  assert.equal(mainWidth, expectedMainWidth, `${viewportWidth}px main column must be ${expectedMainWidth}px`);
+  assert.equal(460, expectedMediaWidth, `${viewportWidth}px square media column must be ${expectedMediaWidth}px`);
 }
 
 assertClassDeclarationIn(
@@ -970,16 +976,16 @@ for (const [label, region] of [
   );
 }
 
-for (const className of ["mainImage", "thumbnail"]) {
+for (const className of ["mainImage"]) {
   assertClassDeclarationIn(
     baseCss,
     className,
-    /aspect-ratio:\s*4\s*\/\s*3/,
-    `base .${className} must be 4:3`
+    /aspect-ratio:\s*1(?:\s*\/\s*1)?/,
+    `base .${className} must be square`
   );
 }
 
-for (const selectorPattern of [/\.mainImage\s+img/, /\.thumbnail\s+img/]) {
+for (const selectorPattern of [/\.mainImage\s+img/]) {
   const imageDeclarations = ruleDeclarations(selectorPattern);
   const imageHeights = [
     ...imageDeclarations.matchAll(/(?:^|;)\s*height:\s*([^;}]+)/g)
@@ -996,7 +1002,7 @@ for (const selectorPattern of [/\.mainImage\s+img/, /\.thumbnail\s+img/]) {
   assert.deepEqual(
     [...new Set(imageHeights)],
     ["100%"],
-    "shop images must not receive a forced height other than 100% of the 4:3 box"
+    "shop images must not receive a forced height other than 100% of the square box"
   );
 }
 
@@ -1100,33 +1106,18 @@ assert.equal(
   1,
   "only the main shop image may receive high fetch priority"
 );
-assert.match(gallerySource, /width=\{960\}[\s\S]*height=\{720\}[\s\S]*sizes=/, "main image must declare 4:3 intrinsic size and responsive sizes");
-assert.match(gallerySource, /width=\{240\}[\s\S]*height=\{180\}[\s\S]*loading="lazy"[\s\S]*sizes=/, "thumbnails must declare 4:3 intrinsic size, lazy loading, and responsive sizes");
+assert.match(gallerySource, /width=\{mainImage\.width \?\? 960\}[\s\S]*height=\{mainImage\.height \?\? 960\}[\s\S]*sizes=/, "main image must declare square intrinsic size and responsive sizes");
+assert.equal(gallerySource.includes('loading="lazy"'), false, "unapproved detail thumbnails must not be rendered");
 for (const expectedSize of [
   "(max-width: 760px) calc(100vw - 32px)",
-  "(max-width: 768px) calc(100vw - 112px)",
-  "(max-width: 1024px) calc(100vw - 128px)",
-  "(max-width: 1440px) calc(100vw - 480px)",
-  "960px"
+  "(max-width: 1024px) 520px",
+  "460px"
 ]) {
   assert.ok(
     gallerySource.includes(expectedSize),
     `main image sizes must include ${expectedSize}`
   );
 }
-for (const expectedSize of [
-  "(max-width: 760px) calc((100vw - 48px) / 3)",
-  "(max-width: 768px) calc((100vw - 128px) / 3)",
-  "(max-width: 1024px) calc((100vw - 144px) / 3)",
-  "(max-width: 1440px) calc((100vw - 496px) / 3)",
-  "calc((960px - 16px) / 3)"
-]) {
-  assert.ok(
-    gallerySource.includes(expectedSize),
-    `thumbnail sizes must include ${expectedSize}`
-  );
-}
-
 const nearbyImageSource = readFileSync("components/common/AreaShopCardImage.tsx", "utf8");
 assert.match(nearbyImageSource, /loading="lazy"/, "nearby shop images must remain lazy");
 assert.match(nearbyImageSource, /width=\{480\}[\s\S]*height=\{360\}/, "nearby shop images must keep 4:3 intrinsic dimensions");
@@ -1245,7 +1236,7 @@ assert.doesNotMatch(css, /box-shadow\s*:/, "editorial design must not use shadow
 assert.doesNotMatch(css, /\b100vw\b/, "CSS must not create scrollbar-width overflow");
 
 function moveAspectRatioToNarrow(source) {
-  const declaration = "  aspect-ratio: 4 / 3;\n";
+  const declaration = "  aspect-ratio: 1;\n";
   const declarationIndex = source.indexOf(declaration);
   const firstMediaIndex = source.indexOf("@media");
   assert.ok(
@@ -1262,7 +1253,7 @@ function moveAspectRatioToNarrow(source) {
   );
   return withoutBaseDeclaration.replace(
     narrowMarker,
-    `${narrowMarker}\n  .mainImage,\n  .thumbnail {\n    aspect-ratio: 4 / 3;\n  }`
+    `${narrowMarker}\n  .mainImage {\n    aspect-ratio: 1;\n  }`
   );
 }
 
@@ -1276,7 +1267,7 @@ function disconnectFixedActionHeightVariable(source) {
 }
 
 function overrideFocusOutline(source) {
-  return `${source}\n.primaryAction:focus-visible,\n.secondaryAction:focus-visible,\n.sectionNavLink:focus-visible,\n.infoTable a:focus-visible,\n.textLink:focus-visible,\n.ownerCta > a:focus-visible {\n  outline: none;\n  outline-width: 0;\n}\n`;
+  return `${source}\n.primaryAction:focus-visible,\n.secondaryAction:focus-visible,\n.sectionNavLink:focus-visible,\n.infoTable a:focus-visible,\n.textLink:focus-visible,\n.reviewSubmitLink:focus-visible,\n.relatedLinks a:focus-visible,\n.ownerCta > a:focus-visible {\n  outline: none;\n  outline-width: 0;\n}\n`;
 }
 
 function assertMutationsAreRejected(source) {
@@ -1284,7 +1275,7 @@ function assertMutationsAreRejected(source) {
     {
       name: "aspect-ratio-only-at-360px",
       mutate: moveAspectRatioToNarrow,
-      expectedFailure: "base .mainImage must be 4:3"
+      expectedFailure: "base .mainImage must be square"
     },
     {
       name: "fixed-action-height-variable-disconnected",

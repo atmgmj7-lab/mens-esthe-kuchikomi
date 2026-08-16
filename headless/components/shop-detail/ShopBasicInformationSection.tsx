@@ -9,8 +9,8 @@ export function ShopBasicInformationSection({
   model: ShopDetailViewModel;
   rel: string;
 }) {
-  const rows = model.infoRows.filter((row) => row.key !== "address" && row.key !== "station");
-  const hasAccessRows = model.infoRows.some((row) => row.key === "address" || row.key === "station");
+  const rows = model.infoRows.filter((row) => row.key !== "address" && row.key !== "station" && row.key !== "access");
+  const hasAccessRows = model.infoRows.some((row) => row.key === "address" || row.key === "station" || row.key === "access");
   const shopSlug = normalizePublicShopSlug(model.slug);
   return (
     <section id="basic-information" className={styles.section}>

@@ -5,7 +5,7 @@ import styles from "./ShopDetail.module.css";
 export function ShopPricesSection({ model }: { model: ShopDetailViewModel }) {
   return (
     <section id="prices" className={styles.section}>
-      <div className={styles.sectionHeading}><p className={styles.kicker}>PRICE</p><h2>料金プラン</h2></div>
+      <div className={styles.sectionHeading}><p className={styles.kicker}>PRICE &amp; RESERVATION</p><h2>料金・予約</h2></div>
       <table className={styles.table}>
         <tbody>
           {model.prices.map(({ key, label, price }) => (
@@ -13,6 +13,9 @@ export function ShopPricesSection({ model }: { model: ShopDetailViewModel }) {
           ))}
         </tbody>
       </table>
+      {model.actions.some((action) => action.kind !== "official") ? (
+        <p className={styles.sourceNote}>予約はページ上部の、店舗が公開している予約先から確認できます。</p>
+      ) : null}
     </section>
   );
 }

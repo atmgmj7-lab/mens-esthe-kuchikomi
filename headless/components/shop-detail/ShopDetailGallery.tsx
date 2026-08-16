@@ -9,6 +9,12 @@ import {
 import type { ShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import styles from "./ShopDetail.module.css";
 
+export const SHOP_DETAIL_FALLBACK_IMAGE_STYLE = {
+  ...SHOP_FALLBACK_IMAGE_STYLE,
+  aspectRatio: "1 / 1",
+  height: "100%"
+} as const;
+
 export function replaceBrokenShopImage(
   event: SyntheticEvent<HTMLImageElement>,
   onFallback?: () => void
@@ -20,7 +26,7 @@ export function replaceBrokenShopImage(
   image.onerror = null;
   image.alt = SHOP_FALLBACK_IMAGE_ALT;
   image.src = DEFAULT_SHOP_IMAGE;
-  Object.assign(image.style, SHOP_FALLBACK_IMAGE_STYLE);
+  Object.assign(image.style, SHOP_DETAIL_FALLBACK_IMAGE_STYLE);
   onFallback?.();
 }
 
@@ -30,42 +36,27 @@ export function ShopDetailGallery({ model }: { model: ShopDetailViewModel }) {
 
   return (
     <figure className={styles.gallery}>
-      <div className={styles.mainImage}>
+      <div
+        className={styles.mainImage}
+        data-shop-card-square="true"
+        data-media-role={mainImage.role}
+        data-detail-banner="absent"
+      >
         <img
           src={mainImage.url}
           alt={mainImageFallback ? SHOP_FALLBACK_IMAGE_ALT : mainImage.alt}
-          width={960}
-          height={720}
-          sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 768px) calc(100vw - 112px), (max-width: 1024px) calc(100vw - 128px), (max-width: 1440px) calc(100vw - 480px), 960px"
+          width={mainImage.width ?? 960}
+          height={mainImage.height ?? 960}
+          sizes="(max-width: 760px) calc(100vw - 32px), (max-width: 1024px) 520px, 460px"
           loading="eager"
           fetchPriority="high"
           decoding="async"
           onError={(event) =>
             replaceBrokenShopImage(event, () => setMainImageFallback(true))
           }
-          style={mainImageFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}
+          style={mainImageFallback ? SHOP_DETAIL_FALLBACK_IMAGE_STYLE : undefined}
         />
       </div>
-
-      {model.images.length > 1 ? (
-        <div className={styles.thumbnails}>
-          {model.images.slice(1).map((image) => (
-            <div className={styles.thumbnail} key={image.url}>
-              <img
-                src={image.url}
-                alt={image.isFallback ? SHOP_FALLBACK_IMAGE_ALT : image.alt}
-                width={240}
-                height={180}
-                loading="lazy"
-                sizes="(max-width: 760px) calc((100vw - 48px) / 3), (max-width: 768px) calc((100vw - 128px) / 3), (max-width: 1024px) calc((100vw - 144px) / 3), (max-width: 1440px) calc((100vw - 496px) / 3), calc((960px - 16px) / 3)"
-                decoding="async"
-                onError={replaceBrokenShopImage}
-                style={image.isFallback ? SHOP_FALLBACK_IMAGE_STYLE : undefined}
-              />
-            </div>
-          ))}
-        </div>
-      ) : null}
 
       <figcaption>
         {mainImageFallback ? "店舗画像は準備中です。" : "店舗掲載画像"}

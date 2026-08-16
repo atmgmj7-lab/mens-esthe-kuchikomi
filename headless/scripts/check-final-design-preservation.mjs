@@ -72,12 +72,12 @@ function renderShopDetailIntegrationFixture({
   let latestModuleContext = null;
   const captures = {
     actionProps: [],
-    areaHubProps: [],
-    areaQuickProps: [],
+    breadcrumbInputs: [],
     galleryProps: [],
     heroProps: [],
     modelBuilds: [],
     ownerProps: [],
+    relatedProps: [],
     promotionInputs: [],
     reviewSubmitSlugs: [],
     reviewModelInputs: [],
@@ -93,16 +93,10 @@ function renderShopDetailIntegrationFixture({
       default: ({ children, href, ...props }) =>
         React.createElement("a", { href, ...props }, children)
     },
-    "@/components/AreaQuickLinks": {
-      AreaQuickLinks: (props) => {
-        captures.areaQuickProps.push(props);
-        return React.createElement("nav", { "data-shop-integration": "area-quick" });
-      }
-    },
-    "@/components/common/ShopAreaHubLinks": {
-      ShopAreaHubLinks: (props) => {
-        captures.areaHubProps.push(props);
-        return React.createElement("section", { "data-shop-integration": "area-hub" });
+    "@/components/shop-detail/ShopRelatedLinks": {
+      ShopRelatedLinks: (props) => {
+        captures.relatedProps.push(props);
+        return React.createElement("nav", { "data-shop-integration": "related" });
       }
     },
     "@/components/shop-detail/ShopDetailActions": {
@@ -205,6 +199,10 @@ function renderShopDetailIntegrationFixture({
       shopLocalBusinessJsonLd: (inputShop, inputReviewModel) => {
         captures.schemaInputs.push({ shop: inputShop, reviewModel: inputReviewModel });
         return schema;
+      },
+      shopBreadcrumbJsonLd: (inputShop, inputParent) => {
+        captures.breadcrumbInputs.push({ shop: inputShop, parent: inputParent });
+        return { "@context": "https://schema.org", "@type": "BreadcrumbList" };
       }
     },
     "@/lib/shop-review-view-model": {
@@ -214,21 +212,20 @@ function renderShopDetailIntegrationFixture({
       }
     },
     "@/lib/shop-information-coverage": {
-      buildShopInformationCoverage: () => null,
-      normalizeShopRankingSnapshot: () => null
+      buildShopInformationCoverage: () => null
     },
     "@/lib/shop-detail-modules": {
       getVisibleShopDetailModules: (context) => {
         latestModuleContext = context;
         const items = [
-          { id: "reviews", label: "口コミ", layer: "primary", renderer: "reviews" }
+          { id: "reviews", label: "口コミ・体験", layer: "primary", renderer: "reviews" }
         ];
-        if (context.model.catchText || context.model.introductionText || context.model.recommendText || context.model.summaryText || context.model.infoRows.length > 0) items.push({ id: "shop-information", label: "店舗情報", layer: "primary", renderer: "information" });
-        if (context.model.prices.length > 0) items.push({ id: "prices", label: "料金", layer: "primary", renderer: "prices" });
+        if (context.model.prices.length > 0) items.push({ id: "prices", label: "料金・予約", layer: "primary", renderer: "prices" });
         if (context.model.featureNames.length > 0) items.push({ id: "features", label: "こだわり", layer: "secondary", renderer: "features" });
-        if (context.model.infoRows.some((row) => row.key === "address" || row.key === "station")) items.push({ id: "map-access", label: "地図・アクセス", layer: "primary", renderer: "access" });
-        if (context.model.infoRows.some((row) => row.key !== "address" && row.key !== "station")) items.push({ id: "basic-information", label: "基本情報", layer: "secondary", renderer: "basic" });
-        if (context.hasNearby) items.push({ id: "nearby", label: "周辺情報", layer: "secondary", renderer: "nearby" });
+        if (context.model.catchText || context.model.introductionText || context.model.recommendText || context.model.summaryText || context.coverage) items.push({ id: "shop-information", label: "店舗紹介", layer: "secondary", renderer: "information" });
+        if (context.model.infoRows.some((row) => row.key === "address" || row.key === "station" || row.key === "access")) items.push({ id: "map-access", label: "地図・アクセス", layer: "primary", renderer: "access" });
+        if (context.model.infoRows.some((row) => !["address", "station", "access"].includes(row.key))) items.push({ id: "basic-information", label: "基本情報", layer: "secondary", renderer: "basic" });
+        if (context.hasNearby) items.push({ id: "nearby", label: "関連情報", layer: "secondary", renderer: "nearby" });
         return items;
       },
       buildShopSectionLinks: (items) => {
@@ -396,10 +393,11 @@ assert.match(
 );
 assert.ok(detailGallery.startsWith('"use client";'), "shop detail gallery fallback must stay client-side");
 assert.ok(detailGallery.includes("model.images"), "shop detail gallery must use model images");
-assert.ok(detailGallery.includes("width={960}"), "shop detail main image must keep 4:3 intrinsic width");
-assert.ok(detailGallery.includes("height={720}"), "shop detail main image must keep 4:3 intrinsic height");
-assert.ok(detailGallery.includes("width={240}"), "shop detail thumbnails must keep 4:3 intrinsic width");
-assert.ok(detailGallery.includes("height={180}"), "shop detail thumbnails must keep 4:3 intrinsic height");
+assert.ok(detailGallery.includes("width={mainImage.width ?? 960}"), "shop detail square image must keep its formal width");
+assert.ok(detailGallery.includes("height={mainImage.height ?? 960}"), "shop detail square image must keep its formal height");
+assert.ok(detailGallery.includes('data-media-role={mainImage.role}'), "shop detail image must expose its formal role");
+assert.ok(detailGallery.includes('data-detail-banner="absent"'), "shop detail must not promote square media to a banner");
+assert.ok(!detailGallery.includes("model.images.slice(1)"), "shop detail must not build an unapproved legacy gallery");
 assert.ok(detailGallery.includes("onError"), "shop detail images must handle broken sources");
 assert.ok(detailGallery.includes("DEFAULT_SHOP_IMAGE"), "shop detail images must use the approved fallback");
 assert.ok(
@@ -436,7 +434,7 @@ assert.ok(
   "review dashboard must distinguish approved items from empty state"
 );
 assert.ok(
-  detailSections.includes("掲載情報コメント、店舗紹介文、出自を確認できない文章は口コミとして表示しません"),
+  detailSections.includes("承認済みユーザー口コミを、店舗紹介や掲載情報コメントとは分けて掲載しています"),
   "review section must visibly explain source separation"
 );
 for (const forbidden of ["0名", "不定休", "駐車場なし", "OPEN"]) {
@@ -541,7 +539,7 @@ const recordMainFallback = () => {
 replaceBrokenShopImage({ currentTarget: brokenImage }, recordMainFallback);
 assert.equal(brokenImage.src, "/images/eskomi-shop-fallback.svg", "broken image must switch to the approved fallback");
 assert.equal(brokenImage.alt, "Eskomi 店舗画像準備中", "runtime image fallback must replace the stale image alt");
-assert.equal(brokenImage.style.aspectRatio, "4 / 3", "runtime image fallback must switch to 4:3");
+assert.equal(brokenImage.style.aspectRatio, "1 / 1", "runtime shop detail fallback must stay square");
 assert.equal(brokenImage.style.objectFit, "contain", "runtime image fallback must stay fully visible");
 assert.equal(brokenImage.onerror, null, "broken image must clear its native error handler");
 assert.equal(mainFallbackCallbacks, 1, "main image fallback must notify caption state once");
@@ -637,9 +635,11 @@ const fullIntegrationShop = {
   contentHtml: "",
   excerpt: "",
   imageUrl: "",
+  media: { cardSquare: { mediaId: null, source: "fallback", url: "", alt: "統合検査店" }, detailBanner: null },
   terms: [fullIntegrationArea],
   officialUrl: "https://official.example.test/integration-shop",
   areaSlug: "osaka",
+  primaryArea: fullIntegrationArea,
   acf: {},
   ranking: {
     manualRank: null,
@@ -667,6 +667,7 @@ const fullIntegrationModel = {
     }
   ],
   images: [{ url: "/shop.webp", alt: "統合検査店", isFallback: false }],
+  detailBanner: null,
   prices: [
     {
       key: "price_90",
@@ -729,6 +730,7 @@ const sparseIntegrationShop = {
   terms: [],
   officialUrl: "",
   areaSlug: "",
+  primaryArea: null,
   ranking: {
     ...fullIntegrationShop.ranking,
     isPr: false,
@@ -786,7 +788,7 @@ const fullShopDetailIntegration = renderShopDetailIntegrationFixture({
   reviewModel: fullIntegrationReviewModel,
   schema: fullIntegrationSchema,
   rel: "nofollow sponsored noopener",
-  reviewSubmitUrl: "/reviews/submit/?shop=integration-shop"
+  reviewSubmitUrl: "/reviews/submit?shop=integration-shop"
 });
 const sparseShopDetailIntegration = renderShopDetailIntegrationFixture({
   shop: sparseIntegrationShop,
@@ -797,7 +799,7 @@ const sparseShopDetailIntegration = renderShopDetailIntegrationFixture({
   reviewModel: sparseIntegrationReviewModel,
   schema: sparseIntegrationSchema,
   rel: "noopener",
-  reviewSubmitUrl: "/reviews/submit/?shop=sparse-shop"
+  reviewSubmitUrl: "/reviews/submit?shop=sparse-shop"
 });
 
 for (const [label, fixture] of [
@@ -816,18 +818,19 @@ for (const [label, fixture] of [
   );
   assert.equal(fixture.captures.actionProps[0].fixed, undefined, `${label} hero actions must not be fixed`);
   assert.equal(fixture.captures.actionProps[1].fixed, true, `${label} fixed actions must be explicitly fixed`);
-  assert.equal(fixture.captures.areaQuickProps.length, 1, `${label} must compose area quick links once`);
+  assert.equal(fixture.captures.relatedProps.length, 1, `${label} must compose focused related links once`);
   assert.equal(fixture.captures.modelBuilds.length, 1, `${label} must build one view model`);
   assert.equal(fixture.captures.reviewSubmitSlugs.length, 1, `${label} must build one review URL`);
   assert.equal(fixture.captures.reviewModelInputs.length, 1, `${label} must build one review view model`);
   assert.equal(fixture.captures.schemaInputs.length, 1, `${label} must build one LocalBusiness schema`);
+  assert.equal(fixture.captures.breadcrumbInputs.length, 1, `${label} must build one Breadcrumb schema`);
   assert.equal(fixture.captures.promotionInputs.length, 1, `${label} must resolve one promotion rel`);
   assert.equal(fixture.captures.sectionLinkBuilds.length, 1, `${label} must build conditional section links once`);
   assert.equal(fixture.captures.sectionNavProps.length, 1, `${label} must compose section navigation once`);
   assert.equal(
     fixture.html.split('type="application/ld+json"').length - 1,
-    1,
-    `${label} must render LocalBusiness JSON-LD exactly once`
+    2,
+    `${label} must render LocalBusiness and Breadcrumb JSON-LD exactly once each`
   );
   assert.ok(
     fixture.html.includes('<section id="reviews"></section>'),
@@ -923,7 +926,7 @@ for (const [label, fixture] of [
 }
 
 assert.equal(fullShopDetailIntegration.captures.modelBuilds[0].areaName, "大阪");
-assert.equal(sparseShopDetailIntegration.captures.modelBuilds[0].areaName, "エリア");
+assert.equal(sparseShopDetailIntegration.captures.modelBuilds[0].areaName, "");
 
 assertMarkupOrder(
   fullShopDetailIntegration.html,
@@ -935,8 +938,7 @@ assertMarkupOrder(
     'data-shop-integration="actions-hero"',
     'data-shop-integration="section-nav"',
     'data-shop-integration="sections"',
-    'data-shop-integration="area-hub"',
-    'data-shop-integration="area-quick"',
+    'data-shop-integration="related"',
     'data-shop-integration="owner"'
   ],
   "full shop detail"
@@ -950,7 +952,7 @@ assertMarkupOrder(
     'data-shop-integration="hero"',
     'data-shop-integration="actions-hero"',
     'data-shop-integration="sections"',
-    'data-shop-integration="area-quick"',
+    'data-shop-integration="related"',
     'data-shop-integration="owner"'
   ],
   "sparse shop detail"
@@ -967,20 +969,14 @@ for (const href of [
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#prices"'));
 assert.ok(!sparseShopDetailIntegration.html.includes('href="#map-access"'));
 assert.ok(sparseShopDetailIntegration.html.includes('href="#reviews"'));
-assert.ok(!sparseShopDetailIntegration.html.includes('href="#nearby"'));
+assert.ok(sparseShopDetailIntegration.html.includes('href="#nearby"'));
 assert.ok(!sparseShopDetailIntegration.html.includes("#ranking"));
 assert.ok(!sparseShopDetailIntegration.html.includes("#price-table"));
 
-assert.equal(fullShopDetailIntegration.captures.areaHubProps.length, 1);
-assert.strictEqual(fullShopDetailIntegration.captures.areaHubProps[0].area, fullIntegrationArea);
-assert.strictEqual(
-  fullShopDetailIntegration.captures.areaHubProps[0].parentArea,
-  fullIntegrationParentArea
-);
-assert.equal(fullShopDetailIntegration.captures.areaQuickProps[0].current, "osaka");
-assert.equal(sparseShopDetailIntegration.captures.areaHubProps.length, 0);
-assert.equal(sparseShopDetailIntegration.captures.areaQuickProps[0].current, undefined);
-assert.ok(!sparseShopDetailIntegration.html.includes('data-shop-integration="area-hub"'));
+assert.strictEqual(fullShopDetailIntegration.captures.relatedProps[0].primaryArea, fullIntegrationArea);
+assert.equal(fullShopDetailIntegration.captures.relatedProps[0].shopSlug, "integration-shop");
+assert.strictEqual(sparseShopDetailIntegration.captures.relatedProps[0].primaryArea, null);
+assert.strictEqual(fullShopDetailIntegration.captures.breadcrumbInputs[0].parent, fullIntegrationParentArea);
 
 export const shopDetailIntegrationEvidence = {
   full: fullShopDetailIntegration,

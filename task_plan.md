@@ -6,7 +6,51 @@
 
 ## Current Phase
 
-UX-PROD-T3B-AREA-HUB-SEO-01 完了（T4・本番backfill・push/deploy前で停止）
+UX-PROD-T4-SHOP-DETAIL-SEO-ASSET-01 完了（本番backfill・push/deploy前で停止）
+
+## UX-PROD-T4-SHOP-DETAIL-SEO-ASSET-01
+
+### Goal
+
+base `f3e93d5797eab5f8c66b1b97ab5bb7a0354eec7a`から、既存Shop Detailを全面改築せず、正式なShop・Primary Area・承認済み口コミ・料金・出典契約だけでShop Top、口コミ・体験、料金、こだわり・編集情報、アクセス・基本情報、関連導線の順へ再構成する。URL/canonical/sitemap、storage、Phase19、dependency、WordPress/Supabase本番は変更しない。
+
+### Phases
+
+- [x] Phase 1: 承認済み設計、専用worktree、T3 final、正本、変更前baselineを確認する
+- [x] Phase 2: T4 Shop Detail/SEO/表示境界をfail-first contractで固定する
+- [x] Phase 3: 既存ViewModel・module・schema・内部linkを正式data限定で最小実装する
+- [x] Phase 4: focused/full/lint/typecheck/build/audit/diffを検証する
+- [x] Phase 5: 代表3店舗・指定幅・cross-routeの実component browser QAと画像目視を完了する
+- [x] Phase 6: 独立SPEC/CODE_QUALITY_SECURITY/VISIBLE reviewでCritical/Important 0を確認する
+- [x] Phase 7: 指定pathだけをcommitし、push/deploy/backfill/production前で停止する
+
+### Approved Implementation Design
+
+- 店舗上部は`media.cardSquare`、店舗名、明示Primary Area、確認済み料金・営業時間・予約導線、承認済み口コミ要約だけを使用する
+- `media.detailBanner`がnullならbannerを出さず、正方形画像をbanner比率へ引き伸ばさない
+- 口コミ・体験を第2主要sectionへ置き、既存approved-only reader、3件閾値graph/AggregateRating、Shop reviews/submit導線を使う
+- coupon、therapist、schedule、strict ranking、reply、helpful、Q&Aは正式sourceがないため表示しない
+- taxonomy順・名称・住所からPrimary Areaを推測せず、metadata、breadcrumb、関連Area linkも`shop.primaryArea`だけを使う
+- editorial/掲載情報コメントをユーザー口コミと分離し、URL/canonical/sitemapを維持する
+
+### Stop Conditions
+
+- 新storage、Phase19、dependency変更、WordPress/Supabase本番書込が必要
+- URL/canonical/sitemap/robotsの変更、Primary Area推測、strict ranking捏造が必要
+- formal coupon/therapist/schedule/reply/helpful/Q&A sourceを推測する必要
+- Secretまたはproduction書込接続が必要
+- 同一原因で3回失敗する
+
+### Errors Encountered
+
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+| 初回fail-firstで旧4:3 gallery、legacy ranking、taxonomy fallback、旧module順を検出 | 1 | 正方形の正式画像、明示Primary、正式data限定module順へ実装してfocused GREENにした |
+| 一時browser fixtureでNext Linkの`instant`既定値と末尾slash selectorが合わず停止 | 1 | 本番componentの契約に合わせたfixtureとcanonical link検査へ修正した |
+| 旧portal QAが4:3画像・320px上限・priority旧moduleを固定して失敗 | 1 | T4正方形画像とT3 fail-safe契約へ期待値を更新し、98 scenariosを再成功させた |
+| 初回独立reviewで著者なしReview schema、集計件数の意味、情報不足店舗metadataをImportant判定 | 1 | 個別Review schemaを削除し、ratingCountとreviewCountを分離、中立metadataへ修正してRED/GREEN後に再reviewした |
+| browser QAが旧aria label、投稿CTA片側、focus後screenshotを検査していた | 1 | 正式aria label、意図的な投稿CTA 2件、先頭復帰後の画像を固定し、33 scenariosを再成功させた |
+| 最終focused一括実行器がzsh予約変数`commands`と衝突 | 1 | 製品test開始前のrunner failureと確認し、task固有変数名へ変更して20検査をすべてexit 0で再実行した |
 
 ## UX-PROD-T3B-AREA-HUB-SEO-01
 
