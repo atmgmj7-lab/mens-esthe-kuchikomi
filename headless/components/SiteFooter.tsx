@@ -34,6 +34,8 @@ export function SiteFooter() {
           <span className="hl-footer-sep">|</span>
           <Link href="/area/osaka/">エリアから探す</Link>
           <span className="hl-footer-sep">|</span>
+          <Link href="/reviews/">口コミ・体験を見る</Link>
+          <span className="hl-footer-sep">|</span>
           <Link href="/reviews/submit/">口コミ投稿</Link>
           <span className="hl-footer-sep">|</span>
           <Link href="/contact/">お問い合わせ</Link>

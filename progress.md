@@ -1,5 +1,35 @@
 # Progress Log
 
+## Session 2026-08-16: UX-PROD-T2-RESUME start
+
+- base `b785315a2a3cd490772fd70cd18bb1f8b21f2f75`から専用worktree/branchを作成した。
+- AGENTS.md、`.cursorrules`、task_plan.md、findings.md、progress.md、pm/PROGRESS.md、pm/BLOCKER.mdを確認した。
+- 旧T2 worktreeとmain checkoutへ変更を加えず、T2の作業計画をこの専用worktreeへ追加した。
+- 現在地: Phase 1。次は承認済みproduction plan/data contract/handoffと実コードを照合する。
+- `headless/npm ci`: exit 0、349 packages、vulnerabilities 0。Node `v26.0.0`、npm `11.12.1`。
+- 変更前`headless/npm test`: exit 0。既存test一式がPASSし、T2開始baselineを固定した。
+- 承認済みproduction plan、Handoff、YAML、運用規則、証拠templateと実コードを照合した。Phase 1完了。
+- 現在地: Phase 2。次はwish APIとrendered behaviorを固定するT2 contract testを先に追加してREDを確認する。
+- RED `npm run test:home-ux-production`: exit 1、`lib/home-updates.ts must exist`。意図した未実装failure。
+- RED `npm run test:reviews-hub`: exit 1、`/reviews/ route must exist`。意図した未実装failure。
+- Phase 2完了。現在地: Phase 3。Top用model/componentとReviews Hub routeを最小実装する。
+- TopをHero/search→知りたいこと→approved新着口コミ→strict ranking（正式record時だけ）→実data Updates→重点5Area→既存contentの順へ再構成した。strict ranking storage未設定時はmodule自体を出さない。
+- `/reviews/` Hub、query付き`noindex, follow`、canonical、Breadcrumb、表示中のapproved reviews検索/area絞込、投稿CTA、重点5Area導線を追加した。global readerの`page`/`per_page`契約は拡張していない。
+- Header/Footerとcontextなし`/reviews/submit/`の公開導線を整えた。投稿payloadは既存`shopSlug`のまま、新storage・therapist ID・backend契約は追加していない。
+- GREEN `npm run test:home-ux-production`: exit 0。GREEN `npm run test:reviews-hub`: exit 0。
+- 添付動画の00:03、00:10、00:18、01:05、01:13を確認し、neutral border、明朝見出し、teal CTA、情報密度と余白のリズムを採用した。口コミ位置は追加指示に従い動画より上へ移した。
+- Phase 3〜4完了。現在地: Phase 5。最新差分で全test、build、audit、指定幅browser QAを行う。
+- build初回は`/reviews/`のruntime `searchParams`がSuspense外にあり失敗。既存Cache Components routeと同じ境界をRED→GREENで追加し、最終`npm run build`は821/821 PASS、`/reviews`はPartial Prerender。
+- 独立reviewでSuspense fallback撮影race、複数Area link欠落、未検証初心者filter、contrast/focus、tabpanel名、実card browser skipを検出した。すべてtest先行またはfocused検査追加後に修正した。
+- 最終T2 browser QA: 66 scenarios、539 assertions、10 screenshots、failures 0。実routeは320/375/390/760/761/900/901/1024/1025/1280/1440px、ReviewCard fixtureも同じ11幅。core link 9本、reduced motion、AA contrast、long Japanese nameを含む。
+- 既存portal browser回帰: 98 scenarios、90,459 assertions、56 screenshots、failures 0。
+- 最終`npm test`、lint、typecheck、`npm audit --audit-level=high`（vulnerabilities 0）、`git diff --check`はすべてexit 0。
+- Phase 5完了。現在地: Phase 6。独立SPEC/CODE_QUALITY_SECURITY/VISIBLE QAの再判定を待ち、Critical/Important 0の場合だけ明示stage・commitする。
+- 独立SPEC_COMPLIANCE最終再review: Critical 0 / Important 0 / Minor 0 / Ready Yes。
+- 独立CODE_QUALITY_SECURITY最終再review: Critical 0 / Important 0 / Minor 0 / Ready Yes。
+- 独立VISIBLE QA最終再review: Critical 0 / Important 0 / Minor 0 / Ready Yes。
+- T2対象pathだけを明示stageし、`feat: add top reviews discovery hub`でcommitする。T3/T4、dependency、storage、sitemap、本番、push、deployへは進まず停止する。
+
 ## Session: 2026-07-18〜19（Phase 17本番反映・日次更新疎通完了）
 
 - **Status:** complete（Phase 17本番反映・本番QA・1店舗疎通完了。GitHub ActionsからXserverへのSSHだけ国外接続制限で別ブロッカー）

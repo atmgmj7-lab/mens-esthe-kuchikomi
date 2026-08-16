@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { HomePageContent } from "@/components/HomePageContent";
 import { organizationJsonLd, pageMetadata, websiteJsonLd } from "@/lib/seo";
+import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
 import { getAreas } from "@/lib/wp/areas";
 import { getHomeFeaturedAreas } from "@/lib/wp/home-featured-areas";
 import { getLatestPosts } from "@/lib/wp/posts";
+import { getApprovedReviewsPage } from "@/lib/wp/reviews";
 import { getLatestShops, getShopCount } from "@/lib/wp/shops";
+import type { ApprovedGlobalReviewResult } from "@/lib/wp/types";
 
 export const metadata: Metadata = pageMetadata({
   title: "Eskomi | 関西メンズエステ口コミナビ",
@@ -18,18 +21,23 @@ function settledValue<T>(result: PromiseSettledResult<T>, fallback: T): T {
 }
 
 export default async function HomePage() {
-  const [shopCountResult, shopsResult, areasResult, postsResult, areaFeaturesResult] = await Promise.allSettled([
+  const [shopCountResult, shopsResult, areasResult, postsResult, areaFeaturesResult, reviewsResult] = await Promise.allSettled([
     getShopCount(),
     getLatestShops(6),
     getAreas(),
     getLatestPosts(6),
-    getHomeFeaturedAreas()
+    getHomeFeaturedAreas(),
+    getApprovedReviewsPage(1, 12),
   ]);
   const shopCount = settledValue(shopCountResult, 0);
   const shops = settledValue(shopsResult, []);
   const areas = settledValue(areasResult, []);
   const posts = settledValue(postsResult, []);
   const areaFeatures = settledValue(areaFeaturesResult, []);
+  const reviews = settledValue<ApprovedGlobalReviewResult>(reviewsResult, {
+    status: "unavailable",
+    reason: "request-failed",
+  });
   const dataState = {
     shopCountFailed: shopCountResult.status === "rejected",
     shopsFailed: shopsResult.status === "rejected",
@@ -53,6 +61,8 @@ export default async function HomePage() {
         areas={areas}
         areaFeatures={areaFeatures}
         posts={posts}
+        reviewResult={reviews}
+        strictRanking={unavailableStrictRanking("overall")}
         dataState={dataState}
       />
     </>

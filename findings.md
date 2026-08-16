@@ -1,5 +1,42 @@
 # Findings & Decisions
 
+## 2026-08-16 UX-PROD-T2-RESUME
+
+- 専用branch `codex/eskomi-ux-production-t2-resume`、worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-production-t2-resume` をbase `b785315a2a3cd490772fd70cd18bb1f8b21f2f75`から作成した。
+- 元のmain checkoutには既存の未完了ファイルがあるため、以後の変更は専用worktreeだけで行う。
+- 承認済みT2の核は、Topの意味順、global approved reviewsのSSR表示、新規`/reviews/` Hub、投稿CTA、実dataだけのUpdates、strict ranking unavailable時のsection非表示、重点5Areaへの通常linkである。
+- 禁止範囲はT3/T4、new storage、dependency、Secret、push、deploy、本番変更である。
+- `docs/ai-skills.md`と`RTK.md`はbase worktreeに存在しない。AGENTS.md、`.cursorrules`、既存計画・進捗・blockerを正本として継続する。
+- Downloads内の`(1)`付きHandoff/Data Contractは同名の非`(1)`版とSHA-256が一致し、内容の重複である。今回指定された`(1)`版を読む。
+- 修正版production planは旧T0専用worktreeの`docs/superpowers/plans/2026-08-15-eskomi-ux-production.md`にある。実装差分は持ち込まず、計画だけを参照する。
+- 添付taskにある`npm run test:internal-link-map`というscript名は現packageにはなく、同等の正式scriptは`npm run test:internal-links`である。
+- YAMLの旧home section orderでは`new_reviews`が後段だが、承認済みproduction planが表示順だけを限定overrideし、T2はHero/search→start points→new reviews→strict ranking（有効record時だけ）→Updates→priority Area→その他とする。
+- `/reviews/`はqueryなしだけindex候補。query付きfilter/searchはcanonical `/reviews/`、`noindex, follow`とし、sitemap/static paramsへ組合せURLを追加しない。
+- strict overall ranking storageは未設定なので、T2ではsection、順位、ranking schemaをすべて非表示にし、既存おすすめ順や口コミ点数から生成しない。
+- Updatesの正式候補はapproved review、公開shop、公開column。schedule/therapist/coupon/helpful/shop replyは正式sourceがないためtab/空枠ごと出さない。
+- 実装とreviewは分離し、Critical/Important 0になるまでcommitしない。stageは対象path名を明示し、push/deploy/WordPress/Supabase/Secret操作は行わない。
+- 新worktreeは`npm ci`後もaudit vulnerability 0、変更前の`npm test`が全件PASSした。以後のfailureはT2差分に帰属できる。
+- `headless/lib/wp/reviews.ts`にはglobal reader、exact-key validation、`wp`/`reviews:global` cache tag、source identity、deep freezeが既にある。T2で別adapterやPHP endpointを増やす必要はない。
+- 現TopはHero直後に`KansaiAreaGrid`/`AreaFeatureSection`があり、条件・掲載店舗・provenance/guideへ続く。approved reviewとcolumnはTopへ未接続である。
+- 現Topの固定hidden検索失敗文と未検証`初心者向け`filterは承認済みplanに従って削除する。一方、料金掲載など実filter契約がある既存条件linkは「既存その他content」として下段に保持する。
+- Headerの口コミ導線は現在`/reviews/submit/`、Footerは投稿だけである。T2ではHeaderを`/reviews/`、FooterをHubと投稿の2導線に分ける。
+- `HomePageContent`は`posts` propを受け取るが未使用。公開columnをUpdates Hub/編集部コラムへ接続できる既存sourceである。
+- global REST/readerの公開query contractは`page`と`per_page`だけで、area/searchは受けない。accepted readerを拡張せず、Hub filterは「表示中の最新口コミ」をSSRで絞る最小機能として明示する。
+- `StrictRankingAvailability`は現状`storage-not-configured`のunavailable型だけである。T2の`ScopedRankingModule`はこの値を受けて`null`を返し、公開順位やschemaを発明しない境界にする。
+- `/reviews/submit/`のcontextなし状態は現在日本橋一覧だけへ誘導する。既存`getAllShopsForListing()`とshop termsで公開店舗select・area frontend-only prefilterを追加でき、投稿API payloadは`shopSlug`のまま維持できる。
+- `KansaiAreaGrid`は0件地域へ`掲載準備中`を出す既存の公開状態契約を持つ。Reviews Hubの未契約機能を準備中cardにしない要件とは別なので、T2ではこの既存Area componentを変更しない。
+- 既存`test:portal-browser-layout`はShop/Area/shops専用のDOM前提が強く、Top/Reviews routeを単純追加すると既存card geometry contractを誤適用する。T2は専用focused browser scriptを追加し、全指定幅・route・H1・overflow・CTA・keyboard/focus・section順を測る。
+- Focused contract testsは、文字列grepだけにせず、pure filter/update modelを実入力で実行し、ReviewCard/ReviewsHub/HomePageContentをserver renderして利用者が見るDOM順・link・非表示境界を検査する。
+- 複数語検索は連続文字列一致では日本語助詞を挟む本文を落とすため、正規化後の空白区切り語をすべて含むAND検索にする。
+- 添付動画はAVFoundationで00:03、00:10、00:18、01:05、01:13のframeを抽出して確認した。白〜薄いneutral背景、細いborder、明朝の大見出し、teal CTA、密度の高い更新row、余白を取った1列口コミcard、Header/tab/footerの一定したリズムをvisual referenceとして採用する。
+- 動画の表示順は追加指示で上書きし、Topでは口コミをranking/Updatesより上へ、Reviews Hubでは架空の参考数・セラピスト・ratingを出さない。実在するapproved reviewと正式relationだけをSSR表示する。
+- 動画内の架空店舗・架空口コミ・helpful数はdata sourceにせず、layout/density/color/border/typographyだけを参照した。
+- Next.js 16.3.1のCache Componentsでは、`searchParams`を直接awaitするroute contentはprerenderを阻害する。既存`/shops/`とArea routeはdefault exportの静的shellからSuspense内のasync contentへPromiseを渡すため、`/reviews/`も同じ境界に揃える。review reader自体の`use cache`/tag契約は変更しない。
+- local production serverでは未公開のglobal endpointを利用できず、Top review previewは非表示、Reviews Hubは取得不能を明示した。available card/search-emptyはpure render test、実card layoutはproduction component/CSS fixtureで検証し、取得不能を0件へ偽装していない。
+- browser QAはSuspense fallback消滅、settled main 1、visible H1 1を条件待機する。全11幅の実route 55 scenarioに、production ReviewCard/CSS fixture 11 scenarioを加え、1列/2列、長い日本語店名、複数Area link、overflowを必須化した。
+- 新規配色はteal `#006f72`（白とのcontrast 5.97:1）、gold `#755a16`（白とのcontrast 6.50:1）へ調整し、focus outlineも不透明tealで3:1以上をbrowser実測する。
+- `/reviews/`のsitemap追加は技術的には固定entry追加で可能だが、承認済みplanが別承認まで追加しないと明示しているため、T2では既存sitemapを変更せずHeader/Footer/Topからcrawlable linkを出す。
+
 ## Requirements
 
 - SEO目標を妨げない範囲で、WordPressからSupabaseへの移行計画を実装する。

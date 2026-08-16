@@ -1,0 +1,94 @@
+.section {
+  background: #f1f5f3;
+  padding: clamp(54px, 7vw, 82px) 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  border-bottom: 1px solid #cfd8d4;
+}
+
+.tabs button {
+  min-height: 44px;
+  padding: 0 2px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #667478;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font: 700 0.9rem/1.4 "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+}
+
+.tabs button[aria-selected="true"] {
+  border-bottom-color: #006f72;
+  color: #172f39;
+}
+
+.tabs button:focus-visible {
+  outline: 3px solid #006f72;
+  outline-offset: 3px;
+}
+
+.list {
+  border-top: 1px solid #d9dfdc;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.24fr) minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: start;
+  padding: 20px 0;
+  border-bottom: 1px solid #d9dfdc;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: #667478;
+  font: 700 0.78rem/1.6 "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+}
+
+.meta span:first-child {
+  color: #006f72;
+}
+
+.body h3 {
+  margin: 0;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+  font-size: 1.06rem;
+  line-height: 1.55;
+}
+
+.body a {
+  color: #172f39;
+}
+
+.body p {
+  margin: 6px 0 0;
+  color: #667478;
+  font: 500 0.88rem/1.75 "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+}
+
+.source {
+  color: #7c898c;
+  font: 700 0.74rem/1.5 "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 18px 0;
+  }
+
+  .source {
+    white-space: normal;
+  }
+}

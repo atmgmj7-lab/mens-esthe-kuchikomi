@@ -6,7 +6,54 @@
 
 ## Current Phase
 
-Phase 17 complete（Task 1〜8の実装・独立レビュー・本番反映・本番QA・1店舗更新疎通まで完了。XserverのGitHub Actions国外SSH制限は運用ブロッカーとして分離）
+UX-PROD-T2-RESUME Phase 7（結果記録・T3前で停止）
+
+## UX-PROD-T2-RESUME
+
+### Goal
+
+最新base `b785315a2a3cd490772fd70cd18bb1f8b21f2f75` から、既存Top資産を保持したまま口コミを上位化し、正式global approved review readerを使う `/reviews/` Hubを追加する。T3/T4・dependency・本番は変更しない。
+
+### Phases
+
+- [x] Phase 1: 専用worktree、正本、現行Top/review/SEO/data sourceを確認する
+- [x] Phase 2: T2専用contract testを追加し、意図したREDを記録する
+- [x] Phase 3: Top flow・新着口コミ・Updates・priority Area導線を最小実装する
+- [x] Phase 4: `/reviews/` Hub・metadata・canonical・breadcrumb・SSRを最小実装する
+- [x] Phase 5: focused/full test・build・audit・browser QAを実行する
+- [x] Phase 6: 独立reviewでCritical/Important 0を確認し、対象pathだけcommitする
+- [x] Phase 7: `progress.md`を更新し、T3へ進まず停止する
+
+### Stop Conditions
+
+- T3 Area本文またはT4 Shop本体の変更が必要
+- ranking/new storage/therapist ID/dependency変更が必要
+- sitemap/canonical全体方針変更が必要
+- Secretまたは本番接続が必要
+- 同一原因で3回失敗
+
+### Errors Encountered
+
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+| 初回計画更新patchが古いCurrent Phase文言を期待して失敗 | 1 | 現在行を再確認し、小さいpatchへ分割した |
+| render contract helperが`react/jsx-runtime`を解決できずfeature assertion前に停止 | 1 | test helperへ実React JSX runtimeを追加し、mock assertionは増やさない |
+| Home順序testの`掲載店舗`がHeroの`掲載店舗数`へ先に一致 | 1 | H2のid付きmarkerへ絞り、利用者向け順序を正しく測る |
+| 参考動画の抽出で`ffprobe`/`ffmpeg`が存在しない | 1 | 同じ失敗を繰り返さず、macOS AVFoundationで安全な一時frameを抽出して確認した |
+| 複数語検索が連続文字列一致のため`梅田 接客`を落とした | 1 | 正規化した空白区切り語をすべて含むAND検索へ修正した |
+| focused確認を`headless/`からroot相対pathで始めて対象ファイルを読めなかった | 1 | 現在の作業directory基準の`components/...`へ直し、lint/typecheckまで成功した |
+| `test:content-provenance`が既存の0店舗地域表示契約で失敗 | 1 | T2範囲外の`KansaiAreaGrid`状態表示変更だけを戻し、既存契約を維持した |
+| 再実行した同testがHeader/Footerの既存label保持契約で失敗 | 1 | 行先はReviews Hubへ更新しつつ、既存の「口コミについて」「口コミ投稿」labelを保持した |
+| 全testが既存の料金条件link保持契約で失敗 | 1 | 実data filterを使う既存条件sectionを「その他content」としてTop下段へ復元した |
+| T2 focused testが既存Area状態表示までfictional扱いした | 1 | Area状態表示は既存契約として維持し、承認済みplanが明示する未検証`初心者向け`filterは禁止のままにした |
+| production buildが`/reviews`のruntime `searchParams`をSuspense外で検出 | 1 | 既存`/shops/`等と同じCache Components契約をREDで固定し、route contentだけをSuspense境界へ移した |
+| 初回browser QAがUpdates見出し誤認・global endpoint未公開時の検索0件期待・`networkidle` timeoutで停止 | 1 | 実H2を測り、取得不能は正直な空状態として許可し、main表示を条件待機する。fixtureで実data時の検索0件は別途固定済み |
+| H1/QA画像修正patchを3ファイル一括で適用し、hunk区切り不備で失敗 | 1 | 同じ内容を正しい小さいhunkへ分け、対象行だけ変更する |
+| 代表画像でPC 1440px H1が「体／験談」に不自然改行し、Top全画面がfade途中で白く見えた | 1 | H1の最大幅だけを1100pxへ調整し、QA撮影時だけanimationを無効化して最終表示を記録する |
+| reduced-motion browser REDでTop discovery animationが`0.6s`のまま | 1 | T2 Topの`hl-fade-in`だけをreduced motion時に無効化し、既存全体animationへ範囲を広げない |
+| 独立VISIBLE QAがSuspense fallbackを撮るraceと複数Area口コミの先頭link限定を検出 | 1 | settled main/visible H1/fallback消滅を条件待機し、ReviewCardは重複除外した全canonical Area relationを表示するRED→GREENへ修正した |
+| 独立SPEC reviewが未検証`初心者向け`filterの復元をplan不一致と指摘 | 1 | 料金filter保持testと混同せず、条件sectionから初心者cardだけを削除してfocused testで禁止を再固定した |
+| 独立security reviewが新規teal/gold/focusのcontrast不足、実card browser分岐skip、tabpanel名欠落を検出 | 1 | AA配色・不透明focus・active tab関連を修正し、production ReviewCard/CSS fixtureを全11幅で必須検査する |
 
 ## Phases
 

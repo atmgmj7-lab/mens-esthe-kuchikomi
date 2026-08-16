@@ -2,8 +2,20 @@ import Link from "next/link";
 import { AreaFeatureSection } from "@/components/AreaFeatureSection";
 import { KansaiAreaGrid } from "@/components/KansaiAreaGrid";
 import { ShopImageWithFallback } from "@/components/common/ShopImageWithFallback";
+import { HomeShopSearch } from "@/components/home/HomeShopSearch";
+import { UpdatesHub } from "@/components/home/UpdatesHub";
+import { ScopedRankingModule } from "@/components/ranking/ScopedRankingModule";
+import { PriorityAreaLinks } from "@/components/reviews/PriorityAreaLinks";
+import { ReviewCard } from "@/components/reviews/ReviewCard";
 import type { AreaFeatureItem } from "@/lib/design-constants";
-import type { AreaView, BlogPostView, ShopView } from "@/lib/wp/types";
+import { buildHomeUpdates } from "@/lib/home-updates";
+import type { StrictRankingAvailability } from "@/lib/ux-production-data-boundary";
+import type {
+  ApprovedGlobalReviewResult,
+  AreaView,
+  BlogPostView,
+  ShopView,
+} from "@/lib/wp/types";
 
 type HomePageDataState = {
   shopCountFailed: boolean;
@@ -17,75 +29,96 @@ const CONDITION_CARDS = [
     label: "料金掲載あり",
     tone: "price",
     description: "料金情報がある店舗",
-    href: "/area/nihonbashi/?filter=price"
+    href: "/area/nihonbashi/?filter=price",
   },
   {
     label: "深夜営業",
     tone: "night",
     description: "夜の利用候補",
-    href: "/area/nihonbashi/?filter=late-night"
+    href: "/area/nihonbashi/?filter=late-night",
   },
   {
     label: "駅名・徒歩案内あり",
     tone: "station",
     description: "駅名と徒歩案内を確認",
-    href: "/area/nihonbashi/?filter=station"
-  },
-  {
-    label: "初心者向け",
-    tone: "beginner",
-    description: "初回でも選びやすい",
-    href: "/area/nihonbashi/?filter=beginner"
+    href: "/area/nihonbashi/?filter=station",
   },
   {
     label: "口コミあり",
     tone: "reviews",
     description: "利用者投稿を確認",
-    href: "/area/nihonbashi/?filter=reviews"
+    href: "/area/nihonbashi/?filter=reviews",
   },
   {
     label: "公式サイトあり",
     tone: "official",
     description: "公式情報へ移動可能",
-    href: "/area/nihonbashi/?filter=official"
-  }
+    href: "/area/nihonbashi/?filter=official",
+  },
+] as const;
+
+const START_POINTS = [
+  {
+    number: "01",
+    title: "エリアから探す",
+    description: "梅田・日本橋・新大阪など、地域ごとの店舗情報を確認",
+    href: "/area/osaka/",
+  },
+  {
+    number: "02",
+    title: "店舗一覧から探す",
+    description: "店名、料金、営業時間、アクセスなど公開情報から比較",
+    href: "/shops/",
+  },
+  {
+    number: "03",
+    title: "口コミ・体験から探す",
+    description: "承認済みユーザー口コミから店舗とエリアへ移動",
+    href: "/reviews/",
+  },
+  {
+    number: "04",
+    title: "初めての方向けガイド",
+    description: "情報の見分け方と、店舗選びの順序を確認",
+    href: "#home-beginner-guide",
+  },
 ] as const;
 
 const INFORMATION_LABELS = [
   { label: "ユーザー口コミ", text: "承認済みの利用者投稿のみ。評価集計は3件以上で表示。", tone: "review" },
   { label: "編集部コメント", text: "編集部の調査・確認に基づく記述。口コミとは集計しません。", tone: "editorial" },
   { label: "店舗提供情報", text: "店舗から提供された情報。提供元を明示します。", tone: "official" },
-  { label: "PR", text: "有料掲載。自然な検索結果・ランキングとは分離して表示。", tone: "pr" }
+  { label: "PR", text: "有料掲載。自然な検索結果・ランキングとは分離して表示。", tone: "pr" },
 ] as const;
 
 const HERO_BACKGROUND_SLIDES = [
   {
     src: "/images/home-hero/osaka-night-alley-lanterns.jpg",
-    alt: "大阪の夜の路地に提灯と飲食店の灯りが並ぶ街並み"
+    alt: "大阪の夜の路地に提灯と飲食店の灯りが並ぶ街並み",
   },
   {
     src: "/images/home-hero/kansai-night-station-street.jpg",
-    alt: "関西の駅前通りにネオンと人通りが広がる夜景"
+    alt: "関西の駅前通りにネオンと人通りが広がる夜景",
   },
   {
     src: "/images/home-hero/kansai-night-food-street.webp",
-    alt: "関西の夜の商店街に飲食店の明かりが続く街並み"
+    alt: "関西の夜の商店街に飲食店の明かりが続く街並み",
   },
   {
     src: "/images/home-hero/osaka-night-sign-street.jpg",
-    alt: "大阪の夜の繁華街に看板が並ぶ街並み"
+    alt: "大阪の夜の繁華街に看板が並ぶ街並み",
   },
   {
     src: "/images/home-hero/osaka-senba-night-road.jpg",
-    alt: "大阪船場周辺の高架と街明かりの夜景"
-  }
+    alt: "大阪船場周辺の高架と街明かりの夜景",
+  },
 ] as const;
 
 const DEFAULT_DATA_STATE: HomePageDataState = {
   shopCountFailed: false,
   shopsFailed: false,
   areasFailed: false,
-  postsFailed: false
+  postsFailed: false,
 };
 
 function shopAreaName(shop: ShopView, areas: AreaView[]) {
@@ -97,17 +130,25 @@ export function HomePageContent({
   shops,
   areas,
   areaFeatures,
-  dataState = DEFAULT_DATA_STATE
+  posts,
+  reviewResult,
+  strictRanking,
+  dataState = DEFAULT_DATA_STATE,
 }: {
   shopCount: number;
   shops: ShopView[];
   areas: AreaView[];
   areaFeatures: AreaFeatureItem[];
   posts: BlogPostView[];
+  reviewResult: ApprovedGlobalReviewResult;
+  strictRanking: StrictRankingAvailability;
   dataState?: HomePageDataState;
 }) {
   const totalShopCount = dataState.shopCountFailed ? null : shopCount || shops.length;
   const listedShops = shops.slice(0, 5);
+  const approvedReviews = reviewResult.status === "available" ? reviewResult.page.reviews : [];
+  const latestReviews = approvedReviews.slice(0, 4);
+  const updateItems = buildHomeUpdates({ reviews: approvedReviews, posts });
 
   return (
     <main id="main_content" className="l-mainContent escomi-home-final-v2">
@@ -133,30 +174,12 @@ export function HomePageContent({
               大阪・京都・兵庫を中心に、料金・営業時間・口コミを地域別に整理。
               ユーザー口コミ、編集部コメント、店舗提供情報、PRを区別して比較できます。
             </p>
-            <form className="escomi-home-search-v2" action="/shops/" method="get" role="search">
-              <label className="sr-only" htmlFor="home-shop-search">
-                エリア名・駅名・店舗名で探す
-              </label>
-              <input
-                id="home-shop-search"
-                className="escomi-home-search-v2__input"
-                type="search"
-                name="q"
-                placeholder="エリア名・駅名・店舗名で探す（例：日本橋）"
-                autoComplete="off"
-              />
-              <button className="escomi-home-search-v2__button" type="submit">検索</button>
-            </form>
-            <div className="escomi-home-search-feedback-v2" data-state-template="search-empty" hidden>
-              <strong>「さかいひがし 温泉」に一致する候補が見つかりませんでした。</strong>
-              <p>近い候補：堺東エリア・堺エリア</p>
-              <Link href="/area/">エリア一覧から探す →</Link>
-            </div>
-            <nav className="escomi-home-popular-v2" aria-label="人気の条件">
-              <span>人気の条件：</span>
-              {CONDITION_CARDS.slice(0, 4).map((condition) => (
-                <Link href={condition.href} key={condition.label}>{condition.label}</Link>
-              ))}
+            <HomeShopSearch />
+            <nav className="escomi-home-popular-v2" aria-label="よく使う導線">
+              <span>よく使う導線：</span>
+              <Link href="/reviews/">口コミ・体験を見る</Link>
+              <Link href="/shops/">店舗一覧を見る</Link>
+              <Link href="/reviews/submit/">口コミを書く</Link>
             </nav>
           </div>
 
@@ -181,6 +204,50 @@ export function HomePageContent({
         </div>
       </section>
 
+      <section className="escomi-home-start-v2 hl-fade-in" aria-labelledby="home-start-title">
+        <div className="escomi-home-container-v2">
+          <div className="escomi-home-section-head-v2">
+            <p className="escomi-section-eyebrow">DISCOVERY START</p>
+            <h2 id="home-start-title">知りたいことから探す</h2>
+            <p>いま知りたい情報に近い入口から、店舗・エリア・口コミへ進めます。</p>
+          </div>
+          <div className="escomi-home-start-v2__grid">
+            {START_POINTS.map((item) => (
+              <Link href={item.href} key={item.number}>
+                <span>{item.number}</span>
+                <strong>{item.title}</strong>
+                <small>{item.description}</small>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {latestReviews.length > 0 ? (
+        <section className="escomi-home-reviews-v2 hl-fade-in" aria-labelledby="home-latest-reviews-title">
+          <div className="escomi-home-container-v2">
+            <div className="escomi-home-section-head-v2 escomi-home-section-head-v2--split">
+              <div>
+                <p className="escomi-section-eyebrow">APPROVED USER REVIEWS</p>
+                <h2 id="home-latest-reviews-title">新着口コミ・体験</h2>
+                <p>公開店舗に紐づく承認済みユーザー口コミだけを掲載しています。</p>
+              </div>
+              <div className="escomi-home-reviews-v2__actions">
+                <Link href="/reviews/">口コミ・体験をもっと見る</Link>
+                <Link href="/reviews/submit/">口コミを書く</Link>
+              </div>
+            </div>
+            <div className="escomi-home-reviews-v2__grid">
+              {latestReviews.map((review) => <ReviewCard review={review} compact key={review.id} />)}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <ScopedRankingModule availability={strictRanking} />
+      <UpdatesHub items={updateItems} />
+
+      <PriorityAreaLinks />
       {dataState.areasFailed ? (
         <section className="escomi-home-prefectures-v2 hl-fade-in" aria-label="都道府県の読み込み状態">
           <div className="escomi-home-container-v2">
@@ -225,14 +292,14 @@ export function HomePageContent({
               <h2 id="home-updated-title">掲載店舗</h2>
               <p>WordPressで公開中の店舗情報から表示しています。</p>
             </div>
-            <Link href="/shops/">店舗一覧を見る →</Link>
+            <Link href="/shops/">店舗一覧を見る</Link>
           </div>
           <div className="escomi-updated-grid-v2">
             {dataState.shopsFailed || listedShops.length === 0 ? (
               <div className="escomi-home-empty-state-v2">
                 <strong>{dataState.shopsFailed ? "店舗情報を読み込めませんでした" : "表示できる店舗情報はありません"}</strong>
                 <p>{dataState.shopsFailed ? "時間をおいて再読み込みしてください。" : "エリア一覧から別の地域を探せます。"}</p>
-                <Link href="/area/">エリアから店舗を探す →</Link>
+                <Link href="/area/">エリアから店舗を探す</Link>
               </div>
             ) : (
               listedShops.map((shop) => {
@@ -274,19 +341,19 @@ export function HomePageContent({
               ))}
             </div>
           </div>
-          <aside className="escomi-beginner-panel-v2" aria-labelledby="home-beginner-title">
+          <aside id="home-beginner-guide" className="escomi-beginner-panel-v2" aria-labelledby="home-beginner-title">
             <h2 id="home-beginner-title">初めての方へ</h2>
             <ol>
-              <li><span>1</span><strong>地域を選ぶ</strong><p>都道府県 → 詳細エリアの順に絞り込み</p></li>
-              <li><span>2</span><strong>条件で比較する</strong><p>料金・営業時間・口コミの有無で絞り込み</p></li>
-              <li><span>3</span><strong>店舗詳細・公式情報を確認</strong><p>最新の料金・予約は公式サイトで確認</p></li>
+              <li><span>1</span><strong>地域を選ぶ</strong><p>都道府県から、利用しやすい詳細エリアへ進む</p></li>
+              <li><span>2</span><strong>実在情報で比較する</strong><p>料金・営業時間・承認済み口コミを確認</p></li>
+              <li><span>3</span><strong>店舗詳細・公式情報を確認</strong><p>最新の料金・予約方法は公式情報でも確認</p></li>
             </ol>
             <div className="escomi-owner-cta-v2">
               <div>
                 <strong>店舗オーナー様へ</strong>
                 <p>掲載・情報修正・PR掲載のご相談を受け付けています。</p>
               </div>
-              <Link href="/contact/">掲載について →</Link>
+              <Link href="/contact/">掲載について</Link>
             </div>
           </aside>
         </div>

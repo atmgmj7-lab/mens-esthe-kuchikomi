@@ -6,7 +6,7 @@ import Link from "next/link";
 const NAV_ITEMS = [
   { href: "/shops/", label: "店舗を探す" },
   { href: "/area/osaka/", label: "エリアから探す" },
-  { href: "/reviews/submit/", label: "口コミについて" },
+  { href: "/reviews/", label: "口コミについて" },
   { href: "/storelisting/", label: "掲載について" }
 ] as const;
 
