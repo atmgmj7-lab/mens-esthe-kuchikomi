@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 完了（T3-B・本番backfill前で停止）
+UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 レビュー修正完了（T3-B・本番backfill前で停止）
 
 ## UX-PROD-T3A-RESUME-PRIMARY-AWARE-01
 
@@ -18,10 +18,12 @@ base `2bc9fb07de4830bb266d246ccae20b4273a563a8`から、重点5Area Hubだけを
 
 - [x] Phase 1: clean worktree、正本、既存実装、禁止境界を確認する
 - [x] Phase 2: fail-first contract/browser fixtureを追加し、意図したREDを記録する
-- [x] Phase 3: priority5限定の分類・表示・空module・strict rankingを最小実装する
+- [x] Phase 3: priority5限定の分類・表示・空module・正式順位なし時の完全非表示を最小実装する
 - [x] Phase 4: focused/full/build/auditとfixture/live fail-safe browser QAを実行する
 - [x] Phase 5: 仕様・品質・表示のセルフレビューでCritical/Important 0を確認する
 - [x] Phase 6: progressを更新し、T3-B・backfill・push/deploy前で停止する
+- [x] Phase 7: 独立レビューのCritical/ImportantをREDで再現し、legacy順位遮断・非priority回帰・副次一覧短縮・実component browser fixtureへ修正する
+- [x] Phase 8: corrective focused/full/build/audit/browser QAと代表画像目視を行い、Critical/Important 0を再確認する
 
 ### Stop Conditions
 

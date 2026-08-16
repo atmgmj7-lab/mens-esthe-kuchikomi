@@ -12,6 +12,7 @@ import {
   resolveAreaHubPageTitle
 } from "@/lib/area-shop-utils";
 import { resolveAreaRankingEntries } from "@/lib/area-shop-ranking";
+import { shouldLoadLegacyAreaRanking } from "@/lib/priority-area-precision";
 import {
   getAreaBySlug,
   getAreaRankingShops,
@@ -113,7 +114,9 @@ async function AreaPageContent({ params, searchParams }: Props) {
       withWpBuildFallback(`area hub siblings ${area.slug}`, () => getSiblingAreas(area), []),
       withWpBuildFallback(`area hub parent ${area.slug}`, () => getParentArea(area), null),
       withWpBuildFallback(`area hub shops ${area.slug}`, () => getAreaRankingShops(area.id), []),
-      withWpBuildFallback("area shop rankings", getAreaShopRankings, {}),
+      shouldLoadLegacyAreaRanking(area)
+        ? withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
+        : Promise.resolve({}),
       withWpBuildFallback("home featured areas for area hero", getHomeFeaturedAreas, [])
     ]);
     const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
@@ -141,7 +144,9 @@ async function AreaPageContent({ params, searchParams }: Props) {
     currentPage > 1
       ? withWpBuildFallback(`area seo shops ${area.slug}`, () => getAreaShops(area.id, 1), null)
       : Promise.resolve(null),
-    withWpBuildFallback("area shop rankings", getAreaShopRankings, {}),
+    shouldLoadLegacyAreaRanking(area)
+      ? withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
+      : Promise.resolve({}),
     withWpBuildFallback("home featured areas for area archive hero", getHomeFeaturedAreas, [])
   ]);
   const rankingEntries = resolveAreaRankingEntries(rankingMap, area);

@@ -1,12 +1,11 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
-import ts from "typescript";
-import vm from "node:vm";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = path.resolve(projectRoot, "..");
@@ -14,14 +13,16 @@ const reportDir = path.join(projectRoot, "reports", "ux-prod-t3a-primary-aware")
 const screenshotDir = path.join(reportDir, "screenshots");
 const port = 3113;
 const baseUrl = `http://127.0.0.1:${port}`;
+const fixtureOnly = process.env.BROWSER_QA_FIXTURE_ONLY === "1";
+const headless = process.env.BROWSER_QA_HEADLESS === "1";
 const viewports = [320, 375, 390, 760, 761, 900, 901, 1024, 1025, 1280, 1440]
   .map((width) => ({ width, height: width <= 390 ? 844 : width >= 1280 ? 1000 : 900 }));
 const areas = [
-  { id: 17, slug: "sakai", name: "堺東", expected: 6 },
-  { id: 13, slug: "shinosaka", name: "新大阪", expected: 3 },
-  { id: 7, slug: "nihonbashi", name: "大阪日本橋", expected: 12 },
-  { id: 46, slug: "sakaisujihonmachi", name: "堺筋本町", expected: 18 },
-  { id: 4, slug: "umeda", name: "梅田", expected: 5 },
+  { id: 17, slug: "sakai", name: "堺東", exact: 6, related: 1, unclassified: 1 },
+  { id: 13, slug: "shinosaka", name: "新大阪", exact: 3, related: 1, unclassified: 1 },
+  { id: 7, slug: "nihonbashi", name: "大阪日本橋", exact: 12, related: 1, unclassified: 1 },
+  { id: 46, slug: "sakaisujihonmachi", name: "堺筋本町", exact: 18, related: 2, unclassified: 1 },
+  { id: 4, slug: "umeda", name: "梅田", exact: 5, related: 2, unclassified: 1 },
 ];
 
 let scenarios = 0;
@@ -35,83 +36,33 @@ function check(condition, label, details = {}) {
   if (!condition) failures.push({ label, details });
 }
 
-async function loadClassifier() {
-  const file = path.join(projectRoot, "lib", "priority-area-precision.ts");
-  const source = await fs.readFile(file, "utf8");
-  const compiled = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-    },
-  }).outputText;
-  const loaded = { exports: {} };
-  const require = (id) => {
-    if (id === "@/lib/area-shop-utils") {
-      return { isBeginnerFriendlyShop: () => false, isStationNearShop: () => false };
-    }
-    throw new Error(`Unexpected fixture import: ${id}`);
-  };
-  vm.runInNewContext(compiled, { module: loaded, exports: loaded.exports, require });
-  return loaded.exports;
-}
-
-async function verifyProductionTemplateContract() {
-  const source = await fs.readFile(path.join(projectRoot, "components", "area", "AreaHubPageTemplate.tsx"), "utf8");
-  const contracts = [
-    [source.includes("classifyPriorityAreaShops(allShops, area)"), "production template uses the tested classifier"],
-    [source.includes("const mainShops: ShopView[] = precisionGroups ? [...precisionGroups.exact] : allShops"), "production primary list is EXACT only"],
-    [source.includes("shopItemListJsonLd(mainShops.filter"), "production schema uses EXACT only"],
-    [source.includes("rankingShops={mainShops}"), "production ranking uses EXACT only"],
-    [source.includes("<AreaPromotionSection shops={mainShops}"), "production promotion uses EXACT only"],
-    [source.includes('data-area-precision-group={precisionMode ? "exact" : undefined}'), "production SSR exposes the EXACT marker"],
-    [source.includes('data-area-precision-group="related"'), "production SSR exposes the related marker"],
-    [source.includes('data-area-precision-group="unclassified"'), "production SSR exposes the unclassified marker"],
-    [source.includes("rank={null} showRank={false}"), "production secondary groups cannot display a rank"],
-  ];
-  for (const [condition, label] of contracts) check(condition, label);
-}
-
-function fixtureShop(record) {
+function fixtureRecord(record) {
   return {
     id: record.wpShopId,
     slug: record.shopSlug,
     title: record.shopName,
-    acf: {},
     primaryArea: {
       id: record.targetPrimaryArea.termId,
       slug: record.targetPrimaryArea.slug,
       name: record.targetPrimaryArea.label,
     },
-    terms: record.currentAreaRelations.map((relation) => ({
+    relations: record.currentAreaRelations.map((relation) => ({
       id: relation.termId,
       slug: relation.slug,
       name: relation.label,
-      taxonomy: "area",
     })),
   };
 }
 
-function fixtureHtml(area, groups) {
-  const cards = (shops, relation) => shops.map((shop) => (
-    `<article data-area-shop-card="true" data-relation="${relation}" data-shop-id="${shop.id}"><h3>${shop.title}</h3><a href="/shops/${shop.slug}/">店舗詳細</a></article>`
-  )).join("");
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
-  *{box-sizing:border-box}body{margin:0;background:#fbfaf6;color:#17353a;font-family:Arial,sans-serif}.page{width:min(1120px,calc(100% - 32px));margin:auto;padding:32px 0}.group{margin-top:24px}.cards{display:grid;grid-template-columns:1fr;gap:12px}article{min-width:0;padding:16px;border:1px solid #d8dedc;background:white}h1,h2,h3{overflow-wrap:anywhere}a{display:inline-flex;min-height:44px;align-items:center;color:#006f72}@media(min-width:901px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  </style></head><body><main class="page" data-area-precision-fixture="${area.slug}"><h1>${area.name}メンズエステ</h1><section class="group" data-area-precision-group="exact"><h2>このエリアの店舗</h2><div class="cards">${cards(groups.exact, "exact")}</div></section><section class="group" data-area-precision-group="related"><h2>関連店舗</h2><div class="cards">${cards(groups.related, "related")}</div></section><section class="group" data-area-precision-group="unclassified"><h2>主な掲載エリアを確認中の店舗</h2><div class="cards">${cards(groups.unclassified, "unclassified")}</div></section></main></body></html>`;
-}
-
-async function runFixtureQa(browser, classifier, preview) {
-  const page = await browser.newPage();
-  for (const area of areas) {
-    const exactFixture = preview.records.map(fixtureShop);
-    const sameName = "同名でも別IDの店舗";
+function buildFixtureData(preview) {
+  const accepted = preview.records.map(fixtureRecord);
+  return Object.fromEntries(areas.map((area) => {
     const related = {
       id: 900000 + area.id,
       slug: `related-${area.slug}`,
-      title: sameName,
-      acf: { shop_access: `${area.name}駅 徒歩1分` },
+      title: "同名でも別IDの店舗",
       primaryArea: { id: 999, slug: "other", name: "別エリア" },
-      terms: [{ id: area.id, slug: area.slug, name: area.name, taxonomy: "area" }],
+      relations: [{ id: area.id, slug: area.slug, name: area.name }],
     };
     const unclassified = {
       ...related,
@@ -119,36 +70,111 @@ async function runFixtureQa(browser, classifier, preview) {
       slug: `unclassified-${area.slug}`,
       primaryArea: null,
     };
-    const groups = classifier.classifyPriorityAreaShops([...exactFixture, related, unclassified], area);
-    const html = fixtureHtml(area, groups);
-    for (const viewport of viewports) {
-      await page.setViewportSize(viewport);
-      await page.setContent(html, { waitUntil: "load" });
-      scenarios += 1;
-      const exactCards = page.locator('[data-area-precision-group="exact"] [data-area-shop-card]');
-      const allCards = page.locator("[data-area-shop-card]");
-      check(await exactCards.count() === area.expected, `fixture ${area.slug} ${viewport.width}px exact count`);
-      check(await page.locator(`[data-area-precision-group="related"] [data-shop-id="${related.id}"]`).count() === 1, `fixture ${area.slug} ${viewport.width}px related separation`);
-      check(await page.locator('[data-area-precision-group="unclassified"] [data-area-shop-card]').count() === 1, `fixture ${area.slug} ${viewport.width}px unclassified separation`);
-      check(await page.locator("h1").count() === 1, `fixture ${area.slug} ${viewport.width}px H1=1`);
-      const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
-      check(geometry.body <= geometry.viewport + 1, `fixture ${area.slug} ${viewport.width}px overflow=0`, geometry);
-      const ids = await allCards.evaluateAll((elements) => elements.map((element) => element.getAttribute("data-shop-id")));
-      check(new Set(ids).size === ids.length, `fixture ${area.slug} ${viewport.width}px duplicate ID=0`);
-      const sameNameIds = await page.getByRole("heading", { name: sameName, exact: true }).evaluateAll((elements) => elements.map((element) => element.closest("article")?.getAttribute("data-shop-id")));
-      check(sameNameIds.length === 2 && new Set(sameNameIds).size === 2, `fixture ${area.slug} ${viewport.width}px same-name distinct`);
-      check(await page.locator('[data-module="beginner"]').count() === 0, `fixture ${area.slug} ${viewport.width}px empty beginner=0`);
-      check(await page.locator('[data-module="station"]').count() === 0, `fixture ${area.slug} ${viewport.width}px contradictory station=0`);
-      check(await page.locator('[data-rank]').count() === 0, `fixture ${area.slug} ${viewport.width}px fake rank=0`);
-      if (viewport.width === 320 || viewport.width === 1440) {
-        const file = path.join(screenshotDir, `fixture-${area.slug}-${viewport.width}.png`);
-        await page.screenshot({ path: file, fullPage: true });
-        screenshotFiles.push(file);
-        screenshotCount += 1;
-      }
-    }
-  }
-  await page.close();
+    const exactRecords = accepted.filter((record) => record.primaryArea.id === area.id);
+    return [area.slug, {
+      area,
+      records: [...accepted, related, unclassified],
+      legacyRankingEntries: exactRecords.map((record, index) => ({ shopSlug: record.slug, rank: index + 1 })),
+      promotedShopId: exactRecords[0]?.id ?? null,
+    }];
+  }));
+}
+
+function cloneDirectory(source, destination) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("cp", ["-cR", source, destination], { stdio: ["ignore", "pipe", "pipe"] });
+    let errorOutput = "";
+    child.stderr.on("data", (chunk) => { errorOutput += chunk; });
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`copy-on-write node_modules clone failed (${code})\n${errorOutput}`));
+    });
+  });
+}
+
+function harnessPageSource(fixtureData) {
+  return `import { notFound } from "next/navigation";
+import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
+import { normalizeShopRanking } from "@/lib/shop-ranking";
+import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
+import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
+
+const fixtures = ${JSON.stringify(fixtureData)} as const;
+
+function toTerm(record: { id: number; slug: string; name: string }): WpTerm {
+  return { ...record, count: 1, parent: 2, taxonomy: "area" };
+}
+
+function toShop(record: (typeof fixtures)[keyof typeof fixtures]["records"][number], promotedShopId: number | null): ShopView {
+  const acf: Record<string, unknown> = {
+    ranking_enabled: true,
+    area_rank: 1,
+    ...(record.id === promotedShopId ? { is_pr: true } : {}),
+  };
+  return {
+    id: record.id,
+    slug: record.slug,
+    link: \`https://mens-esthe-kuchikomi.com/shops/\${record.slug}/\`,
+    title: record.title,
+    contentHtml: "",
+    excerpt: "",
+    imageUrl: "",
+    media: {
+      cardSquare: { mediaId: null, source: "fallback", url: "", alt: record.title },
+      detailBanner: null,
+    },
+    terms: record.relations.map(toTerm),
+    acf,
+    officialUrl: "",
+    areaSlug: record.primaryArea?.slug ?? "",
+    primaryArea: record.primaryArea,
+    ranking: normalizeShopRanking(acf),
+    strictRanking: unavailableStrictRanking("area"),
+  };
+}
+
+export default async function PriorityFixturePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const fixture = fixtures[slug as keyof typeof fixtures];
+  if (!fixture) notFound();
+  const area: AreaView = {
+    id: fixture.area.id,
+    slug: fixture.area.slug,
+    name: fixture.area.name,
+    parent: 2,
+    count: 999,
+    description: "QA fixture",
+    acf: {},
+  };
+  return (
+    <AreaHubPageTemplate
+      area={area}
+      allShops={fixture.records.map((record) => toShop(record, fixture.promotedShopId))}
+      rankingEntries={[...fixture.legacyRankingEntries]}
+    />
+  );
+}
+`;
+}
+
+async function createHarness(preview) {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "eskomi-t3a-browser-"));
+  await fs.cp(projectRoot, tempRoot, {
+    recursive: true,
+    filter: (source) => {
+      const relative = path.relative(projectRoot, source);
+      if (!relative) return true;
+      const first = relative.split(path.sep)[0];
+      if ([".next", "node_modules", "reports"].includes(first)) return false;
+      return !path.basename(source).startsWith(".env");
+    },
+  });
+  await cloneDirectory(path.join(projectRoot, "node_modules"), path.join(tempRoot, "node_modules"));
+  const routeDir = path.join(tempRoot, "app", "qa-priority-fixture", "[slug]");
+  await fs.mkdir(routeDir, { recursive: true });
+  await fs.writeFile(path.join(routeDir, "page.tsx"), harnessPageSource(buildFixtureData(preview)));
+  return tempRoot;
 }
 
 function isPortOpen() {
@@ -169,28 +195,90 @@ async function stopServer(child) {
   }
 }
 
-async function startServer() {
+async function startServer(root, mode) {
   if (await isPortOpen()) throw new Error(`${baseUrl} is already in use`);
-  const child = spawn("npm", ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(port)], {
-    cwd: projectRoot,
-    detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const args = mode === "dev"
+    ? ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(port)]
+    : ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(port)];
+  const child = spawn("npm", args, { cwd: root, detached: true, stdio: ["ignore", "pipe", "pipe"] });
   let log = "";
-  const remember = (chunk) => { log = `${log}${chunk}`.slice(-5000); };
+  const remember = (chunk) => {
+    if (log.length < 30_000) log = `${log}${chunk}`.slice(0, 30_000);
+  };
   child.stdout.on("data", remember);
   child.stderr.on("data", remember);
-  const deadline = Date.now() + 45_000;
+  const readinessPath = mode === "dev" ? "/qa-priority-fixture/umeda/" : "/area/umeda/";
+  const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`server exited before ready\n${log}`);
+    let response;
     try {
-      const response = await fetch(`${baseUrl}/area/umeda/`, { signal: AbortSignal.timeout(2000) });
-      if (response.ok) return child;
+      response = await fetch(`${baseUrl}${readinessPath}`, { signal: AbortSignal.timeout(3000) });
     } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    if (response?.ok) return child;
+    if (response && response.status >= 500) {
+      const responseBody = await response.text().catch(() => "");
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await stopServer(child);
+      throw new Error(`server returned ${response.status} during readiness\n${log}\nresponse body:\n${responseBody.slice(0, 8000)}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
   }
   await stopServer(child);
   throw new Error(`server was not ready\n${log}`);
+}
+
+async function runFixtureQa(browser) {
+  const page = await browser.newPage();
+  for (const area of areas) {
+    const route = `/qa-priority-fixture/${area.slug}/`;
+    const rawResponse = await fetch(`${baseUrl}${route}`);
+    const rawHtml = await rawResponse.text();
+    check(rawResponse.status === 200, `fixture ${area.slug} raw SSR status`, { status: rawResponse.status });
+    check(rawHtml.includes('data-area-precision-mode="true"'), `fixture ${area.slug} raw SSR precision marker`);
+    check(rawHtml.includes('data-area-precision-group="exact"'), `fixture ${area.slug} raw SSR exact marker`);
+    check(rawHtml.includes('data-area-secondary-shop="true"'), `fixture ${area.slug} raw SSR compact secondary links`);
+    check(!rawHtml.includes('aria-label="おすすめランキング'), `fixture ${area.slug} raw SSR rank=0`);
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      const response = await page.goto(`${baseUrl}${route}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+      await page.locator('[data-area-precision-mode="true"]').waitFor({ state: "attached", timeout: 60_000 });
+      await page.locator("main.hl-route-fallback").waitFor({ state: "detached", timeout: 60_000 }).catch(() => {});
+      scenarios += 1;
+      check(response?.status() === 200, `fixture ${area.slug} ${viewport.width}px status`, { status: response?.status() });
+      check(await page.locator("h1:visible").count() === 1, `fixture ${area.slug} ${viewport.width}px H1=1`);
+      const exactCards = page.locator('[data-area-precision-group="exact"] [data-area-shop-card="true"]');
+      const relatedLinks = page.locator('[data-area-precision-group="related"] [data-area-secondary-shop="true"]');
+      const unclassifiedLinks = page.locator('[data-area-precision-group="unclassified"] [data-area-secondary-shop="true"]');
+      check(await exactCards.count() === area.exact, `fixture ${area.slug} ${viewport.width}px exact count`, { actual: await exactCards.count() });
+      check(await relatedLinks.count() === area.related, `fixture ${area.slug} ${viewport.width}px related count`, { actual: await relatedLinks.count() });
+      check(await unclassifiedLinks.count() === area.unclassified, `fixture ${area.slug} ${viewport.width}px unclassified count`, { actual: await unclassifiedLinks.count() });
+      check(await page.locator('[data-area-precision-secondary="true"] [data-area-shop-card]').count() === 0, `fixture ${area.slug} ${viewport.width}px secondary full cards=0`);
+      const secondaryIds = await page.locator('[data-area-secondary-shop="true"]').evaluateAll((elements) => elements.map((element) => element.getAttribute("data-shop-id")));
+      check(secondaryIds.every(Boolean) && new Set(secondaryIds).size === secondaryIds.length, `fixture ${area.slug} ${viewport.width}px secondary identity`);
+      const secondaryHrefs = await page.locator('[data-area-secondary-shop="true"] a[href^="/shops/"]').count();
+      check(secondaryHrefs === area.related + area.unclassified, `fixture ${area.slug} ${viewport.width}px crawlable secondary links`, { secondaryHrefs });
+      const sameNameIds = await page.getByRole("link", { name: "同名でも別IDの店舗", exact: true }).evaluateAll((elements) => elements.map((element) => element.closest('[data-area-secondary-shop="true"]')?.getAttribute("data-shop-id")));
+      check(sameNameIds.length === 2 && new Set(sameNameIds).size === 2, `fixture ${area.slug} ${viewport.width}px same-name distinct`);
+      check(await page.locator("#ranking").count() === 0, `fixture ${area.slug} ${viewport.width}px ranking module=0`);
+      check(await page.locator('[aria-label^="おすすめランキング"]').count() === 0, `fixture ${area.slug} ${viewport.width}px rank badge=0`);
+      check(await page.locator("#compare-tabs").count() === 0, `fixture ${area.slug} ${viewport.width}px empty compare tabs=0`);
+      check(await page.locator("#price-guide").count() === 0, `fixture ${area.slug} ${viewport.width}px empty price module=0`);
+      check(await page.getByRole("button", { name: "初心者向け", exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px beginner controls=0`);
+      check(await page.getByRole("button", { name: "駅名・徒歩案内あり", exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px station controls=0`);
+      const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
+      check(geometry.body <= geometry.viewport + 1, `fixture ${area.slug} ${viewport.width}px overflow=0`, geometry);
+      if (viewport.width === 320 || viewport.width === 1440) {
+        await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important}.hl-fade-in{opacity:1!important;transform:none!important}" });
+        const file = path.join(screenshotDir, `fixture-${area.slug}-${viewport.width}.png`);
+        await page.screenshot({ path: file, fullPage: true, timeout: 120_000 });
+        screenshotFiles.push(file);
+        screenshotCount += 1;
+      }
+    }
+  }
+  await page.close();
 }
 
 async function runLiveFailSafeQa(browser) {
@@ -206,9 +294,10 @@ async function runLiveFailSafeQa(browser) {
       check(await page.locator("h1:visible").count() === 1, `live ${area.slug} ${viewport.width}px H1=1`);
       const exactCount = await page.locator('[data-area-precision-group="exact"] [data-area-shop-card]').count();
       check(exactCount === 0, `live ${area.slug} ${viewport.width}px false EXACT=0`, { exactCount });
-      check(await page.locator("#ranking").count() === 0, `live ${area.slug} ${viewport.width}px fake ranking=0`);
-      check(await page.getByRole("button", { name: "初心者向け", exact: true }).count() === 0, `live ${area.slug} ${viewport.width}px empty beginner filter=0`);
-      check(await page.getByRole("button", { name: "駅名・徒歩案内あり", exact: true }).count() === 0, `live ${area.slug} ${viewport.width}px station filter=0`);
+      check(await page.locator("#ranking").count() === 0, `live ${area.slug} ${viewport.width}px ranking=0`);
+      check(await page.locator('[aria-label^="おすすめランキング"]').count() === 0, `live ${area.slug} ${viewport.width}px rank badge=0`);
+      check(await page.locator("#compare-tabs").count() === 0, `live ${area.slug} ${viewport.width}px empty compare tabs=0`);
+      check(await page.locator("#price-guide").count() === 0, `live ${area.slug} ${viewport.width}px empty price module=0`);
       const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
       check(geometry.body <= geometry.viewport + 1, `live ${area.slug} ${viewport.width}px overflow=0`, geometry);
       const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
@@ -216,7 +305,7 @@ async function runLiveFailSafeQa(browser) {
       if (viewport.width === 320 || viewport.width === 1440) {
         await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important}.hl-fade-in{opacity:1!important;transform:none!important}" });
         const file = path.join(screenshotDir, `live-${area.slug}-${viewport.width}.png`);
-        await page.screenshot({ path: file, fullPage: true });
+        await page.screenshot({ path: file, fullPage: true, timeout: 120_000 });
         screenshotFiles.push(file);
         screenshotCount += 1;
       }
@@ -225,29 +314,35 @@ async function runLiveFailSafeQa(browser) {
   await page.close();
 }
 
-await fs.access(path.join(projectRoot, ".next", "BUILD_ID"));
 await fs.rm(reportDir, { recursive: true, force: true });
 await fs.mkdir(screenshotDir, { recursive: true });
-
 const preview = JSON.parse(await fs.readFile(path.join(repositoryRoot, "docs", "data-clean", "priority5", "primary-area-backfill-preview-2026-08-16.json"), "utf8"));
-const classifier = await loadClassifier();
-await verifyProductionTemplateContract();
 let browser;
 let server;
+let harnessRoot;
 try {
-  browser = await chromium.launch({ headless: true });
-  await runFixtureQa(browser, classifier, preview);
-  server = await startServer();
-  await runLiveFailSafeQa(browser);
+  browser = await chromium.launch({ headless });
+  harnessRoot = await createHarness(preview);
+  server = await startServer(harnessRoot, "dev");
+  await runFixtureQa(browser);
+  await stopServer(server);
+  server = undefined;
+  if (!fixtureOnly) {
+    await fs.access(path.join(projectRoot, ".next", "BUILD_ID"));
+    server = await startServer(projectRoot, "start");
+    await runLiveFailSafeQa(browser);
+  }
 } catch (error) {
   failures.push({ label: "browser runner completed", details: { message: String(error?.stack || error) } });
 } finally {
   await browser?.close();
   await stopServer(server);
+  if (harnessRoot) await fs.rm(harnessRoot, { recursive: true, force: true });
 }
 
 const summary = {
-  modes: { fixture: 55, liveFailSafe: 55 },
+  harness: "temporary Next app importing actual AreaHubPageTemplate and production CSS",
+  modes: { fixture: 55, liveFailSafe: fixtureOnly ? 0 : 55 },
   scenarios,
   assertions,
   screenshots: screenshotCount,

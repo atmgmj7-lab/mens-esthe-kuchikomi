@@ -1,8 +1,6 @@
 import {
   isBeginnerFriendlyShop,
-  isStationNearShop,
 } from "@/lib/area-shop-utils";
-import type { AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 const PRIORITY_AREA_IDS = new Set([17, 13, 7, 46, 4]);
@@ -19,13 +17,16 @@ export type PriorityAreaCapabilities = Readonly<{
   station: boolean;
 }>;
 
-export type StrictAreaRankedShop = Readonly<{
-  shop: ShopView;
-  rank: number;
-}>;
+const PRIORITY_STATION_FIELDS = ["shop_station", "nearest_station", "station"] as const;
+const PRIORITY_WALK_FIELDS = ["shop_walk_minutes", "station_walk_minutes", "walk_minutes"] as const;
+const WALK_MINUTES_PATTERN = /徒歩\s*(?:約\s*)?[0-9０-９]+\s*分/u;
 
 export function isPriorityAreaPrecisionTarget(area: Pick<AreaView, "id">): boolean {
   return PRIORITY_AREA_IDS.has(area.id);
+}
+
+export function shouldLoadLegacyAreaRanking(area: Pick<AreaView, "id">): boolean {
+  return !isPriorityAreaPrecisionTarget(area);
 }
 
 function hasAreaRelation(shop: ShopView, areaId: number): boolean {
@@ -75,49 +76,30 @@ export function classifyPriorityAreaShops(
 
 export function resolvePriorityAreaCapabilities(
   shops: readonly ShopView[],
-  targetArea: Pick<AreaView, "slug" | "name">,
+  _targetArea: Pick<AreaView, "slug" | "name">,
 ): PriorityAreaCapabilities {
   return Object.freeze({
     beginner: shops.some(isBeginnerFriendlyShop),
-    station: shops.some((shop) => isStationNearShop(shop, targetArea)),
+    station: shops.some(hasPriorityStationWalk),
   });
 }
 
-export function resolveStrictAreaRanking(
-  shops: readonly ShopView[],
-  entries: readonly AreaShopRankingEntry[],
-): readonly StrictAreaRankedShop[] {
-  if (entries.length === 0) return Object.freeze([]);
+function normalizeField(value: unknown): string {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return typeof value === "string" ? value.trim() : "";
+}
 
-  const shopsBySlug = new Map<string, ShopView>();
-  const ambiguousSlugs = new Set<string>();
-  for (const shop of shops) {
-    const slug = shop.slug.trim().toLowerCase();
-    if (!slug) continue;
-    if (shopsBySlug.has(slug)) ambiguousSlugs.add(slug);
-    shopsBySlug.set(slug, shop);
+export function hasPriorityStationWalk(shop: Pick<ShopView, "acf">): boolean {
+  const station = PRIORITY_STATION_FIELDS
+    .map((field) => normalizeField(shop.acf[field]))
+    .find((value) => /駅/u.test(value));
+  if (!station) return false;
+  if (WALK_MINUTES_PATTERN.test(station)) return true;
+
+  for (const field of PRIORITY_WALK_FIELDS) {
+    const walk = normalizeField(shop.acf[field]);
+    if (WALK_MINUTES_PATTERN.test(walk)) return true;
+    if (/^[1-9][0-9]*$/u.test(walk)) return true;
   }
-
-  const seenSlugs = new Set<string>();
-  const seenRanks = new Set<number>();
-  const ranked: StrictAreaRankedShop[] = [];
-  for (const entry of entries) {
-    const slug = entry.shopSlug.trim().toLowerCase();
-    if (
-      !slug ||
-      !Number.isSafeInteger(entry.rank) ||
-      entry.rank <= 0 ||
-      seenSlugs.has(slug) ||
-      seenRanks.has(entry.rank) ||
-      ambiguousSlugs.has(slug)
-    ) {
-      return Object.freeze([]);
-    }
-    seenSlugs.add(slug);
-    seenRanks.add(entry.rank);
-    const shop = shopsBySlug.get(slug);
-    if (shop) ranked.push(Object.freeze({ shop, rank: entry.rank }));
-  }
-
-  return Object.freeze(ranked.sort((left, right) => left.rank - right.rank));
+  return false;
 }

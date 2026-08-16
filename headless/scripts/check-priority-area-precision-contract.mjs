@@ -58,11 +58,11 @@ const areaRanking = compileModule("lib/area-shop-ranking.ts", {
 });
 assert.deepEqual(
   JSON.parse(JSON.stringify(areaRanking.normalizeAreaShopRankingEntries([
-    { shopSlug: "first", rank: 1 },
-    { shopSlug: "third", rank: 3 },
+    { shopSlug: "first" },
+    { shopSlug: "third", rank: 99 },
   ]))),
-  [{ shopSlug: "first", rank: 1 }, { shopSlug: "third", rank: 3 }],
-  "formal ranking normalization must preserve explicit gaps",
+  [{ shopSlug: "first", rank: 1 }, { shopSlug: "third", rank: 2 }],
+  "non-priority ranking normalization must retain its legacy inference and compaction",
 );
 const realAreaUtils = compileModule("lib/area-shop-utils.ts", {
   "@/lib/area-hub-config": {
@@ -93,8 +93,8 @@ const realAreaUtils = compileModule("lib/area-shop-utils.ts", {
 const stationFixture = (acf) => ({ acf, terms: [], primaryArea: null });
 assert.equal(
   realAreaUtils.isStationNearShop(stationFixture({ shop_access: "日本橋駅 徒歩1分" })),
-  false,
-  "generic shop_access alone must never become formal station data",
+  true,
+  "non-priority station behavior must continue to accept generic shop_access",
 );
 assert.equal(
   realAreaUtils.isStationNearShop(stationFixture({ shop_station: "日本橋駅" })),
@@ -103,15 +103,25 @@ assert.equal(
 );
 assert.equal(
   realAreaUtils.isStationNearShop(stationFixture({ shop_station: "日本橋駅", shop_walk_minutes: 3 })),
-  true,
-  "dedicated station and walk information enable station data",
+  false,
+  "non-priority station behavior must remain byte-for-byte compatible with the base helper",
+);
+const realPrecision = compileModule("lib/priority-area-precision.ts", {
+  "@/lib/area-shop-utils": realAreaUtils,
+});
+assert.deepEqual(
+  JSON.parse(JSON.stringify(realPrecision.resolvePriorityAreaCapabilities([
+    stationFixture({ shop_access: "日本橋駅 徒歩1分" }),
+  ], { slug: "nihonbashi", name: "大阪日本橋" }))),
+  { beginner: false, station: false },
+  "priority capability must reject generic shop_access even when non-priority routes accept it",
 );
 assert.deepEqual(
-  JSON.parse(JSON.stringify(areaRanking.normalizeAreaShopRankingEntries([
-    { shopSlug: "missing-rank" },
-  ]))),
-  [],
-  "missing or invalid formal ranks must not be inferred from array order",
+  JSON.parse(JSON.stringify(realPrecision.resolvePriorityAreaCapabilities([
+    stationFixture({ shop_station: "日本橋駅", shop_walk_minutes: 3 }),
+  ], { slug: "nihonbashi", name: "大阪日本橋" }))),
+  { beginner: false, station: true },
+  "priority capability must accept a dedicated station field plus explicit walk data",
 );
 
 const priorityAreas = [
@@ -121,9 +131,11 @@ const priorityAreas = [
   { id: 46, slug: "sakaisujihonmachi", name: "堺筋本町", expected: 18 },
   { id: 4, slug: "umeda", name: "梅田", expected: 5 },
 ];
+assert.equal(typeof precision.shouldLoadLegacyAreaRanking, "function", "legacy ranking read gate must exist");
 
 for (const area of priorityAreas) {
   assert.equal(precision.isPriorityAreaPrecisionTarget(area), true, `${area.slug} must enable precision mode by ID`);
+  assert.equal(precision.shouldLoadLegacyAreaRanking(area), false, `${area.slug} must not read legacy ranking storage`);
 }
 for (const area of [
   { id: 999, slug: "sakai", name: "堺東" },
@@ -135,6 +147,7 @@ for (const area of [
     false,
     `non-canonical ID ${area.id} must not enable precision mode from name or slug`,
   );
+  assert.equal(precision.shouldLoadLegacyAreaRanking(area), true, `non-priority Area ${area.id} keeps legacy ranking behavior`);
 }
 
 const target = priorityAreas[2];
@@ -226,14 +239,6 @@ assert.deepEqual(
   "validated data must enable the matching UI only",
 );
 
-const ranked = precision.resolveStrictAreaRanking(
-  [exact, related, unclassified],
-  [{ shopSlug: exact.slug, rank: 1 }, { shopSlug: unclassified.slug, rank: 3 }],
-);
-assert.deepEqual(Array.from(ranked, ({ shop: rankedShop, rank }) => [rankedShop.id, rank]), [[1, 1], [3, 3]], "formal ranks keep explicit gaps");
-assert.deepEqual(Array.from(precision.resolveStrictAreaRanking([exact], [])), [], "missing formal records must not create ranking");
-assert.equal(ranked.some(({ rank }) => rank === 2), false, "formal ranking gaps must never be renumbered");
-
 const runtimeSourceFiles = ["app", "components", "lib"].flatMap(runtimeFiles);
 for (const file of runtimeSourceFiles) {
   const source = read(file);
@@ -256,12 +261,8 @@ for (const contract of [
   assert.ok(template.includes(contract), `Area Hub integration is missing ${contract}`);
 }
 const content = read("components/area/area-hub-content.tsx");
-assert.ok(content.includes("resolveStrictAreaRanking"), "priority ranking must use formal records only");
 assert.ok(content.includes("capabilities.beginner"), "beginner tab must share validated availability");
 assert.ok(content.includes("capabilities.station"), "station tab must share validated availability");
-assert.ok(template.includes('rankingShops={mainShops}'), "strict ranking must receive EXACT shops only in precision mode");
-const rankingSource = read("lib/area-shop-ranking.ts");
-assert.ok(!rankingSource.includes(".map((entry, index) => ({ ...entry, rank: index + 1 }))"), "formal ranks must not be renumbered");
 
 const routeSource = read("app/area/[slug]/page.tsx");
 assert.equal((routeSource.match(/generateMetadata/gu) ?? []).length, 1, "area metadata contract remains singular");

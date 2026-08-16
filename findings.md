@@ -9,6 +9,11 @@
 - 現行Area Hubはlegacy relationの全店舗を単一一覧へ渡し、formal rankがなくても配列順から順位を作る経路がある。初心者・駅filter/moduleも有効data 0で残るため、priority5側だけfail closedへ改める必要がある。
 - `shop_access`は広い自由文で、単独では正式station dataへ昇格しない。専用station fieldと徒歩情報を同時に満たさない場合、駅module/filter/copy/countをDOMへ出さない。
 - URL、canonical、sitemap、robots、title/H1の全面変更、SEO長文、FAQ、新storage、本番書込、dependency更新は今回の範囲外である。
+- 初回実装の独立レビューで、priority5が旧`escomi_area_shop_rankings`を正式順位として読み得ること、共通順位/駅helperが非priorityまで変更されたこと、副次店舗がfull cardで長すぎること、空の比較/価格moduleが残ること、browser fixtureが本番component/CSSを直接使っていないことをCritical/Importantとして確認した。
+- 正式`ranking_configuration`は現契約で`storage-not-configured`のため、priority5は旧順位endpointを取得せず、順位module・順位badge・旧順位sort・PR順位をすべて出さない。非priorityの旧順位normalizer、駅helper、RankingHeroCardsは初回baseと完全一致へ戻した。
+- priority専用の駅判定は専用駅fieldに「駅」があり、同fieldまたは専用徒歩fieldに徒歩分数がある場合だけtrueとする。汎用`shop_access`はpriority判定へ使わない一方、非priorityの従来判定は維持する。
+- RELATED/UNCLASSIFIEDは店舗IDをDOMへ保持したSSRの通常link一覧へ変更した。同名別IDを別行として維持し、PCは2列、767px以下は1列、1行48〜52pxで全店舗をcrawl可能なままfull cardより大幅に短縮した。
+- 実`AreaHubPageTemplate`、`AreaShopList`、`AreaShopCard`、production CSSを一時Next routeから読むfixtureへ変更した。一時route/appは検査後に削除し、repoへ本番routeを残さない。fixture 55とcurrent-data fail-safe 55の計110 scenarios・1,400 assertions・20 screenshotsがfailure 0となった。
 
 ## 2026-08-16 UX-AREA-PRIMARY-BACKFILL-PREVIEW-01
 

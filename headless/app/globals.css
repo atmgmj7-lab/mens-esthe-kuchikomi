@@ -3774,6 +3774,64 @@ img {
 
 .area-hub-shop-group__list { display: flex; flex-direction: column; gap: 18px; }
 
+.area-hub-secondary-shop-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.area-hub-secondary-shop-list__item {
+  min-width: 0;
+}
+
+.area-hub-secondary-shop-list__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(20, 61, 77, 0.14);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--mep-navy);
+  text-decoration: none;
+}
+
+.area-hub-secondary-shop-list__link:hover {
+  border-color: rgba(20, 61, 77, 0.38);
+  background: rgba(20, 61, 77, 0.035);
+}
+
+.area-hub-secondary-shop-list__name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.area-hub-secondary-shop-list__meta {
+  flex: 0 0 auto;
+  color: #66727a;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .area-hub-secondary-shop-list {
+    grid-template-columns: 1fr;
+  }
+
+  .area-hub-secondary-shop-list__link {
+    min-height: 48px;
+  }
+}
+
 .area-shop-links__box { display: flex; flex-direction: column; gap: 10px; }
 
 .area-shop-links__item {

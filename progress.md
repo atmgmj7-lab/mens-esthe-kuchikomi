@@ -743,3 +743,14 @@
 - TDDは新helper不在、template未接続、順位欠損の配列順推測を順にREDで確認した後、focused GREENへした。Primary preview 44件で5AreaのEXACT `6/3/12/18/5`をtest fixtureとして確認した。
 - focused、Primary/preview、Area、口コミ、T1/T2、出典、PR、内部link、SEO、schema、通常`npm test`、lint、typecheck、821ページbuild、audit high、差分検査がすべて成功した。browser QAはfixture 55 + current-data fail-safe 55 = 110 scenarios、999 assertions、20 screenshots、failures 0。代表4画像を実目視した。
 - セルフレビューは仕様、品質・安全性、表示の3観点でCritical 0 / Important 0。dependency、`package-lock.json`、T3-B/T4、WordPress/Supabase本番data、push、deployは変更していない。本番Primary backfill前で停止する。
+
+## 2026-08-16 UX-PROD-T3A 独立レビュー指摘修正
+
+- 初回commit `a3f85d1`への独立レビューで、priority5の旧順位読込、非priorityの共通helper退行、副次full card、空比較/価格module、実componentを使わないbrowser fixtureをCritical/Importantとして受領した。
+- REDは非priority順位normalizer回帰、priority legacy ranking read gate不在をfocused検査で確認した。実component fixtureは55 scenarios・905 assertions中、初回505 failuresとなり、副次full card・旧順位/module/badge・空tab・空価格を利用者向けDOMで再現した。
+- priority5は旧`escomi_area_shop_rankings` endpointを取得せず、正式`ranking_configuration`が未提供の現在は順位module・badge・旧順位sort・PR順位を出さない。共通順位normalizer、共通駅helper、非priority RankingHeroCardsはbaseと完全一致へ戻した。
+- RELATED/UNCLASSIFIEDを全件crawlable SSR compact linksへ変更し、canonical WP IDを`data-shop-id`へ保持した。同名別IDも別行で維持し、PC2列・mobile1列、48〜52px行へ短縮した。
+- priority専用駅+徒歩判定を追加し、汎用`shop_access`だけでは駅UIを出さない。実data 0の比較tabはcontainerごと、料金0の価格案内はsectionごと非表示にした。
+- browser runnerは実`AreaHubPageTemplate`/`AreaShopList`/`AreaShopCard`とproduction CSSを一時routeで直接検証する。GREENはfixture 55 + current-data fail-safe 55 = 110 scenarios、1,400 assertions、20 screenshots、failures 0。堺筋本町fixtureと梅田liveの320/1440px代表4画像を目視し、横崩れなし、副次一覧の大幅短縮を確認した。
+- corrective最終確認はfocusedと関連15検査、通常`npm test`、lint、typecheck、821ページbuild、`npm audit --audit-level=high`（vulnerabilities 0）、`git diff --check`がすべてexit 0。仕様・品質安全性・表示セルフレビューはCritical 0 / Important 0。
+- dependency、`package-lock.json`、本番route、T3-B/T4、Primary backfill、WordPress/Supabase本番data、push、deployは変更・実施していない。レビュー修正だけを別commitにして停止する。

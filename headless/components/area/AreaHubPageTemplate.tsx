@@ -14,7 +14,6 @@ import {
 import { AreaHubRelatedAreas } from "@/components/area/hub/AreaHubRelatedAreas";
 import { AreaHubDecisionGuide } from "@/components/area/hub/AreaHubDecisionGuide";
 import { AreaShopList } from "@/components/area/hub/AreaShopList";
-import { AreaShopCard } from "@/components/common/AreaShopCard";
 import {
   aggregateReviewCountLabel,
   resolveAreaHubContext,
@@ -30,6 +29,36 @@ import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-con
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { CSSProperties } from "react";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+
+function SecondaryShopLinks({ shops }: { shops: readonly ShopView[] }) {
+  return (
+    <ul className="area-hub-secondary-shop-list">
+      {shops.map((shop) => (
+        <li
+          key={shop.id}
+          className="area-hub-secondary-shop-list__item"
+          data-area-secondary-shop="true"
+          data-shop-id={shop.id}
+        >
+          <Link
+            className="area-hub-secondary-shop-list__link"
+            href={`/shops/${shop.slug}/`}
+            aria-label={shop.title}
+          >
+            <span className="area-hub-secondary-shop-list__name">{shop.title}</span>
+            {shop.primaryArea?.name ? (
+              <span className="area-hub-secondary-shop-list__meta">
+                主な掲載エリア：{shop.primaryArea.name}
+              </span>
+            ) : (
+              <span className="area-hub-secondary-shop-list__meta">主な掲載エリアを確認中</span>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function areaHubBreadcrumbJsonLd(
   hubContext: ReturnType<typeof resolveAreaHubContext>,
@@ -225,11 +254,7 @@ export function AreaHubPageTemplate({
                   <p className="area-hub-section__intro area-hub-section__intro--compact">
                     このエリアにも掲載関係がありますが、主な掲載先は別エリアとして登録されています。
                   </p>
-                  <div className="area-hub-shop-group__list">
-                    {precisionGroups.related.map((shop) => (
-                      <AreaShopCard key={shop.id} shop={shop} targetArea={area} rank={null} showRank={false} />
-                    ))}
-                  </div>
+                  <SecondaryShopLinks shops={precisionGroups.related} />
                 </section>
               ) : null}
               {precisionGroups.unclassified.length > 0 ? (
@@ -238,11 +263,7 @@ export function AreaHubPageTemplate({
                   <p className="area-hub-section__intro area-hub-section__intro--compact">
                     このエリアとの掲載関係はありますが、主な掲載エリアはまだ確認できていません。
                   </p>
-                  <div className="area-hub-shop-group__list">
-                    {precisionGroups.unclassified.map((shop) => (
-                      <AreaShopCard key={shop.id} shop={shop} targetArea={area} rank={null} showRank={false} />
-                    ))}
-                  </div>
+                  <SecondaryShopLinks shops={precisionGroups.unclassified} />
                 </section>
               ) : null}
             </div>
@@ -257,7 +278,11 @@ export function AreaHubPageTemplate({
           capabilities={capabilities}
         />
         <AreaLatestReviews shops={mainShops} hubContext={hubContext} />
-        <AreaHubPriceAndGuideSections rankingShops={mainShops} hubContext={hubContext} />
+        <AreaHubPriceAndGuideSections
+          rankingShops={mainShops}
+          hubContext={hubContext}
+          precisionMode={precisionMode}
+        />
         <AreaFaqSection items={faqItems} areaSlug={area.slug} />
         <AreaHubRelatedAreas
           area={area}

@@ -31,8 +31,8 @@ import {
   buildRankingIntro
 } from "@/lib/shop-ranking";
 import {
+  hasPriorityStationWalk,
   resolvePriorityAreaCapabilities,
-  resolveStrictAreaRanking,
   type PriorityAreaCapabilities,
 } from "@/lib/priority-area-precision";
 import type { AreaView, ShopView } from "@/lib/wp/types";
@@ -155,10 +155,16 @@ export function AreaHubLocalGuideSection({ hubContext }: { hubContext: AreaHubCo
   );
 }
 
-function useRankingBuckets(rankingShops: ShopView[], targetArea: Pick<AreaView, "slug" | "name">) {
+function useRankingBuckets(
+  rankingShops: ShopView[],
+  targetArea: Pick<AreaView, "slug" | "name">,
+  precisionMode = false,
+) {
   const lateNightShops = rankingShops.filter(isLateNightShop);
   const beginnerShops = rankingShops.filter(isBeginnerFriendlyShop);
-  const stationShops = rankingShops.filter((s) => isStationNearShop(s, targetArea));
+  const stationShops = rankingShops.filter((shop) => (
+    precisionMode ? hasPriorityStationWalk(shop) : isStationNearShop(shop, targetArea)
+  ));
   const pricedShops = rankingShops.filter(hasPublishedPrice);
   const prices = rankingShops.map(extractShopConfirmedPriceYen).filter((p): p is number => p !== null);
   const minPrice = prices.length ? Math.min(...prices) : null;
@@ -190,13 +196,10 @@ export function AreaHubRankingTop({
   rankingEntries?: AreaShopRankingEntry[];
   precisionMode?: boolean;
 }) {
-  const rankedTopFive = precisionMode
-    ? resolveStrictAreaRanking(rankingShops, rankingEntries).slice(0, 5)
-    : orderShopsForAreaRanking(rankingShops, targetArea, rankingEntries)
-        .slice(0, 5)
-        .map((shop, index) => ({ shop, rank: index + 1 }));
+  if (precisionMode) return null;
+  const topFive = orderShopsForAreaRanking(rankingShops, targetArea, rankingEntries).slice(0, 5);
 
-  if (rankedTopFive.length === 0) return null;
+  if (topFive.length === 0) return null;
 
   const rankingIntro = buildRankingIntro(hubContext);
   const rankingBannerEnabled = isLayeredBannerSectionEnabled("ranking");
@@ -235,7 +238,7 @@ export function AreaHubRankingTop({
           PR枠や口コミ件数とは分けて表示します。
         </p>
       </div>
-      <RankingHeroCards rankedShops={rankedTopFive} targetArea={targetArea} />
+      <RankingHeroCards shops={topFive} targetArea={targetArea} />
       <p className="area-hub-section__footnote">
         <a href="#compare-tabs">条件別ランキング</a>
         でも比較できます。
@@ -315,13 +318,13 @@ export function AreaHubCompareTabsSections({
   capabilities?: PriorityAreaCapabilities;
 }) {
   const { lateNightShops, beginnerShops, stationShops, pricedShops, sortedRanking } =
-    useRankingBuckets(rankingShops, targetArea);
+    useRankingBuckets(rankingShops, targetArea, precisionMode);
 
   const priceTableTitle = hubContext.priceTableTitle;
   const specialtyPageSize = 5;
 
-  const tabs: RankingTabItem[] = [
-    {
+  const tabs: RankingTabItem[] = [];
+  if (!precisionMode || pricedShops.length > 0) tabs.push({
       id: "price-table",
       label: "料金比較",
       content: (
@@ -329,8 +332,8 @@ export function AreaHubCompareTabsSections({
           <RankingComparisonTable shops={pricedShops.length > 0 ? pricedShops : sortedRanking.slice(0, 15)} />
         </CompareTabPanel>
       ),
-    },
-    {
+  });
+  if (!precisionMode || lateNightShops.length > 0) tabs.push({
       id: "late-night",
       label: "深夜営業",
       content: (
@@ -342,26 +345,35 @@ export function AreaHubCompareTabsSections({
           )}
         </CompareTabPanel>
       ),
-    },
-  ];
-  if (!precisionMode || capabilities.beginner) tabs.push({
+  });
+  if (!precisionMode || (capabilities.beginner && beginnerShops.length > 0)) tabs.push({
     id: "beginner",
     label: "初心者向け",
     content: (
       <CompareTabPanel theme="beginner" areaSlug={targetArea.slug} ja={`初心者におすすめの${hubContext.name}メンズエステ`}>
-        <RankingSpecialtyPagedList shops={beginnerShops} targetArea={targetArea} variant="beginner" pageSize={specialtyPageSize} ariaLabel="初心者向け店舗のページ送り" />
+        {beginnerShops.length > 0 ? (
+          <RankingSpecialtyPagedList shops={beginnerShops} targetArea={targetArea} variant="beginner" pageSize={specialtyPageSize} ariaLabel="初心者向け店舗のページ送り" />
+        ) : (
+          <p className="area-hub-section__empty">該当店舗の抽出に十分な情報がありません。</p>
+        )}
       </CompareTabPanel>
     ),
   });
-  if (!precisionMode || capabilities.station) tabs.push({
+  if (!precisionMode || (capabilities.station && stationShops.length > 0)) tabs.push({
     id: "station",
     label: "駅名・徒歩案内あり",
     content: (
-      <CompareTabPanel theme="station" areaSlug={targetArea.slug} ja={`駅名・徒歩案内がある${hubContext.name}メンズエステ`} intro="WordPressの専用駅名項目と徒歩情報が明示されている店舗だけを掲載しています。">
-        <RankingSpecialtyPagedList shops={stationShops} targetArea={targetArea} variant="station" pageSize={specialtyPageSize} ariaLabel="駅名・徒歩案内がある店舗のページ送り" />
+      <CompareTabPanel theme="station" areaSlug={targetArea.slug} ja={`駅名・徒歩案内がある${hubContext.name}メンズエステ`} intro={precisionMode ? "WordPressの専用駅名項目と徒歩情報が明示されている店舗だけを掲載しています。" : "WordPressの駅名と徒歩分数が明示されている店舗だけを掲載しています。"}>
+        {stationShops.length > 0 ? (
+          <RankingSpecialtyPagedList shops={stationShops} targetArea={targetArea} variant="station" pageSize={specialtyPageSize} ariaLabel="駅名・徒歩案内がある店舗のページ送り" />
+        ) : (
+          <p className="area-hub-section__empty">駅名と徒歩分数を確認できる店舗はありません。</p>
+        )}
       </CompareTabPanel>
     ),
   });
+
+  if (tabs.length === 0) return null;
 
   return (
     <>
@@ -375,10 +387,12 @@ export function AreaHubCompareTabsSections({
 /** 料金相場・選び方 */
 export function AreaHubPriceAndGuideSections({
   rankingShops,
-  hubContext
+  hubContext,
+  precisionMode = false,
 }: {
   rankingShops: ShopView[];
   hubContext: AreaHubContext;
+  precisionMode?: boolean;
 }) {
   const prices = rankingShops.map(extractShopConfirmedPriceYen).filter((p): p is number => p !== null);
   const minPrice = prices.length ? Math.min(...prices) : null;
@@ -386,6 +400,7 @@ export function AreaHubPriceAndGuideSections({
 
   return (
     <>
+      {!precisionMode || prices.length > 0 ? (
       <AreaHubSectionShell theme="market" areaSlug={hubContext.slug} id="price-guide">
         <AreaHubSectionHeader
           theme="market"
@@ -408,6 +423,7 @@ export function AreaHubPriceAndGuideSections({
           </p>
         )}
       </AreaHubSectionShell>
+      ) : null}
 
       {hubContext.guidePath ? (
         <AreaHubSectionShell theme="guide" areaSlug={hubContext.slug} id="how-to-choose">

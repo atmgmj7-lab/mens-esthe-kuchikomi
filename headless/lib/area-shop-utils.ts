@@ -62,8 +62,7 @@ export type AreaHubContext = {
 };
 
 const DISPATCH_PATTERN = /出張|デリバリー|派遣/;
-const EXPLICIT_STATION_FIELDS = ["shop_station", "nearest_station", "station"] as const;
-const EXPLICIT_WALK_FIELDS = ["shop_walk_minutes", "station_walk_minutes", "walk_minutes"] as const;
+const EXPLICIT_STATION_FIELDS = ["shop_station", "nearest_station", "station", "shop_access"] as const;
 const WALK_MINUTES_PATTERN = /徒歩\s*(?:約\s*)?[0-9０-９]+\s*分/;
 const BEGINNER_FEATURE_PATTERN = /初心者|初めての方|はじめての方/;
 
@@ -185,15 +184,7 @@ function buildLocationHaystack(shop: ShopView): string {
 export function shopStationAccessText(shop: ShopView): string {
   for (const key of EXPLICIT_STATION_FIELDS) {
     const value = normalizeShopDisplayText(shop.acf[key]);
-    if (!value) continue;
-    if (WALK_MINUTES_PATTERN.test(value)) return value;
-    for (const walkKey of EXPLICIT_WALK_FIELDS) {
-      const rawWalk = shop.acf[walkKey];
-      const walk = typeof rawWalk === "number" ? String(rawWalk) : normalizeShopDisplayText(rawWalk);
-      if (/^[0-9０-９]+$/u.test(walk) && Number(walk) > 0) return `${value} 徒歩${walk}分`;
-      if (WALK_MINUTES_PATTERN.test(walk)) return `${value} ${walk}`;
-    }
-    return value;
+    if (value) return value;
   }
   return "";
 }

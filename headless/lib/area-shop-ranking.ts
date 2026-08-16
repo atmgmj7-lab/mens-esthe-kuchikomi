@@ -19,28 +19,25 @@ export function canDisplayAreaShopRank(shop: ShopView): boolean {
 export function normalizeAreaShopRankingEntries(value: unknown): AreaShopRankingEntry[] {
   if (!Array.isArray(value)) return [];
 
-  const seenSlugs = new Set<string>();
-  const seenRanks = new Set<number>();
-  const normalized: AreaShopRankingEntry[] = [];
-  for (const item of value) {
-    if (!item || typeof item !== "object") return [];
-    const entry = item as Record<string, unknown>;
-    const shopSlug = normalizeSlug(entry.shopSlug ?? entry.shop_slug ?? entry.slug);
-    const rawRank = Number(entry.rank);
-    if (
-      !shopSlug ||
-      !Number.isSafeInteger(rawRank) ||
-      rawRank <= 0 ||
-      seenSlugs.has(shopSlug) ||
-      seenRanks.has(rawRank)
-    ) {
-      return [];
-    }
-    seenSlugs.add(shopSlug);
-    seenRanks.add(rawRank);
-    normalized.push({ shopSlug, rank: rawRank });
-  }
-  return normalized.sort((a, b) => a.rank - b.rank).slice(0, 5);
+  const seen = new Set<string>();
+  return value
+    .map((item, index) => {
+      const entry = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      const shopSlug = normalizeSlug(entry.shopSlug ?? entry.shop_slug ?? entry.slug);
+      const rawRank = Number(entry.rank ?? index + 1);
+      return {
+        rank: Number.isFinite(rawRank) && rawRank > 0 ? Math.floor(rawRank) : index + 1,
+        shopSlug
+      };
+    })
+    .filter((entry) => {
+      if (!entry.shopSlug || seen.has(entry.shopSlug)) return false;
+      seen.add(entry.shopSlug);
+      return true;
+    })
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, 5)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
 export function normalizeAreaShopRankingMap(value: unknown): AreaShopRankingMap {

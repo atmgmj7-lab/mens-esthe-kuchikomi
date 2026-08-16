@@ -6,8 +6,8 @@ import { AreaSortTabs } from "@/components/area/hub/AreaSortTabs";
 import { AreaShopCard } from "@/components/common/AreaShopCard";
 import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
+  hasPriorityStationWalk,
   resolvePriorityAreaCapabilities,
-  resolveStrictAreaRanking,
   type PriorityAreaCapabilities,
 } from "@/lib/priority-area-precision";
 import {
@@ -103,21 +103,20 @@ export function AreaShopList({
       : option),
     [capabilities.station, precisionMode],
   );
-  const strictRankById = useMemo(
-    () => new Map(resolveStrictAreaRanking(shops, rankingEntries).map(({ shop, rank }) => [shop.id, rank])),
-    [shops, rankingEntries],
-  );
   const orderedShops = useMemo(() => {
-    if (!precisionMode || activeSort !== "recommended") {
+    if (!precisionMode) {
       return prepareAreaShopListView(shops, activeFilters, activeSort, targetArea, rankingEntries);
     }
-    const filtered = filterAreaShops(shops, activeFilters, targetArea);
-    const rankedIds = new Set(strictRankById.keys());
-    const formal = [...filtered]
-      .filter((shop) => rankedIds.has(shop.id))
-      .sort((left, right) => (strictRankById.get(left.id) ?? 0) - (strictRankById.get(right.id) ?? 0));
-    return [...formal, ...filtered.filter((shop) => !rankedIds.has(shop.id))];
-  }, [shops, activeFilters, activeSort, targetArea, rankingEntries, precisionMode, strictRankById]);
+    const stationRequested = activeFilters.includes("station");
+    const filtersWithoutStation = activeFilters.filter((filter) => filter !== "station");
+    const filtered = filterAreaShops(shops, filtersWithoutStation, targetArea)
+      .filter((shop) => !stationRequested || hasPriorityStationWalk(shop));
+    if (activeSort === "recommended") return filtered;
+    if (activeSort === "station") {
+      return [...filtered].sort((left, right) => Number(hasPriorityStationWalk(right)) - Number(hasPriorityStationWalk(left)));
+    }
+    return prepareAreaShopListView(filtered, [], activeSort, targetArea, []);
+  }, [shops, activeFilters, activeSort, targetArea, rankingEntries, precisionMode]);
   const relaxSuggestions = useMemo(
     () => getFilterRelaxationSuggestions(shops, activeFilters, targetArea),
     [shops, activeFilters, targetArea]
@@ -256,9 +255,7 @@ export function AreaShopList({
             {orderedShops.map((shop) => {
               const visible = visibleShops.some((item) => item.id === shop.id);
               const rank = precisionMode
-                ? activeSort === "recommended" && legacyPage === 1
-                  ? strictRankById.get(shop.id) ?? null
-                  : null
+                ? null
                 : resolveAreaShopListCardRank(shop, orderedShops, {
                     route: "hub",
                     sortId: activeSort,
