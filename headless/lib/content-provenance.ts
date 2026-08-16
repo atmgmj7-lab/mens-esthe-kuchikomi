@@ -1,6 +1,7 @@
 export type ContentSourceType =
   | "user-review"
   | "editorial-comment"
+  | "shop-reply"
   | "shop-provided"
   | "shop-description"
   | "ai-generated"
@@ -91,6 +92,8 @@ export type ContentProvenanceInput = {
   isPr?: unknown;
   is_pr?: unknown;
   sponsored?: unknown;
+  isShopReply?: unknown;
+  is_shop_reply?: unknown;
   [key: string]: unknown;
 };
 
@@ -98,6 +101,7 @@ export type NormalizedContentItem = {
   id: string | null;
   shopId: string | null;
   sourceType: ContentSourceType;
+  contentKind: ReviewContentKind | null;
   moderationStatus: ContentModerationStatus;
   publicationStatus: ContentPublicationStatus;
   isPublic: boolean;
@@ -115,8 +119,14 @@ export type NormalizedContentItem = {
   reason: string;
 };
 
+export type ReviewContentKind =
+  | "approved-user-review"
+  | "editorial-article"
+  | "shop-reply";
+
 const USER_REVIEW_SOURCE_TYPES = new Set(["user-review", "user_review", "user-review"]);
 const EDITORIAL_SOURCE_TYPES = new Set(["editorial", "editorial-comment", "editorial_comment"]);
+const SHOP_REPLY_SOURCE_TYPES = new Set(["shop-reply", "shop_reply", "reply", "store-reply"]);
 const SHOP_PROVIDED_SOURCE_TYPES = new Set(["shop-provided", "shop_provided", "official", "store-provided"]);
 const SHOP_DESCRIPTION_SOURCE_TYPES = new Set(["shop-description", "shop_description", "description"]);
 const AI_SOURCE_TYPES = new Set(["ai", "ai-generated", "ai_generated", "generated"]);
@@ -230,6 +240,7 @@ function explicitSourceType(value: unknown): ContentSourceType | null {
   if (!token) return null;
   if (USER_REVIEW_SOURCE_TYPES.has(token)) return "user-review";
   if (EDITORIAL_SOURCE_TYPES.has(token)) return "editorial-comment";
+  if (SHOP_REPLY_SOURCE_TYPES.has(token)) return "shop-reply";
   if (SHOP_PROVIDED_SOURCE_TYPES.has(token)) return "shop-provided";
   if (SHOP_DESCRIPTION_SOURCE_TYPES.has(token)) return "shop-description";
   if (AI_SOURCE_TYPES.has(token)) return "ai-generated";
@@ -247,6 +258,7 @@ function resolveSourceType(input: ContentProvenanceInput): ContentSourceType {
   if (truthyFlag(firstDefined(input.isAiGenerated, input.is_ai_generated))) return "ai-generated";
   if (truthyFlag(firstDefined(input.isPromotion, input.is_promotion, input.isPr, input.is_pr, input.sponsored))) return "promotion";
   if (truthyFlag(firstDefined(input.isEditorial, input.is_editorial))) return "editorial-comment";
+  if (truthyFlag(firstDefined(input.isShopReply, input.is_shop_reply))) return "shop-reply";
 
   const sourceField = textValue(firstDefined(input.sourceField, input.source_field));
   if (sourceField && FIELD_SOURCE_TYPES[sourceField]) {
@@ -307,11 +319,19 @@ export function normalizeContentItem(input: ContentProvenanceInput): NormalizedC
     body
   });
   const canDisplayAsUserReview = reason === "eligible-user-review-content";
+  const contentKind: ReviewContentKind | null = canDisplayAsUserReview
+    ? "approved-user-review"
+    : sourceType === "editorial-comment"
+      ? "editorial-article"
+      : sourceType === "shop-reply"
+        ? "shop-reply"
+        : null;
 
   return {
     id: idValue(input.id),
     shopId,
     sourceType,
+    contentKind,
     moderationStatus,
     publicationStatus,
     isPublic,

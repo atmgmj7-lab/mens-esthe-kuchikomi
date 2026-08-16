@@ -1,7 +1,8 @@
 import { normalizeShopRanking } from "@/lib/shop-ranking";
+import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
 import { rendered, safeText, stripHtml } from "@/lib/wp/client";
 import { encodeBrowserWpContentPath } from "@/lib/wp/path-encoding";
-import type { BlogPostView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
+import type { BlogPostView, ShopMediaView, ShopView, WpPostBase, WpShop, WpTerm } from "@/lib/wp/types";
 
 const SITE_WP_CONTENT_PREFIXES = [
   "http://mens-esthe-kuchikomi.com/wp-content/",
@@ -87,12 +88,81 @@ function extractAcfImageUrl(value: unknown): string {
   return "";
 }
 
-function acfShopImage(acf: Record<string, unknown>): string {
+function positiveDimension(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : undefined;
+}
+
+function acfImageMetadata(value: unknown): Pick<ShopMediaView, "alt" | "width" | "height"> {
+  if (!value || typeof value !== "object") return { alt: "" };
+  const image = value as Record<string, unknown>;
+  const alt = typeof image.alt === "string"
+    ? image.alt
+    : typeof image.alt_text === "string"
+      ? image.alt_text
+      : "";
+  return {
+    alt,
+    width: positiveDimension(image.width),
+    height: positiveDimension(image.height),
+  };
+}
+
+function acfShopMedia(acf: Record<string, unknown>, fallbackAlt: string): ShopMediaView | null {
   for (const key of SHOP_ACF_IMAGE_KEYS) {
-    const url = extractAcfImageUrl(acf[key]);
-    if (url) return url;
+    const value = acf[key];
+    const url = extractAcfImageUrl(value);
+    if (!url) continue;
+    const metadata = acfImageMetadata(value);
+    return {
+      mediaId: null,
+      source: "legacy-acf",
+      url,
+      alt: metadata.alt || fallbackAlt,
+      ...(metadata.width ? { width: metadata.width } : {}),
+      ...(metadata.height ? { height: metadata.height } : {}),
+    };
   }
-  return "";
+  return null;
+}
+
+function featuredMediaView(post: WpShop, fallbackAlt: string): ShopMediaView | null {
+  if (!Number.isSafeInteger(post.featured_media) || Number(post.featured_media) <= 0) return null;
+  const media = post._embedded?.["wp:featuredmedia"]?.[0];
+  if (!media) return null;
+
+  const candidates = [
+    media.media_details?.sizes?.large,
+    media.media_details?.sizes?.medium_large,
+  ];
+  const selectedSize = candidates.find((size) => Boolean(size?.source_url));
+  const rawUrl = selectedSize?.source_url || media.source_url || "";
+  if (!rawUrl) return null;
+
+  return {
+    mediaId: Number(post.featured_media),
+    source: "legacy-featured",
+    url: normalizeImageUrl(rawUrl),
+    alt: media.alt_text || fallbackAlt,
+    ...(positiveDimension(selectedSize?.width ?? media.media_details?.width)
+      ? { width: positiveDimension(selectedSize?.width ?? media.media_details?.width) }
+      : {}),
+    ...(positiveDimension(selectedSize?.height ?? media.media_details?.height)
+      ? { height: positiveDimension(selectedSize?.height ?? media.media_details?.height) }
+      : {}),
+  };
+}
+
+function shopCardMedia(post: WpShop, title: string): ShopMediaView {
+  return featuredMediaView(post, title)
+    || acfShopMedia(post.acf || {}, title)
+    || {
+      mediaId: null,
+      source: "fallback",
+      url: "",
+      alt: title,
+    };
 }
 
 export function featuredImage(post: WpPostBase): string {
@@ -107,12 +177,6 @@ export function featuredImage(post: WpPostBase): string {
   return normalizeImageUrl(raw);
 }
 
-function shopImageUrl(post: WpShop): string {
-  const featured = featuredImage(post);
-  if (featured) return featured;
-  return acfShopImage(post.acf || {});
-}
-
 export function embeddedTerms(post: WpPostBase): WpTerm[] {
   return (post._embedded?.["wp:term"] || []).flat().filter(Boolean);
 }
@@ -120,6 +184,7 @@ export function embeddedTerms(post: WpPostBase): WpTerm[] {
 export function normalizeShop(post: WpShop): ShopView {
   const title = stripHtml(rendered(post.title));
   const acf = post.acf || {};
+  const cardSquare = shopCardMedia(post, title);
   return {
     id: post.id,
     slug: post.slug,
@@ -127,12 +192,17 @@ export function normalizeShop(post: WpShop): ShopView {
     title,
     contentHtml: rendered(post.content),
     excerpt: stripHtml(rendered(post.excerpt)),
-    imageUrl: shopImageUrl(post),
+    imageUrl: cardSquare.url,
+    media: {
+      cardSquare,
+      detailBanner: null,
+    },
     terms: embeddedTerms(post),
     acf,
     officialUrl: safeText(post.official_url || acf.official_url),
     areaSlug: safeText(post.area_slug),
-    ranking: normalizeShopRanking(acf)
+    ranking: normalizeShopRanking(acf),
+    strictRanking: unavailableStrictRanking("shop")
   };
 }
 

@@ -5,6 +5,10 @@ import type {
   ApprovedShopReviewMetric,
   ApprovedShopReviewResult,
 } from "@/lib/wp/types";
+import type {
+  ReviewRelationContext,
+  ReviewRelationView,
+} from "@/lib/ux-production-data-boundary";
 
 export type ShopReviewMetric = {
   key: "total" | "price" | "service" | "cleanliness";
@@ -138,12 +142,51 @@ function normalizeDateRange(
   return { oldestSubmittedAt, latestSubmittedAt };
 }
 
+function approvedReviewRelation(
+  reviewId: number,
+  context: ReviewRelationContext | undefined,
+): ReviewRelationView | null {
+  if (
+    !Number.isSafeInteger(reviewId) ||
+    reviewId <= 0 ||
+    !context ||
+    !Number.isSafeInteger(context.shopId) ||
+    context.shopId <= 0 ||
+    !Number.isSafeInteger(context.areaId) ||
+    context.areaId <= 0 ||
+    !context.shopSlug ||
+    context.shopSlug.trim() !== context.shopSlug ||
+    !context.areaSlug ||
+    context.areaSlug.trim() !== context.areaSlug
+  ) {
+    return null;
+  }
+
+  return {
+    reviewId,
+    shopId: context.shopId,
+    shopSlug: context.shopSlug,
+    areaId: context.areaId,
+    areaSlug: context.areaSlug,
+    therapistId: null,
+  };
+}
+
+export function buildApprovedShopReviewRelations(
+  result: ApprovedShopReviewResult,
+  relationContext?: ReviewRelationContext,
+): ReviewRelationView[] {
+  if (result.status === "unavailable") return [];
+  return result.page.reviews.flatMap((review) => {
+    const relation = approvedReviewRelation(review.id, relationContext);
+    return relation ? [relation] : [];
+  });
+}
+
 export function buildShopReviewViewModel(
   result: ApprovedShopReviewResult,
 ): ShopReviewViewModel {
-  if (result.status === "unavailable") {
-    return result;
-  }
+  if (result.status === "unavailable") return result;
 
   const { page } = result;
   const totalApproved = page.total;

@@ -2,7 +2,8 @@ import {
   normalizeContentItem,
   normalizeContentItems,
   type ContentProvenanceInput,
-  type NormalizedContentItem
+  type NormalizedContentItem,
+  type ReviewContentKind
 } from "@/lib/content-provenance";
 
 export const MIN_REVIEWS_FOR_AGGREGATE_RATING = 3;
@@ -34,6 +35,7 @@ export type NormalizedAggregateRating = {
 };
 
 export type ReviewEligibility = {
+  contentKind: ReviewContentKind | null;
   isUserSubmitted: boolean;
   isApproved: boolean;
   isPublished: boolean;
@@ -41,6 +43,7 @@ export type ReviewEligibility = {
   hasBody: boolean;
   hasShopReference: boolean;
   isEditorial: boolean;
+  isShopReply: boolean;
   isAiGenerated: boolean;
   isPromotion: boolean;
   canDisplayAsUserReview: boolean;
@@ -121,6 +124,7 @@ export function reviewEligibility(review: ReviewLike): ReviewEligibility {
   const rating = normalizeRatingValue(review.rating ?? review.ratingTotal ?? review.rating_total);
 
   return {
+    contentKind: item.contentKind,
     isUserSubmitted: item.sourceType === "user-review",
     isApproved: item.moderationStatus === "approved",
     isPublished: item.publicationStatus === "published" && item.isPublic,
@@ -128,6 +132,7 @@ export function reviewEligibility(review: ReviewLike): ReviewEligibility {
     hasBody: Boolean(item.body),
     hasShopReference: Boolean(item.shopId),
     isEditorial: item.sourceType === "editorial-comment",
+    isShopReply: item.sourceType === "shop-reply",
     isAiGenerated: item.sourceType === "ai-generated",
     isPromotion: item.sourceType === "promotion",
     canDisplayAsUserReview: item.canDisplayAsUserReview,

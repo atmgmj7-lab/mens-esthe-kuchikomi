@@ -1,4 +1,5 @@
 import type { PromotionDisclosure } from "@/lib/promotion-disclosure";
+import type { StrictRankingAvailability } from "@/lib/ux-production-data-boundary";
 export type WpRendered = {
   rendered?: string;
 };
@@ -7,7 +8,9 @@ export type WpMedia = {
   source_url?: string;
   alt_text?: string;
   media_details?: {
-    sizes?: Record<string, { source_url?: string }>;
+    width?: number;
+    height?: number;
+    sizes?: Record<string, { source_url?: string; width?: number; height?: number }>;
   };
 };
 
@@ -80,6 +83,15 @@ export type WpShop = WpPostBase & {
   area_slug?: string;
 };
 
+export type ShopMediaView = {
+  mediaId: number | null;
+  source: "legacy-featured" | "legacy-acf" | "fallback";
+  url: string;
+  alt: string;
+  width?: number;
+  height?: number;
+};
+
 export type ShopView = {
   id: number;
   slug: string;
@@ -88,11 +100,16 @@ export type ShopView = {
   contentHtml: string;
   excerpt: string;
   imageUrl: string;
+  media: {
+    cardSquare: ShopMediaView;
+    detailBanner: null;
+  };
   terms: WpTerm[];
   acf: Record<string, unknown>;
   officialUrl: string;
   areaSlug: string;
   ranking: ShopRankingMeta;
+  strictRanking: StrictRankingAvailability;
 };
 
 export type ApprovedShopReview = {

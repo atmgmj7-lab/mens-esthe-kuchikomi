@@ -28,6 +28,9 @@ export type ShopRankingMeta = {
   promotion: ReturnType<typeof resolvePromotionDisclosure>;
 };
 
+/** Existing recommendation order only; it is not the audited strict ranking contract. */
+export type LegacyShopRecommendationRanking = ShopRankingMeta;
+
 export type RankingBasis =
   | "user-rating"
   | "review-count"
