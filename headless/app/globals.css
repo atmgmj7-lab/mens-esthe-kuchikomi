@@ -3915,6 +3915,25 @@ img {
   margin-top: 14px;
 }
 
+.area-latest-reviews {
+  --review-ink: #172428;
+  --review-line: #d9dfdc;
+  --review-muted: #667478;
+  --review-teal: #006f72;
+}
+
+.area-latest-reviews__grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .area-latest-reviews__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .area-latest-reviews__list {
   margin: 0;
   padding: 0;
@@ -10063,6 +10082,78 @@ body .mep-area-section h2.mep-section-title::after {
   margin-top: auto;
 }
 
+.area-hub-priority-links {
+  border-block: 1px solid #d9dfdc;
+  margin-block: clamp(2.6rem, 6vw, 5rem);
+  padding-block: clamp(2rem, 5vw, 3.4rem);
+}
+
+.area-hub-priority-links__header {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 1.25rem;
+}
+
+.area-hub-priority-links__eyebrow {
+  color: #9a7528;
+  font: 700 0.72rem/1.4 Georgia, "Times New Roman", serif;
+  letter-spacing: 0.22em;
+  margin: 0;
+}
+
+.area-hub-priority-links__header h2 {
+  color: #26333b;
+  font-family: var(--es-heading-serif, var(--hl-serif));
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.area-hub-priority-links__grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.area-hub-priority-links__card {
+  background: #ffffff;
+  border: 1px solid #d9dfdc;
+  color: #26333b;
+  display: grid;
+  gap: 0.4rem;
+  min-height: 104px;
+  padding: 1rem 1.1rem;
+  text-decoration: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.area-hub-priority-links__card strong {
+  color: #006f72;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.area-hub-priority-links__card span {
+  color: #667478;
+  font-size: 0.8rem;
+  line-height: 1.65;
+}
+
+.area-hub-priority-links__card--accent {
+  border-color: #4f9999;
+}
+
+.area-hub-priority-links__card:hover {
+  border-color: #006f72;
+  box-shadow: 0 10px 26px rgba(23, 36, 40, 0.08);
+}
+
+.area-hub-priority-links__card:focus-visible {
+  outline: 3px solid #006f72;
+  outline-offset: 3px;
+}
+
 @media (max-width: 767px) {
   .escomi-final-area-hero__inner {
     padding-inline: var(--hl-gutter-sm);
@@ -10092,6 +10183,10 @@ body .mep-area-section h2.mep-section-title::after {
     font-size: 0.78rem;
     line-height: 1.65;
   }
+
+  .area-hub-priority-links__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -10101,6 +10196,10 @@ body .mep-area-section h2.mep-section-title::after {
 
   .area-decision-card:hover {
     transform: none;
+  }
+
+  .area-hub-priority-links__card {
+    transition: none;
   }
 }
 

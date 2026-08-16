@@ -26,11 +26,13 @@ export function AreaHubDecisionGuide({
   shops,
   precisionMode = false,
   capabilities,
+  approvedReviewCount,
 }: {
   hubContext: AreaHubContext;
   shops: ShopView[];
   precisionMode?: boolean;
   capabilities?: PriorityAreaCapabilities;
+  approvedReviewCount?: number | null;
 }) {
   const guide = hubContext.decisionGuide;
   if (!guide) return null;
@@ -38,6 +40,9 @@ export function AreaHubDecisionGuide({
   const pricedCount = shops.filter(hasPublishedPrice).length;
   const lateNightCount = shops.filter(isLateNightShop).length;
   const reviewLabel = aggregateReviewCountLabel(shops);
+  const approvedReviewLabel = approvedReviewCount && approvedReviewCount > 0
+    ? `承認済み口コミ ${approvedReviewCount}件`
+    : null;
 
   const cards: DecisionCard[] = [
     {
@@ -77,9 +82,9 @@ export function AreaHubDecisionGuide({
       key: "reviews",
       number: "04",
       title: "口コミ",
-      value: reviewLabel,
+      value: precisionMode ? approvedReviewLabel ?? "承認済み口コミを募集中" : reviewLabel,
       description:
-        reviewLabel === "口コミ募集中"
+        (precisionMode ? !approvedReviewLabel : reviewLabel === "口コミ募集中")
           ? "承認済みのユーザー口コミを募集中です。編集部コメントやPR情報は件数に含めません。"
           : "承認済みのユーザー口コミだけを集計し、編集部コメントやPR情報とは分けて掲載します。",
       href: "#reviews",
@@ -87,7 +92,11 @@ export function AreaHubDecisionGuide({
     }
   ];
   const visibleCards = precisionMode && capabilities
-    ? cards.filter((card) => priorityAreaFragmentAvailable(card.href, capabilities))
+    ? cards.filter((card) => (
+        card.key === "reviews"
+          ? Boolean(approvedReviewLabel)
+          : priorityAreaFragmentAvailable(card.href, capabilities)
+      ))
     : cards;
 
   return (

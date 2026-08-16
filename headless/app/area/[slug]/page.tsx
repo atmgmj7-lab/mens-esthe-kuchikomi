@@ -12,6 +12,7 @@ import {
   resolveAreaHubPageTitle
 } from "@/lib/area-shop-utils";
 import { resolveAreaRankingEntries } from "@/lib/area-shop-ranking";
+import { loadPriorityAreaApprovedReviews } from "@/lib/priority-area-hub";
 import { shouldLoadLegacyAreaRanking } from "@/lib/priority-area-precision";
 import {
   getAreaBySlug,
@@ -109,7 +110,7 @@ async function AreaPageContent({ params, searchParams }: Props) {
   const isHub = isHubTemplateArea(slug);
 
   if (isHub) {
-    const [childAreas, siblingAreas, parentArea, allShops, rankingMap, areaFeatures] = await Promise.all([
+    const [childAreas, siblingAreas, parentArea, allShops, rankingMap, areaFeatures, areaReviewResult] = await Promise.all([
       withWpBuildFallback(`area hub children ${area.slug}`, () => getChildAreas(area.id), []),
       withWpBuildFallback(`area hub siblings ${area.slug}`, () => getSiblingAreas(area), []),
       withWpBuildFallback(`area hub parent ${area.slug}`, () => getParentArea(area), null),
@@ -117,7 +118,12 @@ async function AreaPageContent({ params, searchParams }: Props) {
       shouldLoadLegacyAreaRanking(area)
         ? withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
         : Promise.resolve({}),
-      withWpBuildFallback("home featured areas for area hero", getHomeFeaturedAreas, [])
+      withWpBuildFallback("home featured areas for area hero", getHomeFeaturedAreas, []),
+      withWpBuildFallback(
+        `priority area approved reviews ${area.slug}`,
+        () => loadPriorityAreaApprovedReviews(area),
+        null,
+      ),
     ]);
     const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
 
@@ -131,6 +137,7 @@ async function AreaPageContent({ params, searchParams }: Props) {
         childAreas={childAreas}
         rankingEntries={rankingEntries}
         areaFeatures={areaFeatures}
+        reviewResult={areaReviewResult}
       />
     );
   }

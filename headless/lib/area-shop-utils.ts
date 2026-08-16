@@ -52,6 +52,8 @@ export type AreaHubContext = {
   shopLinks: AreaHubSeoConfig["shopLinks"];
   decisionGuide?: AreaHubSeoConfig["decisionGuide"];
   localGuide?: AreaHubSeoConfig["localGuide"];
+  faqItems: AreaHubSeoConfig["faqItems"];
+  nearbyAreas: NonNullable<AreaHubSeoConfig["nearbyAreas"]>;
   primaryGroupTitle: string;
   secondaryGroupTitle: string;
   pageTitlePage2Plus: string;
@@ -128,6 +130,8 @@ function buildGenericHubContext(
       priceLink: `${area.name}の料金比較表へ`,
       stationLink: `駅近の${area.name}メンズエステ一覧へ`
     },
+    faqItems: undefined,
+    nearbyAreas: [],
     primaryGroupTitle: `${area.name}エリア`,
     secondaryGroupTitle: "近隣・関連エリア"
   };
@@ -167,6 +171,8 @@ export function resolveAreaHubContext(
     shopLinks: seo.shopLinks,
     decisionGuide: seo.decisionGuide,
     localGuide: seo.localGuide,
+    faqItems: seo.faqItems,
+    nearbyAreas: seo.nearbyAreas ?? [],
     primaryGroupTitle: relation?.primaryGroupTitle ?? `${area.name}エリア`,
     secondaryGroupTitle: relation?.secondaryGroupTitle ?? "近隣・関連エリア",
     guidePath: seo.guidePath,

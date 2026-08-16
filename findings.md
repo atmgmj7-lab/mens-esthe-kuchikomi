@@ -1,5 +1,24 @@
 # Findings & Decisions
 
+## 2026-08-16 UX-PROD-T3B Area Hub SEO
+
+- 専用branchは`codex/eskomi-ux-production-t3b-area-hub-seo`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-eskomi-ux-production-t3b-area-hub-seo`、baseはaccepted Reader commit `09203e4a554d1f3d6f3f25e68ae5c08b0a10a1a2`である。dirty main checkoutは変更しない。
+- 現Area Hubは`AreaHubDecisionGuide`→`AreaHubLocalGuideSection`→ranking→promotion→shop list→compare→legacy count based reviews→price/guide→FAQ→related Areaの順で、口コミがSEO/店舗本文より後ろにある。
+- `AreaLatestReviews`は承認済み口コミ本文を読まず、Shop ACF由来の口コミ件数と店舗linkだけを出している。T3-Bはaccepted global Area readerの結果だけへ置き換える。
+- Area pageは既にServer ComponentでArea/Shop/ranking/featureを`Promise.all`している。priority5だけ同じ並列取得へ`getApprovedReviewsPage(1, 6, area.slug)`を追加すればclient fetchや新endpointは不要である。
+- T3-Aでpriority5のlegacy ranking読込は遮断済みで、`AreaHubRankingTop`もprecision modeではnull。正式`ranking_configuration` storageがない現在はranking sectionを引き続き非表示にする。
+- EXACT/RELATED/UNCLASSIFIED分類と主/補助一覧は既存`classifyPriorityAreaShops`と`AreaShopList`を再利用できる。preview JSONはfixture以外からruntime importしない。
+- 既存5Area configには固有H1/導入/guideがあるが、未確認の深夜・駅近・ホテル利用等を断定する表現と、実在しないfragmentへ依存するlink候補が混在する。T3-Bではページ内で確認できる比較軸と地域文脈へ限定する。
+- visual方向はT2/T3-Aの明朝見出し、neutral、thin border、teal CTA、抑制したgold、dense editorial layoutを維持し、全面rewriteしない。
+- `docs/ai-skills.md`は存在しない。AGENTS.md、`.cursorrules`、運用規則、証拠template、accepted実コードを使用する。
+- priority5はaccepted Area readerをServer Componentの既存`Promise.all`へ追加し、page 1・最大6件・canonical Area slugで承認済みEXACT口コミだけをSSR表示する。取得不能・0件は大きな空枠へ変換しない。
+- priority5のHeroと判断ガイドの口コミ件数はArea readerのfiltered totalだけを使い、旧Shop ACF件数を使わない。店舗絞込の旧「口コミあり」もpriority5では表示・URL復元対象外にした。
+- 非priority Hub（難波）は旧Shop ACF口コミmoduleと変更前のsection順を完全維持する。priority5だけ口コミを上位化し、formal rankingがない現在はrankingを非表示にする。
+- 5Area固有H1、80〜140字導入、固有guide、3件以上のFAQ、自然な近隣Area linkをconfigへ集約した。公開copyは内部用語を避け、住所・駅案内・料金・営業時間を店舗詳細で確認する安全な探し分けだけを案内する。
+- priority5内部linkはTop、Reviews Hub、Area context付き投稿、設定済み近隣Areaだけを通常linkで出す。従来の全Sibling網羅は非priorityだけに残す。
+- Browser QAは5Area×11幅をfixture/current-data fail-safeで各55、計110 scenarios・2,517 assertions・20 screenshots・failure 0。代表画像目視でもoverflow、長い日本語名、口コミ位置、FAQ、header/footer、focusに停止事項0。
+- 最終独立reviewはSPEC、CODE_QUALITY_SECURITY、VISIBLEの全てでCritical 0 / Important 0 / Minor 0 / Ready Yes。
+
 ## 2026-08-16 UX-PROD-T3B Area Review Reader
 
 - 既存global RESTは`GET /wp-json/escomi/v1/reviews?page=&per_page=`で、1回の`WP_Query`に承認meta、canonical shop relation、公開Shop条件をjoinし、page内Shop/Areaを一括取得している。

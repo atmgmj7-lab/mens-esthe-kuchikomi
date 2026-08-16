@@ -79,6 +79,10 @@ export function buildFaqItems(
   ctx: AreaHubContext,
   { includeBeginner = true }: { includeBeginner?: boolean } = {},
 ) {
+  if (ctx.faqItems?.length) {
+    return ctx.faqItems.map((item) => ({ ...item }));
+  }
+
   const items = [
     {
       question: `${ctx.faqAreaRef}のメンズエステはどこから探すのがおすすめですか？`,

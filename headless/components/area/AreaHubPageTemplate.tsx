@@ -12,6 +12,7 @@ import {
   buildFaqItems
 } from "@/components/area/area-hub-content";
 import { AreaHubRelatedAreas } from "@/components/area/hub/AreaHubRelatedAreas";
+import { AreaHubPriorityLinks } from "@/components/area/hub/AreaHubPriorityLinks";
 import { AreaHubDecisionGuide } from "@/components/area/hub/AreaHubDecisionGuide";
 import { AreaShopList } from "@/components/area/hub/AreaShopList";
 import {
@@ -28,7 +29,7 @@ import {
 import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-constants";
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { CSSProperties } from "react";
-import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { ApprovedGlobalReviewResult, AreaView, ShopView } from "@/lib/wp/types";
 
 function SecondaryShopLinks({ shops }: { shops: readonly ShopView[] }) {
   return (
@@ -99,7 +100,8 @@ export function AreaHubPageTemplate({
   siblingAreas = [],
   childAreas = [],
   rankingEntries = [],
-  areaFeatures = []
+  areaFeatures = [],
+  reviewResult = null,
 }: {
   area: AreaView;
   allShops: ShopView[];
@@ -109,6 +111,7 @@ export function AreaHubPageTemplate({
   childAreas?: AreaView[];
   rankingEntries?: AreaShopRankingEntry[];
   areaFeatures?: readonly AreaFeatureItem[];
+  reviewResult?: ApprovedGlobalReviewResult | null;
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
@@ -126,7 +129,16 @@ export function AreaHubPageTemplate({
   const shopCountLabel = precisionMode
     ? `${mainShops.length}件`
     : area.count > 0 ? `${area.count}件` : "掲載準備中";
-  const reviewCountLabel = aggregateReviewCountLabel(mainShops);
+  const approvedReviewCount = reviewResult?.status === "available"
+    ? reviewResult.page.total
+    : null;
+  const reviewCountLabel = precisionMode
+    ? approvedReviewCount === null
+      ? "確認中"
+      : approvedReviewCount > 0
+        ? `${approvedReviewCount}件`
+        : "口コミ募集中"
+    : aggregateReviewCountLabel(mainShops);
   const heroVisual = resolveAreaFeatureVisual(area.slug, parentArea?.slug, areaFeatures);
   const heroStyle = heroVisual.image
     ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
@@ -216,12 +228,18 @@ export function AreaHubPageTemplate({
           shops={mainShops}
           precisionMode={precisionMode}
           capabilities={capabilities}
+          approvedReviewCount={approvedReviewCount}
         />
-        <AreaHubLocalGuideSection
-          hubContext={hubContext}
-          precisionMode={precisionMode}
-          capabilities={capabilities}
-        />
+        {precisionMode && reviewResult ? (
+          <AreaLatestReviews reviewResult={reviewResult} hubContext={hubContext} />
+        ) : null}
+        {!precisionMode ? (
+          <AreaHubLocalGuideSection
+            hubContext={hubContext}
+            precisionMode={false}
+            capabilities={capabilities}
+          />
+        ) : null}
         <AreaHubRankingTop
           rankingShops={mainShops}
           targetArea={area}
@@ -229,7 +247,7 @@ export function AreaHubPageTemplate({
           rankingEntries={rankingEntries}
           precisionMode={precisionMode}
         />
-        <AreaPromotionSection shops={mainShops} targetArea={area} />
+        {!precisionMode ? <AreaPromotionSection shops={mainShops} targetArea={area} /> : null}
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
@@ -286,19 +304,32 @@ export function AreaHubPageTemplate({
           precisionMode={precisionMode}
           capabilities={capabilities}
         />
-        <AreaLatestReviews shops={mainShops} hubContext={hubContext} />
+        {precisionMode ? (
+          <AreaPromotionSection shops={mainShops} targetArea={area} />
+        ) : (
+          <AreaLatestReviews shops={mainShops} hubContext={hubContext} />
+        )}
         <AreaHubPriceAndGuideSections
           rankingShops={mainShops}
           hubContext={hubContext}
           precisionMode={precisionMode}
         />
+        {precisionMode ? (
+          <AreaHubLocalGuideSection
+            hubContext={hubContext}
+            precisionMode
+            capabilities={capabilities}
+          />
+        ) : null}
         <AreaFaqSection items={faqItems} areaSlug={area.slug} />
-        <AreaHubRelatedAreas
-          area={area}
-          parentArea={parentArea}
-          siblingAreas={siblingAreas}
-          childAreas={childAreas}
-        />
+        {precisionMode ? <AreaHubPriorityLinks hubContext={hubContext} /> : (
+          <AreaHubRelatedAreas
+            area={area}
+            parentArea={parentArea}
+            siblingAreas={siblingAreas}
+            childAreas={childAreas}
+          />
+        )}
 
         {hubContext.guidePath ? (
           <section className="area-hub-section area-hub-section--cta">

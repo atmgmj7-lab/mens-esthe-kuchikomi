@@ -17,6 +17,18 @@ function validSlug(value: unknown): value is string {
   return typeof value === "string" && value.trim() === value && value.length > 0;
 }
 
+function validAreaSlug(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length <= 200
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+export function buildAreaReviewSubmitUrl(areaSlug: string): string {
+  return validAreaSlug(areaSlug)
+    ? `/reviews/submit/?area=${encodeURIComponent(areaSlug)}`
+    : "/reviews/submit/";
+}
+
 export function buildReviewEntryContext(input: ReviewEntryInput): ReviewEntryContext {
   if (input.page === "area" && validSlug(input.areaSlug)) {
     return {

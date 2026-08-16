@@ -14,13 +14,16 @@ assert.ok(
   areaHubConfig.includes("sakaisujihonmachi") && areaHubConfig.includes("localGuide:"),
   "S-10 must add a Sakaisuji-Honmachi local guide configuration"
 );
+const sakaisujiStart = areaHubConfig.indexOf("  sakaisujihonmachi: {");
+const sakaisujiEnd = areaHubConfig.indexOf("  shinosaka: {", sakaisujiStart);
+const sakaisujiConfig = areaHubConfig.slice(sakaisujiStart, sakaisujiEnd);
 for (const phrase of [
   "堺筋本町・本町・北浜の使い分け",
-  "仕事帰り・出張前後",
-  "料金・営業時間・公式導線",
-  "中央区の徒歩圏"
+  "堺筋本町を中心に探す",
+  "本町・北浜も候補にする",
+  "未確認値を相場として補わず"
 ]) {
-  assert.ok(areaHubConfig.includes(phrase), `Sakaisuji-Honmachi hub guide must include: ${phrase}`);
+  assert.ok(sakaisujiConfig.includes(phrase), `Sakaisuji-Honmachi hub guide must include: ${phrase}`);
 }
 
 const areaHubContent = read("components/area/area-hub-content.tsx");

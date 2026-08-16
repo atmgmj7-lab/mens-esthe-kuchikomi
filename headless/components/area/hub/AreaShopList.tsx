@@ -89,6 +89,7 @@ export function AreaShopList({
   const filterOptions = useMemo(
     () => precisionMode
       ? SHOP_LIST_FILTER_OPTIONS.filter((option) => (
+          option.id !== "reviews" &&
           (option.id !== "beginner" || capabilities.beginner) &&
           (option.id !== "station" || capabilities.station)
         ))

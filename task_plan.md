@@ -6,7 +6,55 @@
 
 ## Current Phase
 
-UX-PROD-T3B-AREA-REVIEW-READER-01 完了（Area UI・本番backfill・push/deploy前で停止）
+UX-PROD-T3B-AREA-HUB-SEO-01 完了（T4・本番backfill・push/deploy前で停止）
+
+## UX-PROD-T3B-AREA-HUB-SEO-01
+
+### Goal
+
+base `09203e4a554d1f3d6f3f25e68ae5c08b0a10a1a2`から、T3-AのPrimary-aware店舗分類とArea Review Readerを重点5Area Hubへ接続する。地域固有H1・導入、SSR口コミ、formal record限定ranking、EXACT主店舗、RELATED/UNCLASSIFIED補助一覧、固有ガイド/FAQ、自然な内部linkを既存Eskomi UI内で完成させる。T4、本番Primary backfill、dependency、URL/canonical/sitemap、WordPress/Supabase本番は変更しない。
+
+### Phases
+
+- [x] Phase 1: 承認済み設計、専用worktree、正本、既存T3-A/Reader接続点を確認する
+- [x] Phase 2: baselineを固定し、T3-B focused/browser契約をfail-firstで追加する
+- [x] Phase 3: priority5固有SEO設定、SSR口コミ、section順、内部link、FAQを最小実装する
+- [x] Phase 4: focused/関連/full/lint/typecheck/build/auditを検証する
+- [x] Phase 5: 5Area全指定幅の実component browser QAと代表画像目視を完了する
+- [x] Phase 6: 独立SPEC/CODE_QUALITY_SECURITY/VISIBLE reviewでCritical/Important 0を確認する
+- [x] Phase 7: 指定pathだけをcommitし、T3完了・T4/backfill/push/deploy前で停止する
+
+### Stop Conditions
+
+- 未確認の料金・営業時間・駅・距離・相場を本文へ必要とする
+- new storage、Primary contract変更、dependency変更、T4実装が必要
+- URL/canonical/sitemap/robotsの変更、WordPress/Supabase本番書込、Secretが必要
+- preview JSONをproduction runtimeへ接続する必要がある
+- 同一原因で3回失敗する
+
+### Errors Encountered
+
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+| accepted worktreeにhandoff正本文書が含まれず相対path読込が失敗 | 1 | dirty mainを変更せず、元checkoutの既存untracked正本文書を絶対pathでread-only参照した |
+| Next.js skillのreferenceを直下pathで読もうとして失敗 | 1 | `skills/nextjs/references/`の実pathを`rg --files`で確認して読み直した |
+| planning-with-filesのsession catchupがCodex session非対応でskip | 1 | Git statusと既存task_plan/findings/progressを直接照合して継続した |
+| focused testとpackage scriptを同時追加したpatchがpackage.json末尾comma差で失敗 | 1 | 実際のscript位置を確認し、file追加とscript追加を正確な小patchへ分ける |
+| Area口コミcomponentの初回render testで`area-shop-utils` stub不足 | 1 | 実依存を確認して安全な`shopReviewCount` stubを追加し、真の未実装failureへ進めた |
+| 既存provenance testが親component内の明示labelを要求して失敗 | 1 | 承認済みユーザー口コミの掲載ポリシーを親componentにも可視表示して契約を維持した |
+| 旧5Area/S-10 testが未確認の徒歩圏等を含む旧copyを固定して失敗 | 1 | testを削らず、主掲載地域・近隣候補・未確認値を補わない新しい固有copyへ固定し直した |
+| `rg`検索commandのbacktickをdouble quote内へ入れてzsh parse失敗 | 1 | single quoteの安全なpatternへ変更し、command substitutionを発生させず再実行した |
+| 初回独立reviewで非priority回帰と旧ACF口コミfilter、内部用語、地域ガイド不足をImportant判定 | 1 | 難波の旧口コミ内容/順序を完全復元し、priority旧filterを除外、利用者向け地域ガイドへ改稿してRED/GREEN後に再reviewした |
+| browser本体とsecurity testの並列実行でcanonical report snapshot競合 | 1 | 本体QA完了後にsecurity testを単独再実行しPASS。production code failureでないことを確認した |
+| 明示stage時に`[slug]`をzsh globとして解釈して失敗 | 1 | 動的route pathだけsingle quoteで囲み、同じ明示path一覧で再実行する |
+
+### Approved Implementation Design
+
+- priority5だけArea pageのServer Componentで既存`getApprovedReviewsPage(1, 6, area.slug)`を他dataと並列取得する
+- `AreaLatestReviews`はShopのlegacy review countでなくapproved Area resultを描画し、本文、日付、有効rating、Shop/Hub/投稿link、出典labelをSSRへ出す
+- priority5はHero/search context直後に口コミを置き、formal ranking、EXACT主店舗、RELATED/UNCLASSIFIED、実data条件module、固有guide/FAQ、自然なArea linkの順へ整える
+- 固有title/H1/導入/guide/FAQ/nearby mappingは5Area設定に集約し、確認不能な数値や営業時間を生成しない
+- non-priority Area、URL/canonical/sitemap、既存reader/storageを変更せず、実component browser fixtureで全指定幅を検証する
 
 ## UX-PROD-T3B-AREA-REVIEW-READER-01
 

@@ -793,3 +793,18 @@
 - Primary metaの追加・更新・削除を既存の認証済み`wp`再検証queueへ接続した。新しいcache方式、tag、Secret、storage、mutation endpointは追加していない。
 - REDは未対応Primary field、Primary meta変更時のcache未失効、不正slugの送信、末尾空白PrimaryのMySQL一致、独立rollout時の旧payload拒否を個別に確認した。修正後はfocused、全`npm test`、lint、typecheck、821/821 build、audit（vulnerabilities 0）、PHP構文、差分検査がすべてexit 0。
 - 独立SPEC_COMPLIANCEとCODE_QUALITY_SECURITYの最終再レビューはいずれもCritical 0 / Important 0 / Minor 0、Ready Yes。UI/CSS、SEO本文、dependency、package/lock、URL/canonical/sitemap、WordPress/Supabase本番、backfill、push、deployは変更・実施していない。
+
+## 2026-08-16 UX-PROD-T3B Area Hub SEO 開始
+
+- accepted base `09203e4`から専用worktree/branchを作成し、dirty mainと既存T3-A/Reader worktreeを変更しない境界を固定した。
+- 添付T3-B仕様、AGENTS.md、`.cursorrules`、task_plan/progress/findings、pm/PROGRESS、pm/BLOCKER、運用規則、証拠template、現Area page/template/review/configをread-only確認した。
+- 既存Area Hub拡張、Server ComponentでのArea review並列取得、accepted reader再利用、priority5限定のsection再構成、固有copy/FAQ/nearby link設定、実component browser QAという実装設計を提示し、ユーザー承認を得た。
+- `docs/ai-skills.md`は不在。handoff正本文書はaccepted worktreeに含まれないため、元checkoutの既存fileをread-only参照した。Next skill referenceの初回path誤りとsession catchup非対応をtask planへ記録した。
+- RED/GREENでpriority5のArea approved review取得、SSR本文/出典/rating/Shop・Hub・投稿link、0件/取得不能非表示、5固有H1/導入/FAQ/近隣link、表示順を固定した。
+- priority5の順序をHero→判断ガイド→承認済み口コミ→formal ranking（現在は非表示）→EXACT主店舗＋RELATED/UNCLASSIFIED→実data module→地域guide→FAQ→curated linksへ変更した。難波など非priorityは変更前のLocalGuide/Ranking/PR/Shop/Compare/legacy reviews/Price/FAQ/Related順を維持した。
+- 旧ACF件数を使う「口コミあり」filterはpriority5から除外し、URL queryからも復元されない。Hero/判断ガイドの口コミ件数はArea readerのfiltered totalだけを使用する。
+- 堺筋本町、新大阪、大阪日本橋、梅田、堺東の固有H1、80〜140字導入、利用者向け地域guide、FAQ 3件以上、自然な近隣Area linkを追加した。未確認値、固定評価、架空ranking、内部実装用語は公開copyへ出さない。
+- Browser QAは320/375/390/760/761/900/901/1024/1025/1280/1440pxを5Areaでfixture 55＋current-data fail-safe 55、計110 scenarios・2,517 assertions・20 screenshots・failure 0。代表画像の目視も停止事項0。
+- 初回独立reviewの非priority回帰、旧口コミfilter、内部用語、地域ガイド不足、section順回帰をREDで再現して修正した。最終SPEC/CODE_QUALITY_SECURITY/VISIBLEは全てCritical 0 / Important 0 / Minor 0 / Ready Yes。
+- dependency、`package-lock.json`、storage、T4、Primary backfill、URL/canonical/sitemap/robots、WordPress/Supabase本番、Secret、push、deployは変更・実施していない。現在は最終全検証と指定path commit前。
+- 最終`npm test`、lint、typecheck、821/821 build、`npm audit --audit-level=high`（0 vulnerabilities）、browser security単独再検証、`git diff --check`は全てexit 0。指定pathだけをcommitし、T3完了・T4/backfill/push/deploy前で停止する。

@@ -13,11 +13,11 @@ const css = read("app/globals.css");
 const priorityAreas = ["sakaisujihonmachi", "sakai", "nihonbashi", "shinosaka", "umeda"];
 const configuredAreas = ["sakaisujihonmachi", "shinosaka", "nihonbashi", "nanba", "umeda", "sakai"];
 const uniqueIntroductions = [
-  "堺筋本町は本町・北浜・長堀橋まで徒歩圏として比較しやすく",
-  "堺エリアは堺東・堺駅・三国ヶ丘・中百舌鳥で移動距離が変わります",
-  "大阪日本橋は近鉄日本橋・なんば・黒門市場周辺まで候補が広がるエリアです",
-  "新大阪は新幹線利用の前後に加え、東三国・西中島南方まで含めて比較しやすいエリアです",
-  "梅田は大阪駅・東梅田・西梅田・北新地で移動経路が大きく変わります"
+  "主店舗と関連掲載を分けたうえで、掲載料金、営業時間、承認済み口コミ",
+  "URLは変えず堺東をページの主語とし、堺東の主店舗と堺市内の関連掲載を分け",
+  "東京の日本橋と混同せず、大阪日本橋の主店舗となんばなどの関連掲載を分け",
+  "新大阪の主店舗と西中島・東三国などの関連掲載を分け",
+  "梅田の主店舗と大阪駅・北新地などの関連掲載を分け"
 ];
 
 function areaConfigBlock(slug) {

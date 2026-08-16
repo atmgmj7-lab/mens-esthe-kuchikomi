@@ -29,11 +29,15 @@ const headless = process.env.BROWSER_QA_HEADLESS === "1";
 const viewports = [320, 375, 390, 760, 761, 900, 901, 1024, 1025, 1280, 1440]
   .map((width) => ({ width, height: width <= 390 ? 844 : width >= 1280 ? 1000 : 900 }));
 const areas = [
-  { id: 17, slug: "sakai", name: "堺東", exact: 6, related: 1, unclassified: 1 },
-  { id: 13, slug: "shinosaka", name: "新大阪", exact: 3, related: 1, unclassified: 1 },
-  { id: 7, slug: "nihonbashi", name: "大阪日本橋", exact: 12, related: 1, unclassified: 1 },
-  { id: 46, slug: "sakaisujihonmachi", name: "堺筋本町", exact: 18, related: 2, unclassified: 1 },
-  { id: 4, slug: "umeda", name: "梅田", exact: 5, related: 2, unclassified: 1 },
+  { id: 17, slug: "sakai", name: "堺東", h1: "堺東のメンズエステおすすめ一覧｜堺市の料金・深夜・口コミ比較", nearby: ["nihonbashi"], exact: 6, related: 1, unclassified: 1 },
+  { id: 13, slug: "shinosaka", name: "新大阪", h1: "新大阪のメンズエステおすすめ一覧｜西中島・東三国の料金比較", nearby: ["umeda"], exact: 3, related: 1, unclassified: 1 },
+  { id: 7, slug: "nihonbashi", name: "大阪日本橋", h1: "大阪・日本橋のメンズエステおすすめ一覧｜難波・近鉄日本橋で比較", nearby: ["sakaisujihonmachi"], exact: 12, related: 1, unclassified: 1 },
+  { id: 46, slug: "sakaisujihonmachi", name: "堺筋本町", h1: "堺筋本町のメンズエステおすすめ一覧｜料金・深夜・口コミ比較", nearby: ["nihonbashi", "umeda"], exact: 18, related: 2, unclassified: 1 },
+  { id: 4, slug: "umeda", name: "梅田", h1: "梅田のメンズエステおすすめ一覧｜大阪駅・北新地の料金・深夜比較", nearby: ["shinosaka", "sakaisujihonmachi"], exact: 5, related: 2, unclassified: 1 },
+];
+const fixtureSourceFiles = [
+  "components/area/hub/AreaHubPriorityLinks.tsx",
+  "lib/priority-area-hub.ts",
 ];
 
 let scenarios = 0;
@@ -83,17 +87,21 @@ function buildFixtureData(preview) {
     };
     const exactRecords = accepted.filter((record) => record.primaryArea.id === area.id);
     const fixtureRecords = accepted.map((record) => {
-      if (area.slug !== "umeda" || record.primaryArea.id !== area.id) return record;
       const exactIndex = exactRecords.findIndex((exactRecord) => exactRecord.id === record.id);
-      if (exactIndex === 0) return {
+      const namedRecord = exactIndex === 0 ? {
         ...record,
+        title: `${area.name}のとても長い日本語店舗名でも折り返して表示できる確認用メンズエステ店舗`,
+      } : record;
+      if (area.slug !== "umeda" || exactIndex < 0) return namedRecord;
+      if (exactIndex === 0) return {
+        ...namedRecord,
         acf: { shop_station: "梅田駅", shop_walk_minutes: 3, shop_access: "汎用案内は表示しない" },
       };
       if (exactIndex === 1) return {
-        ...record,
+        ...namedRecord,
         acf: { shop_access: "大阪駅 徒歩1分", shop_price_60min: "10,000円" },
       };
-      return record;
+      return namedRecord;
     });
     return [area.slug, {
       area,
@@ -140,7 +148,7 @@ function harnessPageSource(fixtureData) {
 import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
 import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
-import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
+import type { ApprovedGlobalReviewResult, AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 const fixtures = ${JSON.stringify(fixtureData)} as const;
 export const instant = false;
@@ -195,11 +203,39 @@ export default async function PriorityFixturePage({ params }: { params: Promise<
     description: "QA fixture",
     acf: {},
   };
+  const reviewShop = fixture.records.find((record) => record.primaryArea?.id === fixture.area.id);
+  const reviewResult: ApprovedGlobalReviewResult = {
+    status: "available",
+    page: {
+      reviews: reviewShop ? [
+        {
+          id: fixture.area.id * 1000 + 1,
+          body: fixture.area.name + "で利用先を探したときの承認済み口コミ本文です。料金や予約方法は公式情報でも確認しました。",
+          submittedAt: "2026-08-16T09:00:00+09:00",
+          ratings: { total: 5, price: 4, service: 5, cleanliness: 4 },
+          shop: { id: reviewShop.id, slug: reviewShop.slug, name: reviewShop.title, primaryArea: reviewShop.primaryArea },
+          areas: reviewShop.primaryArea ? [reviewShop.primaryArea] : [],
+        },
+        {
+          id: fixture.area.id * 1000 + 2,
+          body: "評価を固定せずに掲載する確認用の承認済み口コミです。",
+          submittedAt: "2026-08-15T09:00:00+09:00",
+          ratings: { total: null, price: null, service: null, cleanliness: null },
+          shop: { id: reviewShop.id, slug: reviewShop.slug, name: reviewShop.title, primaryArea: reviewShop.primaryArea },
+          areas: reviewShop.primaryArea ? [reviewShop.primaryArea] : [],
+        },
+      ] : [],
+      total: reviewShop ? 2 : 0,
+      totalPages: reviewShop ? 1 : 0,
+      page: 1,
+    },
+  };
   return (
     <AreaHubPageTemplate
       area={area}
       allShops={fixture.records.map((record) => toShop(record, fixture.promotedShopId))}
       rankingEntries={[...fixture.legacyRankingEntries]}
+      reviewResult={reviewResult}
     />
   );
 }
@@ -209,6 +245,7 @@ export default async function PriorityFixturePage({ params }: { params: Promise<
 async function createHarness(preview, tempRoot) {
   const trackedFiles = await listTrackedProjectFiles(projectRoot);
   await copyTrackedProjectFiles(projectRoot, tempRoot, trackedFiles);
+  await copyTrackedProjectFiles(projectRoot, tempRoot, fixtureSourceFiles);
   await runCommand("cp", ["-cR", path.join(projectRoot, "node_modules"), path.join(tempRoot, "node_modules")], projectRoot);
   const routeDir = path.join(tempRoot, "app", "qa-priority-fixture", "[slug]");
   await fs.mkdir(routeDir, { recursive: true });
@@ -271,6 +308,16 @@ async function runFixtureQa(browser) {
     check(rawHtml.includes('data-area-precision-group="exact"'), `fixture ${area.slug} raw SSR exact marker`);
     check(rawHtml.includes('data-area-secondary-shop="true"'), `fixture ${area.slug} raw SSR compact secondary links`);
     check(!rawHtml.includes('aria-label="おすすめランキング'), `fixture ${area.slug} raw SSR rank=0`);
+    check(rawHtml.includes(`${area.name}で利用先を探したときの承認済み口コミ本文`), `fixture ${area.slug} raw SSR approved review body`);
+    check(rawHtml.includes('href="/reviews/submit/?area=' + area.slug + '"'), `fixture ${area.slug} raw SSR Area review submit link`);
+    const rawOrder = [
+      rawHtml.indexOf('id="area-decision-guide"'),
+      rawHtml.indexOf('id="reviews"'),
+      rawHtml.indexOf('id="shop-list"'),
+      rawHtml.indexOf('id="faq"'),
+      rawHtml.indexOf('id="area-discovery-links"'),
+    ];
+    check(rawOrder.every((value, index) => value >= 0 && (index === 0 || value > rawOrder[index - 1])), `fixture ${area.slug} raw SSR module order`, { rawOrder });
 
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
@@ -280,6 +327,36 @@ async function runFixtureQa(browser) {
       scenarios += 1;
       check(response?.status() === 200, `fixture ${area.slug} ${viewport.width}px status`, { status: response?.status() });
       check(await page.locator("h1:visible").count() === 1, `fixture ${area.slug} ${viewport.width}px H1=1`);
+      check(await page.locator("h1:visible").innerText() === area.h1, `fixture ${area.slug} ${viewport.width}px unique H1`);
+      check(await page.locator('[data-review-card="approved-user"]').count() === 2, `fixture ${area.slug} ${viewport.width}px approved reviews=2`);
+      check(await page.locator('[data-area-approved-reviews="true"] a[href="/reviews/"]').count() === 1, `fixture ${area.slug} ${viewport.width}px Reviews Hub link`);
+      check(await page.locator(`[data-area-approved-reviews="true"] a[href="/reviews/submit/?area=${area.slug}"]`).count() === 1, `fixture ${area.slug} ${viewport.width}px review submit link`);
+      check(await page.locator("#faq .area-hub-faq-accordion__item").count() >= 3, `fixture ${area.slug} ${viewport.width}px Area FAQ rows`);
+      check(await page.locator('#area-discovery-links a[href="/"]').count() === 1, `fixture ${area.slug} ${viewport.width}px Top link`);
+      check(await page.locator('#area-discovery-links a[href="/reviews/"]').count() === 1, `fixture ${area.slug} ${viewport.width}px Reviews discovery link`);
+      for (const nearbySlug of area.nearby) {
+        check(await page.locator(`#area-discovery-links a[href="/area/${nearbySlug}/"]`).count() === 1, `fixture ${area.slug} ${viewport.width}px nearby ${nearbySlug} link`);
+      }
+      const reviewCards = page.locator('[data-review-card="approved-user"]');
+      check(
+        await reviewCards.nth(0).evaluate((element) => getComputedStyle(element).borderTopStyle === "solid"),
+        `fixture ${area.slug} ${viewport.width}px review card neutral border`,
+      );
+      const firstReviewBox = await reviewCards.nth(0).boundingBox();
+      const secondReviewBox = await reviewCards.nth(1).boundingBox();
+      check(
+        viewport.width <= 760
+          ? Math.abs((firstReviewBox?.x ?? 0) - (secondReviewBox?.x ?? 1)) <= 1
+          : Math.abs((firstReviewBox?.x ?? 0) - (secondReviewBox?.x ?? 0)) > 1,
+        `fixture ${area.slug} ${viewport.width}px review grid columns`,
+        { firstReviewBox, secondReviewBox },
+      );
+      const moduleTops = await page.evaluate(() => ["area-decision-guide", "reviews", "shop-list", "faq", "area-discovery-links"]
+        .map((id) => document.getElementById(id)?.getBoundingClientRect().top ?? -1));
+      check(moduleTops.every((value, index) => value >= 0 && (index === 0 || value > moduleTops[index - 1])), `fixture ${area.slug} ${viewport.width}px visible module order`, { moduleTops });
+      const firstDiscoveryLink = page.locator("#area-discovery-links a").first();
+      await firstDiscoveryLink.focus();
+      check(await firstDiscoveryLink.evaluate((element) => getComputedStyle(element).outlineStyle !== "none"), `fixture ${area.slug} ${viewport.width}px keyboard focus visible`);
       const exactCards = page.locator('[data-area-precision-group="exact"] [data-area-shop-card="true"]');
       const relatedLinks = page.locator('[data-area-precision-group="related"] [data-area-secondary-shop="true"]');
       const unclassifiedLinks = page.locator('[data-area-precision-group="unclassified"] [data-area-secondary-shop="true"]');
@@ -299,6 +376,7 @@ async function runFixtureQa(browser) {
       check(await page.locator("#compare-tabs").count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px capability-aware compare tabs`);
       check(await page.locator("#price-guide").count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px capability-aware price module`);
       check(await page.getByRole("button", { name: "初心者向け", exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px beginner controls=0`);
+      check(await page.getByRole("button", { name: "口コミあり", exact: true }).count() === 0, `fixture ${area.slug} ${viewport.width}px legacy review filter=0`);
       check(await page.getByRole("tab", { name: "駅名・徒歩案内あり", exact: true }).count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px station controls`);
       if (stationFixture) {
         check(await page.locator(".ranking-specialty-card--station").count() === 1, `fixture ${area.slug} ${viewport.width}px dedicated station only`);
@@ -349,12 +427,15 @@ async function runLiveFailSafeQa(browser) {
       scenarios += 1;
       check(response?.status() === 200, `live ${area.slug} ${viewport.width}px crash=0`, { status: response?.status() });
       check(await page.locator("h1:visible").count() === 1, `live ${area.slug} ${viewport.width}px H1=1`);
+      check(await page.locator("h1:visible").innerText() === area.h1, `live ${area.slug} ${viewport.width}px unique H1`);
       const exactCount = await page.locator('[data-area-precision-group="exact"] [data-area-shop-card]').count();
       check(exactCount === 0, `live ${area.slug} ${viewport.width}px false EXACT=0`, { exactCount });
       check(await page.locator("#ranking").count() === 0, `live ${area.slug} ${viewport.width}px ranking=0`);
       check(await page.locator('[aria-label^="おすすめランキング"]').count() === 0, `live ${area.slug} ${viewport.width}px rank badge=0`);
       check(await page.locator("#compare-tabs").count() === 0, `live ${area.slug} ${viewport.width}px empty compare tabs=0`);
       check(await page.locator("#price-guide").count() === 0, `live ${area.slug} ${viewport.width}px empty price module=0`);
+      check(await page.locator('#area-discovery-links a[href="/"]').count() === 1, `live ${area.slug} ${viewport.width}px Top link`);
+      check(await page.locator('#area-discovery-links a[href="/reviews/"]').count() === 1, `live ${area.slug} ${viewport.width}px Reviews link`);
       const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
       check(geometry.body <= geometry.viewport + 1, `live ${area.slug} ${viewport.width}px overflow=0`, geometry);
       const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
