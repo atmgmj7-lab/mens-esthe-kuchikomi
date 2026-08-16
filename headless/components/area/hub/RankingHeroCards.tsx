@@ -32,16 +32,15 @@ function cardClass(rank: number): string {
 const HIDDEN_TAG_LABELS = new Set(["公式サイトあり", "料金掲載あり"]);
 
 export function RankingHeroCards({
-  shops,
+  rankedShops,
   targetArea
 }: {
-  shops: ShopView[];
+  rankedShops: Array<{ shop: ShopView; rank: number }>;
   targetArea: Pick<AreaView, "slug" | "name">;
 }) {
   return (
     <div className="ranking-list">
-      {shops.filter((shop) => canReceiveNaturalRankNumber(shop) || canDisplayAreaShopRank(shop)).map((shop, index) => {
-        const rank = index + 1;
+      {rankedShops.filter(({ shop }) => canReceiveNaturalRankNumber(shop) || canDisplayAreaShopRank(shop)).map(({ shop, rank }) => {
         const tags = shopFeatureTags(shop, targetArea)
           .filter((tag) => !HIDDEN_TAG_LABELS.has(tag))
           .slice(0, 2);

@@ -7,12 +7,14 @@ export function AreaFilterChips({
   activeFilters,
   onToggle,
   onClear,
-  id
+  id,
+  options = SHOP_LIST_FILTER_OPTIONS,
 }: {
   activeFilters: ShopListFilterId[];
   onToggle: (id: ShopListFilterId) => void;
   onClear: () => void;
   id?: string;
+  options?: typeof SHOP_LIST_FILTER_OPTIONS;
 }) {
   const hasFilters = activeFilters.length > 0;
 
@@ -27,7 +29,7 @@ export function AreaFilterChips({
         ) : null}
       </div>
       <div className="area-filter-chips" role="group" aria-label="店舗一覧の絞り込み">
-        {SHOP_LIST_FILTER_OPTIONS.map((option) => {
+        {options.map((option) => {
           const active = activeFilters.includes(option.id);
           return (
             <button

@@ -14,12 +14,18 @@ import {
 import { AreaHubRelatedAreas } from "@/components/area/hub/AreaHubRelatedAreas";
 import { AreaHubDecisionGuide } from "@/components/area/hub/AreaHubDecisionGuide";
 import { AreaShopList } from "@/components/area/hub/AreaShopList";
+import { AreaShopCard } from "@/components/common/AreaShopCard";
 import {
   aggregateReviewCountLabel,
   resolveAreaHubContext,
   resolveLastUpdatedLabel
 } from "@/lib/area-shop-utils";
 import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
+import {
+  classifyPriorityAreaShops,
+  isPriorityAreaPrecisionTarget,
+  resolvePriorityAreaCapabilities,
+} from "@/lib/priority-area-precision";
 import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-constants";
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { CSSProperties } from "react";
@@ -77,11 +83,21 @@ export function AreaHubPageTemplate({
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
-  const faqItems = buildFaqItems(hubContext);
+  const precisionMode = isPriorityAreaPrecisionTarget(area);
+  const precisionGroups = precisionMode
+    ? classifyPriorityAreaShops(allShops, area)
+    : null;
+  const mainShops: ShopView[] = precisionGroups ? [...precisionGroups.exact] : allShops;
+  const capabilities = resolvePriorityAreaCapabilities(mainShops, area);
+  const faqItems = buildFaqItems(hubContext, {
+    includeBeginner: !precisionMode || capabilities.beginner,
+  });
   const faqSchema = faqJsonLd(faqItems);
-  const lastUpdated = resolveLastUpdatedLabel(allShops);
-  const shopCountLabel = area.count > 0 ? `${area.count}件` : "掲載準備中";
-  const reviewCountLabel = aggregateReviewCountLabel(allShops);
+  const lastUpdated = resolveLastUpdatedLabel(mainShops);
+  const shopCountLabel = precisionMode
+    ? `${mainShops.length}件`
+    : area.count > 0 ? `${area.count}件` : "掲載準備中";
+  const reviewCountLabel = aggregateReviewCountLabel(mainShops);
   const heroVisual = resolveAreaFeatureVisual(area.slug, parentArea?.slug, areaFeatures);
   const heroStyle = heroVisual.image
     ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
@@ -101,7 +117,7 @@ export function AreaHubPageTemplate({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(shopItemListJsonLd(allShops.filter((shop) => !shop.ranking.isPr), hubContext.shopListH2, areaPath))
+          __html: JSON.stringify(shopItemListJsonLd(mainShops.filter((shop) => !shop.ranking.isPr), hubContext.shopListH2, areaPath))
         }}
       />
       {faqSchema ? (
@@ -166,38 +182,82 @@ export function AreaHubPageTemplate({
       </section>
 
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-content-shell">
-        <AreaHubDecisionGuide hubContext={hubContext} shops={allShops} />
+        <AreaHubDecisionGuide hubContext={hubContext} shops={mainShops} />
         <AreaHubLocalGuideSection hubContext={hubContext} />
         <AreaHubRankingTop
-          rankingShops={allShops}
+          rankingShops={mainShops}
           targetArea={area}
           hubContext={hubContext}
           rankingEntries={rankingEntries}
+          precisionMode={precisionMode}
         />
-        <AreaPromotionSection shops={allShops} targetArea={area} />
+        <AreaPromotionSection shops={mainShops} targetArea={area} />
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
           <p className="area-hub-section__intro">{hubContext.shopListIntro}</p>
-          {allShops.length > 0 ? (
-            <AreaShopList
-              shops={allShops}
-              targetArea={area}
-              legacyPage={legacyPage}
-              rankingEntries={rankingEntries}
-            />
-          ) : (
-            <p className="area-hub-section__empty">店舗情報を準備中です。</p>
-          )}
+          <div
+            data-area-precision-mode={precisionMode ? "true" : undefined}
+            data-area-precision-group={precisionMode ? "exact" : undefined}
+          >
+            {mainShops.length > 0 ? (
+              <AreaShopList
+                shops={mainShops}
+                targetArea={area}
+                legacyPage={legacyPage}
+                rankingEntries={rankingEntries}
+                precisionMode={precisionMode}
+                capabilities={capabilities}
+              />
+            ) : (
+              <p className="area-hub-section__empty">
+                {precisionMode
+                  ? "主な掲載エリアを確認できた店舗はまだありません。確認中の掲載店舗は下に分けて表示します。"
+                  : "店舗情報を準備中です。"}
+              </p>
+            )}
+          </div>
+          {precisionGroups && (precisionGroups.related.length > 0 || precisionGroups.unclassified.length > 0) ? (
+            <div className="area-hub-shop-list area-hub-shop-list--secondary" data-area-precision-secondary="true">
+              {precisionGroups.related.length > 0 ? (
+                <section className="area-hub-shop-group" data-area-precision-group="related">
+                  <h3 className="area-hub-shop-group__title">別エリアを主な掲載先としている関連店舗</h3>
+                  <p className="area-hub-section__intro area-hub-section__intro--compact">
+                    このエリアにも掲載関係がありますが、主な掲載先は別エリアとして登録されています。
+                  </p>
+                  <div className="area-hub-shop-group__list">
+                    {precisionGroups.related.map((shop) => (
+                      <AreaShopCard key={shop.id} shop={shop} targetArea={area} rank={null} showRank={false} />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+              {precisionGroups.unclassified.length > 0 ? (
+                <section className="area-hub-shop-group" data-area-precision-group="unclassified">
+                  <h3 className="area-hub-shop-group__title">主な掲載エリアを確認中の店舗</h3>
+                  <p className="area-hub-section__intro area-hub-section__intro--compact">
+                    このエリアとの掲載関係はありますが、主な掲載エリアはまだ確認できていません。
+                  </p>
+                  <div className="area-hub-shop-group__list">
+                    {precisionGroups.unclassified.map((shop) => (
+                      <AreaShopCard key={shop.id} shop={shop} targetArea={area} rank={null} showRank={false} />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </div>
+          ) : null}
         </AreaHubSectionShell>
 
         <AreaHubCompareTabsSections
-          rankingShops={allShops}
+          rankingShops={mainShops}
           targetArea={area}
           hubContext={hubContext}
+          precisionMode={precisionMode}
+          capabilities={capabilities}
         />
-        <AreaLatestReviews shops={allShops} hubContext={hubContext} />
-        <AreaHubPriceAndGuideSections rankingShops={allShops} hubContext={hubContext} />
+        <AreaLatestReviews shops={mainShops} hubContext={hubContext} />
+        <AreaHubPriceAndGuideSections rankingShops={mainShops} hubContext={hubContext} />
         <AreaFaqSection items={faqItems} areaSlug={area.slug} />
         <AreaHubRelatedAreas
           area={area}

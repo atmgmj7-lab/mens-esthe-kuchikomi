@@ -1,5 +1,13 @@
 # Progress Log
 
+## Session 2026-08-16: UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 start
+
+- base `2bc9fb07de4830bb266d246ccae20b4273a563a8`から専用worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-eskomi-ux-production-t3a-primary-aware`、branch `codex/eskomi-ux-production-t3a-primary-aware`を作成した。
+- AGENTS.md、`.cursorrules`、task_plan.md、progress.md、findings.md、pm/PROGRESS.md、pm/BLOCKER.mdと添付task正本を確認した。`docs/ai-skills.md`はbaseに存在しない。
+- 以前のdirty T3-A draftはbase/patchとして流用せず、今回の変更はclean base上でテスト先行により作る。本番Primary書込、T3-B、T4、dependency、push、deployは行わない。
+- 現在地: Phase 1。次は変更前testを固定し、Primary分類・空module・strict ranking・fixture browser QAのREDを追加する。
+- baselineはNode `v26.0.0`、npm `11.12.1`、`npm ci` exit 0（vulnerabilities 0）、変更前`npm test` exit 0。既存契約がgreenであることを固定した。
+
 ## Session 2026-08-16: UX-AREA-PRIMARY-BACKFILL-PREVIEW-01 start
 
 - base `72f432c266eab2bb03edd0794e790e17584e22b8`から専用worktree `/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-area-primary-backfill-preview-01`、branch `codex/ux-area-primary-backfill-preview-01`を作成した。
@@ -728,3 +736,10 @@
 - 新規公開、承認追加/解除、本文・評価・店舗relation更新、非公開化、公開済み削除を通知対象にし、pending投稿・pending評価・公開性を変えない承認変更・pending削除・draft復元は通知しない。
 - global feedへ埋め込む店舗・area・店舗area関係も保証し、実関係追加`added_term_relationship`と直接解除`deleted_term_relationships`を捕捉する。追加と解除が同一requestで起きても通知は1回。
 - 25状態fixture、global/shop cache fixture、通常`npm test`、lint、typecheck、PHP構文、差分検査が成功した。独立SPEC_COMPLIANCEとCODE_QUALITY_SECURITYはいずれもCritical 0 / Important 0 / Minor 0、Ready Yes。UI、dependency、storage、本番、push、deploy、T2は未変更・未実施。
+## 2026-08-16 UX-PROD-T3A Primary-aware Area Precision
+
+- 重点5Areaだけを明示Primary Area IDでEXACT / RELATED / UNCLASSIFIEDへ分離し、EXACTだけを主一覧、件数、口コミ、PR、構造化データ、正式順位の入力にした。関連・確認中店舗は意味を分けたSSR補助一覧へ表示する。
+- Primary未反映の現在dataではEXACT 0件として安全に閉じる。汎用アクセス文から駅近を推測せず、初心者・駅の有効dataが0件なら該当filter、sort、tab、FAQを表示しない。正式順位がなければ順位moduleを非表示にし、明示順位の空きを保持する。
+- TDDは新helper不在、template未接続、順位欠損の配列順推測を順にREDで確認した後、focused GREENへした。Primary preview 44件で5AreaのEXACT `6/3/12/18/5`をtest fixtureとして確認した。
+- focused、Primary/preview、Area、口コミ、T1/T2、出典、PR、内部link、SEO、schema、通常`npm test`、lint、typecheck、821ページbuild、audit high、差分検査がすべて成功した。browser QAはfixture 55 + current-data fail-safe 55 = 110 scenarios、999 assertions、20 screenshots、failures 0。代表4画像を実目視した。
+- セルフレビューは仕様、品質・安全性、表示の3観点でCritical 0 / Important 0。dependency、`package-lock.json`、T3-B/T4、WordPress/Supabase本番data、push、deployは変更していない。本番Primary backfill前で停止する。

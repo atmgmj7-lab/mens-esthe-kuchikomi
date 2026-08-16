@@ -75,7 +75,7 @@ const sourceChecks = [
   ["lib/shop-ranking.ts", "selectPromotionShops", "PR専用抽出関数が必要"],
   ["components/area/hub/AreaPromotionSection.tsx", "自然ランキングとは別枠", "PR専用セクションに別枠明示が必要"],
   ["components/area/hub/AreaPromotionSection.tsx", "rel={outboundRelForPromotion(shop.ranking.promotion)}", "PR外部リンクrel制御が必要"],
-  ["components/area/AreaHubPageTemplate.tsx", "shopItemListJsonLd(allShops.filter((shop) => !shop.ranking.isPr)", "ItemList schema からPRを除外する必要"],
+  ["components/area/AreaHubPageTemplate.tsx", "shopItemListJsonLd(mainShops.filter((shop) => !shop.ranking.isPr)", "主一覧のItemList schema からPRを除外する必要"],
   ["components/common/PromotionDisclosureBadge.tsx", "PR広告", "PRラベルの可視化が必要"],
   ["package.json", "test:promotion-disclosure", "Q-05テストをnpm testへ接続する必要"]
 ];

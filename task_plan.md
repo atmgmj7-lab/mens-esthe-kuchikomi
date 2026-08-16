@@ -6,7 +6,29 @@
 
 ## Current Phase
 
-UX-AREA-PRIMARY-BACKFILL-PREVIEW-01 完了（本番書込・T3-A前で停止）
+UX-PROD-T3A-RESUME-PRIMARY-AWARE-01 完了（T3-B・本番backfill前で停止）
+
+## UX-PROD-T3A-RESUME-PRIMARY-AWARE-01
+
+### Goal
+
+base `2bc9fb07de4830bb266d246ccae20b4273a563a8`から、重点5Area Hubだけを明示的な`ShopView.primaryArea.id`でPrimary-awareにし、主店舗・関連店舗・未分類を安全に分離する。空module、根拠のない駅表示、偽順位を除去し、URL/SEO基本設定・本番data・dependencyは変更しない。
+
+### Phases
+
+- [x] Phase 1: clean worktree、正本、既存実装、禁止境界を確認する
+- [x] Phase 2: fail-first contract/browser fixtureを追加し、意図したREDを記録する
+- [x] Phase 3: priority5限定の分類・表示・空module・strict rankingを最小実装する
+- [x] Phase 4: focused/full/build/auditとfixture/live fail-safe browser QAを実行する
+- [x] Phase 5: 仕様・品質・表示のセルフレビューでCritical/Important 0を確認する
+- [x] Phase 6: progressを更新し、T3-B・backfill・push/deploy前で停止する
+
+### Stop Conditions
+
+- Primary Area contract変更、新storage、WordPress/Supabase書込が必要
+- preview JSONをproduction runtimeへ取り込む必要がある
+- URL/canonical/sitemap/robots、dependency、T3-B/T4変更が必要
+- 同一原因で3回失敗する
 
 ## UX-AREA-PRIMARY-BACKFILL-PREVIEW-01
 

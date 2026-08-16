@@ -6,7 +6,13 @@ import { AreaSortTabs } from "@/components/area/hub/AreaSortTabs";
 import { AreaShopCard } from "@/components/common/AreaShopCard";
 import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
+  resolvePriorityAreaCapabilities,
+  resolveStrictAreaRanking,
+  type PriorityAreaCapabilities,
+} from "@/lib/priority-area-precision";
+import {
   getFilterRelaxationSuggestions,
+  filterAreaShops,
   prepareAreaShopListView,
   resolveAreaShopListCardRank,
   SHOP_LIST_FILTER_OPTIONS,
@@ -21,7 +27,7 @@ const DESKTOP_PAGE_SIZE = { initial: 10, loadMore: 10 };
 const VALID_FILTER_IDS = new Set(SHOP_LIST_FILTER_OPTIONS.map((option) => option.id));
 const VALID_SORT_IDS = new Set(SHOP_LIST_SORT_OPTIONS.map((option) => option.id));
 
-function parseShopListFiltersFromUrl(): ShopListFilterId[] {
+function parseShopListFiltersFromUrl(validFilterIds = VALID_FILTER_IDS): ShopListFilterId[] {
   if (typeof window === "undefined") return [];
   const params = new URLSearchParams(window.location.search);
   const rawFilters = params.get("filters") ?? params.get("filter");
@@ -30,7 +36,7 @@ function parseShopListFiltersFromUrl(): ShopListFilterId[] {
   return rawFilters
     .split(",")
     .map((value) => value.trim())
-    .filter((value): value is ShopListFilterId => VALID_FILTER_IDS.has(value as ShopListFilterId))
+    .filter((value): value is ShopListFilterId => validFilterIds.has(value as ShopListFilterId))
     .filter((value) => {
       if (seen.has(value)) return false;
       seen.add(value);
@@ -38,10 +44,10 @@ function parseShopListFiltersFromUrl(): ShopListFilterId[] {
     });
 }
 
-function parseShopListSortFromUrl(): ShopListSortId {
+function parseShopListSortFromUrl(validSortIds = VALID_SORT_IDS): ShopListSortId {
   if (typeof window === "undefined") return "recommended";
   const param = new URLSearchParams(window.location.search).get("sort");
-  return VALID_SORT_IDS.has(param as ShopListSortId) ? param as ShopListSortId : "recommended";
+  return validSortIds.has(param as ShopListSortId) ? param as ShopListSortId : "recommended";
 }
 
 function useShopListPageSize() {
@@ -62,12 +68,16 @@ export function AreaShopList({
   shops,
   targetArea,
   legacyPage = 1,
-  rankingEntries = []
+  rankingEntries = [],
+  precisionMode = false,
+  capabilities = resolvePriorityAreaCapabilities(shops, targetArea),
 }: {
   shops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   legacyPage?: number;
   rankingEntries?: AreaShopRankingEntry[];
+  precisionMode?: boolean;
+  capabilities?: PriorityAreaCapabilities;
 }) {
   const pageSize = useShopListPageSize();
   const [activeFilters, setActiveFilters] = useState<ShopListFilterId[]>([]);
@@ -75,10 +85,39 @@ export function AreaShopList({
   const [visibleCount, setVisibleCount] = useState(pageSize.initial);
   const [urlReady, setUrlReady] = useState(false);
 
-  const orderedShops = useMemo(
-    () => prepareAreaShopListView(shops, activeFilters, activeSort, targetArea, rankingEntries),
-    [shops, activeFilters, activeSort, targetArea, rankingEntries]
+  const filterOptions = useMemo(
+    () => precisionMode
+      ? SHOP_LIST_FILTER_OPTIONS.filter((option) => (
+          (option.id !== "beginner" || capabilities.beginner) &&
+          (option.id !== "station" || capabilities.station)
+        ))
+      : SHOP_LIST_FILTER_OPTIONS,
+    [capabilities.beginner, capabilities.station, precisionMode],
   );
+  const sortOptions = useMemo(
+    () => (precisionMode && !capabilities.station
+      ? SHOP_LIST_SORT_OPTIONS.filter((option) => option.id !== "station")
+      : SHOP_LIST_SORT_OPTIONS
+    ).map((option) => precisionMode && option.id === "recommended"
+      ? { ...option, label: "掲載順" }
+      : option),
+    [capabilities.station, precisionMode],
+  );
+  const strictRankById = useMemo(
+    () => new Map(resolveStrictAreaRanking(shops, rankingEntries).map(({ shop, rank }) => [shop.id, rank])),
+    [shops, rankingEntries],
+  );
+  const orderedShops = useMemo(() => {
+    if (!precisionMode || activeSort !== "recommended") {
+      return prepareAreaShopListView(shops, activeFilters, activeSort, targetArea, rankingEntries);
+    }
+    const filtered = filterAreaShops(shops, activeFilters, targetArea);
+    const rankedIds = new Set(strictRankById.keys());
+    const formal = [...filtered]
+      .filter((shop) => rankedIds.has(shop.id))
+      .sort((left, right) => (strictRankById.get(left.id) ?? 0) - (strictRankById.get(right.id) ?? 0));
+    return [...formal, ...filtered.filter((shop) => !rankedIds.has(shop.id))];
+  }, [shops, activeFilters, activeSort, targetArea, rankingEntries, precisionMode, strictRankById]);
   const relaxSuggestions = useMemo(
     () => getFilterRelaxationSuggestions(shops, activeFilters, targetArea),
     [shops, activeFilters, targetArea]
@@ -97,8 +136,8 @@ export function AreaShopList({
 
   useEffect(() => {
     const syncControlsFromUrl = () => {
-      const filters = parseShopListFiltersFromUrl();
-      const sort = parseShopListSortFromUrl();
+      const filters = parseShopListFiltersFromUrl(new Set(filterOptions.map(({ id }) => id)));
+      const sort = parseShopListSortFromUrl(new Set(sortOptions.map(({ id }) => id)));
       setActiveFilters(filters);
       setActiveSort(sort);
       setUrlReady(true);
@@ -113,7 +152,7 @@ export function AreaShopList({
     syncControlsFromUrl();
     window.addEventListener("popstate", syncControlsFromUrl);
     return () => window.removeEventListener("popstate", syncControlsFromUrl);
-  }, []);
+  }, [filterOptions, sortOptions]);
 
   useEffect(() => {
     if (!urlReady || typeof window === "undefined") return;
@@ -143,7 +182,7 @@ export function AreaShopList({
   const totalCount = shops.length;
   const filteredCount = orderedShops.length;
   const hasFilters = activeFilters.length > 0;
-  const activeSortLabel = SHOP_LIST_SORT_OPTIONS.find((option) => option.id === activeSort)?.label ?? "おすすめ順";
+  const activeSortLabel = sortOptions.find((option) => option.id === activeSort)?.label ?? "おすすめ順";
   const mobileControlState = hasFilters ? `${activeFilters.length}条件` : activeSortLabel;
 
   const statusText = hasFilters
@@ -164,8 +203,9 @@ export function AreaShopList({
           activeFilters={activeFilters}
           onToggle={toggleFilter}
           onClear={() => setActiveFilters([])}
+          options={filterOptions}
         />
-        <AreaSortTabs activeSort={activeSort} onChange={setActiveSort} />
+        <AreaSortTabs activeSort={activeSort} onChange={setActiveSort} options={sortOptions} />
       </div>
 
       <details className="area-shop-list-mobile-drawer">
@@ -179,8 +219,9 @@ export function AreaShopList({
             activeFilters={activeFilters}
             onToggle={toggleFilter}
             onClear={() => setActiveFilters([])}
+            options={filterOptions}
           />
-          <AreaSortTabs activeSort={activeSort} onChange={setActiveSort} />
+          <AreaSortTabs activeSort={activeSort} onChange={setActiveSort} options={sortOptions} />
         </div>
       </details>
 
@@ -214,11 +255,15 @@ export function AreaShopList({
           <div className="area-hub-shop-group__list">
             {orderedShops.map((shop) => {
               const visible = visibleShops.some((item) => item.id === shop.id);
-              const rank = resolveAreaShopListCardRank(shop, orderedShops, {
-                route: "hub",
-                sortId: activeSort,
-                page: legacyPage
-              });
+              const rank = precisionMode
+                ? activeSort === "recommended" && legacyPage === 1
+                  ? strictRankById.get(shop.id) ?? null
+                  : null
+                : resolveAreaShopListCardRank(shop, orderedShops, {
+                    route: "hub",
+                    sortId: activeSort,
+                    page: legacyPage
+                  });
               return (
                 <div
                   key={shop.id}

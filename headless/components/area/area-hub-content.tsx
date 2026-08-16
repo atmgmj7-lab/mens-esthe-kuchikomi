@@ -13,7 +13,7 @@ import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
 import { RankingComparisonTable } from "@/components/area/hub/RankingComparisonTable";
 import { RankingHeroCards } from "@/components/area/hub/RankingHeroCards";
 import { RankingSpecialtyPagedList } from "@/components/area/hub/RankingSpecialtyPagedList";
-import { RankingTabs } from "@/components/area/hub/RankingTabs";
+import { RankingTabs, type RankingTabItem } from "@/components/area/hub/RankingTabs";
 import {
   orderShopsForAreaRanking,
   type AreaShopRankingEntry
@@ -30,6 +30,11 @@ import {
 import {
   buildRankingIntro
 } from "@/lib/shop-ranking";
+import {
+  resolvePriorityAreaCapabilities,
+  resolveStrictAreaRanking,
+  type PriorityAreaCapabilities,
+} from "@/lib/priority-area-precision";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export const REVIEW_POLICY =
@@ -68,8 +73,11 @@ const GUIDE_POINTS = [
   }
 ] as const;
 
-export function buildFaqItems(ctx: AreaHubContext) {
-  return [
+export function buildFaqItems(
+  ctx: AreaHubContext,
+  { includeBeginner = true }: { includeBeginner?: boolean } = {},
+) {
+  const items = [
     {
       question: `${ctx.faqAreaRef}のメンズエステはどこから探すのがおすすめですか？`,
       answer: ctx.faqFirstAnswer
@@ -88,12 +96,13 @@ export function buildFaqItems(ctx: AreaHubContext) {
       question: "口コミはどのように掲載されていますか？",
       answer: REVIEW_POLICY
     },
-    {
+  ];
+  if (includeBeginner) items.push({
       question: "初めてメンズエステを利用する場合の選び方は？",
       answer:
         "営業時間・料金・予約方法が分かりやすい店舗から比較し、公式サイトや店舗ページで最新情報を確認してから問い合わせることをおすすめします。「初心者向け」セクションも参考にしてください。"
-    }
-  ];
+    });
+  return items;
 }
 
 export function AreaFaqSection({
@@ -172,16 +181,22 @@ export function AreaHubRankingTop({
   rankingShops,
   targetArea,
   hubContext,
-  rankingEntries = []
+  rankingEntries = [],
+  precisionMode = false,
 }: {
   rankingShops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   hubContext: AreaHubContext;
   rankingEntries?: AreaShopRankingEntry[];
+  precisionMode?: boolean;
 }) {
-  const topFive = orderShopsForAreaRanking(rankingShops, targetArea, rankingEntries).slice(0, 5);
+  const rankedTopFive = precisionMode
+    ? resolveStrictAreaRanking(rankingShops, rankingEntries).slice(0, 5)
+    : orderShopsForAreaRanking(rankingShops, targetArea, rankingEntries)
+        .slice(0, 5)
+        .map((shop, index) => ({ shop, rank: index + 1 }));
 
-  if (topFive.length === 0) return null;
+  if (rankedTopFive.length === 0) return null;
 
   const rankingIntro = buildRankingIntro(hubContext);
   const rankingBannerEnabled = isLayeredBannerSectionEnabled("ranking");
@@ -220,7 +235,7 @@ export function AreaHubRankingTop({
           PR枠や口コミ件数とは分けて表示します。
         </p>
       </div>
-      <RankingHeroCards shops={topFive} targetArea={targetArea} />
+      <RankingHeroCards rankedShops={rankedTopFive} targetArea={targetArea} />
       <p className="area-hub-section__footnote">
         <a href="#compare-tabs">条件別ランキング</a>
         でも比較できます。
@@ -289,11 +304,15 @@ function CompareTabPanel({
 export function AreaHubCompareTabsSections({
   rankingShops,
   targetArea,
-  hubContext
+  hubContext,
+  precisionMode = false,
+  capabilities = resolvePriorityAreaCapabilities(rankingShops, targetArea),
 }: {
   rankingShops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   hubContext: AreaHubContext;
+  precisionMode?: boolean;
+  capabilities?: PriorityAreaCapabilities;
 }) {
   const { lateNightShops, beginnerShops, stationShops, pricedShops, sortedRanking } =
     useRankingBuckets(rankingShops, targetArea);
@@ -301,96 +320,53 @@ export function AreaHubCompareTabsSections({
   const priceTableTitle = hubContext.priceTableTitle;
   const specialtyPageSize = 5;
 
+  const tabs: RankingTabItem[] = [
+    {
+      id: "price-table",
+      label: "料金比較",
+      content: (
+        <CompareTabPanel theme="price" areaSlug={targetArea.slug} ja={priceTableTitle} intro="掲載店舗の料金目安を一覧で比較できます。">
+          <RankingComparisonTable shops={pricedShops.length > 0 ? pricedShops : sortedRanking.slice(0, 15)} />
+        </CompareTabPanel>
+      ),
+    },
+    {
+      id: "late-night",
+      label: "深夜営業",
+      content: (
+        <CompareTabPanel theme="late-night" areaSlug={targetArea.slug} ja={`深夜営業の${hubContext.name}メンズエステ`}>
+          {lateNightShops.length > 0 ? (
+            <RankingSpecialtyPagedList shops={lateNightShops} targetArea={targetArea} variant="late-night" pageSize={specialtyPageSize} ariaLabel="深夜営業店舗のページ送り" />
+          ) : (
+            <p className="area-hub-section__empty">深夜営業候補を抽出できませんでした。店舗一覧から営業時間をご確認ください。</p>
+          )}
+        </CompareTabPanel>
+      ),
+    },
+  ];
+  if (!precisionMode || capabilities.beginner) tabs.push({
+    id: "beginner",
+    label: "初心者向け",
+    content: (
+      <CompareTabPanel theme="beginner" areaSlug={targetArea.slug} ja={`初心者におすすめの${hubContext.name}メンズエステ`}>
+        <RankingSpecialtyPagedList shops={beginnerShops} targetArea={targetArea} variant="beginner" pageSize={specialtyPageSize} ariaLabel="初心者向け店舗のページ送り" />
+      </CompareTabPanel>
+    ),
+  });
+  if (!precisionMode || capabilities.station) tabs.push({
+    id: "station",
+    label: "駅名・徒歩案内あり",
+    content: (
+      <CompareTabPanel theme="station" areaSlug={targetArea.slug} ja={`駅名・徒歩案内がある${hubContext.name}メンズエステ`} intro="WordPressの専用駅名項目と徒歩情報が明示されている店舗だけを掲載しています。">
+        <RankingSpecialtyPagedList shops={stationShops} targetArea={targetArea} variant="station" pageSize={specialtyPageSize} ariaLabel="駅名・徒歩案内がある店舗のページ送り" />
+      </CompareTabPanel>
+    ),
+  });
+
   return (
     <>
       <div id="compare-tabs">
-        <RankingTabs
-          tabs={[
-            {
-              id: "price-table",
-              label: "料金比較",
-              content: (
-                <CompareTabPanel theme="price" areaSlug={targetArea.slug} ja={priceTableTitle} intro="掲載店舗の料金目安を一覧で比較できます。">
-                  <RankingComparisonTable
-                    shops={pricedShops.length > 0 ? pricedShops : sortedRanking.slice(0, 15)}
-                  />
-                </CompareTabPanel>
-              )
-            },
-            {
-              id: "late-night",
-              label: "深夜営業",
-              content: (
-                <CompareTabPanel
-                  theme="late-night"
-                  areaSlug={targetArea.slug}
-                  ja={`深夜営業の${hubContext.name}メンズエステ`}
-                >
-                  {lateNightShops.length > 0 ? (
-                    <RankingSpecialtyPagedList
-                      shops={lateNightShops}
-                      targetArea={targetArea}
-                      variant="late-night"
-                      pageSize={specialtyPageSize}
-                      ariaLabel="深夜営業店舗のページ送り"
-                    />
-                  ) : (
-                    <p className="area-hub-section__empty">
-                      深夜営業候補を抽出できませんでした。店舗一覧から営業時間をご確認ください。
-                    </p>
-                  )}
-                </CompareTabPanel>
-              )
-            },
-            {
-              id: "beginner",
-              label: "初心者向け",
-              content: (
-                <CompareTabPanel
-                  theme="beginner"
-                  areaSlug={targetArea.slug}
-                  ja={`初心者におすすめの${hubContext.name}メンズエステ`}
-                >
-                  {beginnerShops.length > 0 ? (
-                    <RankingSpecialtyPagedList
-                      shops={beginnerShops}
-                      targetArea={targetArea}
-                      variant="beginner"
-                      pageSize={specialtyPageSize}
-                      ariaLabel="初心者向け店舗のページ送り"
-                    />
-                  ) : (
-                    <p className="area-hub-section__empty">該当店舗の抽出に十分な情報がありません。</p>
-                  )}
-                </CompareTabPanel>
-              )
-            },
-            {
-              id: "station",
-              label: "駅名・徒歩案内あり",
-              content: (
-                <CompareTabPanel
-                  theme="station"
-                  areaSlug={targetArea.slug}
-                  ja={`駅名・徒歩案内がある${hubContext.name}メンズエステ`}
-                  intro="WordPressの駅名と徒歩分数が明示されている店舗だけを掲載しています。"
-                >
-                  {stationShops.length > 0 ? (
-                    <RankingSpecialtyPagedList
-                      shops={stationShops}
-                      targetArea={targetArea}
-                      variant="station"
-                      pageSize={specialtyPageSize}
-                      ariaLabel="駅名・徒歩案内がある店舗のページ送り"
-                    />
-                  ) : (
-                    <p className="area-hub-section__empty">駅名と徒歩分数を確認できる店舗はありません。</p>
-                  )}
-                </CompareTabPanel>
-              )
-            }
-          ]}
-        />
+        <RankingTabs tabs={tabs} />
       </div>
     </>
   );

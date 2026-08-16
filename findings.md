@@ -1,5 +1,15 @@
 # Findings & Decisions
 
+## 2026-08-16 UX-PROD-T3A-RESUME-PRIMARY-AWARE-01
+
+- 専用branchは`codex/eskomi-ux-production-t3a-primary-aware`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-eskomi-ux-production-t3a-primary-aware`、baseは`2bc9fb07de4830bb266d246ccae20b4273a563a8`である。
+- runtimeのPrimary正本は`ShopView.primaryArea`だけとし、preview JSONはcontract/browser fixture以外から参照しない。名前、住所、slug、term順による所属推測は行わない。
+- precision modeはArea ID 17/13/7/46/4の5件だけに適用する。主一覧は`primaryArea.id === currentArea.id`、legacy relationがある別PrimaryはRELATED、Primary nullはUNCLASSIFIEDとする。
+- canonical WP IDで重複を拒否し、同じ表示名でもIDが違えば別店舗として維持する。previewの6/3/12/18/5はfixture検査値でありproduction UIへ固定値として埋め込まない。
+- 現行Area Hubはlegacy relationの全店舗を単一一覧へ渡し、formal rankがなくても配列順から順位を作る経路がある。初心者・駅filter/moduleも有効data 0で残るため、priority5側だけfail closedへ改める必要がある。
+- `shop_access`は広い自由文で、単独では正式station dataへ昇格しない。専用station fieldと徒歩情報を同時に満たさない場合、駅module/filter/copy/countをDOMへ出さない。
+- URL、canonical、sitemap、robots、title/H1の全面変更、SEO長文、FAQ、新storage、本番書込、dependency更新は今回の範囲外である。
+
 ## 2026-08-16 UX-AREA-PRIMARY-BACKFILL-PREVIEW-01
 
 - 今回の書込候補母集団はWork成果物214件のうち`VERIFIED_EXACT` 44件だけであり、他statusはpreview recordへ混入させない。
@@ -405,3 +415,11 @@
 - 公開`wp-json` proxyは受信AuthorizationをWordPressへ転送し、cache再検証routeはsecret未設定時に通るため、専用server clientとfail-closedへ分ける必要がある。
 - セラピスト、年齢、出勤の公開正本を`therapist`と`therapist_schedule`へ統一し、旧3枠・年齢帯meta・当日出勤metaは移行とshadow比較だけに限定する。
 - 外部順位は45日でstaleにし、Eskomi順位とは別snapshotへ保存する。Google評価は初期・将来範囲から除外した。
+# 2026-08-16 UX-PROD-T3A Primary-aware Area Precision
+
+- 重点5Areaはslugや名称ではなくterm ID `17/13/7/46/4`だけで精密表示を有効化する。主一覧は`primaryArea.id`完全一致だけ、旧Area関係があってPrimaryが別IDなら関連、Primary未設定なら確認中へ分けた。
+- 現在の公開取得dataにはPrimaryが未反映なので、5Areaの主一覧・主件数・順位・主一覧schemaは0件として閉じる。旧Area関係を完全一致へ推測しない。
+- accepted preview 44件はbrowser fixtureだけで使用し、EXACT件数`6/3/12/18/5`を再現する。production runtimeからpreview JSONや固定店舗mappingは参照しない。
+- 駅名表示は専用駅fieldと徒歩情報の両方がある場合だけ有効とし、汎用`shop_access`だけでは駅filter・駅tab・駅tagを出さない。初心者情報も明示featureが0件なら関連UIとFAQを出さない。
+- 正式順位recordがない場合は順位moduleを出さず、明示された順位の空きを詰めない。RELATED/UNCLASSIFIEDには順位を付けない。
+- 任意追加で実行した旧`test:portal-browser-layout`は、堺筋本町Hubに旧自動順位・比較表を必須とする前提が新しいfail-closed仕様と衝突した。Task指定の2-mode browser QAは別runnerで成功しており、停止条件に従い旧runnerの変更は残していない。
