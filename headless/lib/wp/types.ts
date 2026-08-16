@@ -1,4 +1,4 @@
-import type { PromotionDisclosure } from "@/lib/promotion-disclosure";
+import type { LegacyShopRecommendationRanking } from "@/lib/shop-ranking";
 import type { StrictRankingAvailability } from "@/lib/ux-production-data-boundary";
 export type WpRendered = {
   rendered?: string;
@@ -39,16 +39,6 @@ export type WpPostBase = {
     "wp:featuredmedia"?: WpMedia[];
     "wp:term"?: WpTerm[][];
   };
-};
-
-export type ShopRankingMeta = {
-  manualRank: number | null;
-  rankingPriority: number | null;
-  isRankingEnabled: boolean;
-  rankingReason: string;
-  isPr: boolean;
-  rankingLabel: string;
-  promotion: PromotionDisclosure;
 };
 
 export type ShopFactField =
@@ -108,7 +98,7 @@ export type ShopView = {
   acf: Record<string, unknown>;
   officialUrl: string;
   areaSlug: string;
-  ranking: ShopRankingMeta;
+  ranking: LegacyShopRecommendationRanking;
   strictRanking: StrictRankingAvailability;
 };
 

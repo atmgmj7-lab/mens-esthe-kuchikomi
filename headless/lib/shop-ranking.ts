@@ -28,8 +28,12 @@ export type ShopRankingMeta = {
   promotion: ReturnType<typeof resolvePromotionDisclosure>;
 };
 
+declare const legacyShopRecommendationRanking: unique symbol;
+
 /** Existing recommendation order only; it is not the audited strict ranking contract. */
-export type LegacyShopRecommendationRanking = ShopRankingMeta;
+export type LegacyShopRecommendationRanking = ShopRankingMeta & {
+  readonly [legacyShopRecommendationRanking]: true;
+};
 
 export type RankingBasis =
   | "user-rating"
@@ -73,7 +77,7 @@ function parseOptionalBool(value: unknown, defaultValue: boolean): boolean {
 }
 
 /** REST ACF → ランキングメタ。`area_rank` は本番 REST で確認済み（key 存在・数値化可）。 */
-export function normalizeShopRanking(acf: Record<string, unknown>): ShopRankingMeta {
+export function normalizeShopRanking(acf: Record<string, unknown>): LegacyShopRecommendationRanking {
   const promotion = resolvePromotionDisclosure(acf);
 
   return {
@@ -84,7 +88,7 @@ export function normalizeShopRanking(acf: Record<string, unknown>): ShopRankingM
     isPr: promotion.requiresDisclosure,
     rankingLabel: safeText(acf.ranking_label),
     promotion
-  };
+  } as LegacyShopRecommendationRanking;
 }
 
 function compareAutoRanking(

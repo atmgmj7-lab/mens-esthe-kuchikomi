@@ -10,7 +10,7 @@ This adapter records only what the current public sources can prove. It does not
 | Card/header image | WordPress `featured_media` plus embedded media, then legacy ACF URL | Preserve the featured media ID with the chosen embedded URL, alt, and available dimensions. ACF remains a legacy URL fallback with `mediaId: null`. |
 | Detail banner | No approved role/rights storage | `null`; do not reuse the card image as a banner. |
 | Approved user reviews | Existing read-only WordPress `reviews` contract | Reuse only `publish` and `approved` results returned for a public shop. |
-| Review relation | Review ID plus the already-resolved public shop and area context | One `ReviewRelationView` per canonical review. Missing shop/area IDs or slugs means the item is excluded from public discovery. |
+| Review relation | Review ID, the local reader's canonical source shop ID, and the already-resolved public shop/area context | One `ReviewRelationView` per canonical review. The source shop ID must equal the context shop ID; a mismatch or missing shop/area identity excludes the item from public discovery. |
 | Existing recommendation/ranking snapshot | Existing WordPress/Next.js recommendation helpers | Legacy display order only. It is not the strict, audited ranking contract. |
 | Strict overall/area/shop ranking | No approved storage | `unavailable / storage-not-configured`; no empty record, synthetic ID, or conversion from legacy ranking. |
 

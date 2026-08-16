@@ -44,12 +44,15 @@ function isCanonicalSlug(value: unknown): value is string {
 
 export function approvedReviewRelation(
   reviewId: unknown,
+  sourceShopId: unknown,
   context: ReviewRelationContext | undefined,
 ): ReviewRelationView | null {
   if (
     !isPositiveInteger(reviewId) ||
+    !isPositiveInteger(sourceShopId) ||
     !context ||
     !isPositiveInteger(context.shopId) ||
+    sourceShopId !== context.shopId ||
     !isPositiveInteger(context.areaId) ||
     !isCanonicalSlug(context.shopSlug) ||
     !isCanonicalSlug(context.areaSlug)

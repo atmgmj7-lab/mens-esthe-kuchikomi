@@ -142,43 +142,30 @@ function normalizeDateRange(
   return { oldestSubmittedAt, latestSubmittedAt };
 }
 
-function approvedReviewRelation(
-  reviewId: number,
-  context: ReviewRelationContext | undefined,
-): ReviewRelationView | null {
+export type ApprovedShopReviewRelationSource = {
+  shopId: number;
+  result: ApprovedShopReviewResult;
+};
+
+export async function buildApprovedShopReviewRelations(
+  source: ApprovedShopReviewRelationSource,
+  relationContext?: ReviewRelationContext,
+): Promise<ReviewRelationView[]> {
   if (
-    !Number.isSafeInteger(reviewId) ||
-    reviewId <= 0 ||
-    !context ||
-    !Number.isSafeInteger(context.shopId) ||
-    context.shopId <= 0 ||
-    !Number.isSafeInteger(context.areaId) ||
-    context.areaId <= 0 ||
-    !context.shopSlug ||
-    context.shopSlug.trim() !== context.shopSlug ||
-    !context.areaSlug ||
-    context.areaSlug.trim() !== context.areaSlug
+    !Number.isSafeInteger(source.shopId) ||
+    source.shopId <= 0 ||
+    source.result.status === "unavailable"
   ) {
-    return null;
+    return [];
   }
 
-  return {
-    reviewId,
-    shopId: context.shopId,
-    shopSlug: context.shopSlug,
-    areaId: context.areaId,
-    areaSlug: context.areaSlug,
-    therapistId: null,
-  };
-}
-
-export function buildApprovedShopReviewRelations(
-  result: ApprovedShopReviewResult,
-  relationContext?: ReviewRelationContext,
-): ReviewRelationView[] {
-  if (result.status === "unavailable") return [];
-  return result.page.reviews.flatMap((review) => {
-    const relation = approvedReviewRelation(review.id, relationContext);
+  const { approvedReviewRelation } = await import("@/lib/ux-production-data-boundary");
+  return source.result.page.reviews.flatMap((review) => {
+    const relation = approvedReviewRelation(
+      review.id,
+      source.shopId,
+      relationContext,
+    );
     return relation ? [relation] : [];
   });
 }

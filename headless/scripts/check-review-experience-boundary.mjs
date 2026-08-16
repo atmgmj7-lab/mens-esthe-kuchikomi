@@ -86,9 +86,28 @@ for (const capability of ["therapistId", "helpfulCount", "shopReply", "experienc
   assert.equal(boundary.REVIEW_EXPERIENCE_CAPABILITIES[capability].status, "unavailable");
 }
 
+const relationContext = { shopId: 101, shopSlug: "fixture-shop", areaId: 10, areaSlug: "osaka" };
+const directRelation = boundary.approvedReviewRelation(501, 101, relationContext);
+assert.ok(directRelation, "matching canonical source and context shop IDs must create a relation");
+assert.equal(directRelation.shopId, 101, "matching canonical source and context shop IDs must create a relation");
+assert.equal(
+  boundary.approvedReviewRelation(501, 101, { ...relationContext, shopId: 202 }),
+  null,
+  "a source review for shop 101 must not be rebound to shop 202"
+);
+
+let commonRelationCalls = 0;
+const observedBoundary = {
+  ...boundary,
+  approvedReviewRelation: (...args) => {
+    commonRelationCalls += 1;
+    return boundary.approvedReviewRelation(...args);
+  }
+};
+
 const viewModel = compileModule("lib/shop-review-view-model.ts", {
   "server-only": {},
-  "@/lib/ux-production-data-boundary": boundary
+  "@/lib/ux-production-data-boundary": observedBoundary
 });
 const result = {
   status: "available",
@@ -106,8 +125,8 @@ const result = {
     dateRange: { oldestSubmittedAt: "2026-08-15T00:00:00+09:00", latestSubmittedAt: "2026-08-15T00:00:00+09:00" }
   }
 };
-const context = { shopId: 101, shopSlug: "fixture-shop", areaId: 10, areaSlug: "osaka" };
-const relations = viewModel.buildApprovedShopReviewRelations(result, context);
+const source = { shopId: 101, result };
+const relations = await viewModel.buildApprovedShopReviewRelations(source, relationContext);
 assert.equal(relations.length, 1);
 assert.equal(relations[0].reviewId, 501);
 assert.equal(relations[0].shopId, 101);
@@ -115,8 +134,14 @@ assert.equal(relations[0].shopSlug, "fixture-shop");
 assert.equal(relations[0].areaId, 10);
 assert.equal(relations[0].areaSlug, "osaka");
 assert.equal(relations[0].therapistId, null);
-assert.equal(viewModel.buildApprovedShopReviewRelations(result).length, 0, "reviews without canonical shop/area context must not enter discovery");
-assert.equal(viewModel.buildApprovedShopReviewRelations(result, { ...context, areaId: 0 }).length, 0);
+assert.equal(commonRelationCalls, 1, "the relation adapter must call the shared production relation function");
+assert.equal((await viewModel.buildApprovedShopReviewRelations(source)).length, 0, "reviews without canonical shop/area context must not enter discovery");
+assert.equal((await viewModel.buildApprovedShopReviewRelations(source, { ...relationContext, areaId: 0 })).length, 0);
+assert.equal(
+  (await viewModel.buildApprovedShopReviewRelations(source, { ...relationContext, shopId: 202 })).length,
+  0,
+  "the local source shop identity must reject a different caller context"
+);
 
 const links = compileModule("lib/review-links.ts");
 assert.equal(links.buildReviewSubmitUrl("fixture-shop"), "/reviews/submit?shop=fixture-shop", "existing shop payload contract must remain unchanged");

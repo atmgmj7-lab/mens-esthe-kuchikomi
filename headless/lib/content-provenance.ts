@@ -1,3 +1,7 @@
+import type { ReviewContentKind } from "@/lib/ux-production-data-boundary";
+
+export type { ReviewContentKind } from "@/lib/ux-production-data-boundary";
+
 export type ContentSourceType =
   | "user-review"
   | "editorial-comment"
@@ -118,11 +122,6 @@ export type NormalizedContentItem = {
   canUseForAggregateRating: boolean;
   reason: string;
 };
-
-export type ReviewContentKind =
-  | "approved-user-review"
-  | "editorial-article"
-  | "shop-reply";
 
 const USER_REVIEW_SOURCE_TYPES = new Set(["user-review", "user_review", "user-review"]);
 const EDITORIAL_SOURCE_TYPES = new Set(["editorial", "editorial-comment", "editorial_comment"]);
