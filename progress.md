@@ -818,3 +818,12 @@
 - T4/T2/T3 focused 20検査、全`npm test`、lint、typecheck、821/821 build、audit（vulnerabilities 0）、`git diff --check`はすべてexit 0。専用browserは33 scenarios・1,072 assertions・8 screenshots・failures 0、Portal横断は98 scenarios・87,395 assertions・56 screenshots・failures 0だった。
 - 独立再レビューはSPEC `Critical 0 / Important 0 / Minor 1`、CODE_QUALITY_SECURITY `0 / 0 / 0`、VISIBLE `0 / 0 / 0`、READY Yes。唯一のMinorだったtask plan/progressの未更新をこの記録で解消した。
 - dependencyと`package-lock.json`、PHP、storage、Phase19、URL/canonical/sitemap/robots、Primary backfill、WordPress/Supabase本番、Secretは変更していない。指定pathだけをcommitし、push/deploy/本番変更前で停止する。
+
+# 2026-08-18 UX-PROD-HOTFIX-EDITORIAL-PLACEHOLDER-01 ローカル検証完了（commit前）
+
+- Topと`/reviews/`が共有する`getLatestPosts`が、公開WordPressの初期sample（ID `1`、slug `hello-world`、type `post`、status `publish`、category ID `1`）を他のgeneric postと同様に正規化して返していたため、両方の編集部枠へ露出していた。
+- 表示タイトル・本文には依存せず、上記の全構造identityが一致するWordPress初期sampleだけを共通readerで除外した。通常のpublished generic post、正規化済みID/slug/link、順序、cache life/tag、URL/canonical/sitemapは維持している。
+- 初回fail-firstに加え、`per_page=limit`後の除外で正規記事が1件不足する指摘もREDで固定した。1件だけ追加取得して除外後に元の件数へ戻し、Top/Reviews 6件とColumn一覧24件の順序・件数を維持する。
+- focused、T2、provenance、PR、public reviews、Area/Shop/SEO関連、全`npm test`、lint、typecheck、821/821 build、audit high、差分検査をすべてexit 0で完了した。修正後browser QAはTop/Reviewsの1440/390/320pxとArea/Shop smokeを含む8 scenarios・66 assertions・failures 0。
+- 独立最終reviewはSPEC `Critical 0 / Important 0 / Minor 0`、CODE_QUALITY_SECURITY `0 / 0 / 1`、VISIBLE `0 / 0 / 0`、全てReady Yes。Minorは現在存在しない100件callerだけの将来上限で、現行6件/24件には影響しない。
+- dependencyと`package-lock.json`、WordPress/Supabase本番data、push、deploy、production writeは変更・実施していない。指定pathのhotfix commitだけを次のローカル操作とし、その後もdeploy前で停止する。

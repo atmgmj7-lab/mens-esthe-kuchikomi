@@ -27,10 +27,13 @@ export type WpTerm = {
 
 export type WpPostBase = {
   id: number;
+  type?: string;
+  status?: string;
   date: string;
   modified: string;
   slug: string;
   link: string;
+  categories?: number[];
   title: WpRendered;
   content: WpRendered;
   excerpt?: WpRendered;

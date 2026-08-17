@@ -4,13 +4,25 @@ import { normalizePost } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import type { BlogPostView, WpPostBase } from "@/lib/wp/types";
 
+function isWordPressDefaultSamplePost(post: WpPostBase): boolean {
+  return post.id === 1
+    && post.slug === "hello-world"
+    && post.type === "post"
+    && post.status === "publish"
+    && post.categories?.includes(1) === true;
+}
+
 export async function getLatestPosts(limit = 6): Promise<BlogPostView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "posts", `posts:list:${limit}`);
   try {
-    const posts = await wpFetch<WpPostBase[]>(`/wp/v2/posts?per_page=${limit}&_embed=1`);
-    return posts.map(normalizePost);
+    const perPage = Math.min(limit + 1, 100);
+    const posts = await wpFetch<WpPostBase[]>(`/wp/v2/posts?per_page=${perPage}&_embed=1`);
+    return posts
+      .filter((post) => !isWordPressDefaultSamplePost(post))
+      .slice(0, limit)
+      .map(normalizePost);
   } catch (error) {
     logWpBuildFallback(`latest posts ${limit}`, error);
     return [];
