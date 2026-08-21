@@ -1,5 +1,14 @@
 # Findings & Decisions
 
+## 2026-08-22 UX-PROD Final Close
+
+- Public Visual、HTTP/SEO/Data、Content/Schema/Safetyを別担当で観測し、Critical 0 / Important 0。Priority5の公開件数、H1、canonical、noindex境界、fake data/schema 0、214 unique Shop linkを相互に確認した。
+- public-only GETではWordPress Post ID 1の`draft`という管理状態を直接証明できない。公開結果の404/link 0/sitemap 0と、2026-08-21保存済みinternal after snapshotのdraftを別証拠として扱い、今回の公開QAで内部状態を推測しない。
+- Topの堺筋本町カードはArea本体93件と異なり`掲載店舗 集計準備中`。虚偽件数やroute不全ではなくMinor backlogとし、release closeへ新しいUI修正を混ぜない。
+- Vercel read-only metadataはdeployment source SHAを返さない。現在aliasのapplication codeはdeployment時刻がimplementation後・docs-only evidence前であることから`867aab90811420e906ebcb3c787d2655cd8379e5`相当とINFERREDし、直接確認済みとは表現しない。
+- `origin/main`からcandidateまでのrangeに`functions.php`と`headless/**`があるため、main同期ではVercelとXserverの両workflowが起動する。Xserverは既知BLOCK-001でもtransfer前停止とproduction PHP不変を確認する。
+- rollback locatorはXserver `/home/xs454693/escomi-backups/`配下のWordPress PHP、Primary P1/P2/P3、Hello world各directoryとSHA-256 manifestをread-only再確認した。曖昧なtask名だけをrollback pointにしない。
+
 ## 2026-08-22 UX-PROD Area List UX Revision
 
 - 専用branchは`codex/ux-prod-area-list-ux-revision-01`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-prod-area-list-ux-revision-01`、baseはproduction最終commit `096875847bddc53551a0b6fa77c1cfed9d98b8af`である。dirty rootは変更しない。

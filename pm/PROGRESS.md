@@ -2,6 +2,14 @@
 
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
+### 2026-08-22 Eskomi新UX Release Close 実行中
+
+- T1 Public Data Boundary、T2 Top/Reviews Hub、T3 Priority Area Hub、T4 Shop Detail、およびArea relation全件一覧revisionはlocal実装とproduction反映済み。
+- final independent public QAはCritical 0 / Important 0。Priority5は18 / 48 / 59 / 93 / 59、unique Shop link 214/214 HTTP 200、fake ranking/review/rating 0、Hello world 404/sitemap 0。
+- WordPressは公開データ正本を維持し、public Shops 380、Primary 44、Reviews 0。Supabase public cutoverは未実施。
+- fresh `origin/main`は`bc203610e9bb041c84a63695d71938ba58261730`で、candidate `48f45591cb606f960934f20a6a8ce8b419bdb9a6`へfast-forward可能。main同期前に文書reviewを行う。
+- GSC、SEO戦略、Analytics、次フェーズは未着手。ユーザー最新判断「次戦略は新UX完成後に決める」を維持し、release close taskから開始しない。
+
 ### 2026-07-18〜19 Phase 17本番反映・認証経路修正 完了
 
 - 06/12以降の401は資格情報の一斉失効ではなく、headless切替後にWordPress Application PasswordをHTTP originへ送る経路になったことが主因。HTTPS:443、正しいHost/TLS SNI、証明書検証、redirect非追従へ修正した。

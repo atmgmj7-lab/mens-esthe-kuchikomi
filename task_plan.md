@@ -6,7 +6,37 @@
 
 ## Current Phase
 
-UX-PROD-AREA-LIST-UX-REVISION-01 完了（main push・WordPress/Supabase変更なし）
+UX-PROD-FINAL-CLOSE-01 実行中（独立公開QA・Git整合・release記録を完了し、main同期前）
+
+## UX-PROD-FINAL-CLOSE-01
+
+### Goal
+
+完成・公開済みのEskomi新UXについて、実装担当とは別の公開QA、Gitとproductionの整合確認、release記録、main同期、同期後production検証までを行い、新UX releaseだけを閉じる。GSC、SEO戦略、Analytics、次フェーズ、追加data整備には進まない。
+
+### Phases
+
+- [x] Phase A: 独立3担当で公開Visual、HTTP/SEO/Data、Content/Schema/Safety QAを実施する
+- [x] Phase B1: production deploymentとapplication commitの対応、fresh `origin/main`、fast-forward可否、workflow影響を監査する
+- [x] Phase B2: full test、lint、typecheck、821/821 build、audit、diffをfresh実行する
+- [ ] Phase B3: release close記録を独立reviewし、文書commitを作成する
+- [ ] Phase B4: candidateを`origin/main`へfast-forward同期し、workflowを確認する
+- [ ] Phase B5: productionを再確認し、実deployment/runをrelease記録へ反映する
+- [ ] Phase C: `NEW_UX_RELEASE=COMPLETE`、`GIT_PRODUCTION_ALIGNED=YES`、`RELEASE_CLOSED=YES`で停止する
+
+### Gates
+
+- 独立公開QAはCritical 0 / Important 0。Area relationと公開DOMは18 / 48 / 59 / 93 / 59、unique Shop linkは214/214 HTTP 200。
+- fresh `origin/main`は`bc203610e9bb041c84a63695d71938ba58261730`。candidate `48f45591cb606f960934f20a6a8ce8b419bdb9a6`まで22 commitのfast-forwardが可能で、force push、merge、rebaseは不要。
+- main pushはVercelとXserver workflowを起動する。Xserverが既知BLOCK-001で停止した場合も、原因とpartial deploy 0を確認する。別原因ならrelease closeを停止する。
+- 既知Minorはfavicon 404とTopの堺筋本町count保留表示。formal ranking data 0はfake順位を出さない正常状態。
+
+### Stop Conditions
+
+- 新規Critical / Important、Area count不一致、fake data/ranking、主要route回帰
+- origin/mainの競合更新、force pushまたは破壊的なGit操作が必要
+- Vercel production失敗、XserverがBLOCK-001以外で失敗、partial deployまたはrollbackが必要
+- Secret/env、URL/canonical/sitemap/robots、WordPress/Supabase data変更が必要
 
 ## UX-PROD-AREA-LIST-UX-REVISION-01
 

@@ -2,6 +2,15 @@
 
 更新日: 2026-07-16
 
+## 2026-08-22 現在の正本
+
+この節を現在の唯一のNext Actions正本とする。下の2026-07-16以前の「現在」「次の1タスク」「現在の実行順」は履歴であり、自動再開しない。
+
+1. `UX-PROD-FINAL-CLOSE-01`でrelease文書review、main fast-forward同期、workflow観測、production再確認を完了する。
+2. Release Close後は停止する。
+3. GSC、SEO戦略、Analytics、DATA-CLEAN、Phase18、次フェーズは`NOT_STARTED`のまま維持する。
+4. 次の戦略・タスクは、ユーザーが新UX完成後の状態を確認してから決める。現時点の自動実行対象は設定しない。
+
 ## 2026-07-16 店舗詳細C案 実装順
 
 1. `docs/superpowers/plans/2026-07-16-shop-owner-request-flow.md` をテスト先行で実行し、店舗責任者申請をlocal Supabaseの非公開審査キューで検証する。
