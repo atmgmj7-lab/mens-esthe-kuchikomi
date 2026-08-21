@@ -213,7 +213,15 @@ assert.ok(rankingSource.includes("isEligibleForNaturalRanking"), "Natural rankin
 assert.ok(rankingSource.includes("!shop.ranking.isPr"), "Ranking eligibility helper must explicitly exclude PR shops");
 
 const rankingCardsSource = readFileSync(join(root, "components/area/hub/RankingHeroCards.tsx"), "utf8");
-assert.ok(rankingCardsSource.includes("canReceiveNaturalRankNumber"), "Ranking cards must not assign natural rank numbers to PR shops");
+const areaRankingSource = readFileSync(join(root, "lib/area-shop-ranking.ts"), "utf8");
+assert.ok(
+  areaRankingSource.includes("!shop.ranking.isPr") && areaRankingSource.includes("canDisplayAreaShopRank(shop)"),
+  "The formal ranking adapter must exclude PR shops before ranking cards render",
+);
+assert.ok(
+  rankingCardsSource.includes("AreaShopRankingItem") && !rankingCardsSource.includes("index + 1"),
+  "Ranking cards must consume validated explicit ranks without synthesizing array-order positions",
+);
 
 const seoSource = readFileSync(join(root, "lib/seo.ts"), "utf8");
 assert.ok(

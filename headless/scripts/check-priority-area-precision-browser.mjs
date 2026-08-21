@@ -109,6 +109,9 @@ function buildFixtureData(preview) {
       area,
       records: [...fixtureRecords, related, unclassified],
       legacyRankingEntries: exactRecords.map((record, index) => ({ shopSlug: record.slug, rank: index + 1 })),
+      formalRankingEntries: area.slug === "umeda"
+        ? exactRecords.slice(1, 4).map((record, index) => ({ shopSlug: record.slug, rank: index + 1 }))
+        : [],
       promotedShopId: exactRecords[0]?.id ?? null,
     }];
   }));
@@ -237,6 +240,7 @@ export default async function PriorityFixturePage({ params }: { params: Promise<
       area={area}
       allShops={fixture.records.map((record) => toShop(record, fixture.promotedShopId))}
       rankingEntries={[...fixture.legacyRankingEntries]}
+      formalRankingEntries={[...fixture.formalRankingEntries]}
       reviewResult={reviewResult}
     />
   );
@@ -299,17 +303,30 @@ async function startServer(root, readinessPath) {
   throw new Error(`server was not ready\n${log}`);
 }
 
-async function runFixtureQa(browser) {
+async function runFixtureQa(browser, preview) {
   const page = await browser.newPage();
   for (const area of areas) {
+    const relationCount = preview.records.filter((record) =>
+      record.currentAreaRelations.some((relation) => relation.termId === area.id)
+    ).length + 2;
+    const formalRankingCount = area.slug === "umeda" ? 3 : 0;
     const route = `/qa-priority-fixture/${area.slug}/`;
     const rawResponse = await fetch(`${baseUrl}${route}`);
     const rawHtml = await rawResponse.text();
     check(rawResponse.status === 200, `fixture ${area.slug} raw SSR status`, { status: rawResponse.status });
     check(rawHtml.includes('data-area-precision-mode="true"'), `fixture ${area.slug} raw SSR precision marker`);
-    check(rawHtml.includes('data-area-precision-group="exact"'), `fixture ${area.slug} raw SSR exact marker`);
-    check(rawHtml.includes('data-area-secondary-shop="true"'), `fixture ${area.slug} raw SSR compact secondary links`);
-    check(!rawHtml.includes('aria-label="おすすめランキング'), `fixture ${area.slug} raw SSR rank=0`);
+    check(!rawHtml.includes('data-area-precision-group='), `fixture ${area.slug} raw SSR grouped listing=0`);
+    check(!rawHtml.includes('data-area-secondary-shop='), `fixture ${area.slug} raw SSR secondary listing=0`);
+    check(
+      (rawHtml.match(/data-area-shop-card="true"/gu) ?? []).length === relationCount,
+      `fixture ${area.slug} raw SSR Area relation count`,
+      { relationCount },
+    );
+    check(
+      (rawHtml.match(/class="ranking-card(?:\s|")/gu) ?? []).length === formalRankingCount,
+      `fixture ${area.slug} raw SSR formal ranking count`,
+      { formalRankingCount },
+    );
     check(rawHtml.includes(`${area.name}で利用先を探したときの承認済み口コミ本文`), `fixture ${area.slug} raw SSR approved review body`);
     check(rawHtml.includes('href="/reviews/submit/?area=' + area.slug + '"'), `fixture ${area.slug} raw SSR Area review submit link`);
     const rawOrder = [
@@ -359,21 +376,21 @@ async function runFixtureQa(browser) {
       const firstDiscoveryLink = page.locator("#area-discovery-links a").first();
       await firstDiscoveryLink.focus();
       check(await firstDiscoveryLink.evaluate((element) => getComputedStyle(element).outlineStyle !== "none"), `fixture ${area.slug} ${viewport.width}px keyboard focus visible`);
-      const exactCards = page.locator('[data-area-precision-group="exact"] [data-area-shop-card="true"]');
-      const relatedLinks = page.locator('[data-area-precision-group="related"] [data-area-secondary-shop="true"]');
-      const unclassifiedLinks = page.locator('[data-area-precision-group="unclassified"] [data-area-secondary-shop="true"]');
-      check(await exactCards.count() === area.exact, `fixture ${area.slug} ${viewport.width}px exact count`, { actual: await exactCards.count() });
-      check(await relatedLinks.count() === area.related, `fixture ${area.slug} ${viewport.width}px related count`, { actual: await relatedLinks.count() });
-      check(await unclassifiedLinks.count() === area.unclassified, `fixture ${area.slug} ${viewport.width}px unclassified count`, { actual: await unclassifiedLinks.count() });
-      check(await page.locator('[data-area-precision-secondary="true"] [data-area-shop-card]').count() === 0, `fixture ${area.slug} ${viewport.width}px secondary full cards=0`);
-      const secondaryIds = await page.locator('[data-area-secondary-shop="true"]').evaluateAll((elements) => elements.map((element) => element.getAttribute("data-shop-id")));
-      check(secondaryIds.every(Boolean) && new Set(secondaryIds).size === secondaryIds.length, `fixture ${area.slug} ${viewport.width}px secondary identity`);
-      const secondaryHrefs = await page.locator('[data-area-secondary-shop="true"] a[href^="/shops/"]').count();
-      check(secondaryHrefs === area.related + area.unclassified, `fixture ${area.slug} ${viewport.width}px crawlable secondary links`, { secondaryHrefs });
-      const sameNameIds = await page.getByRole("link", { name: "同名でも別IDの店舗", exact: true }).evaluateAll((elements) => elements.map((element) => element.closest('[data-area-secondary-shop="true"]')?.getAttribute("data-shop-id")));
-      check(sameNameIds.length === 2 && new Set(sameNameIds).size === 2, `fixture ${area.slug} ${viewport.width}px same-name distinct`);
-      check(await page.locator("#ranking").count() === 0, `fixture ${area.slug} ${viewport.width}px ranking module=0`);
-      check(await page.locator('[aria-label^="おすすめランキング"]').count() === 0, `fixture ${area.slug} ${viewport.width}px rank badge=0`);
+      const listingCards = page.locator('#shop-list [data-area-shop-card="true"]');
+      check(await listingCards.count() === relationCount, `fixture ${area.slug} ${viewport.width}px Area relation count`, { actual: await listingCards.count(), relationCount });
+      check(await page.locator('[data-area-precision-group]').count() === 0, `fixture ${area.slug} ${viewport.width}px public classification=0`);
+      check(await page.locator('[data-area-secondary-shop]').count() === 0, `fixture ${area.slug} ${viewport.width}px secondary listing=0`);
+      check(await page.locator('.area-shop-list-interactive__status').innerText() === `全${relationCount}件中 ${Math.min(viewport.width >= 768 ? 10 : 7, relationCount)}件表示中`, `fixture ${area.slug} ${viewport.width}px total count`, { relationCount });
+      const sameNameHrefs = await page
+        .locator('#shop-list [data-area-shop-card="true"] h3 a')
+        .filter({ hasText: /^同名でも別IDの店舗$/u })
+        .evaluateAll((elements) => elements.map((element) => element.getAttribute("href")));
+      check(sameNameHrefs.length === 2 && new Set(sameNameHrefs).size === 2, `fixture ${area.slug} ${viewport.width}px same-name distinct`);
+      const bodyText = await page.locator("body").innerText();
+      check(!/主な掲載エリア|主エリア以外|関連店舗|RELATED|UNCLASSIFIED|Primary確認中/u.test(bodyText), `fixture ${area.slug} ${viewport.width}px internal Primary copy=0`);
+      check(await page.locator("#ranking").count() === Number(formalRankingCount > 0), `fixture ${area.slug} ${viewport.width}px formal ranking visibility`);
+      check(await page.locator("#ranking .ranking-card").count() === formalRankingCount, `fixture ${area.slug} ${viewport.width}px formal ranking cards`, { formalRankingCount });
+      check(await page.locator('#shop-list [aria-label$="位"]').count() === 0, `fixture ${area.slug} ${viewport.width}px listing rank badge=0`);
       const stationFixture = area.slug === "umeda";
       check(await page.locator("#compare-tabs").count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px capability-aware compare tabs`);
       check(await page.locator("#price-guide").count() === Number(stationFixture), `fixture ${area.slug} ${viewport.width}px capability-aware price module`);
@@ -402,11 +419,11 @@ async function runFixtureQa(browser) {
         .filter((href) => href && href.length > 1 && !document.getElementById(href.slice(1))));
       check(danglingFragments.length === 0, `fixture ${area.slug} ${viewport.width}px dangling fragments=0`, { danglingFragments });
       check(await page.locator("nextjs-portal").count() === 0, `fixture ${area.slug} ${viewport.width}px development issue portal=0`);
-      const issueText = await page.locator("body").innerText();
+      const issueText = bodyText;
       check(!/\b\d+ Issues?\b/u.test(issueText), `fixture ${area.slug} ${viewport.width}px development issue text=0`);
       const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
       check(geometry.body <= geometry.viewport + 1, `fixture ${area.slug} ${viewport.width}px overflow=0`, geometry);
-      if (viewport.width === 320 || viewport.width === 1440) {
+      if (viewport.width === 320 || viewport.width === 390 || viewport.width === 1440) {
         await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important}.hl-fade-in{opacity:1!important;transform:none!important}" });
         const file = path.join(screenshotDir, `fixture-${area.slug}-${viewport.width}.png`);
         await page.screenshot({ path: file, fullPage: true, timeout: 120_000 });
@@ -430,19 +447,27 @@ async function runLiveFailSafeQa(browser) {
       check(response?.status() === 200, `live ${area.slug} ${viewport.width}px crash=0`, { status: response?.status() });
       check(await page.locator("h1:visible").count() === 1, `live ${area.slug} ${viewport.width}px H1=1`);
       check(await page.locator("h1:visible").innerText() === area.h1, `live ${area.slug} ${viewport.width}px unique H1`);
-      const exactCount = await page.locator('[data-area-precision-group="exact"] [data-area-shop-card]').count();
-      check(exactCount === 0, `live ${area.slug} ${viewport.width}px false EXACT=0`, { exactCount });
+      check(await page.locator('[data-area-precision-group]').count() === 0, `live ${area.slug} ${viewport.width}px grouped listing=0`);
+      check(await page.locator('[data-area-secondary-shop]').count() === 0, `live ${area.slug} ${viewport.width}px secondary listing=0`);
       check(await page.locator("#ranking").count() === 0, `live ${area.slug} ${viewport.width}px ranking=0`);
-      check(await page.locator('[aria-label^="おすすめランキング"]').count() === 0, `live ${area.slug} ${viewport.width}px rank badge=0`);
-      check(await page.locator("#compare-tabs").count() === 0, `live ${area.slug} ${viewport.width}px empty compare tabs=0`);
-      check(await page.locator("#price-guide").count() === 0, `live ${area.slug} ${viewport.width}px empty price module=0`);
+      check(await page.locator('[aria-label$="位"]').count() === 0, `live ${area.slug} ${viewport.width}px rank badge=0`);
+      const compareCount = await page.locator("#compare-tabs").count();
+      const priceGuideCount = await page.locator("#price-guide").count();
+      check(compareCount <= 1, `live ${area.slug} ${viewport.width}px compare module singular`, { compareCount });
+      check(priceGuideCount <= 1, `live ${area.slug} ${viewport.width}px price module singular`, { priceGuideCount });
+      if (compareCount === 1) {
+        check(await page.locator("#compare-tabs").innerText().then((text) => text.trim().length > 0), `live ${area.slug} ${viewport.width}px compare module nonempty`);
+      }
+      if (priceGuideCount === 1) {
+        check(await page.locator("#price-guide").innerText().then((text) => text.trim().length > 0), `live ${area.slug} ${viewport.width}px price module nonempty`);
+      }
       check(await page.locator('#area-discovery-links a[href="/"]').count() === 1, `live ${area.slug} ${viewport.width}px Top link`);
       check(await page.locator('#area-discovery-links a[href="/reviews/"]').count() === 1, `live ${area.slug} ${viewport.width}px Reviews link`);
       const geometry = await page.evaluate(() => ({ body: document.body.scrollWidth, viewport: document.documentElement.clientWidth }));
       check(geometry.body <= geometry.viewport + 1, `live ${area.slug} ${viewport.width}px overflow=0`, geometry);
       const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
       check(canonical === `https://mens-esthe-kuchikomi.com/area/${area.slug}/`, `live ${area.slug} ${viewport.width}px canonical unchanged`, { canonical });
-      if (viewport.width === 320 || viewport.width === 1440) {
+      if (viewport.width === 320 || viewport.width === 390 || viewport.width === 1440) {
         await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important}.hl-fade-in{opacity:1!important;transform:none!important}" });
         const file = path.join(screenshotDir, `live-${area.slug}-${viewport.width}.png`);
         await page.screenshot({ path: file, fullPage: true, timeout: 120_000 });
@@ -477,7 +502,7 @@ try {
   if (process.env.BROWSER_QA_INJECT_FAILURE === "after-server") {
     throw new Error("injected failure after server");
   }
-  await runFixtureQa(browser);
+  await runFixtureQa(browser, preview);
   await stopChildProcess(server);
   server = undefined;
   if (!fixtureOnly) {

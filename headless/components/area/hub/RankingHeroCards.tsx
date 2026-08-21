@@ -4,16 +4,14 @@ import { AreaHubThemeIcon } from "@/components/area/hub/AreaHubThemeIcon";
 import { ShopImageThumb } from "@/components/area/hub/ShopImageThumb";
 import { ShopInfoChips } from "@/components/area/hub/ShopInfoChips";
 import { PriceLabel } from "@/components/common/PriceLabel";
-import { canDisplayAreaShopRank } from "@/lib/area-shop-ranking";
-import { canReceiveNaturalRankNumber } from "@/lib/shop-ranking";
+import type { AreaShopRankingItem } from "@/lib/area-shop-ranking";
 import {
   resolveShopLastVerifiedLabel,
   shopFeatureTags,
   shopHoursText,
   shopReviewCountLabel
 } from "@/lib/area-shop-utils";
-import { truncateRankingReason } from "@/lib/shop-ranking";
-import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { AreaView } from "@/lib/wp/types";
 
 function rankMedalClass(rank: number): string {
   const base = "ranking-card__rank";
@@ -32,20 +30,20 @@ function cardClass(rank: number): string {
 const HIDDEN_TAG_LABELS = new Set(["公式サイトあり", "料金掲載あり"]);
 
 export function RankingHeroCards({
-  shops,
+  items,
   targetArea
 }: {
-  shops: ShopView[];
+  items: readonly AreaShopRankingItem[];
   targetArea: Pick<AreaView, "slug" | "name">;
 }) {
   return (
     <div className="ranking-list">
-      {shops.filter((shop) => canReceiveNaturalRankNumber(shop) || canDisplayAreaShopRank(shop)).map((shop, index) => {
-        const rank = index + 1;
+      {items.map((item) => {
+        const rank = item.rank;
+        const shop = item.shop;
         const tags = shopFeatureTags(shop, targetArea)
           .filter((tag) => !HIDDEN_TAG_LABELS.has(tag))
           .slice(0, 2);
-        const rankingReason = truncateRankingReason(shop.ranking.rankingReason);
 
         return (
           <article key={shop.id} className={cardClass(rank)}>
@@ -71,20 +69,8 @@ export function RankingHeroCards({
                 <Link href={`/shops/${shop.slug}/`}>{shop.title}</Link>
               </h3>
 
-              {shop.ranking.isPr || shop.ranking.rankingLabel ? (
-                <div className="ranking-card__badges">
-                  {shop.ranking.rankingLabel ? (
-                    <span className="ranking-card__label">{shop.ranking.rankingLabel}</span>
-                  ) : null}
-                </div>
-              ) : null}
-
               {tags.length > 0 ? (
                 <ShopInfoChips tags={tags} max={2} className="ranking-card__tags" />
-              ) : null}
-
-              {rankingReason ? (
-                <p className="ranking-card__reason">{rankingReason}</p>
               ) : null}
 
               <dl className="ranking-card__facts">

@@ -267,11 +267,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       breadcrumbLabel: "堺筋本町メンズエステ",
       hubTitle: "堺筋本町のメンズエステおすすめ一覧｜料金・深夜・口コミ比較",
       hubDescription:
-        "堺筋本町を主な掲載エリアとして明示された店舗を中心に、本町・北浜などの関連掲載を分けて案内します。承認済み口コミ、掲載料金、営業時間、店舗詳細への導線から、現在確認できる情報だけを比較できます。",
+        "堺筋本町エリアに掲載されているメンズエステを、本町・北浜など周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細への導線から、現在確認できる情報だけを掲載します。",
       coverageLabel: "堺筋本町・本町・北浜・長堀橋・船場周辺",
       shopListH2: "堺筋本町メンズエステ店舗一覧",
       shopListIntro:
-        "堺筋本町を明示的な主エリアに持つ店舗だけを主一覧へ掲載し、別エリアが主の店舗と確認中の店舗は下に分けています。",
+        "堺筋本町エリアに掲載されているメンズエステを、料金・営業時間・公式サイトなど確認できた情報とともに一覧で比較できます。",
       pageTitlePage2Plus:
         "堺筋本町メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
@@ -282,7 +282,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         "堺筋本町・本町・北浜・長堀橋徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
       faqAreaRef: "堺筋本町",
       faqFirstAnswer:
-        "堺筋本町を主な掲載エリアとして確認できた店舗を主一覧で比較し、本町・北浜など別の主エリアを持つ店舗は関連掲載として確認してください。",
+        "堺筋本町エリアの掲載店舗を一覧で比較し、住所や駅案内、料金、営業時間は各店舗ページと公式情報で確認してください。",
       relationCardLabel: "堺筋本町との関係",
       shopLinks: {
         listLink: "堺筋本町メンズエステの店舗一覧へ",
@@ -293,7 +293,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       decisionGuide: {
         selectionTitle: "掲載情報と利用条件から絞る",
         intro:
-          "主店舗と関連掲載を分けたうえで、掲載料金、営業時間、承認済み口コミ、店舗詳細の公式導線を確認できる項目から比較します。"
+          "掲載料金、営業時間、承認済み口コミ、店舗詳細の公式導線など、確認できる項目から比較します。"
       },
       localGuide: {
         title: "堺筋本町・本町・北浜の使い分け",
@@ -303,14 +303,14 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
           {
             title: "堺筋本町を中心に探す",
             body:
-              "主な掲載エリアが堺筋本町と確認できた公開店舗を、ページの主店舗一覧で比較できます。",
+              "堺筋本町エリアに掲載されている公開店舗を、ページの店舗一覧で比較できます。",
             href: "#shop-list",
-            linkLabel: "堺筋本町の主店舗を見る"
+            linkLabel: "堺筋本町の掲載店舗を見る"
           },
           {
             title: "本町・北浜も候補にする",
             body:
-              "本町・北浜からも探す場合は、関連店舗の住所や駅案内を店舗詳細で確認し、利用予定の場所に合うか比較してください。"
+              "本町・北浜からも探す場合は、各店舗の住所や駅案内を店舗詳細で確認し、利用予定の場所に合うか比較してください。"
           },
           {
             title: "料金・営業時間は掲載状況を確認",
@@ -322,7 +322,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       faqItems: [
         {
           question: "堺筋本町と本町・北浜の店舗は同じ一覧ですか？",
-          answer: "主な掲載エリアが堺筋本町と確認できた店舗を主一覧へ掲載し、本町・北浜など別地域が主の店舗と確認中の店舗は分けて案内しています。"
+          answer: "このページでは堺筋本町エリアに掲載されている店舗をまとめて案内しています。利用場所は店舗詳細の住所や駅案内で確認してください。"
         },
         {
           question: "堺筋本町エリアの料金はどう比べますか？",
@@ -346,11 +346,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       breadcrumbLabel: "新大阪メンズエステ",
       hubTitle: "新大阪のメンズエステおすすめ一覧｜西中島・東三国の料金比較",
       hubDescription:
-        "新大阪を主な掲載エリアとして明示された店舗を中心に、西中島・東三国などの関連掲載を分けて案内します。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、確認できる条件だけを比較できます。",
+        "新大阪エリアに掲載されているメンズエステを、西中島・東三国など周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、確認できる条件だけを掲載します。",
       coverageLabel: "新大阪・東三国・西中島南方・南方・淀川区周辺",
       shopListH2: "新大阪メンズエステ店舗一覧",
       shopListIntro:
-        "新大阪を明示的な主エリアに持つ店舗だけを主一覧へ掲載し、西中島・東三国など別の主エリアを持つ店舗と確認中の店舗は分けています。",
+        "新大阪エリアに掲載されているメンズエステを、料金・営業時間・公式サイトなど確認できた情報とともに一覧で比較できます。",
       pageTitlePage2Plus:
         "新大阪メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
@@ -361,7 +361,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         "新大阪・東三国・西中島南方徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
       faqAreaRef: "新大阪",
       faqFirstAnswer:
-        "新大阪を主な掲載エリアとして確認できた店舗を主一覧で比較し、西中島・東三国など別の主エリアを持つ店舗は関連掲載として確認してください。",
+        "新大阪エリアの掲載店舗を一覧で比較し、住所や駅案内、営業形態は各店舗ページと公式情報で確認してください。",
       relationCardLabel: "新大阪との関係",
       shopLinks: {
         listLink: "新大阪メンズエステの店舗一覧へ",
@@ -370,9 +370,9 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         stationLink: "駅近の新大阪メンズエステ一覧へ"
       },
       decisionGuide: {
-        selectionTitle: "新大阪の主店舗から絞る",
+        selectionTitle: "新大阪の掲載店舗から絞る",
         intro:
-          "新大阪の主店舗と西中島・東三国などの関連掲載を分け、掲載料金、営業時間、承認済み口コミ、店舗詳細の公開情報から比較します。"
+          "掲載料金、営業時間、承認済み口コミ、店舗詳細の公開情報から、新大阪の候補を比較します。"
       },
       localGuide: {
         title: "新大阪・西中島・東三国の見分け方",
@@ -380,13 +380,13 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         items: [
           {
             title: "新大阪駅周辺を中心に探す",
-            body: "主な掲載エリアが新大阪と確認できた公開店舗を、ページの主店舗一覧で比較できます。",
+            body: "新大阪エリアに掲載されている公開店舗を、ページの店舗一覧で比較できます。",
             href: "#shop-list",
-            linkLabel: "新大阪の主店舗を見る"
+            linkLabel: "新大阪の掲載店舗を見る"
           },
           {
             title: "西中島・東三国も候補にする",
-            body: "西中島・東三国からも探す場合は、関連店舗の住所・駅案内・対応場所を店舗詳細で確認してください。"
+            body: "西中島・東三国からも探す場合は、各店舗の住所・駅案内・対応場所を店舗詳細で確認してください。"
           },
           {
             title: "出張型・ホテル利用の確認",
@@ -397,7 +397,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       faqItems: [
         {
           question: "新大阪・西中島・東三国は同じエリアとして掲載されますか？",
-          answer: "主な掲載エリアが新大阪と確認できた店舗を主一覧へ掲載します。西中島・東三国など別地域が主の店舗は分けて案内します。"
+          answer: "このページでは新大阪エリアに掲載されている店舗をまとめて案内しています。利用場所は店舗詳細の住所や駅案内で確認してください。"
         },
         {
           question: "新大阪エリアの店舗型・出張型はどう確認しますか？",
@@ -420,11 +420,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       breadcrumbLabel: "大阪日本橋メンズエステ",
       hubTitle: "大阪・日本橋のメンズエステおすすめ一覧｜難波・近鉄日本橋で比較",
       hubDescription:
-        "大阪の日本橋を主な掲載エリアとして明示された店舗を中心に、近鉄日本橋・なんばなどの関連掲載を分けて案内します。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から確認できる内容だけを比較できます。",
+        "大阪日本橋エリアに掲載されているメンズエステを、近鉄日本橋・なんばなど周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から確認できる内容だけを掲載します。",
       coverageLabel: "日本橋・近鉄日本橋・なんば・谷町九丁目・黒門市場周辺",
       shopListH2: "日本橋メンズエステ店舗一覧",
       shopListIntro:
-        "大阪日本橋を明示的な主エリアに持つ店舗だけを主一覧へ掲載し、なんばなど別の主エリアを持つ店舗と確認中の店舗は下に分けています。",
+        "大阪日本橋エリアに掲載されているメンズエステを、料金・営業時間・公式サイトなど確認できた情報とともに一覧で比較できます。",
       pageTitlePage2Plus:
         "大阪日本橋メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
@@ -435,7 +435,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         "日本橋・近鉄日本橋・なんば・谷町九丁目徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
       faqAreaRef: "大阪日本橋",
       faqFirstAnswer:
-        "大阪日本橋を主な掲載エリアとして確認できた店舗を主一覧で比較し、なんばなど別の主エリアを持つ店舗は関連掲載として確認してください。",
+        "大阪日本橋エリアの掲載店舗を一覧で比較し、住所や駅案内、料金、営業時間は各店舗ページと公式情報で確認してください。",
       relationCardLabel: "日本橋との関係",
       shopLinks: {
         listLink: "大阪日本橋メンズエステの店舗一覧へ",
@@ -444,9 +444,9 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         stationLink: "駅近の日本橋メンズエステ一覧へ"
       },
       decisionGuide: {
-        selectionTitle: "大阪日本橋の主店舗から絞る",
+        selectionTitle: "大阪日本橋の掲載店舗から絞る",
         intro:
-          "東京の日本橋と混同せず、大阪日本橋の主店舗となんばなどの関連掲載を分け、確認できる料金、営業時間、口コミ、店舗詳細から比較します。"
+          "東京の日本橋と混同せず、確認できる料金、営業時間、口コミ、店舗詳細から大阪日本橋の候補を比較します。"
       },
       localGuide: {
         title: "大阪日本橋・近鉄日本橋・なんばの見分け方",
@@ -454,13 +454,13 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         items: [
           {
             title: "大阪の日本橋を対象にする",
-            body: "東京の日本橋とは分け、大阪日本橋を主な掲載エリアとして確認できた公開店舗を主一覧で案内します。",
+            body: "東京の日本橋とは分け、大阪日本橋エリアに掲載されている公開店舗を一覧で案内します。",
             href: "#shop-list",
-            linkLabel: "大阪日本橋の主店舗を見る"
+            linkLabel: "大阪日本橋の掲載店舗を見る"
           },
           {
             title: "近鉄日本橋・なんばも確認する",
-            body: "近鉄日本橋・なんばから探す場合は、関連店舗の住所や駅案内を確認し、利用予定の場所に合うか比較してください。"
+            body: "近鉄日本橋・なんばから探す場合は、各店舗の住所や駅案内を確認し、利用予定の場所に合うか比較してください。"
           },
           {
             title: "口コミと店舗情報を分けて確認",
@@ -475,7 +475,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         },
         {
           question: "大阪日本橋とななんばの店舗は同じ一覧ですか？",
-          answer: "主な掲載エリアが大阪日本橋と確認できた店舗を主一覧へ掲載し、なんばなど別地域が主の店舗は分けて案内します。"
+          answer: "このページでは大阪日本橋エリアに掲載されている店舗をまとめて案内しています。利用場所は店舗詳細の住所や駅案内で確認してください。"
         },
         {
           question: "大阪日本橋の口コミはどの情報を掲載していますか？",
@@ -529,11 +529,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       breadcrumbLabel: "大阪梅田メンズエステ",
       hubTitle: "梅田のメンズエステおすすめ一覧｜大阪駅・北新地の料金・深夜比較",
       hubDescription:
-        "梅田を主な掲載エリアとして明示された店舗を中心に、大阪駅・北新地などの関連掲載を分けて案内します。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、現在確認できる条件だけを比較できます。",
+        "梅田エリアに掲載されているメンズエステを、大阪駅・北新地など周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、現在確認できる条件だけを掲載します。",
       coverageLabel: "梅田・大阪駅・東梅田・西梅田・北新地周辺",
       shopListH2: "梅田メンズエステ店舗一覧",
       shopListIntro:
-        "梅田を明示的な主エリアに持つ店舗だけを主一覧へ掲載し、大阪駅・北新地など別の主エリアを持つ店舗と確認中の店舗は分けています。",
+        "梅田エリアに掲載されているメンズエステを、料金・営業時間・公式サイトなど確認できた情報とともに一覧で比較できます。",
       pageTitlePage2Plus:
         "大阪梅田メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
@@ -544,7 +544,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         "梅田・大阪駅・東梅田・西梅田・北新地徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
       faqAreaRef: "大阪梅田",
       faqFirstAnswer:
-        "梅田を主な掲載エリアとして確認できた店舗を主一覧で比較し、大阪駅・北新地など別の主エリアを持つ店舗は関連掲載として確認してください。",
+        "梅田エリアの掲載店舗を一覧で比較し、住所や駅案内、料金、営業時間は各店舗ページと公式情報で確認してください。",
       relationCardLabel: "梅田との関係",
       shopLinks: {
         listLink: "大阪梅田メンズエステの店舗一覧へ",
@@ -553,9 +553,9 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         stationLink: "駅近の梅田メンズエステ一覧へ"
       },
       decisionGuide: {
-        selectionTitle: "梅田の主店舗から条件を絞る",
+        selectionTitle: "梅田の掲載店舗から条件を絞る",
         intro:
-          "梅田の主店舗と大阪駅・北新地などの関連掲載を分け、確認できる掲載料金、営業時間、承認済み口コミ、店舗詳細から比較します。"
+          "確認できる掲載料金、営業時間、承認済み口コミ、店舗詳細から梅田の候補を比較します。"
       },
       localGuide: {
         title: "梅田・大阪駅・北新地の見分け方",
@@ -563,13 +563,13 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         items: [
           {
             title: "梅田を中心に探す",
-            body: "主な掲載エリアが梅田と確認できた公開店舗を、ページの主店舗一覧で比較できます。",
+            body: "梅田エリアに掲載されている公開店舗を、ページの店舗一覧で比較できます。",
             href: "#shop-list",
-            linkLabel: "梅田の主店舗を見る"
+            linkLabel: "梅田の掲載店舗を見る"
           },
           {
             title: "大阪駅・北新地も候補にする",
-            body: "大阪駅・北新地からも探す場合は、関連店舗の住所や駅案内を店舗詳細で確認してください。"
+            body: "大阪駅・北新地からも探す場合は、各店舗の住所や駅案内を店舗詳細で確認してください。"
           },
           {
             title: "料金・深夜利用の確認",
@@ -580,7 +580,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       faqItems: [
         {
           question: "梅田・大阪駅・北新地は同じエリアとして掲載されますか？",
-          answer: "主な掲載エリアが梅田と確認できた店舗を主一覧へ掲載します。大阪駅・北新地など別地域が主の店舗は分けて案内します。"
+          answer: "このページでは梅田エリアに掲載されている店舗をまとめて案内しています。利用場所は店舗詳細の住所や駅案内で確認してください。"
         },
         {
           question: "梅田で深夜に利用できる店舗はどう確認しますか？",
@@ -604,11 +604,11 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
       breadcrumbLabel: "堺・堺東メンズエステ",
       hubTitle: "堺東のメンズエステおすすめ一覧｜堺市の料金・深夜・口コミ比較",
       hubDescription:
-        "堺東を主な掲載エリアとして明示された店舗を中心に、堺市内の関連掲載を分けて案内します。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、確認できる条件だけを比較し、未確認値は補いません。",
+        "堺東エリアに掲載されているメンズエステを、堺市内周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、確認できる条件だけを掲載し、未確認値は補いません。",
       coverageLabel: "堺東・堺駅・三国ヶ丘・中百舌鳥・堺市内周辺",
       shopListH2: "堺・堺東メンズエステ店舗一覧",
       shopListIntro:
-        "堺東を明示的な主エリアに持つ店舗だけを主一覧へ掲載し、堺市内で別の主エリアを持つ店舗と確認中の店舗は下に分けています。",
+        "堺東エリアに掲載されているメンズエステを、料金・営業時間・公式サイトなど確認できた情報とともに一覧で比較できます。",
       pageTitlePage2Plus:
         "堺・堺東メンズエステ店舗一覧 {page}ページ目｜口コミ・料金・営業時間で比較",
       pageDescriptionPage2Plus:
@@ -619,7 +619,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         "堺東・堺駅・三国ヶ丘・中百舌鳥徒歩圏と確認できる店舗を整理しています。徒歩分数は掲載情報に基づかないため表示していません。",
       faqAreaRef: "堺・堺東",
       faqFirstAnswer:
-        "現在のURLを維持した堺東の地域ページとして、堺東を主な掲載エリアと確認できた店舗だけを主一覧へ掲載します。",
+        "現在のURLを維持した堺東の地域ページとして、堺東エリアに掲載されている店舗を一覧で案内します。",
       relationCardLabel: "堺・堺東との関係",
       shopLinks: {
         listLink: "堺・堺東メンズエステの店舗一覧へ",
@@ -628,9 +628,9 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         stationLink: "駅近の堺・堺東メンズエステ一覧へ"
       },
       decisionGuide: {
-        selectionTitle: "堺東の主店舗から条件を絞る",
+        selectionTitle: "堺東の掲載店舗から条件を絞る",
         intro:
-          "URLは変えず堺東をページの主語とし、堺東の主店舗と堺市内の関連掲載を分け、確認できる料金、営業時間、口コミ、店舗詳細から比較します。"
+          "URLは変えず堺東をページの主語とし、確認できる料金、営業時間、口コミ、店舗詳細から候補を比較します。"
       },
       localGuide: {
         title: "堺東と堺市内の関連エリアの見分け方",
@@ -638,13 +638,13 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         items: [
           {
             title: "堺東を中心に探す",
-            body: "主な掲載エリアが堺東と確認できた公開店舗を、ページの主店舗一覧で比較できます。",
+            body: "堺東エリアに掲載されている公開店舗を、ページの店舗一覧で比較できます。",
             href: "#shop-list",
-            linkLabel: "堺東の主店舗を見る"
+            linkLabel: "堺東の掲載店舗を見る"
           },
           {
             title: "堺市内の関連地域も確認する",
-            body: "堺駅・三国ヶ丘・中百舌鳥などからも探す場合は、関連店舗の住所や駅案内を店舗詳細で確認してください。"
+            body: "堺駅・三国ヶ丘・中百舌鳥などからも探す場合は、各店舗の住所や駅案内を店舗詳細で確認してください。"
           },
           {
             title: "料金・営業時間・口コミの確認",
@@ -659,7 +659,7 @@ export const HUB_TEMPLATE_AREAS: Record<string, AreaHubTemplateConfig> = {
         },
         {
           question: "堺東以外の堺市内店舗は主一覧へ入りますか？",
-          answer: "主な掲載エリアが堺東と確認できた店舗を主一覧へ掲載し、別地域が主の店舗や確認中の店舗は分けて案内します。"
+          answer: "このページでは堺東エリアに掲載されている店舗をまとめて案内しています。利用場所は店舗詳細の住所や駅案内で確認してください。"
         },
         {
           question: "堺東の口コミはどの情報を掲載していますか？",

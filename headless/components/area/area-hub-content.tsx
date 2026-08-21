@@ -15,8 +15,8 @@ import { RankingHeroCards } from "@/components/area/hub/RankingHeroCards";
 import { RankingSpecialtyPagedList } from "@/components/area/hub/RankingSpecialtyPagedList";
 import { RankingTabs, type RankingTabItem } from "@/components/area/hub/RankingTabs";
 import {
-  orderShopsForAreaRanking,
-  type AreaShopRankingEntry
+  resolveFormalAreaRankingItems,
+  type FormalAreaRankingEntry
 } from "@/lib/area-shop-ranking";
 import {
   type AreaHubContext,
@@ -27,9 +27,6 @@ import {
   isStationNearShop,
   sortShopsForRanking
 } from "@/lib/area-shop-utils";
-import {
-  buildRankingIntro
-} from "@/lib/shop-ranking";
 import {
   hasPriorityStationWalk,
   priorityAreaFragmentAvailable,
@@ -206,20 +203,18 @@ export function AreaHubRankingTop({
   targetArea,
   hubContext,
   rankingEntries = [],
-  precisionMode = false,
+  showCompareLink = true,
 }: {
   rankingShops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   hubContext: AreaHubContext;
-  rankingEntries?: AreaShopRankingEntry[];
-  precisionMode?: boolean;
+  rankingEntries?: readonly FormalAreaRankingEntry[];
+  showCompareLink?: boolean;
 }) {
-  if (precisionMode) return null;
-  const topFive = orderShopsForAreaRanking(rankingShops, targetArea, rankingEntries).slice(0, 5);
+  const topFive = resolveFormalAreaRankingItems(rankingShops, rankingEntries)
+    .filter((item) => item.rank <= 5);
 
   if (topFive.length === 0) return null;
-
-  const rankingIntro = buildRankingIntro(hubContext);
   const rankingBannerEnabled = isLayeredBannerSectionEnabled("ranking");
 
   return (
@@ -246,21 +241,22 @@ export function AreaHubRankingTop({
             hideIcon
           />
           <p className="area-hub-section__intro area-hub-section__intro--compact area-hub-section__intro--ranking">
-            {rankingIntro}
+            対象エリアと順位が明示された正式なランキングデータだけを掲載します。
           </p>
         </>
       ) : null}
       <div className="area-hub-ranking-context" aria-label="ランキングの基準">
         <p>
-          掲載店舗の情報量、料金の分かりやすさ、営業時間、予約導線、更新状況をもとに編集部で整理しています。
-          PR枠や口コミ件数とは分けて表示します。
+          掲載順や料金順から順位を作らず、PR枠とも分けて表示します。
         </p>
       </div>
-      <RankingHeroCards shops={topFive} targetArea={targetArea} />
-      <p className="area-hub-section__footnote">
-        <a href="#compare-tabs">条件別ランキング</a>
-        でも比較できます。
-      </p>
+      <RankingHeroCards items={topFive} targetArea={targetArea} />
+      {showCompareLink ? (
+        <p className="area-hub-section__footnote">
+          <a href="#compare-tabs">条件別ランキング</a>
+          でも比較できます。
+        </p>
+      ) : null}
     </AreaHubSectionShell>
   );
 }

@@ -20,46 +20,19 @@ import {
   resolveAreaHubContext,
   resolveLastUpdatedLabel
 } from "@/lib/area-shop-utils";
-import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
-  classifyPriorityAreaShops,
+  type AreaShopRankingEntry,
+  type FormalAreaRankingEntry,
+} from "@/lib/area-shop-ranking";
+import {
   isPriorityAreaPrecisionTarget,
   resolvePriorityAreaCapabilities,
+  selectAreaRelationShops,
 } from "@/lib/priority-area-precision";
 import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-constants";
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
 import type { CSSProperties } from "react";
 import type { ApprovedGlobalReviewResult, AreaView, ShopView } from "@/lib/wp/types";
-
-function SecondaryShopLinks({ shops }: { shops: readonly ShopView[] }) {
-  return (
-    <ul className="area-hub-secondary-shop-list">
-      {shops.map((shop) => (
-        <li
-          key={shop.id}
-          className="area-hub-secondary-shop-list__item"
-          data-area-secondary-shop="true"
-          data-shop-id={shop.id}
-        >
-          <Link
-            className="area-hub-secondary-shop-list__link"
-            href={`/shops/${shop.slug}/`}
-            aria-label={shop.title}
-          >
-            <span className="area-hub-secondary-shop-list__name">{shop.title}</span>
-            {shop.primaryArea?.name ? (
-              <span className="area-hub-secondary-shop-list__meta">
-                主な掲載エリア：{shop.primaryArea.name}
-              </span>
-            ) : (
-              <span className="area-hub-secondary-shop-list__meta">主な掲載エリアを確認中</span>
-            )}
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function areaHubBreadcrumbJsonLd(
   hubContext: ReturnType<typeof resolveAreaHubContext>,
@@ -100,6 +73,7 @@ export function AreaHubPageTemplate({
   siblingAreas = [],
   childAreas = [],
   rankingEntries = [],
+  formalRankingEntries = [],
   areaFeatures = [],
   reviewResult = null,
 }: {
@@ -110,17 +84,18 @@ export function AreaHubPageTemplate({
   siblingAreas?: AreaView[];
   childAreas?: AreaView[];
   rankingEntries?: AreaShopRankingEntry[];
+  formalRankingEntries?: readonly FormalAreaRankingEntry[];
   areaFeatures?: readonly AreaFeatureItem[];
   reviewResult?: ApprovedGlobalReviewResult | null;
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
   const precisionMode = isPriorityAreaPrecisionTarget(area);
-  const precisionGroups = precisionMode
-    ? classifyPriorityAreaShops(allShops, area)
-    : null;
-  const mainShops: ShopView[] = precisionGroups ? [...precisionGroups.exact] : allShops;
+  const mainShops: ShopView[] = precisionMode
+    ? [...selectAreaRelationShops(allShops, area)]
+    : allShops;
   const capabilities = resolvePriorityAreaCapabilities(mainShops, area);
+  const hasCompareTabs = !precisionMode || Object.values(capabilities).some(Boolean);
   const faqItems = buildFaqItems(hubContext, {
     includeBeginner: !precisionMode || capabilities.beginner,
   });
@@ -244,8 +219,8 @@ export function AreaHubPageTemplate({
           rankingShops={mainShops}
           targetArea={area}
           hubContext={hubContext}
-          rankingEntries={rankingEntries}
-          precisionMode={precisionMode}
+          rankingEntries={formalRankingEntries}
+          showCompareLink={hasCompareTabs}
         />
         {!precisionMode ? <AreaPromotionSection shops={mainShops} targetArea={area} /> : null}
 
@@ -254,7 +229,6 @@ export function AreaHubPageTemplate({
           <p className="area-hub-section__intro">{hubContext.shopListIntro}</p>
           <div
             data-area-precision-mode={precisionMode ? "true" : undefined}
-            data-area-precision-group={precisionMode ? "exact" : undefined}
           >
             {mainShops.length > 0 ? (
               <AreaShopList
@@ -266,35 +240,9 @@ export function AreaHubPageTemplate({
                 capabilities={capabilities}
               />
             ) : (
-              <p className="area-hub-section__empty">
-                {precisionMode
-                  ? "主な掲載エリアを確認できた店舗はまだありません。確認中の掲載店舗は下に分けて表示します。"
-                  : "店舗情報を準備中です。"}
-              </p>
+              <p className="area-hub-section__empty">店舗情報を準備中です。</p>
             )}
           </div>
-          {precisionGroups && (precisionGroups.related.length > 0 || precisionGroups.unclassified.length > 0) ? (
-            <div className="area-hub-shop-list area-hub-shop-list--secondary" data-area-precision-secondary="true">
-              {precisionGroups.related.length > 0 ? (
-                <section className="area-hub-shop-group" data-area-precision-group="related">
-                  <h3 className="area-hub-shop-group__title">別エリアを主な掲載先としている関連店舗</h3>
-                  <p className="area-hub-section__intro area-hub-section__intro--compact">
-                    このエリアにも掲載関係がありますが、主な掲載先は別エリアとして登録されています。
-                  </p>
-                  <SecondaryShopLinks shops={precisionGroups.related} />
-                </section>
-              ) : null}
-              {precisionGroups.unclassified.length > 0 ? (
-                <section className="area-hub-shop-group" data-area-precision-group="unclassified">
-                  <h3 className="area-hub-shop-group__title">主な掲載エリアを確認中の店舗</h3>
-                  <p className="area-hub-section__intro area-hub-section__intro--compact">
-                    このエリアとの掲載関係はありますが、主な掲載エリアはまだ確認できていません。
-                  </p>
-                  <SecondaryShopLinks shops={precisionGroups.unclassified} />
-                </section>
-              ) : null}
-            </div>
-          ) : null}
         </AreaHubSectionShell>
 
         <AreaHubCompareTabsSections

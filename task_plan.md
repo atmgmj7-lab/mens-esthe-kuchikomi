@@ -6,7 +6,49 @@
 
 ## Current Phase
 
-UX-PROD-T4-SHOP-DETAIL-SEO-ASSET-01 完了（本番backfill・push/deploy前で停止）
+UX-PROD-AREA-LIST-UX-REVISION-01 検証・review中
+
+## UX-PROD-AREA-LIST-UX-REVISION-01
+
+### Goal
+
+base `096875847bddc53551a0b6fa77c1cfed9d98b8af`から、重点5Areaの公開店舗一覧をPrimary分類から切り離し、現在のWordPress Area taxonomy relationを持つ全Shopを1つの一覧へ統合する。旧Area rankingはvisual/layoutだけを再利用し、正式順位recordがないproductionでは順位を生成・表示しない。URL/canonical/sitemap/robots、Primary保存、本番WordPress/Supabase、dependencyは変更しない。
+
+### Phases
+
+- [x] Phase 1: clean worktree、正本、baseline、T3で分割された原因、旧ranking UI/sourceを確認する
+- [x] Phase 2: relation membership、公開copy、formal-only rankingをfail-first testで固定する
+- [x] Phase 3: Priority5の単一一覧と将来の正式順位UI受け口を最小実装する
+- [x] Phase 4: focused/full/lint/typecheck/build/auditを検証する
+- [x] Phase 5: 5Area×11幅のfixture/current-data browser QAと代表画像目視を完了する
+- [x] Phase 6: SPEC/CODE_QUALITY_SECURITY/VISIBLE reviewでCritical/Important 0を確認する
+- [ ] Phase 7: 指定pathだけをcommitし、条件を満たす場合だけVercel productionへ反映して公開QAする
+
+### Approved Implementation Design
+
+- Priority5の公開一覧membershipは`shop.terms`のArea term ID一致だけで決め、Primary same/other/nullを同じ一覧へ含める
+- canonical WP Shop ID重複はfail closedし、Primary分類器・保存値・44件のproduction Primary recordは内部契約として維持する
+- 既存page size、もっと見る、掲載順・安全な絞込/並び替え、AreaShopCard、visible ItemList/schemaを同じrelation店舗集合へ接続する
+- 旧rankingのbadge、画像overlay、gold/silver/bronze/navy、card密度、PC/SP配置だけを`RankingHeroCards`で保持する
+- ranking componentは明示`rank`とShop identityを持つformal recordだけを受け、配列index、旧recommendation/score、Primary順、料金順、口コミ0件から順位を生成しない
+- formal ranking storageは未設定かつproduction endpointのranking配列は0件なので、productionのranking section/badgeは非表示のままにする
+
+### Stop Conditions
+
+- Primary storage/relation、本番WordPress/Supabase、dependency、Secret/env変更が必要
+- URL/canonical/sitemap/robots変更が必要
+- 正式順位がない状態で順位生成が必要
+- Critical/Important review issue、build/browser回帰、重大なproduction failureが残る
+
+### Errors Encountered
+
+| Error | Attempt | Resolution |
+|-------|---------|------------|
+| REDでrelation selector不存在を検出 | 1 | explicit Area term ID一致のselectorを実装し、same/other/nullを単一一覧へ統合した |
+| 旧T3 testがEXACT/RELATED/UNCLASSIFIED分割copyを固定 | 1 | Primary分類の内部testは維持し、公開template期待だけをrelation一覧へ更新した |
+| 旧review-rating testがranking card内のlegacy eligibility helperを要求 | 1 | formal adapter側でPR除外する新しい境界を固定した |
+| browser初回が非表示の末尾同名cardと実dataありcompare moduleを旧前提で失敗 | 1 | DOM上のcanonical href identityと、実data時の非空moduleを検査するよう修正した |
+| reviewで重複formal rank/shopと文字列rankが配列順に依存し得る | 1 | 全候補を先に集計し、重複rank/shop・曖昧slug・非number rankをfail closedにした |
 
 ## UX-PROD-T4-SHOP-DETAIL-SEO-ASSET-01
 

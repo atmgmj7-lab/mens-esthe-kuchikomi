@@ -78,6 +78,27 @@ export function classifyPriorityAreaShops(
   });
 }
 
+export function selectAreaRelationShops(
+  shops: readonly ShopView[],
+  area: Pick<AreaView, "id">,
+): readonly ShopView[] {
+  const ids = new Set<number>();
+  const relatedShops: ShopView[] = [];
+
+  for (const shop of shops) {
+    if (ids.has(shop.id)) {
+      throw new Error(`duplicate canonical WP shop ID: ${shop.id}`);
+    }
+    ids.add(shop.id);
+
+    if (hasAreaRelation(shop, area.id)) {
+      relatedShops.push(shop);
+    }
+  }
+
+  return Object.freeze(relatedShops);
+}
+
 export function resolvePriorityAreaCapabilities(
   shops: readonly ShopView[],
   targetArea: Pick<AreaView, "slug" | "name">,

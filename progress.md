@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-08-22 UX-PROD-AREA-LIST-UX-REVISION-01
+
+- base `096875847bddc53551a0b6fa77c1cfed9d98b8af`から専用worktree/branchを作り、dirty rootを変更せず、`npm ci`と変更前`npm test`をexit 0で固定した。
+- RED `npm run test:area-list-ux-revision`はrelation membership selector不存在でexit 1。same/other/null Primaryを1つのArea relation一覧へ含め、relation外を除外し、canonical WP ID重複を拒否する実装後はexit 0となった。
+- 公開EXACT/RELATED/UNCLASSIFIED分割とPrimary確認中copyを撤回し、重点5Area固有H1/H2/本文を維持したまま全relation店舗を既存AreaShopCard・件数・schemaへ接続した。Primary保存/reader/分類契約は変更していない。
+- 旧ranking UIはcommit `6b51dba`からvisual/layoutだけを再利用した。旧score/sort/index順位は遮断し、明示formal rankだけを表示するadapterへ変更した。現在のformal dataは0件のためproduction順位表示は0。
+- focused一式、`npm test`、lint、typecheck、821/821 build、audit vulnerability 0、`git diff --check`はexit 0。browser QAは110 scenarios / 2,687 assertions / 30 screenshots / failures 0。
+- 最終SPEC_COMPLIANCE、CODE_QUALITY_SECURITY、VISIBLE reviewはCritical 0 / Important 0。重複順位/店舗・曖昧slug・文字列rank・dangling CTAもfail closedにした。
+- 最終`npm test`、lint、typecheck、821/821 build、audit vulnerability 0、`git diff --check`はexit 0。最終browser QAも110 scenarios / 2,687 assertions / 30 screenshots / failures 0。
+- 現在地: review完了。次は対象pathだけを明示stage/commitし、Vercel production deployと公開5Area QAを行う。
+
 ## 2026-08-16 UX-PROD-T3B-AREA-REVIEW-READER-01 開始
 
 - base `cfc1d35e15ac874f5d1a9df289a81cfe1f4c98f9`からbranch `codex/eskomi-ux-production-t3b-area-review-reader`と専用worktreeを作成した。

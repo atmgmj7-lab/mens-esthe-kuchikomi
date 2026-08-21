@@ -1,5 +1,18 @@
 # Findings & Decisions
 
+## 2026-08-22 UX-PROD Area List UX Revision
+
+- 専用branchは`codex/ux-prod-area-list-ux-revision-01`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-ux-prod-area-list-ux-revision-01`、baseはproduction最終commit `096875847bddc53551a0b6fa77c1cfed9d98b8af`である。dirty rootは変更しない。
+- T3 commit `a3f85d1`で`classifyPriorityAreaShops`の`exact`だけをfull card一覧へ渡し、別Primary/null Primaryをsecondary linkへ分けたことが今回の直接原因である。
+- 新しい公開membershipは現在Area term IDを`shop.terms`に持つことだけを条件とする。Primary same/other/nullは同じfull card一覧に含め、relation外Shopだけを除外する。Primary validator/classifier/storageは内部用途として残す。
+- 旧Area ranking UIはcommit `6b51dba`の`AreaHubRankingTop` / `RankingHeroCards.tsx` / `globals.css`に存在する。sectionは店舗一覧より前、最大5件、画像左上の順位badge、gold/silver/bronze/navy、店舗名・確認済み料金/営業時間・CTAを持ち、PCは横長row、SPも密度を保つ1列である。
+- 旧sourceはWordPress option `escomi_area_shop_rankings`とREST `/escomi/v1/area-shop-rankings`だが、recordがないと`sortShopsForRanking`のrelation/情報量/更新順等から自動並び替えし、配列indexを1〜5位へ変換していた。これは現在の正式順位へ流用しない。
+- 2026-08-22のWordPress origin read-only確認で旧ranking endpointはHTTP 200、`rankings=[]`、SHA-256 `83f09b78b1325a9cd81e71854a7532204608c597472b4bc709d23b311041ee7b`。正式`ranking_configuration` storageも未設定で、productionに表示可能なformal rankは0件である。
+- `resolveFormalAreaRankingItems`は明示positive integer rank、canonical Shop slug、重複rank/Shop排除、曖昧slugのfail closed、PR除外だけを行い、欠番を詰めずindex順位も生成しない。Priority production routeは旧ranking sourceを引き続き読まず、formal propは空なのでranking UIは非表示となる。
+- 旧UIから再利用するのはsection位置、見出し、badge/image overlay、色、card構造、spacing/border/CTAだけであり、ranking score、demand/popularity/recommendation/information completeness、旧sort、旧順位値は0件流用である。
+- browser QAはfixture 55 + current-data 55の計110 scenarios、2,687 assertions、30 screenshots、failures 0。320/390/1440pxを含む11幅で、relation全件count、単一一覧、長い店名、filter/sort、正式fixture順位、formalなし順位0、overflow、Header/Footerを確認した。
+- 最終SPEC_COMPLIANCE、CODE_QUALITY_SECURITY、VISIBLE reviewはいずれもCritical 0 / Important 0。重複formal rank/shop、曖昧slug、文字列rankは全てfail closedにし、比較moduleがない場合のranking CTAも非表示にした。
+
 ## 2026-08-16 UX-PROD-T3B Area Hub SEO
 
 - 専用branchは`codex/eskomi-ux-production-t3b-area-hub-seo`、worktreeは`/Users/narikiyo/dev-all-projects/mens-esthe-kuchikomi-eskomi-ux-production-t3b-area-hub-seo`、baseはaccepted Reader commit `09203e4a554d1f3d6f3f25e68ae5c08b0a10a1a2`である。dirty main checkoutは変更しない。

@@ -13,11 +13,11 @@ const css = read("app/globals.css");
 const priorityAreas = ["sakaisujihonmachi", "sakai", "nihonbashi", "shinosaka", "umeda"];
 const configuredAreas = ["sakaisujihonmachi", "shinosaka", "nihonbashi", "nanba", "umeda", "sakai"];
 const uniqueIntroductions = [
-  "主店舗と関連掲載を分けたうえで、掲載料金、営業時間、承認済み口コミ",
-  "URLは変えず堺東をページの主語とし、堺東の主店舗と堺市内の関連掲載を分け",
-  "東京の日本橋と混同せず、大阪日本橋の主店舗となんばなどの関連掲載を分け",
-  "新大阪の主店舗と西中島・東三国などの関連掲載を分け",
-  "梅田の主店舗と大阪駅・北新地などの関連掲載を分け"
+  "掲載料金、営業時間、承認済み口コミ、店舗詳細の公式導線など、確認できる項目から比較",
+  "URLは変えず堺東をページの主語とし、確認できる料金、営業時間、口コミ、店舗詳細から候補を比較",
+  "東京の日本橋と混同せず、確認できる料金、営業時間、口コミ、店舗詳細から大阪日本橋の候補を比較",
+  "掲載料金、営業時間、承認済み口コミ、店舗詳細の公開情報から、新大阪の候補を比較",
+  "確認できる掲載料金、営業時間、承認済み口コミ、店舗詳細から梅田の候補を比較"
 ];
 
 function areaConfigBlock(slug) {

@@ -332,13 +332,22 @@ for (const file of runtimeSourceFiles) {
 const template = read("components/area/AreaHubPageTemplate.tsx");
 for (const contract of [
   "isPriorityAreaPrecisionTarget",
-  "classifyPriorityAreaShops",
-  "precisionGroups.exact",
-  "precisionGroups.related",
-  "precisionGroups.unclassified",
+  "selectAreaRelationShops",
   "precisionMode",
 ]) {
   assert.ok(template.includes(contract), `Area Hub integration is missing ${contract}`);
+}
+for (const removedPublicGroup of [
+  "precisionGroups.exact",
+  "precisionGroups.related",
+  "precisionGroups.unclassified",
+  "data-area-precision-secondary",
+]) {
+  assert.equal(
+    template.includes(removedPublicGroup),
+    false,
+    `Primary classification must remain internal: ${removedPublicGroup}`,
+  );
 }
 const content = read("components/area/area-hub-content.tsx");
 assert.ok(content.includes("capabilities.beginner"), "beginner tab must share validated availability");
