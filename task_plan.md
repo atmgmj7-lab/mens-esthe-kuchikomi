@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-UX-PROD-AREA-LIST-UX-REVISION-01 検証・review中
+UX-PROD-AREA-LIST-UX-REVISION-01 完了（main push・WordPress/Supabase変更なし）
 
 ## UX-PROD-AREA-LIST-UX-REVISION-01
 
@@ -22,7 +22,7 @@ base `096875847bddc53551a0b6fa77c1cfed9d98b8af`から、重点5Areaの公開店�
 - [x] Phase 4: focused/full/lint/typecheck/build/auditを検証する
 - [x] Phase 5: 5Area×11幅のfixture/current-data browser QAと代表画像目視を完了する
 - [x] Phase 6: SPEC/CODE_QUALITY_SECURITY/VISIBLE reviewでCritical/Important 0を確認する
-- [ ] Phase 7: 指定pathだけをcommitし、条件を満たす場合だけVercel productionへ反映して公開QAする
+- [x] Phase 7: 指定pathだけをcommitし、Vercel productionへ反映して公開QAする
 
 ### Approved Implementation Design
 

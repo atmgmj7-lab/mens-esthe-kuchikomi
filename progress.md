@@ -9,7 +9,10 @@
 - focused一式、`npm test`、lint、typecheck、821/821 build、audit vulnerability 0、`git diff --check`はexit 0。browser QAは110 scenarios / 2,687 assertions / 30 screenshots / failures 0。
 - 最終SPEC_COMPLIANCE、CODE_QUALITY_SECURITY、VISIBLE reviewはCritical 0 / Important 0。重複順位/店舗・曖昧slug・文字列rank・dangling CTAもfail closedにした。
 - 最終`npm test`、lint、typecheck、821/821 build、audit vulnerability 0、`git diff --check`はexit 0。最終browser QAも110 scenarios / 2,687 assertions / 30 screenshots / failures 0。
-- 現在地: review完了。次は対象pathだけを明示stage/commitし、Vercel production deployと公開5Area QAを行う。
+- implementation commitは`867aab90811420e906ebcb3c787d2655cd8379e5`。Vercel production deployment `dpl_H7Y3rUbGHabM1K6pKiQzdj5vxxE7`は2026-08-22 07:54 JSTにReadyとなり、既存domain aliasへ反映した。
+- 公開WordPress relation countはsakai 18、shinosaka 48、nihonbashi 59、sakaisujihonmachi 93、umeda 59。公開DOM件数は全て一致した。
+- production QAは5Area×320/390/1440pxの15 scenarios、484 assertions、unique Shop links 214/214 HTTP 200、failures 0。formal ranking配列0件に対してranking section/badge 0、内部Primary文言0、group分割0、overflow 0、canonical非変更を確認した。
+- 現在地: 完了。main push、WordPress/Supabase write、Primary/Area relation、URL/canonical/sitemap/robots、Secret/env変更は0で停止する。
 
 ## 2026-08-16 UX-PROD-T3B-AREA-REVIEW-READER-01 開始
 

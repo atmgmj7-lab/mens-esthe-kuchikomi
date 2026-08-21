@@ -12,6 +12,8 @@
 - 旧UIから再利用するのはsection位置、見出し、badge/image overlay、色、card構造、spacing/border/CTAだけであり、ranking score、demand/popularity/recommendation/information completeness、旧sort、旧順位値は0件流用である。
 - browser QAはfixture 55 + current-data 55の計110 scenarios、2,687 assertions、30 screenshots、failures 0。320/390/1440pxを含む11幅で、relation全件count、単一一覧、長い店名、filter/sort、正式fixture順位、formalなし順位0、overflow、Header/Footerを確認した。
 - 最終SPEC_COMPLIANCE、CODE_QUALITY_SECURITY、VISIBLE reviewはいずれもCritical 0 / Important 0。重複formal rank/shop、曖昧slug、文字列rankは全てfail closedにし、比較moduleがない場合のranking CTAも非表示にした。
+- implementation commit `867aab90811420e906ebcb3c787d2655cd8379e5`をVercel production deployment `dpl_H7Y3rUbGHabM1K6pKiQzdj5vxxE7`へ反映し、既存aliasへ接続した。deploymentはReady、error log 0である。
+- 公開WordPress relation countは堺東18、新大阪48、大阪日本橋59、堺筋本町93、梅田59。公開QA 15 scenarios / 484 assertionsでDOM countと全件一致し、214 unique Shop linksは全てHTTP 200、内部Primary copy・group分割・ranking/badge・overflowは0だった。
 
 ## 2026-08-16 UX-PROD-T3B Area Hub SEO
 
