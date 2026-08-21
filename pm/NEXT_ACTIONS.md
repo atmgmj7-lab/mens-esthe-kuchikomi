@@ -6,8 +6,8 @@
 
 この節を現在の唯一のNext Actions正本とする。下の2026-07-16以前の「現在」「次の1タスク」「現在の実行順」は履歴であり、自動再開しない。
 
-1. `UX-PROD-FINAL-CLOSE-01`でrelease文書review、main fast-forward同期、workflow観測、production再確認を完了する。
-2. Release Close後は停止する。
+1. `UX-PROD-FINAL-CLOSE-01`は完了。新UX releaseはclose済み。
+2. 現在は停止する。自動実行する次taskはない。
 3. GSC、SEO戦略、Analytics、DATA-CLEAN、Phase18、次フェーズは`NOT_STARTED`のまま維持する。
 4. 次の戦略・タスクは、ユーザーが新UX完成後の状態を確認してから決める。現時点の自動実行対象は設定しない。
 

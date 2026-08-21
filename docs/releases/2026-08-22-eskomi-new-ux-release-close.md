@@ -4,7 +4,7 @@ Task: `UX-PROD-FINAL-CLOSE-01`
 
 Release date: 2026-08-22 JST
 
-State: PRE-MAIN-SYNC REVIEW
+State: CLOSED
 
 ## Release scope
 
@@ -25,11 +25,35 @@ State: PRE-MAIN-SYNC REVIEW
 | Fresh `origin/main` before sync | `bc203610e9bb041c84a63695d71938ba58261730` | CONFIRMED 2026-08-22 |
 | Area UX implementation | `867aab90811420e906ebcb3c787d2655cd8379e5` | CONFIRMED |
 | Evidence candidate | `48f45591cb606f960934f20a6a8ce8b419bdb9a6` | CONFIRMED; application diff after implementation is 0 |
-| Current production deployment | `dpl_H7Y3rUbGHabM1K6pKiQzdj5vxxE7` | READY; alias target confirmed |
-| Production application identity | `867aab90811420e906ebcb3c787d2655cd8379e5` equivalent | INFERRED from deployment time and docs-only subsequent diff; Vercel metadata has no source SHA |
-| Main sync method | fast-forward, 22 commits, force pushなし | CONFIRMED |
+| Release-close sync commit | `132cd95c17d0de5be25b2ca6dc5033da90a8f32b` | `bc20361..132cd95 HEAD -> main` CONFIRMED |
+| Current production deployment | `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF` | READY; production alias target confirmed |
+| Production application identity | workflow head SHA `132cd95c17d0de5be25b2ca6dc5033da90a8f32b` | CONFIRMED by GitHub run-to-deployment chain; Vercel metadata単体のsource SHAはnull |
+| Main sync method | fast-forward, 23 commits, force pushなし | CONFIRMED |
 
-`origin/main..candidate`には`headless/**`と`functions.php`が含まれるため、main同期はVercelとXserverの両workflowを起動する。XserverはBLOCK-001と同じ認証前停止か、別原因・partial transferかを同期後に区別する。
+`origin/main..candidate`には`headless/**`と`functions.php`が含まれたため、main同期はVercelとXserverの両workflowを起動した。Vercelは成功し、Xserverは最初のSSH接続確認で既知BLOCK-001と同じtimeoutになった。rsync前停止、post-deploy check skip、本番PHP SHA-256不変を確認したためpartial transferは0である。
+
+## Workflow and post-sync production verification
+
+| Item | Result |
+|---|---|
+| Vercel workflow | run `32537810709` / job `96941885946` / success |
+| Vercel deployment | `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF` / READY / `mens-esthe-kuchikomi.com` alias一致 |
+| Vercel gates | npm ci、lint、CI build、prebuilt build、production deploy、SEO cutover checkすべてsuccess |
+| Xserver workflow | run `32537810712` / job `96941885900` / failure at remote preflight |
+| Xserver failure | `ssh: connect ... port 10022: Connection timed out` / exit 255 / rsync前 / post-deploy REST未実行 |
+| Xserver partial transfer | 0。production PHP 4fileは`fd0a4ccd...`のSHA-256と全一致 |
+| Post-sync HTTP | Top、Reviews、Column、Priority5、代表Shop、robots、sitemapは200。Hello worldは404 |
+| Post-sync data | Shops 380、Primary 44、Reviews 0、非publish Shop 0 |
+| Post-sync Area | relation / DOMとも18 / 48 / 59 / 93 / 59 |
+| Post-sync ranking | formal endpoint `rankings: []`、公開順位表示0 |
+| Post-sync Hello world | direct 404、sitemap 0 |
+
+本番PHPの照合値は次のとおりで、candidateとremoteが各file完全一致した。
+
+- `shop-public-meta.php`: `595e1b3915e2a45fb7bc0b6c3f36d9e5d31e33ab66a2e24b5d5c035161148c7a`
+- `reviews-cpt.php`: `f0b5cc69e761c3dbbbddf59cc4a5783e406a5e34beb7735bb26cd7fb9ef53c59`
+- `reviews-public-rest.php`: `265104ac0130673808eb9dd56917e535db663f9d660be9cd1c939044b9484048`
+- `functions.php`: `73e54712c87d971e55499a7edb51e073e358f83c85d42e8dd04dab9e31a7661e`
 
 ## Final independent public QA
 
@@ -90,7 +114,7 @@ Primary 44件は明示保存値で、Primary状態を公開Area listingの除外
 
 | Layer | Rollback point | Current action |
 |---|---|---|
-| Vercel | pre-main-sync verified deployment `dpl_H7Y3rUbGHabM1K6pKiQzdj5vxxE7` | rollback未実行 |
+| Vercel | pre-main-sync verified deployment `dpl_H7Y3rUbGHabM1K6pKiQzdj5vxxE7` | 現在は`dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`; rollback未実行 |
 | WordPress PHP | `/home/xs454693/escomi-backups/ux-prod-op-wp-code-01-20260816T194437Z/`、`MANIFEST.sha256` | 4fileとmanifestをread-only再確認。manifest: shop meta `80342ad…`, reviews CPT `edb3edd…`, reviews REST `45d776b…`, functions `b13b255…` |
 | Primary P1 | `/home/xs454693/escomi-backups/ux-prod-op-primary-p1-01-20260816T201255Z/` | `before.json` SHA-256 `d05c2657…`、`after.json` `06c74836…` |
 | Primary P2 | `/home/xs454693/escomi-backups/ux-prod-op-primary-p2-01-20260816T210224Z/` | `manifest.sha256`; target `413cf3f1…`、before `071ed90b…`、after `4992dc95…` |
@@ -100,24 +124,13 @@ Primary 44件は明示保存値で、Primary状態を公開Area listingの除外
 
 Rollbackが必要な場合は自動実行せず、Gitはrevert commit、Vercelは前verified deployment、WordPress PHPは依存3fileを先にして`functions.php`を最後にする既存手順を使う。
 
-## Post-sync completion fields
-
-この文書の最終commitで、次を実観測値へ更新する。
-
-- latest `origin/main`
-- main push result
-- Vercel workflow run / deployment / alias
-- Xserver workflow run、BLOCK-001または別原因、partial deploy有無
-- production post-sync HTTP、Area counts、Shops 380、Primary 44、Reviews 0
-- final close flags
-
 ## Close flags
 
 ```text
-NEW_UX_RELEASE=PENDING_MAIN_SYNC
+NEW_UX_RELEASE=COMPLETE
 PRODUCTION_QA=PASS
-GIT_PRODUCTION_ALIGNED=NO
+GIT_PRODUCTION_ALIGNED=YES
 CRITICAL=0
 IMPORTANT=0
-RELEASE_CLOSED=NO
+RELEASE_CLOSED=YES
 ```

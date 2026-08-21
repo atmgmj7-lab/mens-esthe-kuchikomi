@@ -2,6 +2,10 @@
 
 ## 2026-08-22 UX-PROD Final Close
 
+- mainへのfast-forward同期commitは`132cd95c17d0de5be25b2ca6dc5033da90a8f32b`。Vercel run `32537810709`のhead SHAと一致し、同runがdeployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`をproductionへ出した。alias inspectも同deployment ID / READYを返した。
+- Xserver run `32537810712`はremote theme検査の最初のSSH commandでtimeoutし、`set -e`によりrsync loop前でexit 255となった。production PHP 4fileは`fd0a4ccd...`とSHA-256一致したためpartial transfer 0。既知BLOCK-001以外のfailureではない。
+- post-sync公開再確認は主要route 200、Hello world 404、Shops 380、Primary 44、Reviews 0、非publish Shop 0、Priority5 relation/DOM 18 / 48 / 59 / 93 / 59、formal ranking空、公開順位表示0である。
+- release close後はGSC、SEO戦略、Analytics、DATA-CLEAN、Phase18、次フェーズを自動開始しない。
 - Public Visual、HTTP/SEO/Data、Content/Schema/Safetyを別担当で観測し、Critical 0 / Important 0。Priority5の公開件数、H1、canonical、noindex境界、fake data/schema 0、214 unique Shop linkを相互に確認した。
 - public-only GETではWordPress Post ID 1の`draft`という管理状態を直接証明できない。公開結果の404/link 0/sitemap 0と、2026-08-21保存済みinternal after snapshotのdraftを別証拠として扱い、今回の公開QAで内部状態を推測しない。
 - Topの堺筋本町カードはArea本体93件と異なり`掲載店舗 集計準備中`。虚偽件数やroute不全ではなくMinor backlogとし、release closeへ新しいUI修正を混ぜない。

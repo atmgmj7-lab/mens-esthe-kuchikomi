@@ -6,7 +6,7 @@
 
 ## Current Phase
 
-UX-PROD-FINAL-CLOSE-01 実行中（独立公開QA・Git整合・release記録を完了し、main同期前）
+UX-PROD-FINAL-CLOSE-01 完了。新UX releaseを閉じて停止中。GSC、SEO戦略、Analytics、次フェーズは未着手。
 
 ## UX-PROD-FINAL-CLOSE-01
 
@@ -19,10 +19,10 @@ UX-PROD-FINAL-CLOSE-01 実行中（独立公開QA・Git整合・release記録を
 - [x] Phase A: 独立3担当で公開Visual、HTTP/SEO/Data、Content/Schema/Safety QAを実施する
 - [x] Phase B1: production deploymentとapplication commitの対応、fresh `origin/main`、fast-forward可否、workflow影響を監査する
 - [x] Phase B2: full test、lint、typecheck、821/821 build、audit、diffをfresh実行する
-- [ ] Phase B3: release close記録を独立reviewし、文書commitを作成する
-- [ ] Phase B4: candidateを`origin/main`へfast-forward同期し、workflowを確認する
-- [ ] Phase B5: productionを再確認し、実deployment/runをrelease記録へ反映する
-- [ ] Phase C: `NEW_UX_RELEASE=COMPLETE`、`GIT_PRODUCTION_ALIGNED=YES`、`RELEASE_CLOSED=YES`で停止する
+- [x] Phase B3: release close記録を独立reviewし、文書commitを作成する
+- [x] Phase B4: candidateを`origin/main`へfast-forward同期し、workflowを確認する
+- [x] Phase B5: productionを再確認し、実deployment/runをrelease記録へ反映する
+- [x] Phase C: `NEW_UX_RELEASE=COMPLETE`、`GIT_PRODUCTION_ALIGNED=YES`、`RELEASE_CLOSED=YES`で停止する
 
 ### Gates
 
@@ -30,6 +30,8 @@ UX-PROD-FINAL-CLOSE-01 実行中（独立公開QA・Git整合・release記録を
 - fresh `origin/main`は`bc203610e9bb041c84a63695d71938ba58261730`。candidate `48f45591cb606f960934f20a6a8ce8b419bdb9a6`まで22 commitのfast-forwardが可能で、force push、merge、rebaseは不要。
 - main pushはVercelとXserver workflowを起動する。Xserverが既知BLOCK-001で停止した場合も、原因とpartial deploy 0を確認する。別原因ならrelease closeを停止する。
 - 既知Minorはfavicon 404とTopの堺筋本町count保留表示。formal ranking data 0はfake順位を出さない正常状態。
+- `132cd95c17d0de5be25b2ca6dc5033da90a8f32b`をmainへfast-forward同期した。Vercel run `32537810709`はsuccess、deployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`はREADYでalias一致。
+- Xserver run `32537810712`は既知BLOCK-001のSSH timeoutでrsync前停止。production PHP 4fileはcandidate SHA-256と一致し、partial transfer 0。
 
 ### Stop Conditions
 

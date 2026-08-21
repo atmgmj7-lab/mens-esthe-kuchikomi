@@ -2,13 +2,18 @@
 
 ## 2026-08-22 UX-PROD-FINAL-CLOSE-01
 
+- `132cd95c17d0de5be25b2ca6dc5033da90a8f32b`を`origin/main`へfast-forward同期した。Vercel run `32537810709`はsuccess、deployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`はREADYでproduction aliasと一致した。
+- Xserver run `32537810712`は既知BLOCK-001と同じ最初のSSH接続timeoutでexit 255。rsync前停止、post-deploy check skip、本番PHP 4fileのcandidate SHA-256一致を確認し、partial transferは0。
+- post-syncは主要12 route、Shops 380、Primary 44、Reviews 0、重点5Area relation/DOM 18 / 48 / 59 / 93 / 59、formal ranking 0、公開順位表示0、Hello world 404/sitemap 0を確認した。
+- Release close文書を最終値へ更新した。`NEW_UX_RELEASE=COMPLETE`、`PRODUCTION_QA=PASS`、`GIT_PRODUCTION_ALIGNED=YES`、`CRITICAL=0`、`IMPORTANT=0`、`RELEASE_CLOSED=YES`。
+- 現在地: 新UX release close完了。GSC、SEO戦略、Analytics、DATA-CLEAN、Phase18、次フェーズへ進まず停止する。
 - 実装担当と分離した3担当で公開productionをread-only確認した。Visualは45 screenshots、HTTP/SEO/DataはPriority5のrelation/DOM 18 / 48 / 59 / 93 / 59と214/214 Shop link 200、Content/Schema/Safetyはfake review/rating/ranking/0円fallback/schema 0を確認した。
 - 独立公開QAはCritical 0 / Important 0。Minorは既知`/favicon.ico` 404と、Topの堺筋本町カードだけ`掲載店舗 集計準備中`の2件。Area本体は93件で公開障害や虚偽件数ではない。
 - Hello worldはdirect 404、Top/Reviews/Column link 0、sitemap 0。Post ID 1の内部draft状態は2026-08-21の保存済みsnapshotで確認済みだが、今回のpublic-only担当からはNOT_VERIFIEDと分離した。
 - `git fetch origin`後の`origin/main`は`bc203610e9bb041c84a63695d71938ba58261730`。candidate `48f45591cb606f960934f20a6a8ce8b419bdb9a6`は22 commit先でfast-forward可能。production `dpl_H7Y3rUbGHabM1K6pKiQzdj5vxxE7`はReadyで、application identityは時刻とdocs-only後続差分から`867aab90811420e906ebcb3c787d2655cd8379e5`相当とINFERREDした。
 - fresh `npm test`、lint、typecheck、821/821 build、audit vulnerability 0、`git diff --check`はexit 0。公開RESTはShops 380、Primary 44、Reviews 0で、Primary relation mismatch 0。
 - Xserver backup領域をread-only確認し、WordPress PHP 4file、Primary P1/P2/P3、Hello worldの各backup pathとSHA-256 manifestをrelease close文書へ固定した。production writeは0。
-- 現在地: release close文書の独立review前。main push、追加deploy、WordPress/Supabase write、GSC/SEO戦略/Analyticsは未実施。
+- release close文書の初回独立reviewはImportant 2を検出し、Next Actionsの正本化とrollback locator具体化後にCritical 0 / Important 0 / Minor 0となった。
 
 ## 2026-08-22 UX-PROD-AREA-LIST-UX-REVISION-01
 
