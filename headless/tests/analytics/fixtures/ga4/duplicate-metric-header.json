@@ -1,0 +1,1 @@
+{ "metricHeaders": [{ "name": "sessions" }, { "name": "sessions" }, { "name": "engagedSessions" }, { "name": "engagementRate" }, { "name": "keyEvents" }], "rows": [{ "metricValues": [{ "value": "1" }, { "value": "1" }, { "value": "1" }, { "value": "0.5" }, { "value": "1" }] }] }
