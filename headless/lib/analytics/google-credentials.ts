@@ -11,7 +11,17 @@ import {
 } from "./result";
 
 export const GOOGLE_ANALYTICS_READONLY_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
+export const GOOGLE_SEARCH_CONSOLE_READONLY_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const GOOGLE_OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+
+export type GoogleOAuthScope =
+  | typeof GOOGLE_ANALYTICS_READONLY_SCOPE
+  | typeof GOOGLE_SEARCH_CONSOLE_READONLY_SCOPE;
+
+const GOOGLE_OAUTH_SCOPES = new Set<GoogleOAuthScope>([
+  GOOGLE_ANALYTICS_READONLY_SCOPE,
+  GOOGLE_SEARCH_CONSOLE_READONLY_SCOPE,
+]);
 
 export type GoogleServiceAccount = {
   clientEmail: string;
@@ -41,6 +51,7 @@ export type GoogleAccessTokenOptions = CredentialOptions & {
   fetchImpl?: typeof fetch;
   now?: () => Date;
   timeoutMs?: number;
+  scope?: GoogleOAuthScope;
 };
 
 function warning(code: string, message: string): AnalyticsWarning[] {
@@ -104,12 +115,12 @@ function base64Url(value: string): string {
   return Buffer.from(value).toString("base64url");
 }
 
-function createSignedJwt(serviceAccount: GoogleServiceAccount, now: Date): string {
+function createSignedJwt(serviceAccount: GoogleServiceAccount, now: Date, scope: GoogleOAuthScope): string {
   const iat = Math.floor(now.getTime() / 1000);
   const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = base64Url(JSON.stringify({
     iss: serviceAccount.clientEmail,
-    scope: GOOGLE_ANALYTICS_READONLY_SCOPE,
+    scope,
     aud: serviceAccount.tokenUri,
     iat,
     exp: iat + 3600,
@@ -133,6 +144,8 @@ function isAbortError(error: unknown): boolean {
 export async function getGoogleAccessToken(
   options: GoogleAccessTokenOptions = {}
 ): Promise<AnalyticsSourceResult<GoogleAccessToken>> {
+  const scope = options.scope ?? GOOGLE_ANALYTICS_READONLY_SCOPE;
+  if (!GOOGLE_OAUTH_SCOPES.has(scope)) return safeFailure("invalid_response", "oauth_invalid_scope");
   const serviceAccount = await loadGoogleServiceAccount(options);
   if (serviceAccount.data === null) {
     return analyticsFailure(serviceAccount.state, {
@@ -159,7 +172,7 @@ export async function getGoogleAccessToken(
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        assertion: createSignedJwt(serviceAccount.data, now),
+        assertion: createSignedJwt(serviceAccount.data, now, scope),
       }).toString(),
       signal: controller.signal,
     });

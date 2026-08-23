@@ -1,0 +1,6 @@
+{
+  "rows": [
+    { "keys": ["zeta"], "clicks": 2, "impressions": 20, "ctr": 0.1, "position": 7 },
+    { "keys": ["alpha"], "clicks": 2, "impressions": 21, "ctr": 0.0952380952, "position": 8 }
+  ]
+}
