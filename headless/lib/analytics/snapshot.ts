@@ -17,7 +17,7 @@ const FOCUS_AREAS = [
   ["梅田", "/area/umeda/"],
 ] as const;
 
-type NullableMetrics = { sessions: number | null; activeUsers?: number | null; engagedSessions?: number | null; engagementRate?: number | null; keyEvents?: number | null };
+type NullableMetrics = { sessions: number | null; engagedSessions?: number | null; engagementRate?: number | null; keyEvents?: number | null };
 type NullableGsc = { clicks: number | null; impressions: number | null; ctr: number | null; position: number | null };
 type SnapshotWarning = AnalyticsWarning;
 
@@ -100,14 +100,14 @@ function normalizePath(input: string, requireAbsolute = false): string | null {
   } catch { return null; }
 }
 
-type PageTotals = { sessions: number; activeUsers: number; engagedSessions: number; keyEvents: number };
+type PageTotals = { sessions: number; engagedSessions: number; keyEvents: number };
 function mergeGa4(rows: Ga4LandingPage[] | null, warnings: SnapshotWarning[]): Map<string, PageTotals> {
   const map = new Map<string, PageTotals>();
   for (const row of rows ?? []) {
     const path = normalizePath(row.landingPage);
     if (!path) { warnings.push({ code: "snapshot_ga4_unsafe_landing_path", message: "code=snapshot_ga4_unsafe_landing_path" }); continue; }
-    const existing = map.get(path) ?? { sessions: 0, activeUsers: 0, engagedSessions: 0, keyEvents: 0 };
-    existing.sessions += row.sessions; existing.activeUsers += row.activeUsers; existing.engagedSessions += row.engagedSessions; existing.keyEvents += row.keyEvents;
+    const existing = map.get(path) ?? { sessions: 0, engagedSessions: 0, keyEvents: 0 };
+    existing.sessions += row.sessions; existing.engagedSessions += row.engagedSessions; existing.keyEvents += row.keyEvents;
     map.set(path, existing);
   }
   return map;
@@ -135,14 +135,35 @@ function gscPages(rows: GscAnalyticsData["pages"]["current"]["data"], warnings: 
 
 function metricForPath(rows: Map<string, PageTotals>, path: string): NullableMetrics {
   const data = rows.get(path);
-  return data ? { sessions: data.sessions, activeUsers: data.activeUsers, engagedSessions: data.engagedSessions, engagementRate: data.sessions === 0 ? 0 : data.engagedSessions / data.sessions, keyEvents: data.keyEvents } : { sessions: null, activeUsers: null, engagedSessions: null, engagementRate: null, keyEvents: null };
+  return data ? { sessions: data.sessions, engagedSessions: data.engagedSessions, engagementRate: data.sessions === 0 ? 0 : data.engagedSessions / data.sessions, keyEvents: data.keyEvents } : { sessions: null, engagedSessions: null, engagementRate: null, keyEvents: null };
 }
 
 function organicForPath(rows: Map<string, PageTotals>, path: string): number | null { return rows.get(path)?.sessions ?? null; }
 
-function findQueryRows(data: GscAnalyticsData | null, current: boolean, path: string): GscDimensionRow[] {
-  const report = current ? data?.queryPages.current.data : data?.queryPages.previous.data;
-  return (report?.rows ?? []).filter((row) => normalizePath(row.keys[1], true) === path);
+function queryPageRows(rows: GscDimensionRow[] | undefined, warnings: SnapshotWarning[]): Map<string, GscDimensionRow[]> {
+  const candidates = new Map<string, GscDimensionRow[]>();
+  const rawUrls = new Map<string, Set<string>>();
+  for (const row of rows ?? []) {
+    const rawUrl = row.keys[1];
+    const path = normalizePath(rawUrl, true);
+    if (!path) {
+      warnings.push({ code: "snapshot_gsc_unsafe_query_page", message: "code=snapshot_gsc_unsafe_query_page" });
+      continue;
+    }
+    const urls = rawUrls.get(path) ?? new Set<string>();
+    urls.add(rawUrl);
+    rawUrls.set(path, urls);
+    const list = candidates.get(path) ?? [];
+    list.push(row);
+    candidates.set(path, list);
+  }
+  for (const [path, urls] of rawUrls) {
+    if (urls.size > 1) {
+      candidates.delete(path);
+      warnings.push({ code: "snapshot_gsc_query_page_collision_omitted", message: "code=snapshot_gsc_query_page_collision_omitted" });
+    }
+  }
+  return candidates;
 }
 
 function fixedSourceDefaults(now: Date, period: AnalyticsPeriod): SnapshotSources {
@@ -181,14 +202,16 @@ export async function collectAnalyticsSnapshot(options: CollectAnalyticsSnapshot
   const previousOrganicLanding = mergeGa4(ga4Data?.organicLandingPages.previous.data ?? null, snapshotWarnings);
   const currentGscPages = gscPages(gscData?.pages.current.data ?? null, snapshotWarnings);
   const previousGscPages = gscPages(gscData?.pages.previous.data ?? null, snapshotWarnings);
+  const currentQueryPages = queryPageRows(gscData?.queryPages.current.data?.rows, snapshotWarnings);
+  const previousQueryPages = queryPageRows(gscData?.queryPages.previous.data?.rows, snapshotWarnings);
   const paths = new Set([...currentLanding.keys(), ...previousLanding.keys(), ...currentOrganicLanding.keys(), ...previousOrganicLanding.keys(), ...currentGscPages.keys(), ...previousGscPages.keys()]);
   const pages = [...paths].map((path) => ({ path, current: { ...metricForPath(currentLanding, path), organicSessions: organicForPath(currentOrganicLanding, path), gsc: gscMetric(currentGscPages.get(path) ?? null) }, previous: { ...metricForPath(previousLanding, path), organicSessions: organicForPath(previousOrganicLanding, path), gsc: gscMetric(previousGscPages.get(path) ?? null) } }))
     .sort((left, right) => (right.current.sessions ?? -1) - (left.current.sessions ?? -1) || left.path.localeCompare(right.path));
   const healthByPath = new Map((webData?.targets ?? []).map((target) => [target.path, target]));
   const focusAreas: FocusArea[] = FOCUS_AREAS.map(([name, path]) => {
-    const candidates = findQueryRows(gscData, true, path);
+    const candidates = currentQueryPages.get(path) ?? [];
     const chosen = candidates[0] ?? null;
-    const previous = chosen ? findQueryRows(gscData, false, path).find((row) => row.keys[0] === chosen.keys[0]) ?? null : null;
+    const previous = chosen ? (previousQueryPages.get(path) ?? []).find((row) => row.keys[0] === chosen.keys[0]) ?? null : null;
     const currentOrganic = organicForPath(currentOrganicLanding, path); const previousOrganic = organicForPath(previousOrganicLanding, path);
     const current = { ...gscMetric(chosen), organicSessions: currentOrganic };
     const prior = { ...gscMetric(previous), organicSessions: previousOrganic };
@@ -196,7 +219,8 @@ export async function collectAnalyticsSnapshot(options: CollectAnalyticsSnapshot
     return { name, path, mainQuery: chosen?.keys[0] ?? null, current, previous: prior, deltas: { clicks: delta(current.clicks, prior.clicks), impressions: delta(current.impressions, prior.impressions), ctr: delta(current.ctr, prior.ctr), position: delta(current.position, prior.position), organicSessions: delta(current.organicSessions, prior.organicSessions) }, siteHealth: health, checkedAt: health?.checkedAt ?? null, collectedAt: gsc?.collectedAt ?? null };
   });
   const topPositions = focusAreas.map((row) => row.current.position);
-  const completeTop = gscData?.queryPages.current.state === "ok" && topPositions.every((position) => position !== null);
+  const completeTop = gscData?.queryPages.current.state === "ok" &&
+    gscData.queryPages.current.data?.rowCoverage === "COMPLETE" && topPositions.every((position) => position !== null);
   const topCounts = (limit: number) => completeTop ? topPositions.filter((position) => position! <= limit).length : null;
   const warningMap = new Map<string, SnapshotWarning>();
   for (const warning of snapshotWarnings) warningMap.set(warning.code, warning);

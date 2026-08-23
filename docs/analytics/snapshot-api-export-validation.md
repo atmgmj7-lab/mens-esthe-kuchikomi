@@ -13,7 +13,7 @@
 
 - Numeric zero is retained only from a successful source row. Missing, unavailable, `no_data`, and error values remain `null`; deltas are `null` whenever either side is unavailable.
 - Landing paths are normalized to same-origin paths. GA4 variants may be summed and recalculate engagement rate from summed engaged sessions and sessions. Unsafe inputs are omitted with a warning. GSC path normalization collisions are omitted completely rather than selecting an upstream row.
-- The five focus areas are fixed in order: 堺東, 新大阪, 大阪日本橋, 堺筋本町, 梅田. Main-query evidence comes only from the paginated GSC `[query,page]` report. Top10/20/30 counts are `null` unless all five current main-query rows are complete.
+- The five focus areas are fixed in order: 堺東, 新大阪, 大阪日本橋, 堺筋本町, 梅田. Main-query evidence comes only from the paginated GSC `[query,page]` report. Top10/20/30 counts are `null` unless all five current main-query rows are present and that report explicitly declares `COMPLETE`; the current production adapter deliberately reports `NOT_RETURNED`, so it never emits an authoritative Top count.
 
 ## API and export
 

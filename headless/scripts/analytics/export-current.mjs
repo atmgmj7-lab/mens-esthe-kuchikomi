@@ -1,5 +1,5 @@
-import { open, rename, rm } from "node:fs/promises";
-import { basename, dirname, resolve } from "node:path";
+import { mkdtemp, open, rename, rm } from "node:fs/promises";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const usageError = () => new Error("Invalid analytics export arguments");
@@ -25,22 +25,23 @@ async function defaultCollect({ days }) {
   return collectAnalyticsSnapshot({ days });
 }
 
-export async function writeAnalyticsSnapshot({ days, output, collect = defaultCollect }) {
+const defaultFs = { mkdtemp, open, rename, rm };
+
+export async function writeAnalyticsSnapshot({ days, output, collect = defaultCollect, fs = defaultFs }) {
   if ((days !== 7 && days !== 28) || typeof output !== "string" || output === "" || typeof collect !== "function") throw usageError();
   const destination = resolve(output);
-  const temporary = resolve(dirname(destination), `.${basename(destination)}.${process.pid}.${Date.now()}.tmp`);
-  let created = false;
+  let temporaryDirectory = null;
   try {
     const snapshot = await collect({ days });
-    const file = await open(temporary, "wx", 0o600);
-    created = true;
+    temporaryDirectory = await fs.mkdtemp(join(dirname(destination), `.${basename(destination)}.`));
+    const temporary = join(temporaryDirectory, basename(destination));
+    const file = await fs.open(temporary, "wx", 0o600);
     try { await file.writeFile(`${JSON.stringify(snapshot)}\n`, "utf8"); }
     finally { await file.close(); }
-    await rename(temporary, destination);
-    created = false;
+    await fs.rename(temporary, destination);
     return snapshot;
   } finally {
-    if (created) await rm(temporary, { force: true });
+    if (temporaryDirectory !== null) await fs.rm(temporaryDirectory, { recursive: true, force: true });
   }
 }
 

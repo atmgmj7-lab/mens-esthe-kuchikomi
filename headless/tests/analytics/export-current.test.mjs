@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { registerServerOnly } from "./register-server-only.mjs";
+
+registerServerOnly();
+
 const exporter = await import("../../scripts/analytics/export-current.mjs");
+const { createAnalyticsCurrentHandler } = await import("../../app/api/dashboard/analytics/current/route.ts");
 const root = await mkdtemp(join(tmpdir(), "eskomi-analytics-export-"));
 
 test("export parser accepts only explicit period and output arguments before collection", () => {
@@ -22,6 +27,51 @@ test("export writes exact collector snapshot atomically and preserves destinatio
   await writeFile(output, "existing\n", "utf8");
   await assert.rejects(() => exporter.writeAnalyticsSnapshot({ days: 7, output, collect: async () => { throw new Error("secret source failure"); } }));
   assert.equal(await readFile(output, "utf8"), "existing\n");
-  assert.deepEqual((await (await import("node:fs/promises")).readdir(root)).filter((name) => name !== "snapshot.json"), []);
+  assert.deepEqual((await readdir(root)).filter((name) => name !== "snapshot.json"), []);
   await rm(root, { recursive: true, force: true });
+});
+
+test("export uses unique temporary directories for deterministic same-process concurrency", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "eskomi-analytics-concurrent-"));
+  const output = join(directory, "snapshot.json");
+  const values = [{ snapshot: 1 }, { snapshot: 2 }];
+  const originalNow = Date.now;
+  Date.now = () => 1;
+  try { await Promise.all(values.map((value) => exporter.writeAnalyticsSnapshot({ days: 7, output, collect: async () => value }))); }
+  finally { Date.now = originalNow; }
+  const serialized = (await readFile(output, "utf8")).trim();
+  assert.equal(values.some((value) => JSON.stringify(value) === serialized), true);
+  assert.deepEqual(await readdir(directory), ["snapshot.json"]);
+  await rm(directory, { recursive: true, force: true });
+});
+
+test("export cleans a created temporary directory after write or rename failure without replacing destination", async () => {
+  for (const failure of ["write", "rename"]) {
+    const directory = await mkdtemp(join(tmpdir(), `eskomi-analytics-${failure}-`));
+    const output = join(directory, "snapshot.json");
+    await writeFile(output, "original\n", "utf8");
+    const fs = {
+      mkdtemp,
+      open: async (path, flags, mode) => failure === "write"
+        ? { writeFile: async () => { throw new Error("synthetic write failure"); }, close: async () => {} }
+        : open(path, flags, mode),
+      rename: async (...args) => failure === "rename" ? Promise.reject(new Error("synthetic rename failure")) : rename(...args),
+      rm,
+    };
+    await assert.rejects(() => exporter.writeAnalyticsSnapshot({ days: 7, output, collect: async () => ({ snapshot: true }), fs }));
+    assert.equal(await readFile(output, "utf8"), "original\n");
+    assert.deepEqual(await readdir(directory), ["snapshot.json"]);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("API JSON and export JSON have exact semantic parity when supplied the same snapshot model", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "eskomi-analytics-parity-"));
+  const output = join(directory, "snapshot.json");
+  const model = { schemaVersion: "1.0.0", timezone: "Asia/Tokyo", sources: { ga4: { state: "partial" } }, warnings: [] };
+  const handler = createAnalyticsCurrentHandler({ authorize: () => ({ ok: true, status: 200, reason: "authorized" }), collect: async () => model });
+  const response = await handler(new Request("https://test.invalid/api/dashboard/analytics/current?period=7"));
+  await exporter.writeAnalyticsSnapshot({ days: 7, output, collect: async () => model });
+  assert.deepEqual(await response.json(), JSON.parse(await readFile(output, "utf8")));
+  await rm(directory, { recursive: true, force: true });
 });

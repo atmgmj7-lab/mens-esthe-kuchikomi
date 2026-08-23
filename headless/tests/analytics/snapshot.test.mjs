@@ -114,3 +114,64 @@ test("GSC normalized page collisions are omitted independently of upstream row o
     assert.equal(result.warnings.some((warning) => warning.code === "snapshot_gsc_normalization_collision_omitted"), true);
   }
 });
+
+test("Top counts stay null for all five rows unless query/page coverage is explicitly COMPLETE", async () => {
+  const sources = sourceData();
+  const paths = ["sakai", "shinosaka", "nihonbashi", "sakaisujihonmachi", "umeda"];
+  sources.gsc.data.queryPages.current.data.rows = paths.map((slug, index) => ({
+    keys: [`query-${index}`, `https://mens-esthe-kuchikomi.com/area/${slug}/`], ...metric(index, 10, 0, index + 1),
+  }));
+  const collect = () => collectAnalyticsSnapshot({ days: 7, now, sources: {
+    collectGa4: async () => sources.ga4, collectGsc: async () => sources.gsc,
+    collectSiteHealth: async () => sources.web, getContentHealth: async () => sources.content,
+  } });
+  assert.deepEqual((await collect()).seo.topCounts, { top10: null, top20: null, top30: null });
+  sources.gsc.data.queryPages.current.data.rowCoverage = "COMPLETE";
+  assert.deepEqual((await collect()).seo.topCounts, { top10: 5, top20: 5, top30: 5 });
+  sources.gsc.data.queryPages.current.data.rows = paths.map((slug, index) => ({
+    keys: [`query-${index}`, `https://mens-esthe-kuchikomi.com/area/${slug}/`], ...metric(0, 0, 0, 0),
+  }));
+  assert.deepEqual((await collect()).seo.topCounts, { top10: 5, top20: 5, top30: 5 });
+});
+
+test("normalized landing variants never emit non-additive active users, in either upstream order", async () => {
+  for (const rows of [[
+    { landingPage: "/area/sakai/?one", sessions: 2, activeUsers: 2, engagedSessions: 1, engagementRate: 0.5, keyEvents: 0 },
+    { landingPage: "/area/sakai/?two", sessions: 3, activeUsers: 3, engagedSessions: 2, engagementRate: 2 / 3, keyEvents: 0 },
+  ], [
+    { landingPage: "/area/sakai/?two", sessions: 3, activeUsers: 3, engagedSessions: 2, engagementRate: 2 / 3, keyEvents: 0 },
+    { landingPage: "/area/sakai/?one", sessions: 2, activeUsers: 2, engagedSessions: 1, engagementRate: 0.5, keyEvents: 0 },
+  ]]) {
+    const sources = sourceData();
+    sources.ga4.data.landingPages.current.data = rows;
+    const result = await collectAnalyticsSnapshot({ days: 7, now, sources: {
+      collectGa4: async () => sources.ga4, collectGsc: async () => sources.gsc,
+      collectSiteHealth: async () => sources.web, getContentHealth: async () => sources.content,
+    } });
+    const page = result.pages.find((item) => item.path === "/area/sakai/");
+    assert.equal(page.current.sessions, 5);
+    assert.equal(page.current.engagementRate, 0.6);
+    assert.equal(Object.hasOwn(page.current, "activeUsers"), false);
+  }
+});
+
+test("query/page normalized raw-URL collisions omit every focus candidate in either upstream order", async () => {
+  for (const rows of [[
+    { keys: ["safe query", "https://mens-esthe-kuchikomi.com/area/sakai/?one"], ...metric(9, 90, 0.1, 2) },
+    { keys: ["other query", "https://mens-esthe-kuchikomi.com/area/sakai/?two"], ...metric(1, 10, 0.1, 3) },
+  ], [
+    { keys: ["other query", "https://mens-esthe-kuchikomi.com/area/sakai/?two"], ...metric(1, 10, 0.1, 3) },
+    { keys: ["safe query", "https://mens-esthe-kuchikomi.com/area/sakai/?one"], ...metric(9, 90, 0.1, 2) },
+  ]]) {
+    const sources = sourceData();
+    sources.gsc.data.queryPages.current.data.rows = rows;
+    const result = await collectAnalyticsSnapshot({ days: 7, now, sources: {
+      collectGa4: async () => sources.ga4, collectGsc: async () => sources.gsc,
+      collectSiteHealth: async () => sources.web, getContentHealth: async () => sources.content,
+    } });
+    assert.equal(result.seo.focusAreas[0].mainQuery, null);
+    assert.equal(result.seo.focusAreas[0].current.clicks, null);
+    assert.equal(result.seo.topCounts.top10, null);
+    assert.equal(result.warnings.some((warning) => warning.code === "snapshot_gsc_query_page_collision_omitted"), true);
+  }
+});

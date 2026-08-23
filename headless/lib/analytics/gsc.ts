@@ -26,9 +26,10 @@ export type GscMetric = {
 };
 
 export type GscDimensionRow = GscMetric & { keys: string[] };
+export type GscRowCoverage = "NOT_RETURNED" | "COMPLETE";
 export type GscDimensionData = {
   rows: GscDimensionRow[];
-  rowCoverage: "NOT_RETURNED";
+  rowCoverage: GscRowCoverage;
 };
 
 export type GscReportPair<T> = {
