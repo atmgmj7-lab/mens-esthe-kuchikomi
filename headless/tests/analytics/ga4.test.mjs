@@ -51,7 +51,7 @@ async function withSyntheticCredential(callback) {
 function reportFixtureKey(body) {
   const dimension = body.dimensions?.[0]?.name;
   const kind = dimension === "sessionDefaultChannelGroup" ? "organic"
-    : dimension === "landingPagePlusQueryString" ? "landing"
+    : dimension === "landingPagePlusQueryString" ? (body.dimensionFilter ? "organic-landing" : "landing")
       : dimension === "deviceCategory" ? "device" : "overview";
   return `${kind}-${body.dateRanges[0].endDate === "2026-08-22" ? "current" : "previous"}`;
 }
@@ -286,8 +286,10 @@ test("collectGa4 sends fixed no-store report pairs and preserves successful data
   assert.equal(value.data.overview.previous.data.keyEvents, 4);
   assert.equal(value.data.organicSearch.current.data.sessions, 40);
   assert.equal(value.data.landingPages.current.data[0].landingPage, "/");
+  assert.equal(value.data.landingPages.current.data[0].engagedSessions, 25);
+  assert.equal(value.data.organicLandingPages.current.data[0].sessions, 40);
   assert.equal(value.data.devices.previous.data[0].deviceCategory, "mobile");
-  assert.equal(requests.length, 9);
+  assert.equal(requests.length, 11);
   const reports = requests.slice(1);
   for (const request of reports) {
     assert.equal(request.init.cache, "no-store");
@@ -300,18 +302,22 @@ test("collectGa4 sends fixed no-store report pairs and preserves successful data
   assert.deepEqual(bodies[2].dimensions.map((dimension) => dimension.name), ["sessionDefaultChannelGroup"]);
   assert.equal(bodies[2].dimensionFilter.filter.stringFilter.value, "Organic Search");
   assert.deepEqual(bodies[4].dimensions.map((dimension) => dimension.name), ["landingPagePlusQueryString"]);
-  assert.deepEqual(bodies[6].dimensions.map((dimension) => dimension.name), ["deviceCategory"]);
+  assert.deepEqual(bodies[6].dimensions.map((dimension) => dimension.name), ["landingPagePlusQueryString"]);
+  assert.equal(bodies[6].dimensionFilter.filter.stringFilter.value, "Organic Search");
+  assert.deepEqual(bodies[8].dimensions.map((dimension) => dimension.name), ["deviceCategory"]);
   assert.equal(bodies[4].limit, "50");
   assert.deepEqual(bodies[4].orderBys, [
     { metric: { metricName: "sessions" }, desc: true },
     { dimension: { dimensionName: "landingPagePlusQueryString" }, desc: false },
   ]);
-  assert.equal(bodies[6].limit, "50");
-  assert.deepEqual(bodies[6].orderBys, [
+  assert.equal(bodies[8].limit, "50");
+  assert.deepEqual(bodies[8].orderBys, [
     { metric: { metricName: "sessions" }, desc: true },
     { dimension: { dimensionName: "deviceCategory" }, desc: false },
   ]);
   assert.deepEqual(bodies.map((body) => body.dateRanges[0]), [
+    { startDate: "2026-08-16", endDate: "2026-08-22" },
+    { startDate: "2026-08-09", endDate: "2026-08-15" },
     { startDate: "2026-08-16", endDate: "2026-08-22" },
     { startDate: "2026-08-09", endDate: "2026-08-15" },
     { startDate: "2026-08-16", endDate: "2026-08-22" },
@@ -408,7 +414,7 @@ test("collectGa4 distinguishes actual zero, no rows, malformed rows, HTTP states
     timeoutMs: 5,
     fetchImpl: async (url, init) => {
       if (String(url) === syntheticCredential.token_uri) return new Response(JSON.stringify({ access_token: "synthetic-access-token" }), { status: 200 });
-      const next = responses.shift();
+      const next = responses.shift() ?? actualZero;
       if (next === "timeout") return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
       if (typeof next === "number") return new Response("{}", { status: next });
       if (next?.bodyError === "timeout") return { ok: true, json: () => new Promise((_resolve, reject) => {
@@ -420,49 +426,49 @@ test("collectGa4 distinguishes actual zero, no rows, malformed rows, HTTP states
     },
   }));
 
-  const zero = await collect(Array(8).fill(actualZero));
+  const zero = await collect(Array(10).fill(actualZero));
   assert.equal(zero.state, "ok");
   assert.equal(zero.data.overview.current.data.sessions, 0);
 
-  const none = await collect(Array(8).fill(noRows));
+  const none = await collect(Array(10).fill(noRows));
   assert.equal(none.state, "no_data");
   assert.equal(none.data, null);
 
-  const mixedNoData = await collect([noRows, ...Array(7).fill(actualZero)]);
+  const mixedNoData = await collect([noRows, ...Array(9).fill(actualZero)]);
   assert.equal(mixedNoData.state, "partial");
   assert.equal(mixedNoData.data.overview.current.state, "no_data");
 
   for (const invalid of [missingMetric, duplicateHeader, mismatchedValueCount, malformedRow, unexpectedScalarRows, nonNumeric, malformed]) {
-    const value = await collect([invalid, ...Array(7).fill(actualZero)]);
+    const value = await collect([invalid, ...Array(9).fill(actualZero)]);
     assert.equal(value.state, "partial");
     assert.equal(value.data.overview.current.state, "invalid_response");
   }
-  const duplicateDimensionResponses = Array(8).fill(actualZero);
+  const duplicateDimensionResponses = Array(10).fill(actualZero);
   duplicateDimensionResponses[4] = duplicateDimension;
   const duplicateDimensions = await collect(duplicateDimensionResponses);
   assert.equal(duplicateDimensions.state, "partial");
   assert.equal(duplicateDimensions.data.landingPages.current.state, "invalid_response");
   for (const [http, state] of httpFixtures.map((http) => [http, http.status < 429 ? "auth_error" : "api_error"])) {
-    const value = await collect([http.status, ...Array(7).fill(actualZero)]);
+    const value = await collect([http.status, ...Array(9).fill(actualZero)]);
     assert.equal(value.state, "partial");
     assert.equal(value.data.overview.current.state, state);
   }
-  const timedOut = await collect([timeoutFixture.state, ...Array(7).fill(actualZero)]);
+  const timedOut = await collect([timeoutFixture.state, ...Array(9).fill(actualZero)]);
   assert.equal(timedOut.state, "partial");
   assert.equal(timedOut.data.overview.current.state, "timeout");
 
   for (const [fixtureBody, state] of [[bodyTimeoutFixture, "timeout"], [bodyNetworkFixture, "api_error"], [bodySyntaxFixture, "invalid_response"]]) {
-    const value = await collect([fixtureBody, ...Array(7).fill(actualZero)]);
+    const value = await collect([fixtureBody, ...Array(9).fill(actualZero)]);
     assert.equal(value.state, "partial");
     assert.equal(value.data.overview.current.state, state);
   }
 
-  const allAuth = await collect(Array(8).fill(httpFixtures[0].status));
+  const allAuth = await collect(Array(10).fill(httpFixtures[0].status));
   assert.equal(allAuth.state, "auth_error");
   assert.equal(allAuth.data, null);
   for (const responses of [
-    [401, 500, "timeout", missingMetric, 500, 500, 500, 500],
-    [500, missingMetric, 401, "timeout", 500, 500, 500, 500],
+    [401, 500, "timeout", missingMetric, 500, 500, 500, 500, 500, 500],
+    [500, missingMetric, 401, "timeout", 500, 500, 500, 500, 500, 500],
   ]) {
     const mixedFailures = await collect(responses);
     assert.equal(mixedFailures.state, "timeout");

@@ -46,7 +46,7 @@ function reportRows(body, count = 1) {
   const dimension = body.dimensions?.[0];
   if (!dimension) return [{ clicks: 10, impressions: 100, ctr: 0.1, position: 8.5 }];
   return Array.from({ length: count }, (_, index) => ({
-    keys: [`${dimension}-${index}`], clicks: index, impressions: index * 2, ctr: 0, position: 0,
+    keys: body.dimensions.length === 2 ? [`${dimension}-${index}`, `https://mens-esthe-kuchikomi.com/${index}/`] : [`${dimension}-${index}`], clicks: index, impressions: index * 2, ctr: 0, position: 0,
   }));
 }
 
@@ -81,7 +81,8 @@ test("collectGsc discovers final data and clamps copied 7-day periods without mu
     fetchImpl: happyFetch({ onSearch: (body, init) => {
       requests.push({ body, init });
       const response = body.dimensions?.[0] === "date" ? latestFinal
-        : body.dimensions ? dimensionRows : aggregate;
+        : body.dimensions?.length === 2 ? { rows: dimensionRows.rows.map((row) => ({ ...row, keys: [row.keys[0], "https://mens-esthe-kuchikomi.com/"] })) }
+          : body.dimensions ? dimensionRows : aggregate;
       return new Response(JSON.stringify(response), { status: 200 });
     } }),
   }));
@@ -96,7 +97,8 @@ test("collectGsc discovers final data and clamps copied 7-day periods without mu
   assert.equal(value.data.siteAggregate.current.data.clicks, 10);
   assert.deepEqual(value.data.queries.current.data.rows.map((row) => row.keys[0]), ["alpha", "zeta"]);
   assert.equal(value.data.queries.current.data.rowCoverage, "NOT_RETURNED");
-  assert.equal(requests.length, 11);
+  assert.deepEqual(value.data.queryPages.current.data.rows[0].keys, ["alpha", "https://mens-esthe-kuchikomi.com/"]);
+  assert.equal(requests.length, 13);
 });
 
 test("collectGsc preserves the 28-day current and previous definitions when final data lags", async () => {
@@ -127,7 +129,7 @@ test("collectGsc sends fixed aggregate and dimension requests with matching curr
   assert.equal(discovery.type, "web");
   assert.equal(discovery.dataState, "final");
   const reports = requests.filter(({ body }) => body.dimensions?.[0] !== "date");
-  assert.equal(reports.length, 10);
+  assert.equal(reports.length, 12);
   for (const { body, init } of reports) {
     assert.equal(body.type, "web");
     assert.equal(body.dataState, "final");
@@ -137,13 +139,16 @@ test("collectGsc sends fixed aggregate and dimension requests with matching curr
   assert.equal(aggregate.length, 2);
   for (const { body } of aggregate) assert.equal(body.aggregationType, "byProperty");
   for (const dimension of ["query", "page", "device", "country"]) {
-    const pair = reports.filter(({ body }) => body.dimensions?.[0] === dimension).map(({ body }) => body);
+    const pair = reports.filter(({ body }) => body.dimensions?.[0] === dimension && body.dimensions.length === 1).map(({ body }) => body);
     assert.equal(pair.length, 2);
     assert.equal(pair[0].aggregationType, "auto");
     assert.deepEqual({ ...pair[0], startDate: undefined, endDate: undefined }, { ...pair[1], startDate: undefined, endDate: undefined });
     assert.deepEqual([pair[0].startDate, pair[0].endDate], ["2026-08-14", "2026-08-20"]);
     assert.deepEqual([pair[1].startDate, pair[1].endDate], ["2026-08-07", "2026-08-13"]);
   }
+  const queryPages = reports.filter(({ body }) => body.dimensions?.join(",") === "query,page").map(({ body }) => body);
+  assert.equal(queryPages.length, 2);
+  assert.equal(queryPages[0].aggregationType, "auto");
 });
 
 test("collectGsc paginates with exact startRow, stops on a short page, and sorts returned rows", async () => {
@@ -152,7 +157,7 @@ test("collectGsc paginates with exact startRow, stops on a short page, and sorts
     period: basePeriod(), pageSize: 2,
     fetchImpl: happyFetch({ onSearch: (body) => {
       if (body.dimensions?.[0] === "date") return new Response(JSON.stringify({ rows: [{ keys: ["2026-08-20"], clicks: 0, impressions: 0, ctr: 0, position: 0 }] }), { status: 200 });
-      if (body.dimensions?.[0] !== "query") return new Response(JSON.stringify({ rows: reportRows(body) }), { status: 200 });
+      if (body.dimensions?.[0] !== "query" || body.dimensions.length !== 1) return new Response(JSON.stringify({ rows: reportRows(body) }), { status: 200 });
       queryStartRows.push(body.startRow);
       const rows = body.startRow === 0
         ? [{ keys: ["z"], clicks: 2, impressions: 2, ctr: 1, position: 1 }, { keys: ["b"], clicks: 3, impressions: 3, ctr: 1, position: 1 }]
@@ -170,7 +175,7 @@ test("collectGsc orders equal-click dimension keys by their raw strings, not JSO
     period: basePeriod(),
     fetchImpl: happyFetch({ onSearch: (body) => {
       if (body.dimensions?.[0] === "date") return new Response(JSON.stringify({ rows: [{ keys: ["2026-08-20"], clicks: 0, impressions: 0, ctr: 0, position: 0 }] }), { status: 200 });
-      if (body.dimensions?.[0] === "query") {
+      if (body.dimensions?.[0] === "query" && body.dimensions.length === 1) {
         return new Response(JSON.stringify({ rows: [
           { keys: ["#hash"], clicks: 2, impressions: 2, ctr: 1, position: 1 },
           { keys: ["\"phrase\""], clicks: 2, impressions: 2, ctr: 1, position: 1 },

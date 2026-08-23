@@ -22,7 +22,14 @@ export type Ga4Overview = {
 };
 
 export type Ga4OrganicSearch = { sessions: number };
-export type Ga4LandingPage = { landingPage: string; sessions: number; activeUsers: number; keyEvents: number };
+export type Ga4LandingPage = {
+  landingPage: string;
+  sessions: number;
+  activeUsers: number;
+  engagedSessions: number;
+  engagementRate: number;
+  keyEvents: number;
+};
 export type Ga4Device = Ga4Overview & { deviceCategory: string };
 export type Ga4ReportPair<T> = {
   current: AnalyticsSourceResult<T>;
@@ -33,6 +40,7 @@ export type Ga4AnalyticsData = {
   overview: Ga4ReportPair<Ga4Overview>;
   organicSearch: Ga4ReportPair<Ga4OrganicSearch>;
   landingPages: Ga4ReportPair<Ga4LandingPage[]>;
+  organicLandingPages: Ga4ReportPair<Ga4LandingPage[]>;
   devices: Ga4ReportPair<Ga4Device[]>;
 };
 
@@ -226,7 +234,7 @@ const organicSearch: ReportDefinition<Ga4OrganicSearch> = {
 
 const landingPages: ReportDefinition<Ga4LandingPage[]> = {
   name: "landing_pages",
-  metricNames: ["sessions", "activeUsers", "keyEvents"],
+  metricNames: ["sessions", "activeUsers", "engagedSessions", "engagementRate", "keyEvents"],
   dimensionNames: ["landingPagePlusQueryString"],
   limit: BREAKDOWN_LIMIT,
   orderBys: [
@@ -234,8 +242,15 @@ const landingPages: ReportDefinition<Ga4LandingPage[]> = {
     { dimension: { dimensionName: "landingPagePlusQueryString" }, desc: false },
   ],
   parse: (rows) => rows.map((row) => ({
-    landingPage: row.dimensions[0], sessions: row.metrics[0], activeUsers: row.metrics[1], keyEvents: row.metrics[2],
+    landingPage: row.dimensions[0], sessions: row.metrics[0], activeUsers: row.metrics[1],
+    engagedSessions: row.metrics[2], engagementRate: row.metrics[3], keyEvents: row.metrics[4],
   })),
+};
+
+const organicLandingPages: ReportDefinition<Ga4LandingPage[]> = {
+  ...landingPages,
+  name: "organic_landing_pages",
+  dimensionFilter: { filter: { fieldName: "sessionDefaultChannelGroup", stringFilter: { matchType: "EXACT", value: "Organic Search" } } },
 };
 
 const devices: ReportDefinition<Ga4Device[]> = {
@@ -293,13 +308,15 @@ export async function collectGa4(options: CollectGa4Options): Promise<AnalyticsS
   }
 
   const fetchImpl = options.fetchImpl ?? fetch;
-  const [overviewCurrent, overviewPrevious, organicCurrent, organicPrevious, landingCurrent, landingPrevious, deviceCurrent, devicePrevious] = await Promise.all([
+  const [overviewCurrent, overviewPrevious, organicCurrent, organicPrevious, landingCurrent, landingPrevious, organicLandingCurrent, organicLandingPrevious, deviceCurrent, devicePrevious] = await Promise.all([
     fetchReport(overview, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(overview, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(organicSearch, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(organicSearch, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(landingPages, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(landingPages, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    fetchReport(organicLandingPages, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    fetchReport(organicLandingPages, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(devices, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchReport(devices, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
   ]);
@@ -307,6 +324,7 @@ export async function collectGa4(options: CollectGa4Options): Promise<AnalyticsS
     overview: { current: overviewCurrent, previous: overviewPrevious },
     organicSearch: { current: organicCurrent, previous: organicPrevious },
     landingPages: { current: landingCurrent, previous: landingPrevious },
+    organicLandingPages: { current: organicLandingCurrent, previous: organicLandingPrevious },
     devices: { current: deviceCurrent, previous: devicePrevious },
   };
   const allResults = Object.values(data).flatMap((pair) => [pair.current, pair.previous]);

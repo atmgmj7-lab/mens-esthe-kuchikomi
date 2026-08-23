@@ -42,6 +42,7 @@ export type GscAnalyticsData = {
   siteAggregate: GscReportPair<GscMetric>;
   queries: GscReportPair<GscDimensionData>;
   pages: GscReportPair<GscDimensionData>;
+  queryPages: GscReportPair<GscDimensionData>;
   devices: GscReportPair<GscDimensionData>;
   countries: GscReportPair<GscDimensionData>;
 };
@@ -265,7 +266,7 @@ async function fetchAggregate(
 }
 
 async function fetchDimension(
-  dimension: GscDimension,
+  dimension: GscDimension | readonly ["query", "page"],
   range: AnalyticsDateRange,
   siteUrl: string,
   accessToken: string,
@@ -274,28 +275,30 @@ async function fetchDimension(
   pageSize: number,
   maxPages: number
 ): Promise<AnalyticsSourceResult<GscDimensionData>> {
+  const dimensionNames = typeof dimension === "string" ? [dimension] : [...dimension];
+  const name = dimensionNames.join("_");
   const allRows: GscDimensionRow[] = [];
   const seen = new Set<string>();
   for (let page = 0; page < maxPages; page += 1) {
     const response = await postSearchAnalytics(siteUrl, {
       startDate: range.startDate,
       endDate: range.endDate,
-      dimensions: [dimension],
+      dimensions: dimensionNames,
       type: "web",
       dataState: "final",
       aggregationType: "auto",
       rowLimit: pageSize,
       startRow: allRows.length,
-    }, accessToken, fetchImpl, timeoutMs, dimension);
+    }, accessToken, fetchImpl, timeoutMs, name);
     if (response.data === null) return analyticsFailure(response.state, { collectedAt: response.collectedAt, warnings: response.warnings });
     if (response.data.rows === undefined || response.data.rows.length === 0) {
       return analyticsSuccess({ rows: allRows.sort(compareRows), rowCoverage: "NOT_RETURNED" });
     }
-    const rows = parseRows(response.data.rows, 1);
-    if (!rows) return failure("invalid_response", dimension, "invalid_rows");
+    const rows = parseRows(response.data.rows, dimensionNames.length);
+    if (!rows) return failure("invalid_response", name, "invalid_rows");
     for (const row of rows) {
       const identity = JSON.stringify(row.keys);
-      if (seen.has(identity)) return failure("invalid_response", dimension, "duplicate_dimension_row");
+      if (seen.has(identity)) return failure("invalid_response", name, "duplicate_dimension_row");
       seen.add(identity);
       allRows.push(row);
     }
@@ -303,12 +306,12 @@ async function fetchDimension(
   }
   return analyticsSuccess(
     { rows: allRows.sort(compareRows), rowCoverage: "NOT_RETURNED" },
-    { state: "partial", warnings: warnings(`gsc_${dimension}_pagination_cap`, "partial") }
+    { state: "partial", warnings: warnings(`gsc_${name}_pagination_cap`, "partial") }
   );
 }
 
 function reportWarnings(data: GscAnalyticsData): AnalyticsWarning[] {
-  return [data.siteAggregate, data.queries, data.pages, data.devices, data.countries]
+  return [data.siteAggregate, data.queries, data.pages, data.queryPages, data.devices, data.countries]
     .flatMap((pair) => [pair.current, pair.previous])
     .filter((result) => result.state !== "ok")
     .flatMap((result) => result.warnings);
@@ -349,13 +352,15 @@ export async function collectGsc(options: CollectGscOptions): Promise<AnalyticsS
   const latest = await discoverLatestFinalDate(options.period, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs);
   if (latest.data === null) return analyticsFailure(latest.state, { collectedAt: latest.collectedAt, warnings: latest.warnings });
   const clampedPeriod = cloneAndClampPeriod(options.period, latest.data);
-  const [aggregateCurrent, aggregatePrevious, queriesCurrent, queriesPrevious, pagesCurrent, pagesPrevious, devicesCurrent, devicesPrevious, countriesCurrent, countriesPrevious] = await Promise.all([
+  const [aggregateCurrent, aggregatePrevious, queriesCurrent, queriesPrevious, pagesCurrent, pagesPrevious, queryPagesCurrent, queryPagesPrevious, devicesCurrent, devicesPrevious, countriesCurrent, countriesPrevious] = await Promise.all([
     fetchAggregate(clampedPeriod.effective.current, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchAggregate(clampedPeriod.effective.previous, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs),
     fetchDimension("query", clampedPeriod.effective.current, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
     fetchDimension("query", clampedPeriod.effective.previous, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
     fetchDimension("page", clampedPeriod.effective.current, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
     fetchDimension("page", clampedPeriod.effective.previous, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
+    fetchDimension(["query", "page"], clampedPeriod.effective.current, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
+    fetchDimension(["query", "page"], clampedPeriod.effective.previous, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
     fetchDimension("device", clampedPeriod.effective.current, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
     fetchDimension("device", clampedPeriod.effective.previous, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
     fetchDimension("country", clampedPeriod.effective.current, siteUrl, accessToken.data.accessToken, fetchImpl, timeoutMs, pageSize, maxPages),
@@ -367,10 +372,11 @@ export async function collectGsc(options: CollectGscOptions): Promise<AnalyticsS
     siteAggregate: { current: aggregateCurrent, previous: aggregatePrevious },
     queries: { current: queriesCurrent, previous: queriesPrevious },
     pages: { current: pagesCurrent, previous: pagesPrevious },
+    queryPages: { current: queryPagesCurrent, previous: queryPagesPrevious },
     devices: { current: devicesCurrent, previous: devicesPrevious },
     countries: { current: countriesCurrent, previous: countriesPrevious },
   };
-  const allResults = [data.siteAggregate, data.queries, data.pages, data.devices, data.countries]
+  const allResults = [data.siteAggregate, data.queries, data.pages, data.queryPages, data.devices, data.countries]
     .flatMap((pair) => [pair.current, pair.previous]);
   const failures = allResults.filter((result) => !["ok", "partial", "no_data"].includes(result.state));
   const nonOk = allResults.filter((result) => result.state !== "ok");
