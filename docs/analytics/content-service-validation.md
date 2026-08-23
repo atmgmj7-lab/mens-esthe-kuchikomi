@@ -13,8 +13,9 @@ origin/endpoint option: the production client continues to use the existing fixe
 
 ## Safety and semantics
 
-- Only exact `publish` shops are accepted. Page and record values are positive bounded integers;
-  duplicate shop IDs/slugs across a page or paginated collection fail closed.
+- Only exact `publish` shops are accepted. Area, shop, and approved-review pages are collected
+  completely under a finite cap with stable totals/pages and expected page sizes; duplicate IDs/slugs
+  across a page or collection fail closed.
 - Areas, shops, review identifiers, and Content Health rows have stable slug/ID ordering.
 - Approved-review summaries use only the existing approved public review endpoint and validator.
   They expose aggregate counts plus grouping IDs/slugs only; review body and author fields never
@@ -22,8 +23,9 @@ origin/endpoint option: the production client continues to use the existing fixe
 - A current fact is counted only when its reviewed provenance, valid date, allowed source URL/type,
   current-value hash, and existing detail-model representation agree. Missing, invalid, stale, or
   mismatched values are never invented as zero.
-- Content Health uses price, hours, official URL, and access. `missingRate` is the missing fraction
-  of those four facts and is `null` for an area with zero published shops.
+- Content Health uses price, hours, official URL, and access. The taxonomy's published shop count
+  must equal the complete `publish` collection or the response is invalid. `missingRate` is the
+  missing fraction of those four facts and is `null` for an area with zero published shops.
 - A shop is stale only when its latest safely verified required-fact confirmation is older than 180
   completed calendar days relative to the injected clock. No verified date is missing, not stale.
 - Successful empty collections are `no_data`; HTTP/auth, timeout, body-read/network, and malformed

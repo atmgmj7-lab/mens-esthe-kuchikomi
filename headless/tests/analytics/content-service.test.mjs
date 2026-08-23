@@ -105,6 +105,30 @@ test("WordPressAdapter implements every ContentService method through the inject
   assert.equal(source.calls.every((path) => path.startsWith("/")), true);
 });
 
+test("getAreas collects every bounded WordPress page with stable pagination and deterministic ordering", async () => {
+  const all = Array.from({ length: 101 }, (_, index) => area({ id: index + 1, slug: `area-${index + 1}`, name: `Area ${index + 1}`, count: 0 }));
+  const source = fakeClient((path) => {
+    const page = new URL(path, "https://test.invalid").searchParams.get("page");
+    return page === "2"
+      ? ok([all[100]], 101, 2)
+      : ok([...all.slice(50, 100), ...all.slice(0, 50)], 101, 2);
+  });
+  const result = await new content.WordPressAdapter({ client: source.client }).getAreas();
+  assert.equal(result.state, "ok");
+  assert.equal(result.data.length, 101);
+  assert.deepEqual(result.data.slice(0, 2).map((item) => item.slug), ["area-1", "area-10"]);
+  assert.equal(source.calls.length, 2);
+
+  const duplicate = new content.WordPressAdapter({ client: fakeClient((path) => {
+    const page = new URL(path, "https://test.invalid").searchParams.get("page");
+    return page === "2" ? ok([all[0]], 101, 2) : ok(all.slice(0, 100), 101, 2);
+  }).client });
+  assert.equal((await duplicate.getAreas()).state, "invalid_response");
+
+  const capped = new content.WordPressAdapter({ client: fakeClient(() => ok(all.slice(0, 100), 10_001, 101)).client });
+  assert.equal((await capped.getAreas()).state, "invalid_response");
+});
+
 test("WordPressAdapter enforces publish-only options, bounded pagination, exact lookups, and duplicate fail-closed behavior", async () => {
   const source = fakeClient((path) => {
     const url = new URL(path, "https://test.invalid");
@@ -140,6 +164,29 @@ test("WordPressAdapter enforces publish-only options, bounded pagination, exact 
   const shopReviews = await pagedReviews.getApprovedReviews({ shopId: 1, limit: 1 });
   assert.deepEqual(shopReviews.data.reviews.map((review) => review.id), [700, 701]);
 
+  for (const options of [{ limit: 1 }, { areaSlug: "umeda", limit: 1 }]) {
+    const source = fakeClient((path) => {
+      const page = new URL(path, "https://test.invalid").searchParams.get("page");
+      const first = reviews();
+      const second = reviews({ items: [{ ...first.items[0], id: 701 }], total: 1 });
+      return { status: 200, body: page === "2"
+        ? { ...second, total: 2, totalPages: 2, page: 2 }
+        : { ...first, total: 2, totalPages: 2 } };
+    });
+    const result = await new content.WordPressAdapter({ client: source.client }).getApprovedReviews(options);
+    assert.deepEqual(result.data.reviews.map((review) => review.id), [700, 701]);
+    if (options.areaSlug) assert.equal(source.calls.every((path) => path.includes("primary_area_slug=umeda")), true);
+  }
+
+  const duplicateReviews = new content.WordPressAdapter({ client: fakeClient((path) => {
+    const page = new URL(path, "https://test.invalid").searchParams.get("page");
+    const first = reviews();
+    return { status: 200, body: page === "2"
+      ? { ...first, total: 2, totalPages: 2, page: 2 }
+      : { ...first, total: 2, totalPages: 2 } };
+  }).client });
+  assert.equal((await duplicateReviews.getApprovedReviews({ limit: 1 })).state, "invalid_response");
+
   const firstPage = Array.from({ length: 100 }, (_, index) => shop({ id: index + 1, slug: `shop-${index + 1}`, facts: false }));
   const crossPageDuplicate = new content.WordPressAdapter({ client: fakeClient((path) => {
     const url = new URL(path, "https://test.invalid");
@@ -160,7 +207,7 @@ test("Content Health counts only current safely-provenanced facts, keeps missing
   const mismatched = shop({ id: 4, slug: "mismatch", mutate: { shop_fact_provenance: [provenance("price", "wrong")] } });
   const source = fakeClient((path) => {
     const url = new URL(path, "https://test.invalid");
-    if (url.pathname === "/wp/v2/area") return ok([area()]);
+    if (url.pathname === "/wp/v2/area") return ok([area({ count: 5 })]);
     if (url.pathname === "/wp/v2/shop") return ok([stale, missing, mismatched, shop(), threshold], 5, 1);
     if (url.pathname === "/escomi/v1/reviews") return ok(reviews({ total: 0 }));
     throw new Error(path);
@@ -172,6 +219,29 @@ test("Content Health counts only current safely-provenanced facts, keeps missing
   assert.equal(row.staleConfirmedDateShopCount, 1);
   assert.equal(row.missingRate, 0.4);
   assert.equal(row.approvedReviewCount, 0);
+});
+
+test("Content Health rejects a taxonomy published count that disagrees with the fully collected publish shops", async () => {
+  const source = fakeClient((path) => {
+    const url = new URL(path, "https://test.invalid");
+    if (url.pathname === "/wp/v2/area") return ok([area({ count: 1 })]);
+    if (url.pathname === "/wp/v2/shop") return ok([shop(), shop({ id: 2, slug: "beta" })], 2, 1);
+    if (url.pathname === "/escomi/v1/reviews") return ok(reviews({ total: 0 }));
+    throw new Error(path);
+  });
+  assert.equal((await new content.WordPressAdapter({ client: source.client }).getContentHealth({ areaSlug: "umeda" })).state, "invalid_response");
+});
+
+test("access is verified only when the signed station/address canonical value is non-empty", async () => {
+  const accessOnly = shop({ id: 2, slug: "access-only", mutate: { shop_station: "", shop_address: "", shop_access: "梅田駅から徒歩3分" } });
+  const source = fakeClient((path) => {
+    const url = new URL(path, "https://test.invalid");
+    if (url.pathname === "/wp/v2/shop/2") return ok(accessOnly);
+    throw new Error(path);
+  });
+  const result = await new content.WordPressAdapter({ client: source.client }).getShop(2);
+  assert.equal(result.state, "ok");
+  assert.equal(result.data.verified.access, false);
 });
 
 test("Content Health preserves successful zero counts and null missingRate, with deterministic area ordering", async () => {

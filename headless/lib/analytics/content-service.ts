@@ -173,7 +173,7 @@ function hasCurrentFact(model: ReturnType<typeof buildShopDetailViewModel>, fiel
   if (field === "price") return model.prices.some((course) => course.price.status === "confirmed" && Number.isInteger(course.price.amount) && Number(course.price.amount) > 0);
   if (field === "hours") return model.infoRows.some((row) => row.key === "hours" && row.value.trim() !== "");
   if (field === "official") return model.actions.some((action) => action.kind === "official" && validHttpUrl(action.href));
-  return model.infoRows.some((row) => (row.key === "station" || row.key === "address" || row.key === "access") && row.value.trim() !== "");
+  return model.infoRows.some((row) => (row.key === "station" || row.key === "address") && row.value.trim() !== "");
 }
 
 type VerifiedFacts = { price: boolean; hours: boolean; official: boolean; access: boolean; latest: string | null };
@@ -273,11 +273,33 @@ export class WordPressAdapter implements ContentService {
   }
 
   async getAreas(): Promise<AnalyticsSourceResult<ContentArea[]>> {
-    const result = await this.fetch("/wp/v2/area?per_page=100&hide_empty=false");
-    if (!result.ok) return fail(result.state, result.code);
-    const areas = parseAreas(result.response.body);
-    if (!areas) return fail("invalid_response", "wordpress_areas_invalid_response");
-    return areas.length === 0 ? fail("no_data", "wordpress_areas_no_data") : analyticsSuccess(areas);
+    const all: ContentArea[] = [];
+    const ids = new Set<number>();
+    const slugs = new Set<string>();
+    let expectedTotal: number | null = null;
+    let totalPages = 1;
+    for (let page = 1; page <= totalPages; page += 1) {
+      if (page > MAX_PAGE) return fail("invalid_response", "wordpress_areas_pagination_cap");
+      const result = await this.fetch(`/wp/v2/area?per_page=${MAX_PER_PAGE}&hide_empty=false&page=${page}`);
+      if (!result.ok) return fail(result.state, result.code);
+      const pagination = parsePagination(result.response.pagination, page);
+      const areas = parseAreas(result.response.body);
+      if (!pagination || !areas || pagination.totalPages !== (pagination.total === 0 ? 0 : Math.ceil(pagination.total / MAX_PER_PAGE))) {
+        return fail("invalid_response", "wordpress_areas_invalid_pagination");
+      }
+      if (pagination.totalPages > MAX_PAGE) return fail("invalid_response", "wordpress_areas_pagination_cap");
+      const expectedCount = pagination.total === 0 ? 0 : Math.min(MAX_PER_PAGE, pagination.total - ((page - 1) * MAX_PER_PAGE));
+      if (expectedCount < 0 || areas.length !== expectedCount || (expectedTotal !== null && (expectedTotal !== pagination.total || totalPages !== pagination.totalPages))) {
+        return fail("invalid_response", "wordpress_areas_inconsistent_pagination");
+      }
+      expectedTotal = pagination.total;
+      totalPages = pagination.totalPages;
+      for (const area of areas) {
+        if (ids.has(area.id) || slugs.has(area.slug)) return fail("invalid_response", "wordpress_areas_duplicate_across_pages");
+        ids.add(area.id); slugs.add(area.slug); all.push(area);
+      }
+    }
+    return all.length === 0 ? fail("no_data", "wordpress_areas_no_data") : analyticsSuccess(all.sort((left, right) => left.slug.localeCompare(right.slug) || left.id - right.id));
   }
 
   async getArea(slug: string): Promise<AnalyticsSourceResult<ContentArea>> {
@@ -365,15 +387,13 @@ export class WordPressAdapter implements ContentService {
     if (first.data === null) return first as AnalyticsSourceResult<ApprovedReviewSummary>;
     if (first.data.totalPages > MAX_PAGE) return fail("invalid_response", "wordpress_reviews_pagination_cap");
     const pages = [first.data];
-    if (options.shopId !== undefined) {
-      for (let page = 2; page <= first.data.totalPages; page += 1) {
-        const next = await getPage(page);
-        if (next.data === null) return next as AnalyticsSourceResult<ApprovedReviewSummary>;
-        if (next.data.total !== first.data.total || next.data.totalPages !== first.data.totalPages) {
-          return fail("invalid_response", "wordpress_reviews_inconsistent_pagination");
-        }
-        pages.push(next.data);
+    for (let page = 2; page <= first.data.totalPages; page += 1) {
+      const next = await getPage(page);
+      if (next.data === null) return next as AnalyticsSourceResult<ApprovedReviewSummary>;
+      if (next.data.total !== first.data.total || next.data.totalPages !== first.data.totalPages) {
+        return fail("invalid_response", "wordpress_reviews_inconsistent_pagination");
       }
+      pages.push(next.data);
     }
     const reviewIds = new Set<number>();
     const reviews = pages.flatMap((page) => page.reviews)
@@ -428,6 +448,9 @@ export class WordPressAdapter implements ContentService {
     for (const area of areas) {
       const shops = await this.allPublishedShops(area);
       if (shops.data === null) return shops as AnalyticsSourceResult<ContentHealthData>;
+      if (area.publishedShopCount !== shops.data.length) {
+        return fail("invalid_response", "wordpress_content_health_published_shop_count_mismatch");
+      }
       const reviews = await this.getApprovedReviews({ areaSlug: area.slug });
       if (reviews.state !== "ok" && reviews.state !== "no_data") return reviews as AnalyticsSourceResult<ContentHealthData>;
       const publishedShops = shops.data.length;
