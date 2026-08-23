@@ -92,6 +92,25 @@ test("collectSiteHealth parses normal metadata, reports checkedAt, and distingui
   assert.equal(value.data.targets[1].data.indexabilityReason, "noindex");
 });
 
+test("collectSiteHealth gives noindex precedence across every robots meta tag in either order", async () => {
+  const normal = await fixture("normal.html");
+  const robotsPairs = [
+    ["index, follow", "NOINDEX"],
+    ["noindex follow", "INDEX, FOLLOW"],
+  ];
+  for (const values of robotsPairs) {
+    const html = normal.replace(
+      '<meta name="robots" content="index, follow">',
+      `<meta name="robots" content="${values[0]}"><meta CONTENT="${values[1]}" NAME="RoBoTs">`
+    );
+    const value = await siteHealth.collectSiteHealth(options({ fetchImpl: fetchFor(new Map([["*", response(html)]])) }));
+    assert.equal(value.state, "ok");
+    assert.equal(value.data.targets[0].data.indexable, false);
+    assert.equal(value.data.targets[0].data.indexabilityReason, "noindex");
+    assert.match(value.data.targets[0].data.robots, /noindex/i);
+  }
+});
+
 test("collectSiteHealth decodes entities and accepts mixed tag case and attribute order while ignoring script and style text", async () => {
   const complex = await fixture("complex.html");
   const value = await siteHealth.collectSiteHealth(options({ fetchImpl: fetchFor(new Map([["*", response(complex)]])) }));
@@ -106,6 +125,24 @@ test("collectSiteHealth decodes entities and accepts mixed tag case and attribut
     indexable: true,
     indexabilityReason: "indexable",
   });
+});
+
+test("collectSiteHealth rejects every duplicate or conflicting canonical declaration regardless of order", async () => {
+  const normal = await fixture("normal.html");
+  const canonical = '<link rel="canonical" href="https://mens-esthe-kuchikomi.com/">';
+  const attacker = '<link rel="canonical" href="https://attacker.example.invalid/">';
+  const another = '<link rel="canonical" href="https://mens-esthe-kuchikomi.com/area/sakai/">';
+  const relative = '<link rel="canonical" href="/area/sakai/">';
+  const userinfo = '<link rel="canonical" href="https://user@mens-esthe-kuchikomi.com/">';
+  for (const extra of [attacker, canonical, another, relative, userinfo]) {
+    for (const links of [[canonical, extra], [extra, canonical]]) {
+      const html = normal.replace(canonical, links.join(""));
+      const value = await siteHealth.collectSiteHealth(options({ fetchImpl: fetchFor(new Map([["*", response(html)]])) }));
+      assert.equal(value.state, "partial");
+      assert.equal(value.data.targets.every((target) => target.state === "invalid_response"), true);
+      assert.equal(value.data.targets[0].data.indexabilityReason, "metadata_invalid");
+    }
+  }
 });
 
 test("collectSiteHealth marks missing or unsafe metadata and non-HTML bodies as invalid_response", async () => {
@@ -123,10 +160,13 @@ test("collectSiteHealth marks missing or unsafe metadata and non-HTML bodies as 
   assert.equal(value.state, "partial");
   for (const target of value.data.targets.slice(0, 5)) {
     assert.equal(target.state, "invalid_response");
-    assert.equal(target.data, null);
     assert.equal(target.httpStatus, 200);
+    assert.equal(target.data.indexabilityReason, "metadata_invalid");
+    assert.equal(target.data.indexable, null);
     assert.equal(target.warnings.length, 1);
   }
+  assert.equal(value.data.targets[0].data.h1, "Missing title");
+  assert.equal(value.data.targets[3].data.canonical, "https://attacker.example.invalid/");
   assert.equal(value.data.targets[5].state, "ok");
 });
 
@@ -135,36 +175,54 @@ test("collectSiteHealth rejects malformed HTML before accepting metadata", async
   const value = await siteHealth.collectSiteHealth(options({ fetchImpl: fetchFor(new Map([["*", response(malformed)]])) }));
 
   assert.equal(value.state, "partial");
-  assert.equal(value.data.targets.every((target) => target.state === "invalid_response" && target.data === null), true);
+  assert.equal(value.data.targets.every((target) => (
+    target.state === "invalid_response" &&
+    target.data.indexabilityReason === "metadata_invalid" &&
+    target.data.indexable === null
+  )), true);
 });
 
 test("collectSiteHealth preserves HTTP evidence and maps redirects, HTTP errors, timeout, request failure, and body failures", async () => {
   const normal = await fixture("normal.html");
+  const missingH1 = await fixture("missing-h1.html");
   const bodyFailure = new Response(normal, { status: 200 });
   Object.defineProperty(bodyFailure, "text", { value: async () => { throw new Error("synthetic body failure"); } });
   const value = await siteHealth.collectSiteHealth(options({
     timeoutMs: 5,
     fetchImpl: async (url, init) => {
       switch (PATHS.indexOf(new URL(String(url)).pathname)) {
-        case 0: return response("", 302);
-        case 1: return response("", 404);
-        case 2: return response("", 429);
-        case 3: return response("", 500);
+        case 0: return response(normal, 302);
+        case 1: return response(normal, 404);
+        case 2: return response(normal, 429);
+        case 3: return response(normal, 500);
         case 4: return new Promise((_resolve, reject) => init.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
-        default: return bodyFailure;
+        default: return response(missingH1);
       }
     },
   }));
 
   assert.equal(value.state, "partial");
-  assert.deepEqual(value.data.targets.map((target) => [target.state, target.httpStatus, target.data]), [
-    ["partial", 302, null],
-    ["api_error", 404, null],
-    ["api_error", 429, null],
-    ["api_error", 500, null],
-    ["timeout", null, null],
-    ["api_error", 200, null],
-  ]);
+  assert.deepEqual(value.data.targets[0].data, {
+    title: null, h1: null, canonical: null, robots: null, indexable: null, indexabilityReason: "redirect",
+  });
+  for (const index of [1, 2, 3]) {
+    assert.equal(value.data.targets[index].state, "api_error");
+    assert.equal(value.data.targets[index].data.indexabilityReason, "http_error");
+    assert.equal(value.data.targets[index].data.title, "エスコミ | 関西メンズエステ");
+    assert.equal(value.data.targets[index].data.indexable, null);
+  }
+  assert.equal(value.data.targets[4].state, "timeout");
+  assert.equal(value.data.targets[4].data, null);
+  assert.deepEqual(value.data.targets[5].data, {
+    title: "Missing H1",
+    h1: null,
+    canonical: `${ORIGIN}/`,
+    robots: null,
+    indexable: null,
+    indexabilityReason: "metadata_invalid",
+  });
+  const bodyReadFailure = await siteHealth.collectSiteHealth(options({ fetchImpl: async () => bodyFailure }));
+  assert.equal(bodyReadFailure.data.targets.every((target) => target.state === "api_error" && target.data === null), true);
   const requestFailure = await siteHealth.collectSiteHealth(options({ fetchImpl: async () => { throw new Error("network"); } }));
   assert.equal(requestFailure.state, "partial");
   assert.equal(requestFailure.data.targets.every((target) => target.state === "api_error" && target.httpStatus === null), true);

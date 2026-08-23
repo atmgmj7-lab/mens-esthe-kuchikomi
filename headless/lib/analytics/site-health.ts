@@ -105,53 +105,97 @@ function firstElementText(html: string, name: "title" | "h1"): string | null {
   return value === "" ? null : value;
 }
 
-function canonicalUrl(html: string): string | null {
+type MetadataEvidence = {
+  title: string | null;
+  h1: string | null;
+  canonical: string | null;
+  robots: string | null;
+  valid: boolean;
+};
+
+function canonicalUrl(html: string): { value: string | null; valid: boolean } {
+  const values: string[] = [];
+  let valid = true;
   for (const tag of tags(html, "link")) {
     const attrs = attributes(tag);
     const rel = attrs.get("rel")?.toLowerCase().split(/\s+/) ?? [];
     if (!rel.includes("canonical")) continue;
     const value = attrs.get("href");
-    if (!value) return null;
+    if (!value) {
+      valid = false;
+      continue;
+    }
     try {
       const url = new URL(value);
-      if (url.protocol !== "https:" || url.hostname !== "mens-esthe-kuchikomi.com" || url.port !== "" || url.username !== "" || url.password !== "") return null;
-      return url.toString();
+      if (url.username !== "" || url.password !== "") {
+        valid = false;
+        continue;
+      }
+      values.push(url.toString());
+      if (url.protocol !== "https:" || url.hostname !== "mens-esthe-kuchikomi.com" || url.port !== "") valid = false;
     } catch {
-      return null;
+      valid = false;
     }
   }
-  return null;
+  if (values.length !== 1) return { value: null, valid: false };
+  return { value: values[0], valid };
 }
 
 function robotsValue(html: string): string | null {
+  const values: string[] = [];
   for (const tag of tags(html, "meta")) {
     const attrs = attributes(tag);
     if (attrs.get("name")?.toLowerCase() !== "robots") continue;
     const value = attrs.get("content");
-    return value === undefined || value === "" ? null : value;
+    if (value !== undefined && value !== "") values.push(value);
   }
-  return null;
+  return values.length === 0 ? null : values.join(", ");
 }
 
-function isHtml(response: Response, html: string): boolean {
+function hasHtmlContentType(response: Response): boolean {
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
-  return (contentType.startsWith("text/html") || contentType.startsWith("application/xhtml+xml")) &&
-    /<html\b/i.test(html) && /<\/html\s*>/i.test(html);
+  return contentType.startsWith("text/html") || contentType.startsWith("application/xhtml+xml");
 }
 
-function metadata(html: string): SiteHealthMetadata | null {
+function metadataEvidence(response: Response, html: string): MetadataEvidence {
+  if (!hasHtmlContentType(response)) {
+    return { title: null, h1: null, canonical: null, robots: null, valid: false };
+  }
   const safeHtml = withoutExecutableText(html);
   const title = firstElementText(safeHtml, "title");
   const h1 = firstElementText(safeHtml, "h1");
   const canonical = canonicalUrl(safeHtml);
-  if (!title || !h1 || !canonical) return null;
   const robots = robotsValue(safeHtml);
-  const noindex = robots?.toLowerCase().split(/[\s,]+/).includes("noindex") ?? false;
+  const isCompleteDocument = /<html\b/i.test(html) && /<\/html\s*>/i.test(html);
   return {
     title,
     h1,
-    canonical,
+    canonical: canonical.value,
     robots,
+    valid: isCompleteDocument && title !== null && h1 !== null && canonical.valid,
+  };
+}
+
+function metadataFromEvidence(
+  evidence: MetadataEvidence,
+  indexabilityReason: SiteHealthMetadata["indexabilityReason"]
+): SiteHealthMetadata {
+  if (indexabilityReason === "metadata_invalid" || indexabilityReason === "http_error" || indexabilityReason === "redirect") {
+    return {
+      title: evidence.title,
+      h1: evidence.h1,
+      canonical: evidence.canonical,
+      robots: evidence.robots,
+      indexable: null,
+      indexabilityReason,
+    };
+  }
+  const noindex = evidence.robots?.toLowerCase().split(/[\s,]+/).includes("noindex") ?? false;
+  return {
+    title: evidence.title,
+    h1: evidence.h1,
+    canonical: evidence.canonical,
+    robots: evidence.robots,
     indexable: !noindex,
     indexabilityReason: noindex ? "noindex" : "indexable",
   };
@@ -191,10 +235,10 @@ async function checkTarget(
       signal: controller.signal,
     });
     if (response.status >= 300 && response.status < 400) {
-      return targetResult(path, checkedAt, "partial", response.status, null, `site_health_redirect_http_${response.status}`);
-    }
-    if (!response.ok) {
-      return targetResult(path, checkedAt, "api_error", response.status, null, `site_health_http_${response.status}`);
+      return targetResult(path, checkedAt, "partial", response.status, metadataFromEvidence(
+        { title: null, h1: null, canonical: null, robots: null, valid: false },
+        "redirect"
+      ), `site_health_redirect_http_${response.status}`);
     }
     let html: string;
     try {
@@ -205,11 +249,14 @@ async function checkTarget(
       }
       return targetResult(path, checkedAt, "api_error", response.status, null, "site_health_body_read_failed");
     }
-    const parsedMetadata = isHtml(response, html) ? metadata(html) : null;
-    if (parsedMetadata === null) {
-      return targetResult(path, checkedAt, "invalid_response", response.status, null, "site_health_metadata_invalid");
+    const evidence = metadataEvidence(response, html);
+    if (!response.ok) {
+      return targetResult(path, checkedAt, "api_error", response.status, metadataFromEvidence(evidence, "http_error"), `site_health_http_${response.status}`);
     }
-    return targetResult(path, checkedAt, "ok", response.status, parsedMetadata, undefined);
+    if (!evidence.valid) {
+      return targetResult(path, checkedAt, "invalid_response", response.status, metadataFromEvidence(evidence, "metadata_invalid"), "site_health_metadata_invalid");
+    }
+    return targetResult(path, checkedAt, "ok", response.status, metadataFromEvidence(evidence, "indexable"), undefined);
   } catch (error) {
     if (controller.signal.aborted || isAbortError(error)) {
       return targetResult(path, checkedAt, "timeout", null, null, "site_health_timeout");
