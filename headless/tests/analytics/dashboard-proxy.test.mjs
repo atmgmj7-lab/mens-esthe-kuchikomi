@@ -46,6 +46,11 @@ function assertNoStore(headers) {
   assert.equal(headers.get("x-robots-tag"), "noindex, nofollow");
 }
 
+function assertPrivateNoStore(headers) {
+  assert.match(headers.get("cache-control") ?? "", /\bprivate\b/);
+  assertNoStore(headers);
+}
+
 test("production dashboard proxy secures successful continuation without regressing 401 or 503", () => {
   const saved = new Map(authKeys.map((key) => [key, process.env[key]]));
   try {
@@ -73,11 +78,26 @@ test("production dashboard proxy secures successful continuation without regress
       }),
     );
     assert.equal(authorized.status, 200);
-    assert.match(authorized.headers.get("cache-control") ?? "", /\bprivate\b/);
-    assertNoStore(authorized.headers);
+    assertPrivateNoStore(authorized.headers);
     assert.equal(authorized.headers.get("x-middleware-next"), "1");
     assert.equal(authorized.headers.get("x-middleware-request-x-dashboard-route"), "1");
     assert.equal(authorized.headers.get("x-middleware-request-x-fixture-forwarded"), "yes");
+
+    for (const [source, destination] of [
+      [
+        "https://example.test/wp-content/themes/swell_child/dashboard?period=7",
+        "https://example.test/dashboard?period=7",
+      ],
+      [
+        "https://example.test/wp-content/themes/swell_child/dashboard/analytics/?period=28&view=seo",
+        "https://example.test/dashboard/analytics/?period=28&view=seo",
+      ],
+    ]) {
+      const redirect = proxy(new NextRequest(source, { headers: { authorization } }));
+      assert.equal(redirect.status, 307);
+      assert.equal(redirect.headers.get("location"), destination);
+      assertPrivateNoStore(redirect.headers);
+    }
   } finally {
     for (const key of authKeys) {
       const value = saved.get(key);

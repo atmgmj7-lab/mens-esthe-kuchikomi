@@ -33,7 +33,7 @@ export function proxy(request: NextRequest) {
 
     const dashboardPath = !legacyPath || legacyPath === "/" ? "/dashboard" : `/dashboard${legacyPath}`;
     const redirectTo = new URL(`${dashboardPath}${request.nextUrl.search}`, request.url);
-    return NextResponse.redirect(redirectTo);
+    return secureDashboardResponse(NextResponse.redirect(redirectTo));
   }
 
   return continueDashboardRequest(request.headers);
@@ -42,7 +42,10 @@ export function proxy(request: NextRequest) {
 function continueDashboardRequest(headers: Headers): NextResponse {
   const nextHeaders = new Headers(headers);
   nextHeaders.set("x-dashboard-route", "1");
-  const response = NextResponse.next({ request: { headers: nextHeaders } });
+  return secureDashboardResponse(NextResponse.next({ request: { headers: nextHeaders } }));
+}
+
+function secureDashboardResponse(response: NextResponse): NextResponse {
   response.headers.set("Cache-Control", "private, no-store");
   response.headers.set("X-Robots-Tag", "noindex, nofollow");
   return response;
