@@ -16,6 +16,7 @@ const ga4 = await import("../../lib/analytics/ga4.ts");
 
 const tempRoot = await mkdtemp(join(tmpdir(), "eskomi-ga4-test-"));
 const keyPair = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token";
 const syntheticCredential = {
   type: "service_account",
   project_id: "synthetic-project",
@@ -23,12 +24,12 @@ const syntheticCredential = {
   private_key: keyPair.privateKey.export({ type: "pkcs8", format: "pem" }),
   client_email: "synthetic-service@example.invalid",
   client_id: "1234567890",
-  token_uri: "https://oauth.example.invalid/token",
+  token_uri: GOOGLE_TOKEN_URI,
 };
 
-async function writeSyntheticCredential(name = "service-account.json") {
+async function writeSyntheticCredential(name = "service-account.json", overrides = {}) {
   const path = join(tempRoot, name);
-  await writeFile(path, JSON.stringify(syntheticCredential), "utf8");
+  await writeFile(path, JSON.stringify({ ...syntheticCredential, ...overrides }), "utf8");
   return path;
 }
 
@@ -126,7 +127,40 @@ test("loadGoogleServiceAccount reads only the configured path and redacts failur
   });
   assert.equal(valid.state, "ok");
   assert.equal(valid.data.clientEmail, "synthetic-service@example.invalid");
-  assert.equal(valid.data.tokenUri, "https://oauth.example.invalid/token");
+  assert.equal(valid.data.tokenUri, GOOGLE_TOKEN_URI);
+});
+
+test("getGoogleAccessToken rejects non-canonical OAuth endpoints before fetch", async () => {
+  const rejectedTokenUris = [
+    "https://attacker.example.invalid/collect",
+    "http://oauth2.googleapis.com/token",
+    "https://user@oauth2.googleapis.com/token",
+    "https://oauth2.googleapis.com:8443/token",
+    "https://oauth2.googleapis.com/token?target=other",
+    "https://oauth2.googleapis.com/token#fragment",
+    "https://oauth2.googleapis.com/other",
+    "https://oauth2.googleapis.com.example.invalid/token",
+  ];
+
+  for (const [index, tokenUri] of rejectedTokenUris.entries()) {
+    let fetchCalls = 0;
+    const value = await credentials.getGoogleAccessToken({
+      env: {
+        GOOGLE_APPLICATION_CREDENTIALS: await writeSyntheticCredential(
+          `rejected-oauth-${index}.json`,
+          { token_uri: tokenUri }
+        ),
+      },
+      fetchImpl: async () => {
+        fetchCalls += 1;
+        return new Response(JSON.stringify({ access_token: "must-not-be-returned" }), { status: 200 });
+      },
+    });
+
+    assert.equal(value.state, "invalid_response", tokenUri);
+    assert.equal(fetchCalls, 0, tokenUri);
+    assert.equal(JSON.stringify(value).includes(tokenUri), false, tokenUri);
+  }
 });
 
 test("getGoogleAccessToken signs a JWT and maps token endpoint outcomes safely", async () => {
@@ -146,9 +180,11 @@ test("getGoogleAccessToken signs a JWT and maps token endpoint outcomes safely",
   });
   assert.equal(ok.state, "ok");
   assert.equal(ok.data.accessToken, "synthetic-access-token");
-  assert.equal(observedRequest.url, "https://oauth.example.invalid/token");
+  assert.equal(observedRequest.url, GOOGLE_TOKEN_URI);
   assert.equal(observedRequest.init.method, "POST");
   assert.match(observedRequest.init.headers["content-type"], /application\/x-www-form-urlencoded/);
+  assert.equal(observedRequest.init.headers.authorization, undefined);
+  assert.equal(observedRequest.init.body.includes("PRIVATE KEY"), false);
   const assertion = new URLSearchParams(observedRequest.init.body).get("assertion");
   const [encodedHeader, encodedClaims, encodedSignature] = assertion.split(".");
   const header = JSON.parse(Buffer.from(encodedHeader, "base64url").toString("utf8"));
@@ -159,7 +195,7 @@ test("getGoogleAccessToken signs a JWT and maps token endpoint outcomes safely",
   verifier.end();
   assert.equal(verifier.verify(keyPair.publicKey, Buffer.from(encodedSignature, "base64url")), true);
   assert.equal(claims.scope, credentials.GOOGLE_ANALYTICS_READONLY_SCOPE);
-  assert.equal(claims.aud, "https://oauth.example.invalid/token");
+  assert.equal(claims.aud, GOOGLE_TOKEN_URI);
   assert.equal(claims.iat, 1787443200);
   assert.equal(claims.exp, 1787446800);
 
@@ -290,6 +326,62 @@ test("collectGa4 sends fixed no-store report pairs and preserves successful data
     const previous = { ...bodies[index + 1], dateRanges: undefined };
     assert.deepEqual(current, previous);
   }
+});
+
+test("collectGa4 rejects out-of-range metrics and preserves allowed boundaries", async () => {
+  const basePeriod = period.buildAnalyticsPeriod(7, new Date("2026-08-23T00:30:00+09:00"));
+  const invalidCases = [
+    { report: "overview", metric: "sessions", value: "-1", result: "overview" },
+    { report: "overview", metric: "activeUsers", value: "-1", result: "overview" },
+    { report: "overview", metric: "engagedSessions", value: "-1", result: "overview" },
+    { report: "overview", metric: "keyEvents", value: "-1", result: "overview" },
+    { report: "organic", metric: "sessions", value: "-1", result: "organicSearch" },
+    { report: "landing", metric: "sessions", value: "-1", result: "landingPages" },
+    { report: "device", metric: "sessions", value: "-1", result: "devices" },
+    { report: "overview", metric: "engagementRate", value: "-0.1", result: "overview" },
+    { report: "overview", metric: "engagementRate", value: "1.1", result: "overview" },
+  ];
+
+  const collect = (metricCase) => withSyntheticCredential(() => ga4.collectGa4({
+    period: basePeriod,
+    propertyId: "123",
+    fetchImpl: async (url, init) => {
+      if (String(url) === syntheticCredential.token_uri) {
+        return new Response(JSON.stringify({ access_token: "synthetic-access-token" }), { status: 200 });
+      }
+      const body = JSON.parse(init.body);
+      const report = reportFixtureKey(body).split("-")[0];
+      const isCurrent = body.dateRanges[0].endDate === "2026-08-22";
+      return new Response(JSON.stringify({
+        dimensionHeaders: (body.dimensions ?? []).map(({ name }) => ({ name })),
+        metricHeaders: body.metrics.map(({ name }) => ({ name })),
+        rows: [{
+          dimensionValues: (body.dimensions ?? []).map(({ name }) => ({
+            value: name === "sessionDefaultChannelGroup" ? "Organic Search" : "synthetic",
+          })),
+          metricValues: body.metrics.map(({ name }) => ({
+            value: metricCase && isCurrent && report === metricCase.report && name === metricCase.metric
+              ? metricCase.value
+              : "0",
+          })),
+        }],
+      }), { status: 200 });
+    },
+  }));
+
+  for (const metricCase of invalidCases) {
+    const value = await collect(metricCase);
+    assert.equal(value.state, "partial", JSON.stringify(metricCase));
+    assert.equal(value.data[metricCase.result].current.state, "invalid_response", JSON.stringify(metricCase));
+  }
+
+  const allZero = await collect(null);
+  assert.equal(allZero.state, "ok");
+  assert.equal(allZero.data.overview.current.data.engagementRate, 0);
+
+  const upperBoundary = await collect({ report: "overview", metric: "engagementRate", value: "1" });
+  assert.equal(upperBoundary.state, "ok");
+  assert.equal(upperBoundary.data.overview.current.data.engagementRate, 1);
 });
 
 test("collectGa4 distinguishes actual zero, no rows, malformed rows, HTTP states, timeout, and partial", async () => {

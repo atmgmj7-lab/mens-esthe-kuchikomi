@@ -11,6 +11,7 @@ import {
 } from "./result";
 
 export const GOOGLE_ANALYTICS_READONLY_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
+const GOOGLE_OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 
 export type GoogleServiceAccount = {
   clientEmail: string;
@@ -62,14 +63,9 @@ function isServiceAccountDocument(value: unknown): value is ServiceAccountDocume
     document.client_email.trim() === "" ||
     typeof document.private_key !== "string" ||
     document.private_key.trim() === "" ||
-    typeof document.token_uri !== "string"
+    document.token_uri !== GOOGLE_OAUTH_TOKEN_ENDPOINT
   ) return false;
-  try {
-    const tokenUri = new URL(document.token_uri);
-    return tokenUri.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return true;
 }
 
 export async function loadGoogleServiceAccount(

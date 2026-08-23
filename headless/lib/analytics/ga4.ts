@@ -11,6 +11,7 @@ import {
 
 const GA4_ENDPOINT = "https://analyticsdata.googleapis.com/v1beta/properties";
 const BREAKDOWN_LIMIT = 50;
+const NON_NEGATIVE_METRICS = new Set(["sessions", "activeUsers", "engagedSessions", "keyEvents"]);
 
 export type Ga4Overview = {
   sessions: number;
@@ -84,10 +85,13 @@ function exactHeaderNames(value: unknown, expected: readonly string[], property:
   return names.every((name, index) => name === expected[index]) && new Set(names).size === names.length;
 }
 
-function parseNumber(value: unknown): number | null {
+function parseMetricNumber(metricName: string, value: unknown): number | null {
   if (typeof value !== "string" || !/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(value)) return null;
   const number = Number(value);
-  return Number.isFinite(number) ? number : null;
+  if (!Number.isFinite(number)) return null;
+  if (NON_NEGATIVE_METRICS.has(metricName) && number < 0) return null;
+  if (metricName === "engagementRate" && (number < 0 || number > 1)) return null;
+  return number;
 }
 
 function parseResponse<T>(definition: ReportDefinition<T>, body: unknown): AnalyticsSourceResult<T> {
@@ -129,9 +133,9 @@ function parseResponse<T>(definition: ReportDefinition<T>, body: unknown): Analy
       dimensions.push((dimensionValue as Record<string, string>).value);
     }
     const metrics: number[] = [];
-    for (const metricValue of metricValues) {
+    for (const [index, metricValue] of metricValues.entries()) {
       const metric = typeof metricValue === "object" && metricValue !== null && !Array.isArray(metricValue)
-        ? parseNumber((metricValue as Record<string, unknown>).value)
+        ? parseMetricNumber(definition.metricNames[index], (metricValue as Record<string, unknown>).value)
         : null;
       if (metric === null) return reportFailure("invalid_response", definition.name, "invalid_numeric_value");
       metrics.push(metric);

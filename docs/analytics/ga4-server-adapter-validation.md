@@ -21,7 +21,7 @@ Every definition is sent once for current and once for previous effective dates,
 | Landing pages | `sessions`, `activeUsers`, `keyEvents` | `landingPagePlusQueryString`; sessions descending, then landing page ascending |
 | Devices | `sessions`, `activeUsers`, `engagedSessions`, `engagementRate`, `keyEvents` | `deviceCategory`; sessions descending, then device ascending |
 
-Breakdowns are deterministically limited to 50 rows. The explicit `orderBys` values select sessions descending and the named dimension ascending as the tie-breaker, identically for current and previous ranges. Headers, row shapes, duplicate dimensions, metric count, and finite numeric metric strings are validated before values are used.
+Breakdowns are deterministically limited to 50 rows. The explicit `orderBys` values select sessions descending and the named dimension ascending as the tie-breaker, identically for current and previous ranges. Headers, row shapes, duplicate dimensions, metric count, and finite numeric metric strings are validated before values are used. `sessions`, `activeUsers`, `engagedSessions`, and `keyEvents` must be non-negative; `engagementRate` must be between 0 and 1 inclusive.
 
 ## State and data semantics
 
@@ -33,7 +33,7 @@ OAuth accepts optional `expires_in` only when it is an integer from 1 through 86
 
 ## Security boundaries
 
-The service-account module and GA4 adapter begin with `import "server-only"`. OAuth uses an RS256 JWT with only the read-only Analytics scope and a form-encoded JWT bearer grant. Warnings contain state/code only: no credential path, credential JSON, private key, OAuth token, authorization value, environment content, user data, or live response is logged or persisted. Tests generate a temporary synthetic key at runtime and use injected fetch doubles only.
+The service-account module and GA4 adapter begin with `import "server-only"`. OAuth uses an RS256 JWT with only the read-only Analytics scope and a form-encoded JWT bearer grant. The credential `token_uri` must exactly match `https://oauth2.googleapis.com/token`; any other scheme, hostname, port, userinfo, query, fragment, or path is rejected before fetch. Warnings contain state/code only: no credential path, credential JSON, private key, OAuth token, authorization value, environment content, user data, or live response is logged or persisted. Tests generate a temporary synthetic key at runtime and use injected fetch doubles only.
 
 ## Reproducible evidence
 
