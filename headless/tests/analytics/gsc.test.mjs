@@ -165,6 +165,24 @@ test("collectGsc paginates with exact startRow, stops on a short page, and sorts
   assert.deepEqual(value.data.queries.current.data.rows.map((row) => row.keys[0]), ["a", "b", "z"]);
 });
 
+test("collectGsc orders equal-click dimension keys by their raw strings, not JSON escaping", async () => {
+  const value = await withCredential(() => gsc.collectGsc({
+    period: basePeriod(),
+    fetchImpl: happyFetch({ onSearch: (body) => {
+      if (body.dimensions?.[0] === "date") return new Response(JSON.stringify({ rows: [{ keys: ["2026-08-20"], clicks: 0, impressions: 0, ctr: 0, position: 0 }] }), { status: 200 });
+      if (body.dimensions?.[0] === "query") {
+        return new Response(JSON.stringify({ rows: [
+          { keys: ["#hash"], clicks: 2, impressions: 2, ctr: 1, position: 1 },
+          { keys: ["\"phrase\""], clicks: 2, impressions: 2, ctr: 1, position: 1 },
+        ] }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ rows: reportRows(body) }), { status: 200 });
+    } }),
+  }));
+  assert.equal(value.state, "ok");
+  assert.deepEqual(value.data.queries.current.data.rows.map((row) => row.keys[0]), ["\"phrase\"", "#hash"]);
+});
+
 test("collectGsc marks pagination safety-cap exhaustion partial and rejects duplicate dimension keys across pages", async () => {
   const capped = await withCredential(() => gsc.collectGsc({
     period: basePeriod(), pageSize: 1, maxPages: 1,

@@ -165,9 +165,12 @@ function parseRows(value: unknown, keyCount: number): GscDimensionRow[] | null {
 
 function compareRows(left: GscDimensionRow, right: GscDimensionRow): number {
   if (left.clicks !== right.clicks) return left.clicks > right.clicks ? -1 : 1;
-  const leftKey = JSON.stringify(left.keys);
-  const rightKey = JSON.stringify(right.keys);
-  return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
+  const sharedLength = Math.min(left.keys.length, right.keys.length);
+  for (let index = 0; index < sharedLength; index += 1) {
+    if (left.keys[index] < right.keys[index]) return -1;
+    if (left.keys[index] > right.keys[index]) return 1;
+  }
+  return left.keys.length - right.keys.length;
 }
 
 async function postSearchAnalytics(
