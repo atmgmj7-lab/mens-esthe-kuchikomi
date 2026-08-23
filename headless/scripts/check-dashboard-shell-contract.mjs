@@ -12,6 +12,9 @@ const pathFor = (file) => join(root, file);
 const read = (file) => readFileSync(pathFor(file), "utf8");
 
 const requiredFiles = [
+  "app/dashboard/analytics/AnalyticsDashboardView.ts",
+  "app/dashboard/analytics/dashboard-ui.ts",
+  "app/dashboard/analytics/layout.tsx",
   "components/dashboard/DashboardShell.tsx",
   "components/dashboard/DashboardNav.tsx",
   "components/dashboard/DashboardShell.module.css",
@@ -20,6 +23,8 @@ const requiredFiles = [
   "lib/dashboard/ga-contract.ts",
   "lib/dashboard/line-chart.ts",
   "lib/dashboard/source-status.ts",
+  "lib/analytics/snapshot.ts",
+  "proxy.ts",
   "scripts/check-dashboard-shell-browser.mjs",
 ];
 
@@ -30,6 +35,10 @@ for (const file of requiredFiles) {
 const layoutSource = read("app/dashboard/layout.tsx");
 const dashboardPageSource = read("app/dashboard/page.tsx");
 const analyticsPageSource = read("app/dashboard/analytics/page.tsx");
+const analyticsLayoutSource = read("app/dashboard/analytics/layout.tsx");
+const analyticsPresentationSource = read("app/dashboard/analytics/AnalyticsDashboardView.ts");
+const analyticsUiSource = read("app/dashboard/analytics/dashboard-ui.ts");
+const dashboardProxySource = read("proxy.ts");
 const navigationSource = read("lib/dashboard/navigation.ts");
 const shellSource = read("components/dashboard/DashboardShell.tsx");
 const navSource = read("components/dashboard/DashboardNav.tsx");
@@ -73,8 +82,60 @@ assert.doesNotMatch(analyticsPageSource, /className=["']dashboard-shell["']/);
 assert.match(dashboardPageSource, /<AnalyticsDashboard\s*\/>/);
 assert.match(
   analyticsPageSource,
-  /<AnalyticsDashboard\s+showWeekly\s+showQuickLinks=\{false\}\s*\/>/
+  /import\s+\{\s*collectAnalyticsSnapshot\s*\}\s+from\s+["']@\/lib\/analytics\/snapshot["']/
 );
+assert.equal(
+  analyticsPageSource.match(/\bcollectAnalyticsSnapshot\s*\(/g)?.length ?? 0,
+  1,
+  "Analytics pageは承認済みSnapshot collectorを1回だけ呼び出す必要があります"
+);
+assert.match(analyticsPageSource, /parseAnalyticsDashboardParams\(await\s+searchParams\)/);
+assert.match(
+  analyticsPageSource,
+  /<AnalyticsDashboardView\s+snapshot=\{snapshot\}\s+view=\{parsed\.view\}\s+styles=\{styles\}\s*\/>/
+);
+assert.doesNotMatch(
+  analyticsPageSource,
+  /<AnalyticsDashboard\b|from\s+["'](?:@\/components|\.\.\/\.\.\/components)\/AnalyticsDashboard["']/,
+  "正式T6画面へ旧AnalyticsDashboard placeholderを戻してはいけません"
+);
+assert.match(
+  analyticsPresentationSource,
+  /import\s+type\s+\{[^}]*AnalyticsSnapshot[^}]*\}\s+from\s+["'][^"']*lib\/analytics\/snapshot["']/
+);
+assert.match(analyticsPresentationSource, /snapshot:\s*AnalyticsSnapshot/);
+for (const boundary of [
+  "period.requested",
+  "period.effective",
+  "sources",
+  "overview",
+  "seo",
+  "pages",
+  "siteHealth",
+  "contentHealth",
+]) {
+  assert.match(
+    analyticsPresentationSource,
+    new RegExp(`snapshot\\.${boundary.replace(".", "\\.")}`),
+    `Snapshot presentationは${boundary}境界を保持する必要があります`
+  );
+}
+assert.deepEqual(
+  Array.from(loadTsModule(analyticsUiSource, "analytics-dashboard-ui.cjs").dashboardViews),
+  ["overview", "seo", "pages", "site-health", "content-health"]
+);
+assert.doesNotMatch(analyticsPageSource, /\bfetch\s*\(|\/api\/dashboard\/analytics/);
+assert.doesNotMatch(
+  analyticsPresentationSource,
+  /\bfetch\s*\(|collectAnalyticsSnapshot|collectGa4|collectGsc|WordPress/
+);
+
+assert.match(analyticsLayoutSource, /robots:\s*\{[^}]*index:\s*false[^}]*follow:\s*false/s);
+assert.match(dashboardProxySource, /authorizeDashboardRequest\s*\(/);
+assert.match(dashboardProxySource, /["']\/dashboard\/:path\*["']/);
+assert.match(dashboardProxySource, /["']\/api\/dashboard\/:path\*["']/);
+assert.match(dashboardProxySource, /headers\.set\(["']Cache-Control["'],\s*["']no-store["']\)/);
+assert.match(dashboardProxySource, /headers\.set\(["']X-Robots-Tag["'],\s*["']noindex, nofollow["']\)/);
 
 assert.match(shellSource, /<DashboardNav\s*\/>/);
 assert.match(shellSource, /href=["']#dashboard-main["']/);
