@@ -24,7 +24,7 @@ function snapshot() {
   const source = (state = "ok") => ({ state, collectedAt: at, warnings: [] });
   return {
     schemaVersion: "1.0.0", timezone: "Asia/Tokyo", generatedAt: at, collectedAt: at, period,
-    sources: { ga4: source(), gsc: { ...source("partial"), period }, web: source(), content: source() },
+    sources: { ga4: { ...source(), period }, gsc: { ...source("partial"), period }, web: source(), content: source() },
     overview: { current: { sessions: 0, activeUsers: 2, engagedSessions: 1, engagementRate: 0.5, keyEvents: 0, organicSessions: 1, gsc: metric(0) }, previous: { sessions: 1, activeUsers: 1, engagedSessions: 0, engagementRate: 0, keyEvents: 1, organicSessions: 0, gsc: metric(1) }, deltas: { sessions: -1, activeUsers: 1, engagedSessions: 1, engagementRate: 0.5, keyEvents: -1, organicSessions: 1, clicks: -1, impressions: -10, ctr: -0.01, position: -1 } },
     seo: { focusAreas: paths.map(([name, path], index) => ({ name, path, mainQuery: index ? `${name} メンズエステ` : null, current: { ...metric(index), organicSessions: index }, previous: { ...metric(index + 1), organicSessions: index + 1 }, deltas: { clicks: -1, impressions: -10, ctr: -0.01, position: -1, organicSessions: -1 }, siteHealth: health[index + 1], checkedAt: at, collectedAt: at })), topCounts: { top10: null, top20: 4, top30: 5 } },
     pages: [{ path: "/area/sakai/", current: { sessions: 0, engagedSessions: 0, engagementRate: 0, keyEvents: 0, organicSessions: 0, gsc: metric(0) }, previous: { sessions: 2, engagedSessions: 1, engagementRate: 0.5, keyEvents: 1, organicSessions: 1, gsc: metric(1) } }],
@@ -59,4 +59,43 @@ test("production presentation gives source-state and no-row states an explicit n
   assert.match(render("pages", emptyPages), /ページ別のデータはありません/);
   const unavailableContent = { ...snapshot(), sources: { ...snapshot().sources, content: { state: "not_configured", collectedAt: at, warnings: [] } }, contentHealth: null };
   assert.match(render("content-health", unavailableContent), /未設定/);
+});
+
+test("every production view shows all source states with real freshness and effective periods", () => {
+  const base = snapshot();
+  const mixedStates = {
+    ...base,
+    sources: {
+      ga4: { ...base.sources.ga4, state: "not_configured" },
+      gsc: { ...base.sources.gsc, state: "no_data" },
+      web: { ...base.sources.web, state: "timeout" },
+      content: { ...base.sources.content, state: "partial" },
+    },
+  };
+
+  for (const view of ["overview", "seo", "pages", "site-health", "content-health"]) {
+    const html = render(view, mixedStates);
+    for (const label of [
+      "GA4",
+      "Search Console",
+      "Site Health",
+      "Content Health",
+      "未設定",
+      "対象期間にデータなし",
+      "取得エラー（タイムアウト）",
+      "一部取得",
+    ]) {
+      assert.match(html, new RegExp(label), `${view} に ${label} が必要です`);
+    }
+    assert.equal((html.match(/収集: 2026/g) ?? []).length, 4, `${view} に実収集時刻が必要です`);
+    const statusSection = html.match(/<section class="statusGrid"[\s\S]*?<\/section>/)?.[0] ?? "";
+    assert.equal(
+      (statusSection.match(/有効期間: 2026-08-16 〜 2026-08-22/g) ?? []).length,
+      2,
+      `${view} にGA4/GSCの実効期間が必要です`,
+    );
+    assert.doesNotMatch(statusSection, />0</, `${view} でno_dataを0に変換してはいけません`);
+  }
+
+  assert.match(render("overview", mixedStates), /class="value zero">0/);
 });

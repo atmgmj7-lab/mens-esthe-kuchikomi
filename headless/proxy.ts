@@ -42,7 +42,10 @@ export function proxy(request: NextRequest) {
 function continueDashboardRequest(headers: Headers): NextResponse {
   const nextHeaders = new Headers(headers);
   nextHeaders.set("x-dashboard-route", "1");
-  return NextResponse.next({ request: { headers: nextHeaders } });
+  const response = NextResponse.next({ request: { headers: nextHeaders } });
+  response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
 }
 
 function securityHeaders(): Headers {

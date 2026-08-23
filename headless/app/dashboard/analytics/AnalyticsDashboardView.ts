@@ -24,7 +24,10 @@ function filterNav(days: 7 | 28, view: DashboardView, styles: AnalyticsDashboard
 
 function sourceStatus(snapshot: AnalyticsSnapshot, styles: AnalyticsDashboardStyles): ReactNode {
   const sources = { ga4: "GA4", gsc: "Search Console", web: "Site Health", content: "Content Health" } as const;
-  return h("section", { className: styles.statusGrid, "aria-label": "データソースの状態" }, ...(Object.keys(sources) as Array<keyof typeof sources>).map((key) => h("article", { className: styles.card, key }, h("p", { className: styles.cardTitle }, sources[key]), badge(snapshot.sources[key].state, styles), h("p", { className: styles.muted }, `収集: ${formatTimestamp(snapshot.sources[key].collectedAt)}`))));
+  return h("section", { className: styles.statusGrid, "aria-label": "データソースの状態" }, ...(Object.keys(sources) as Array<keyof typeof sources>).map((key) => {
+    const source = snapshot.sources[key];
+    return h("article", { className: styles.card, key }, h("p", { className: styles.cardTitle }, sources[key]), badge(source.state, styles), h("p", { className: styles.muted }, `収集: ${formatTimestamp(source.collectedAt)}`), source.period ? h("p", { className: styles.muted }, `有効期間: ${formatRange(source.period.effective.current)}`) : null);
+  }));
 }
 
 function overview(snapshot: AnalyticsSnapshot, styles: AnalyticsDashboardStyles): ReactNode {
@@ -32,7 +35,7 @@ function overview(snapshot: AnalyticsSnapshot, styles: AnalyticsDashboardStyles)
   const ga4 = [["セッション", c.sessions, p.sessions, d.sessions, "count"], ["アクティブユーザー", c.activeUsers, p.activeUsers, d.activeUsers, "count"], ["エンゲージドセッション", c.engagedSessions, p.engagedSessions, d.engagedSessions, "count"], ["エンゲージメント率", c.engagementRate, p.engagementRate, d.engagementRate, "percent"], ["Organic Search セッション", c.organicSessions, p.organicSessions, d.organicSessions, "count"], ["キーイベント", c.keyEvents, p.keyEvents, d.keyEvents, "count"]] as const;
   const gsc = [["クリック", c.gsc.clicks, p.gsc.clicks, d.clicks, "count"], ["表示回数", c.gsc.impressions, p.gsc.impressions, d.impressions, "count"], ["CTR", c.gsc.ctr, p.gsc.ctr, d.ctr, "percent"], ["平均掲載順位", c.gsc.position, p.gsc.position, d.position, "position"]] as const;
   const section = (id: string, title: string, values: readonly (readonly [string, number | null, number | null, number | null, MetricKind])[]) => h("section", { className: styles.section, "aria-labelledby": id }, h("h3", { id }, title), h("div", { className: styles.kpiGrid }, ...values.map(([label, current, previous, delta, kind]) => metricCard({ label, current, previous, delta, kind, styles }))));
-  return h(Fragment, null, sourceStatus(snapshot, styles), section("ga4-heading", "GA4 集計", ga4), section("gsc-heading", "Google Search Console 集計", gsc));
+  return h(Fragment, null, section("ga4-heading", "GA4 集計", ga4), section("gsc-heading", "Google Search Console 集計", gsc));
 }
 
 function seoRow(row: FocusArea, styles: AnalyticsDashboardStyles): ReactNode {
@@ -76,5 +79,5 @@ export default function AnalyticsDashboardView({ snapshot, view, styles }: Props
   const requested = formatRange(snapshot.period.requested.current); const effective = formatRange(snapshot.sources.gsc.period?.effective.current ?? snapshot.period.effective.current);
   const body = view === "overview" ? overview(snapshot, styles) : view === "seo" ? seo(snapshot, styles) : view === "pages" ? pages(snapshot, styles) : view === "site-health" ? siteHealth(snapshot, styles) : contentHealth(snapshot, styles);
   const warnings = snapshot.warnings.length ? h("details", { className: styles.details }, h("summary", null, `収集に関する注意 (${snapshot.warnings.length})`), h("ul", { className: styles.warningList }, ...snapshot.warnings.map((warning) => h("li", { key: warning.code }, `code=${warning.code}`)))) : null;
-  return h("div", { className: styles.page }, h("header", { className: styles.hero }, h("div", null, h("p", { className: styles.eyebrow }, `Analytics Snapshot v${snapshot.schemaVersion} · ${snapshot.timezone}`), h("h2", null, labels[view]), h("p", { className: styles.muted }, `要求期間: ${requested} ／ 生成: ${formatTimestamp(snapshot.generatedAt)}`, h("br"), `GSC有効期間: ${effective}`)), filterNav(snapshot.period.days, view, styles)), body, warnings);
+  return h("div", { className: styles.page }, h("header", { className: styles.hero }, h("div", null, h("p", { className: styles.eyebrow }, `Analytics Snapshot v${snapshot.schemaVersion} · ${snapshot.timezone}`), h("h2", null, labels[view]), h("p", { className: styles.muted }, `要求期間: ${requested} ／ 生成: ${formatTimestamp(snapshot.generatedAt)}`, h("br"), `GSC有効期間: ${effective}`)), filterNav(snapshot.period.days, view, styles)), sourceStatus(snapshot, styles), body, warnings);
 }
