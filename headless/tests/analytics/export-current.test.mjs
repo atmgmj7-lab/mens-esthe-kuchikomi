@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, open, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, open, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { registerServerOnly } from "./register-server-only.mjs";
 
@@ -16,6 +18,42 @@ test("export parser accepts only explicit period and output arguments before col
   assert.deepEqual(exporter.parseExportArguments(["--period", "7", "--output", "/tmp/snapshot.json"]), { days: 7, output: "/tmp/snapshot.json" });
   for (const args of [[], ["--period", "14", "--output", "x"], ["--period", "7", "--period", "7", "--output", "x"], ["--period", "7", "--output", "x", "--extra"]]) {
     assert.throws(() => exporter.parseExportArguments(args), /Invalid analytics export arguments/);
+  }
+});
+
+test("documented CLI loads the production server-only collector and writes aggregate JSON", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "eskomi-analytics-cli-"));
+  const output = join(directory, "snapshot.json");
+  const environment = {
+    ...process.env,
+    WP_API_BASE_URL: "https://wordpress.test/wp-json",
+    NEXT_PUBLIC_WP_BASE_URL: "https://wordpress.test",
+  };
+  delete environment.GOOGLE_APPLICATION_CREDENTIALS;
+  delete environment.GA4_PROPERTY_ID;
+
+  try {
+    execFileSync(
+      process.execPath,
+      [
+        "--import",
+        fileURLToPath(new URL("./fixtures/export-cli-bootstrap.mjs", import.meta.url)),
+        fileURLToPath(new URL("../../scripts/analytics/export-current.mjs", import.meta.url)),
+        "--period",
+        "7",
+        "--output",
+        output,
+      ],
+      { env: environment, stdio: "pipe" },
+    );
+    const serialized = await readFile(output, "utf8");
+    const snapshot = JSON.parse(serialized);
+    assert.equal(snapshot.schemaVersion, "1.0.0");
+    assert.equal(snapshot.period.days, 7);
+    assert.deepEqual(Object.keys(snapshot.sources), ["ga4", "gsc", "web", "content"]);
+    assert.equal(((await stat(output)).mode & 0o777), 0o600);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
 
