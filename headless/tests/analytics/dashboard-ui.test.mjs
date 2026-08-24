@@ -55,3 +55,31 @@ test("SEO and Pages retain every current/previous metric, visibly mark actual ze
   assert.match(presentation, /value === 0 \? styles\.zero/);
   assert.match(presentation, /ページ別のデータはありません/);
 });
+
+test("dashboard text tokens keep readable contrast on the dark shell and white data surfaces", async () => {
+  const css = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.module.css", import.meta.url), "utf8");
+  const ruleColor = (selector) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const body = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+    const color = body.match(/(?:^|;)\s*color:\s*(#[0-9a-f]{6})/i)?.[1];
+    assert.ok(color, `${selector} に明示色が必要です`);
+    return color;
+  };
+  const luminance = (hex) => {
+    const channels = [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16) / 255);
+    const linear = channels.map((value) => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+  };
+  const contrast = (foreground, background) => {
+    const a = luminance(foreground);
+    const b = luminance(background);
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  };
+
+  for (const selector of [".page", ".eyebrow", ".hero .muted", ".filterLink", ".section h3", ".sectionLead", ".details"]) {
+    assert.ok(contrast(ruleColor(selector), "#080d11") >= 4.5, `${selector} は暗背景上で4.5:1以上が必要です`);
+  }
+  for (const selector of [".card", ".scrollRegion"]) {
+    assert.ok(contrast(ruleColor(selector), "#ffffff") >= 4.5, `${selector} は白背景上で4.5:1以上が必要です`);
+  }
+});
