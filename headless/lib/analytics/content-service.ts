@@ -1,5 +1,6 @@
 import "server-only";
 
+import { normalizePublicShopSlug } from "../shop-slug";
 import { buildShopDetailViewModel } from "../shop-detail-view-model";
 import { buildShopInformationCoverage, hashShopFactValue } from "../shop-information-coverage";
 import { wpFetchPaginated } from "../wp/client";
@@ -97,6 +98,10 @@ function canonicalSlug(value: unknown): value is string {
   return typeof value === "string" && value.trim() === value && /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(value);
 }
 
+function canonicalShopSlug(value: unknown): value is string {
+  return typeof value === "string" && value !== "" && normalizePublicShopSlug(value) === value;
+}
+
 function validDate(value: unknown): value is string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/u.test(value) || !Number.isFinite(Date.parse(value))) return false;
   const date = value.slice(0, 10);
@@ -162,7 +167,7 @@ function parsePagination(value: unknown, fallbackPage: number): { total: number;
 }
 
 function rawShop(value: unknown): WpShop | null {
-  if (!isRecord(value) || !positive(value.id) || !canonicalSlug(value.slug) || value.status !== "publish" || !validHttpUrl(value.link) ||
+  if (!isRecord(value) || !positive(value.id) || !canonicalShopSlug(value.slug) || value.status !== "publish" || !validHttpUrl(value.link) ||
     !isRecord(value.title) || typeof value.title.rendered !== "string" || !isRecord(value.content) || typeof value.content.rendered !== "string" ||
     !validDate(value.date) || !validDate(value.modified) || (value.acf !== undefined && !isRecord(value.acf))) return null;
   if (value.area !== undefined && (!Array.isArray(value.area) || !value.area.every(positive))) return null;
@@ -314,7 +319,7 @@ export class WordPressAdapter implements ContentService {
   }
 
   private async shopPage(areaId: number | null, limit: number, page: number): Promise<AnalyticsSourceResult<ContentShopPage>> {
-    const query = new URLSearchParams({ status: "publish", per_page: String(limit), page: String(page), _embed: "1" });
+    const query = new URLSearchParams({ status: "publish", per_page: String(limit), page: String(page), orderby: "id", order: "asc", _embed: "1" });
     if (areaId !== null) query.set("area", String(areaId));
     const result = await this.fetch(`/wp/v2/shop?${query.toString()}`);
     if (!result.ok) return fail(result.state, result.code);
@@ -354,7 +359,7 @@ export class WordPressAdapter implements ContentService {
   async getShop(idOrSlug: number | string): Promise<AnalyticsSourceResult<ContentShop>> {
     const path = typeof idOrSlug === "number" && positive(idOrSlug)
       ? `/wp/v2/shop/${idOrSlug}?_embed=1`
-      : typeof idOrSlug === "string" && canonicalSlug(idOrSlug)
+      : typeof idOrSlug === "string" && canonicalShopSlug(idOrSlug)
         ? `/wp/v2/shop?slug=${encodeURIComponent(idOrSlug)}&status=publish&_embed=1`
         : null;
     if (!path) return fail("invalid_response", "wordpress_shop_invalid_identifier");

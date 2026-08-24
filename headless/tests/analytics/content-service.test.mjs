@@ -105,6 +105,26 @@ test("WordPressAdapter implements every ContentService method through the inject
   assert.equal(source.calls.every((path) => path.startsWith("/")), true);
 });
 
+test("WordPressAdapter accepts canonical percent-encoded shop slugs without relaxing area or unsafe slug validation", async () => {
+  const encodedSlug = "%e3%81%82";
+  const encodedShop = shop({ slug: encodedSlug, title: "あ" });
+  const source = fakeClient((path) => {
+    const url = new URL(path, "https://test.invalid");
+    if (url.pathname === "/wp/v2/area") return ok([area()]);
+    if (url.pathname === "/wp/v2/shop") return ok([encodedShop]);
+    if (url.pathname === "/escomi/v1/reviews") return ok(reviews({ total: 0 }));
+    throw new Error(`unexpected ${path}`);
+  });
+  const service = new content.WordPressAdapter({ client: source.client, now: NOW });
+
+  assert.equal((await service.getShop(encodedSlug)).state, "ok");
+  assert.equal((await service.getShops({ areaSlug: "umeda" })).data.shops[0].slug, encodedSlug);
+  assert.equal((await service.getContentHealth({ areaSlug: "umeda" })).state, "ok");
+  assert.equal((await service.getArea(encodedSlug)).state, "invalid_response");
+  for (const invalidSlug of ["%E3%81%82", "%2f", "bad slug", "bad%"])
+    assert.equal((await service.getShop(invalidSlug)).state, "invalid_response");
+});
+
 test("getAreas collects every bounded WordPress page with stable pagination and deterministic ordering", async () => {
   const all = Array.from({ length: 101 }, (_, index) => area({ id: index + 1, slug: `area-${index + 1}`, name: `Area ${index + 1}`, count: 0 }));
   const source = fakeClient((path) => {
@@ -198,6 +218,28 @@ test("WordPressAdapter enforces publish-only options, bounded pagination, exact 
     throw new Error(path);
   }).client });
   assert.equal((await crossPageDuplicate.getContentHealth({ areaSlug: "umeda" })).state, "invalid_response");
+});
+
+test("Content Health pins WordPress shop pagination to deterministic ascending IDs", async () => {
+  const all = Array.from({ length: 101 }, (_, index) => shop({ id: index + 1, slug: `shop-${index + 1}`, facts: false }));
+  const source = fakeClient((path) => {
+    const url = new URL(path, "https://test.invalid");
+    if (url.pathname === "/wp/v2/area") return ok([area({ count: all.length })]);
+    if (url.pathname === "/wp/v2/shop") {
+      const deterministic = url.searchParams.get("orderby") === "id" && url.searchParams.get("order") === "asc";
+      const page = url.searchParams.get("page");
+      if (!deterministic && page === "2") return ok([all[0]], all.length, 2);
+      return page === "2" ? ok([all[100]], all.length, 2) : ok(all.slice(0, 100), all.length, 2);
+    }
+    if (url.pathname === "/escomi/v1/reviews") return ok(reviews({ total: 0 }));
+    throw new Error(`unexpected ${path}`);
+  });
+
+  assert.equal((await new content.WordPressAdapter({ client: source.client }).getContentHealth({ areaSlug: "umeda" })).state, "ok");
+  assert.equal(source.calls.filter((path) => path.startsWith("/wp/v2/shop?")).every((path) => {
+    const query = new URL(path, "https://test.invalid").searchParams;
+    return query.get("orderby") === "id" && query.get("order") === "asc";
+  }), true);
 });
 
 test("Content Health counts only current safely-provenanced facts, keeps missing distinct, and applies deterministic 180 completed-day staleness", async () => {
