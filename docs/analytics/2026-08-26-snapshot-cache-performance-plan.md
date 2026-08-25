@@ -97,9 +97,12 @@ the matching Promise in `finally`. The production loader must contain:
 cacheLife({ stale: 0, revalidate: ttl, expire: ttl * 4 });
 ```
 
-If a collected Snapshot is non-cacheable, throw the internal typed error before
-returning so the cache handler cannot replace a good entry. Catch it only at the
-outer server boundary and return its Snapshot on a cold miss.
+If a collected Snapshot is non-cacheable, store the aggregate in the bounded
+period handoff and throw a digest-only internal error before returning so the
+cache handler cannot replace a good entry. Catch it only at the outer server
+boundary, consume the handoff once, and return the failure Snapshot on a cold
+miss. Keep resolved failure Snapshots for only 120 seconds in the separate
+process-local quota guard; never put them in the good Remote Cache.
 
 - [ ] **Step 8: Run the reader tests and verify GREEN**
 

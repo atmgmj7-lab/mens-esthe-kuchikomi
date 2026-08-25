@@ -17,9 +17,17 @@
 
 ## API and export
 
-`GET /api/dashboard/analytics/current?period=7|28` reuses the existing dashboard authorization before parsing or collection. Every response uses `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`.
+`GET /api/dashboard/analytics/current?period=7|28` reuses the existing dashboard authorization before parsing or collection. The API and Dashboard use the same shared server Snapshot cache. Every response uses `Cache-Control: private, no-store` and `X-Robots-Tag: noindex, nofollow`; the Remote Cache is never a public HTTP response cache.
 
-`node scripts/analytics/export-current.mjs --period 7|28 --output /absolute/or/relative/file.json` validates all arguments before collection, writes only the same snapshot JSON followed by a newline to a restrictive temporary file, and atomically renames it in the destination directory. Collection or write failure preserves an existing destination and removes temporary output.
+`node scripts/analytics/export-current.mjs --period 7|28 --output /absolute/or/relative/file.json` is formally a fresh operator export outside the App Router Cache Components runtime. It validates all arguments before collection, writes only the same snapshot JSON followed by a newline to a restrictive temporary file, and atomically renames it in the destination directory. Collection or write failure preserves an existing destination and removes temporary output.
+
+## Shared server cache
+
+- Next.js 16.3.1 `"use cache: remote"` supplies cross-request and Vercel multi-instance persistence without a new dependency.
+- The 7-day and 28-day keys are separate. Revalidation TTL is 900/1,800 seconds; expire is 3,600/7,200 seconds.
+- `ok`, legitimate `no_data`, and bounded usable `partial` Snapshots are cacheable. `not_configured`, `auth_error`, `invalid_response`, `timeout`, and systemic `api_error` are not written to the good Remote Cache.
+- A failed refresh rejects the cache generation, so it cannot overwrite a good entry. A stale-good return retains its original timestamps and adds `analytics_snapshot_cache_stale`.
+- A separate process-local 120-second failure guard suppresses repeated full collections for a resolved systemic cold miss. It holds at most the 7-day and 28-day aggregate Snapshots and is not treated as the Production shared cache.
 
 ## Local verification
 

@@ -176,7 +176,7 @@ function fixedSourceDefaults(now: Date, period: AnalyticsPeriod): SnapshotSource
   };
 }
 
-export async function collectAnalyticsSnapshot(options: CollectAnalyticsSnapshotOptions): Promise<AnalyticsSnapshot> {
+export async function collectFreshAnalyticsSnapshot(options: CollectAnalyticsSnapshotOptions): Promise<AnalyticsSnapshot> {
   const now = options.now ?? new Date();
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) throw new TypeError("now must be a valid Date");
   const collectedAt = now.toISOString();
@@ -231,4 +231,10 @@ export async function collectAnalyticsSnapshot(options: CollectAnalyticsSnapshot
     seo: { focusAreas, topCounts: { top10: topCounts(10), top20: topCounts(20), top30: topCounts(30) } },
     pages, siteHealth: webData?.targets ?? null, contentHealth: contentData, warnings: [...warningMap.values()].sort((left, right) => left.code.localeCompare(right.code)),
   };
+}
+
+export async function collectAnalyticsSnapshot(options: CollectAnalyticsSnapshotOptions): Promise<AnalyticsSnapshot> {
+  if (options.now !== undefined || options.sources !== undefined) return collectFreshAnalyticsSnapshot(options);
+  const { getAnalyticsSnapshot } = await import("./snapshot-cache");
+  return getAnalyticsSnapshot({ days: options.days });
 }

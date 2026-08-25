@@ -11,6 +11,7 @@ import {
 
 const GA4_ENDPOINT = "https://analyticsdata.googleapis.com/v1beta/properties";
 const BREAKDOWN_LIMIT = 50;
+const MAX_REPORT_CONCURRENCY = 4;
 const NON_NEGATIVE_METRICS = new Set(["sessions", "activeUsers", "engagedSessions", "keyEvents"]);
 
 export type Ga4Overview = {
@@ -306,6 +307,23 @@ function aggregateAllFailureState(results: AnalyticsSourceResult<unknown>[]): "a
   return "invalid_response";
 }
 
+async function runReportJobs<const T extends readonly unknown[]>(
+  jobs: { [K in keyof T]: () => Promise<T[K]> }
+): Promise<T> {
+  const taskList = jobs as readonly (() => Promise<unknown>)[];
+  const results: unknown[] = new Array(taskList.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < taskList.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await taskList[index]();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(MAX_REPORT_CONCURRENCY, taskList.length) }, worker));
+  return results as unknown as T;
+}
+
 export async function collectGa4(options: CollectGa4Options): Promise<AnalyticsSourceResult<Ga4AnalyticsData>> {
   const propertyId = options.propertyId ?? process.env.GA4_PROPERTY_ID;
   if (typeof propertyId !== "string" || propertyId.trim() === "") {
@@ -328,17 +346,17 @@ export async function collectGa4(options: CollectGa4Options): Promise<AnalyticsS
   }
 
   const fetchImpl = options.fetchImpl ?? fetch;
-  const [overviewCurrent, overviewPrevious, organicCurrent, organicPrevious, landingCurrent, landingPrevious, organicLandingCurrent, organicLandingPrevious, deviceCurrent, devicePrevious] = await Promise.all([
-    fetchReport(overview, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(overview, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(organicSearch, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(organicSearch, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(landingPages, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(landingPages, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(organicLandingPages, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(organicLandingPages, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(devices, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
-    fetchReport(devices, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+  const [overviewCurrent, overviewPrevious, organicCurrent, organicPrevious, landingCurrent, landingPrevious, organicLandingCurrent, organicLandingPrevious, deviceCurrent, devicePrevious] = await runReportJobs([
+    () => fetchReport(overview, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(overview, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(organicSearch, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(organicSearch, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(landingPages, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(landingPages, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(organicLandingPages, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(organicLandingPages, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(devices, options.period.effective.current, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
+    () => fetchReport(devices, options.period.effective.previous, propertyId, accessToken.data.accessToken, fetchImpl, timeoutMs),
   ]);
   const data: Ga4AnalyticsData = {
     overview: { current: overviewCurrent, previous: overviewPrevious },

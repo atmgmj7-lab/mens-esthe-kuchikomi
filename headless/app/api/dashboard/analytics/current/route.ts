@@ -1,7 +1,8 @@
 import "server-only";
 
 import { authorizeDashboardRequest, type DashboardAuthorization } from "@/lib/dashboard/content-admin-auth";
-import { collectAnalyticsSnapshot, type AnalyticsSnapshot } from "@/lib/analytics/snapshot";
+import { getAnalyticsSnapshot } from "@/lib/analytics/snapshot-cache";
+import type { AnalyticsSnapshot } from "@/lib/analytics/snapshot";
 import type { AnalyticsDays } from "@/lib/analytics/period";
 
 const protectedHeaders = {
@@ -41,7 +42,7 @@ export function createAnalyticsCurrentHandler(dependencies: HandlerDependencies)
 
 const productionHandler = createAnalyticsCurrentHandler({
   authorize: (authorization) => authorizeDashboardRequest(authorization, process.env),
-  collect: ({ days }) => collectAnalyticsSnapshot({ days }),
+  collect: ({ days }) => getAnalyticsSnapshot({ days }),
 });
 
 export async function GET(request: Request): Promise<Response> {

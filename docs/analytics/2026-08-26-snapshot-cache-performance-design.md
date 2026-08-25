@@ -93,12 +93,21 @@ reader catches the internal error and returns its typed failure Snapshot on a
 cold miss. During background revalidation, Next.js retains the existing entry;
 the age-based stale warning makes that fallback visible.
 
-The internal error is never serialized into an HTTP response or logged. It
-contains the aggregate Snapshot only; that Snapshot is already credential-free
-and PII-free. Build and local route verification must prove that the
-non-cacheable result survives the server-only catch boundary. If the framework
-does not preserve that boundary, implementation stops instead of weakening the
-good-cache protection.
+Production Cache Components mask error name, message, and custom properties
+across their Server Component serialization boundary, but preserve an explicit
+`digest`. Therefore the internal error contains only the sanitized period digest
+`analytics-non-cacheable:7|28`. A period-indexed transient handoff Map holds at
+most two aggregate Snapshots and removes a value after the corresponding outer
+reader recovers it. The error does not contain or log the Snapshot, credential,
+token, Authorization header, or PII. Next.js may log the sanitized error name,
+message, and period digest when a cache fill is rejected.
+
+When no good Remote Cache entry exists, a resolved systemic Snapshot receives a
+separate process-local failure TTL of 120 seconds. This best-effort quota guard
+is not the Production shared cache: it stores only the two period aggregates,
+never overwrites a Remote Cache entry, never stores a rejected Promise, and
+retries after two minutes. A normal or stale-good Snapshot clears the same-period
+failure entry.
 
 ## Single-flight
 
@@ -123,6 +132,9 @@ The OAuth request is outside this pool and is not counted as a `runReport`.
 ## API, Dashboard, and Export
 
 - Dashboard: shared cached `getAnalyticsSnapshot` boundary.
+- Dashboard compatibility: the established `collectAnalyticsSnapshot({ days })`
+  page call delegates to `getAnalyticsSnapshot`; explicit synthetic `now` or
+  `sources` injection delegates to the fresh collector for deterministic tests.
 - API: authorization and query validation remain before shared cached
   `getAnalyticsSnapshot`; response remains `private, no-store` and `noindex`.
 - CLI Export: formally remains a fresh production collector. The CLI runs in a

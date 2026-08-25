@@ -24,10 +24,17 @@ test("dashboard formatting preserves actual zero and distinguishes unavailable v
   assert.equal(sourceStateLabel("no_data"), "対象期間にデータなし");
 });
 
-test("production page keeps collection at the server boundary and presentation has no direct source fetch", async () => {
+test("production page and API share the cached server boundary while presentation has no direct source fetch", async () => {
   const page = await readFile(new URL("../../app/dashboard/analytics/page.tsx", import.meta.url), "utf8");
+  const route = await readFile(new URL("../../app/api/dashboard/analytics/current/route.ts", import.meta.url), "utf8");
+  const snapshotModule = await readFile(new URL("../../lib/analytics/snapshot.ts", import.meta.url), "utf8");
   const presentation = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.ts", import.meta.url), "utf8");
+  assert.match(page, /import \{ collectAnalyticsSnapshot \} from "@\/lib\/analytics\/snapshot"/);
   assert.match(page, /await collectAnalyticsSnapshot\(\{ days: parsed\.days \}\)/);
+  assert.match(snapshotModule, /const \{ getAnalyticsSnapshot \} = await import\("\.\/snapshot-cache"\)/);
+  assert.match(snapshotModule, /return getAnalyticsSnapshot\(\{ days: options\.days \}\)/);
+  assert.match(route, /collect: \(\{ days \}\) => getAnalyticsSnapshot\(\{ days \}\)/);
+  assert.doesNotMatch(route, /collectAnalyticsSnapshot/);
   assert.doesNotMatch(page, /fetch\(|\/api\/dashboard\/analytics/);
   assert.doesNotMatch(presentation, /fetch\(|collectAnalyticsSnapshot|collectGa4|collectGsc|WordPress/);
 });

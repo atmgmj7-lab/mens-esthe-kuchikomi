@@ -60,8 +60,8 @@ function registerAnalyticsRuntime() {
 
 async function defaultCollect({ days }) {
   registerAnalyticsRuntime();
-  const { collectAnalyticsSnapshot } = await import("../../lib/analytics/snapshot.ts");
-  return collectAnalyticsSnapshot({ days });
+  const { collectFreshAnalyticsSnapshot } = await import("../../lib/analytics/snapshot.ts");
+  return collectFreshAnalyticsSnapshot({ days });
 }
 
 const defaultFs = { mkdtemp, open, rename, rm };

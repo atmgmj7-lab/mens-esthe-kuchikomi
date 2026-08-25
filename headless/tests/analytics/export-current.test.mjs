@@ -69,6 +69,23 @@ test("export writes exact collector snapshot atomically and preserves destinatio
   await rm(root, { recursive: true, force: true });
 });
 
+test("standalone export formally performs one fresh collection per invocation", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "eskomi-analytics-fresh-export-"));
+  let collections = 0;
+  const collect = async ({ days }) => ({ schemaVersion: "1.0.0", days, collection: ++collections });
+  try {
+    const firstOutput = join(directory, "first.json");
+    const secondOutput = join(directory, "second.json");
+    await exporter.writeAnalyticsSnapshot({ days: 7, output: firstOutput, collect });
+    await exporter.writeAnalyticsSnapshot({ days: 7, output: secondOutput, collect });
+    assert.equal(collections, 2);
+    assert.equal(JSON.parse(await readFile(firstOutput, "utf8")).collection, 1);
+    assert.equal(JSON.parse(await readFile(secondOutput, "utf8")).collection, 2);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("export uses unique temporary directories for deterministic same-process concurrency", async () => {
   const directory = await mkdtemp(join(tmpdir(), "eskomi-analytics-concurrent-"));
   const output = join(directory, "snapshot.json");
