@@ -126,11 +126,13 @@ function parseResponse<T>(definition: ReportDefinition<T>, body: unknown): Analy
     return reportFailure("invalid_response", definition.name, "missing_rows");
   }
   if (!Array.isArray(response.rows)) return reportFailure("invalid_response", definition.name, "invalid_rows");
-  if (rowCount !== undefined && response.rows.length > rowCount) {
-    return reportFailure("invalid_response", definition.name, "inconsistent_row_count");
+  if (rowCount !== undefined) {
+    const expectedRowLength = definition.limit === undefined ? rowCount : Math.min(rowCount, definition.limit);
+    if (response.rows.length !== expectedRowLength) {
+      return reportFailure("invalid_response", definition.name, "inconsistent_row_count");
+    }
   }
   if (response.rows.length === 0) {
-    if (rowCount !== undefined && rowCount > 0) return reportFailure("invalid_response", definition.name, "inconsistent_row_count");
     return analyticsFailure("no_data", { warnings: warnings(`ga4_${definition.name}_no_rows`, "no_data") });
   }
   if (definition.singleRow && response.rows.length !== 1) {

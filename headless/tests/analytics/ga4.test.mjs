@@ -435,6 +435,30 @@ test("collectGa4 treats structurally valid omitted GA4 rows as no_data and rejec
   assert.equal(inconsistentRows.state, "partial");
   assert.equal(inconsistentRows.data.overview.current.state, "invalid_response");
 
+  const singleRowCountMismatch = await collect((key, valid) => key === "overview-current"
+    ? { ...valid, rowCount: 2 }
+    : valid);
+  assert.equal(singleRowCountMismatch.state, "partial");
+  assert.equal(singleRowCountMismatch.data.overview.current.state, "invalid_response");
+
+  const limitedRowCountMismatch = await collect((key, valid) => key === "landing-current"
+    ? { ...valid, rowCount: 2 }
+    : valid);
+  assert.equal(limitedRowCountMismatch.state, "partial");
+  assert.equal(limitedRowCountMismatch.data.landingPages.current.state, "invalid_response");
+
+  const limitedPage = await collect((key, valid) => key === "landing-current"
+    ? {
+      ...valid,
+      rowCount: 50,
+      rows: Array.from({ length: 50 }, (_, index) => ({
+        ...valid.rows[0], dimensionValues: [{ value: `/landing-${index}` }],
+      })),
+    }
+    : valid);
+  assert.equal(limitedPage.state, "ok");
+  assert.equal(limitedPage.data.landingPages.current.data.length, 50);
+
   for (const invalidRows of [{}, "not-an-array", null]) {
     const value = await collect((key, valid) => key === "overview-current" ? { ...valid, rows: invalidRows } : valid);
     assert.equal(value.state, "partial");
