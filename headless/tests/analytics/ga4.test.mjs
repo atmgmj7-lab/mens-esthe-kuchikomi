@@ -57,6 +57,14 @@ function reportFixtureKey(body) {
 }
 
 function responseForReport(body, template) {
+  if (Array.isArray(template?.rows) && template.rows.length === 0 &&
+    template.metricHeaders === undefined && template.dimensionHeaders === undefined) {
+    return {
+      ...template,
+      dimensionHeaders: (body.dimensions ?? []).map((dimension) => ({ name: dimension.name })),
+      metricHeaders: body.metrics.map((metric) => ({ name: metric.name })),
+    };
+  }
   if (template?.zeroMetricValue !== undefined) {
     return {
       dimensionHeaders: (body.dimensions ?? []).map((dimension) => ({ name: dimension.name })),
@@ -388,6 +396,64 @@ test("collectGa4 rejects out-of-range metrics and preserves allowed boundaries",
   const upperBoundary = await collect({ report: "overview", metric: "engagementRate", value: "1" });
   assert.equal(upperBoundary.state, "ok");
   assert.equal(upperBoundary.data.overview.current.data.engagementRate, 1);
+});
+
+test("collectGa4 treats structurally valid omitted GA4 rows as no_data and rejects inconsistent responses", async () => {
+  const basePeriod = period.buildAnalyticsPeriod(7, new Date("2026-08-23T00:30:00+09:00"));
+  const collect = (responseForKey) => withSyntheticCredential(() => ga4.collectGa4({
+    period: basePeriod,
+    propertyId: "123",
+    fetchImpl: async (url, init) => {
+      if (String(url) === syntheticCredential.token_uri) {
+        return new Response(JSON.stringify({ access_token: "synthetic-access-token" }), { status: 200 });
+      }
+      const body = JSON.parse(init.body);
+      const valid = responseForReport(body, { zeroMetricValue: "0" });
+      return new Response(JSON.stringify(responseForKey(reportFixtureKey(body), valid)), { status: 200 });
+    },
+  }));
+
+  for (const emptyResponse of [
+    (valid) => ({ ...valid, rows: undefined }),
+    (valid) => ({ ...valid, rows: undefined, rowCount: 0 }),
+    (valid) => ({ ...valid, rows: [], rowCount: 0 }),
+  ]) {
+    const value = await collect((_key, valid) => emptyResponse(valid));
+    assert.equal(value.state, "no_data");
+    assert.equal(value.data, null);
+  }
+
+  const inconsistentCount = await collect((key, valid) => key === "overview-current"
+    ? { ...valid, rows: undefined, rowCount: 1 }
+    : valid);
+  assert.equal(inconsistentCount.state, "partial");
+  assert.equal(inconsistentCount.data.overview.current.state, "invalid_response");
+
+  const inconsistentRows = await collect((key, valid) => key === "overview-current"
+    ? { ...valid, rowCount: 0 }
+    : valid);
+  assert.equal(inconsistentRows.state, "partial");
+  assert.equal(inconsistentRows.data.overview.current.state, "invalid_response");
+
+  for (const invalidRows of [{}, "not-an-array", null]) {
+    const value = await collect((key, valid) => key === "overview-current" ? { ...valid, rows: invalidRows } : valid);
+    assert.equal(value.state, "partial");
+    assert.equal(value.data.overview.current.state, "invalid_response");
+  }
+
+  const missingHeaders = await collect((key, valid) => key === "overview-current"
+    ? { rows: undefined, dimensionHeaders: valid.dimensionHeaders }
+    : valid);
+  assert.equal(missingHeaders.state, "partial");
+  assert.equal(missingHeaders.data.overview.current.state, "invalid_response");
+
+  const organicNoData = await collect((key, valid) => ["organic-previous", "organic-landing-previous"].includes(key)
+    ? { ...valid, rows: undefined, rowCount: 0 }
+    : valid);
+  assert.equal(organicNoData.state, "partial");
+  assert.equal(organicNoData.data.organicSearch.previous.state, "no_data");
+  assert.equal(organicNoData.data.organicLandingPages.previous.state, "no_data");
+  assert.equal(organicNoData.data.overview.current.state, "ok");
 });
 
 test("collectGa4 distinguishes actual zero, no rows, malformed rows, HTTP states, timeout, and partial", async () => {

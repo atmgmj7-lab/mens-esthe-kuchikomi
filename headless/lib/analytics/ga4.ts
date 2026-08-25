@@ -107,17 +107,35 @@ function parseResponse<T>(definition: ReportDefinition<T>, body: unknown): Analy
     return reportFailure("invalid_response", definition.name, "invalid_shape");
   }
   const response = body as Record<string, unknown>;
-  if (!Array.isArray(response.rows)) return reportFailure("invalid_response", definition.name, "invalid_rows");
-  if (response.rows.length === 0) return analyticsFailure("no_data", {
-    warnings: warnings(`ga4_${definition.name}_no_rows`, "no_data"),
-  });
-  if (definition.singleRow && response.rows.length !== 1) {
-    return reportFailure("invalid_response", definition.name, "unexpected_row_count");
-  }
   if (
     !exactHeaderNames(response.metricHeaders, definition.metricNames, "metricHeaders") ||
     !exactHeaderNames(response.dimensionHeaders ?? [], definition.dimensionNames, "dimensionHeaders")
   ) return reportFailure("invalid_response", definition.name, "invalid_headers");
+
+  let rowCount: number | undefined;
+  if (response.rowCount !== undefined) {
+    if (typeof response.rowCount !== "number" || !Number.isSafeInteger(response.rowCount) || response.rowCount < 0) {
+      return reportFailure("invalid_response", definition.name, "invalid_row_count");
+    }
+    rowCount = response.rowCount;
+  }
+  if (response.rows === undefined) {
+    if (rowCount === undefined || rowCount === 0) {
+      return analyticsFailure("no_data", { warnings: warnings(`ga4_${definition.name}_no_rows`, "no_data") });
+    }
+    return reportFailure("invalid_response", definition.name, "missing_rows");
+  }
+  if (!Array.isArray(response.rows)) return reportFailure("invalid_response", definition.name, "invalid_rows");
+  if (rowCount !== undefined && response.rows.length > rowCount) {
+    return reportFailure("invalid_response", definition.name, "inconsistent_row_count");
+  }
+  if (response.rows.length === 0) {
+    if (rowCount !== undefined && rowCount > 0) return reportFailure("invalid_response", definition.name, "inconsistent_row_count");
+    return analyticsFailure("no_data", { warnings: warnings(`ga4_${definition.name}_no_rows`, "no_data") });
+  }
+  if (definition.singleRow && response.rows.length !== 1) {
+    return reportFailure("invalid_response", definition.name, "unexpected_row_count");
+  }
 
   const rows: ParsedRow[] = [];
   for (const rowValue of response.rows) {

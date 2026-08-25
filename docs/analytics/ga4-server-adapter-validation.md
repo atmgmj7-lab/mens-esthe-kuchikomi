@@ -18,14 +18,15 @@ Every definition is sent once for current and once for previous effective dates,
 | --- | --- | --- |
 | Overview | `sessions`, `activeUsers`, `engagedSessions`, `engagementRate`, `keyEvents` | none |
 | Organic Search | `sessions` | `sessionDefaultChannelGroup` equals `Organic Search` |
-| Landing pages | `sessions`, `activeUsers`, `keyEvents` | `landingPagePlusQueryString`; sessions descending, then landing page ascending |
+| Landing pages | `sessions`, `activeUsers`, `engagedSessions`, `engagementRate`, `keyEvents` | `landingPagePlusQueryString`; sessions descending, then landing page ascending |
+| Organic landing pages | `sessions`, `activeUsers`, `engagedSessions`, `engagementRate`, `keyEvents` | `landingPagePlusQueryString` where `sessionDefaultChannelGroup` equals `Organic Search`; sessions descending, then landing page ascending |
 | Devices | `sessions`, `activeUsers`, `engagedSessions`, `engagementRate`, `keyEvents` | `deviceCategory`; sessions descending, then device ascending |
 
 Breakdowns are deterministically limited to 50 rows. The explicit `orderBys` values select sessions descending and the named dimension ascending as the tie-breaker, identically for current and previous ranges. Headers, row shapes, duplicate dimensions, metric count, and finite numeric metric strings are validated before values are used. `sessions`, `activeUsers`, `engagedSessions`, and `keyEvents` must be non-negative; `engagementRate` must be between 0 and 1 inclusive.
 
 ## State and data semantics
 
-An explicit GA4 metric string `"0"` is retained as numeric zero. Empty `rows` are `no_data`; they are never converted to zeros. Any mix of usable `ok` reports with `no_data` or an error is source `partial` and preserves each report pair's own result; an error plus `no_data` is also `partial` so the nested states remain available. All-no-row is source `no_data`.
+An explicit GA4 metric string `"0"` is retained as numeric zero. A response with valid expected headers and either empty `rows`, omitted `rows` with an omitted `rowCount`, or omitted `rows` with `rowCount: 0` is `no_data`; it is never converted to zeros. Missing `rows` with a positive `rowCount`, non-array `rows`, invalid headers, or inconsistent row counts remain `invalid_response`. Any mix of usable `ok` reports with `no_data` or an error is source `partial` and preserves each report pair's own result; an error plus `no_data` is also `partial` so the nested states remain available. All-no-row is source `no_data`.
 
 A credential/OAuth-wide 401 or 403 remains `auth_error`; GA4 report 401/403 map to `auth_error`, 429/5xx/network failures to `api_error`, aborted deadlines (including response-body aborts) to `timeout`, and JSON syntax/schema/metric values to `invalid_response`. For all-failure GA4 reports, `auth_error` is retained only if every report is authentication-related; a unanimous other state is retained; mixed failures use the documented deterministic precedence `timeout`, then `api_error`, then `invalid_response`, then `auth_error`. This avoids a position-dependent `auth_error` result.
 
