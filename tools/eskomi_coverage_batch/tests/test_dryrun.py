@@ -106,6 +106,29 @@ class DryRunTest(unittest.TestCase):
         self.assertEqual("NO_CHANGE", entity.status)
         self.assertEqual("NO_CHANGE", entity.field_results[0].status)
 
+    def test_public_rest_serialization_differences_do_not_create_false_conflicts(self):
+        op = operation(
+            "UPDATE_EXISTING",
+            fields=(
+                field("basic_price", "13000", "10000"),
+                field("shop_address", "新大阪 / JR新大阪駅", "大阪市淀川区1"),
+            ),
+        )
+        shop = ShopSnapshot(
+            10,
+            "test-shop",
+            "publish",
+            "Test Shop",
+            (13,),
+            {"basic_price": 13000, "shop_address": "新大阪\u00a0/\u00a0JR新大阪駅"},
+        )
+        entity = dry_run(manifest(op), self.snapshot((shop,))).entity_results[0]
+        self.assertEqual("READY_UPDATE", entity.status)
+        self.assertEqual(
+            {"basic_price": "READY_UPDATE", "shop_address": "READY_UPDATE"},
+            {item.field: item.status for item in entity.field_results},
+        )
+
     def test_existing_relation_is_no_change(self):
         op = operation("ADD_AREA_RELATION", fields=(), area_terms=(13, 17))
         shop = ShopSnapshot(10, "test-shop", "publish", "Test Shop", (13, 17), {})

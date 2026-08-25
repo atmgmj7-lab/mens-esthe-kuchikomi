@@ -65,14 +65,28 @@ def _normalized_tel(value: Any) -> str:
     return re.sub(r"\D", "", unicodedata.normalize("NFKC", str(value or "")))
 
 
+def _equivalent(field: str, left: Any, right: Any) -> bool:
+    if field == "basic_price":
+        return str(left if left is not None else "") == str(
+            right if right is not None else ""
+        )
+    if field == "shop_address":
+        return _normalized_text(left) == _normalized_text(right)
+    if field == "official_url":
+        return _normalized_url(left) == _normalized_url(right)
+    if field == "shop_tel":
+        return _normalized_tel(left) == _normalized_tel(right)
+    return left == right
+
+
 def _field_result(proposal: FieldProposal, shop: ShopSnapshot) -> FieldResult:
     exists = proposal.field in shop.fields
     actual = shop.fields.get(proposal.field)
-    if actual == proposal.proposed_value:
+    if _equivalent(proposal.field, actual, proposal.proposed_value):
         status = "NO_CHANGE"
     elif proposal.proposed_value == "":
         status = "DEFERRED_FIELD"
-    elif actual != proposal.current_value:
+    elif not _equivalent(proposal.field, actual, proposal.current_value):
         status = "CONFLICT"
     else:
         status = "READY_UPDATE"

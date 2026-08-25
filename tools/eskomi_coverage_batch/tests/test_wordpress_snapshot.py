@@ -40,7 +40,7 @@ class SnapshotHandler(BaseHTTPRequestHandler):
                 "acf": {"official_url": f"https://shop-{page}.example/"},
                 "meta": {},
             }]
-            self.respond(rows, {"X-WP-TotalPages": "2"})
+            self.respond(rows, {"X-Wp-Totalpages": "2"})
             return
         self.send_response(404)
         self.end_headers()
@@ -94,7 +94,7 @@ class WordPressSnapshotTest(unittest.TestCase):
         def five_pages(handler):
             parsed = urlsplit(handler.path)
             if parsed.path == "/wp-json/wp/v2/shop/":
-                handler.respond([], {"X-WP-TotalPages": "5"})
+                handler.respond([], {"X-Wp-Totalpages": "5"})
                 return
             original(handler)
 

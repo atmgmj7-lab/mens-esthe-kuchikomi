@@ -61,7 +61,10 @@ def _get_json(url: str, timeout: float, retries: int):
             with urlopen(request, timeout=timeout) as response:
                 if response.status != 200:
                     raise SnapshotError(f"unexpected HTTP status {response.status}")
-                return json.loads(response.read().decode("utf-8")), dict(response.headers.items())
+                headers = {
+                    name.casefold(): value for name, value in response.headers.items()
+                }
+                return json.loads(response.read().decode("utf-8")), headers
         except Exception as error:
             last_error = error
             if attempt + 1 < retries:
@@ -120,9 +123,7 @@ def fetch_public_snapshot(
         rows, headers = _get_json(
             f"{base}/wp-json/wp/v2/shop/?{query}", timeout, retries
         )
-        header_pages = int(
-            headers.get("X-WP-TotalPages", headers.get("x-wp-totalpages", "1"))
-        )
+        header_pages = int(headers.get("x-wp-totalpages", "1"))
         if total_pages is None:
             total_pages = header_pages
             if total_pages > 4:

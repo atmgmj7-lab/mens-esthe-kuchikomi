@@ -1,0 +1,1403 @@
+{
+  "area_contract": {
+    "13": "shinosaka",
+    "17": "sakai"
+  },
+  "batch_id": "coverage-first-2026-08-25",
+  "candidate_row_count": 30,
+  "execution_entity_count": 28,
+  "mode": "DRY_RUN_ONLY",
+  "operations": [
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "東口から徒歩1〜5分",
+          "source": "https://www.osaka-alivie.com/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://www.osaka-alivie.com/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0004",
+      "operation_id": "coverage-m0004-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "860c59958c8f27c7e0e532c9f30efdaeacc2ad416b08f04cfc5ed656845e3bdd",
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10000",
+            "source": "https://www.osaka-alivie.com/system/"
+          },
+          {
+            "current_hash": "562fe703e6ac57b819c222cb367603cc8650419345b012d0ebc053a721ae06f0",
+            "field": "shop_address",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "大阪市東淀川区東中島1丁目20-20",
+            "source": "https://www.osaka-alivie.com/"
+          },
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・LINE・公式予約フォーム",
+            "source": "https://www.osaka-alivie.com/"
+          },
+          {
+            "current_hash": "d142a9df3025d4f0cb427c679da3720bbb96136751eda2aee113b8f7ac7ac09a",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00〜翌5:00",
+            "source": "https://www.osaka-alivie.com/"
+          }
+        ],
+        "master_shop_id": "M0004",
+        "slug": "alivie-%e6%96%b0%e5%a4%a7%e9%98%aa%e5%a4%a7%e9%98%aa%ef%bc%88%e3%82%a2%e3%83%aa%e3%83%93%e3%82%a8%ef%bc%89",
+        "title": "Alivie（アリビエ）新大阪店",
+        "wp_id": 770
+      },
+      "payload_hash": "df96873e26c250068e250efa2200ce83c13047c4f881fbf23c4a630dbe6fdaf7",
+      "wp_id": 770
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅東口より徒歩5分",
+          "source": "https://mrs-onlyone.com/system/"
+        },
+        {
+          "field": "shop_line",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "mrsonlyone",
+          "source": "https://mrs-onlyone.com/system/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://mrs-onlyone.com/system/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0085",
+      "operation_id": "coverage-m0085-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "de00a7fd3035e9e434230821d4260c566e7ca5a4db8e1da963f2849e1cac50cd",
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "12000",
+            "source": "https://mrs-onlyone.com/system/"
+          },
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・LINE",
+            "source": "https://mrs-onlyone.com/system/"
+          },
+          {
+            "current_hash": "86ef1966316b3e72de5ef9fe98b0a984c8ee9ea1d3f41b2f62e70519582855bd",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:30～翌3:00",
+            "source": "https://mrs-onlyone.com/system/"
+          }
+        ],
+        "master_shop_id": "M0085",
+        "slug": "mrs-onlyone-%e6%96%b0%e5%a4%a7%e9%98%aa%e5%a4%a7%e9%98%aa%e5%ba%97%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%82%aa%e3%83%b3%e3%83%aa%e3%83%bc%e3%83%af%e3%83%b3%ef%bc%89",
+        "title": "Mrs.OnlyOne（オンリーワン）",
+        "wp_id": 767
+      },
+      "payload_hash": "f58a64f25d00c1602439291b4663facf1639e1bdc787e50ac847bc9dcaa4096b",
+      "wp_id": 767
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "東口から徒歩5分",
+          "source": "https://spalot-mrs.com/system"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://spalot-mrs.com/system"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0118",
+      "operation_id": "coverage-m0118-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "860c59958c8f27c7e0e532c9f30efdaeacc2ad416b08f04cfc5ed656845e3bdd",
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "14000",
+            "source": "https://spalot-mrs.com/system"
+          },
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話",
+            "source": "https://spalot-mrs.com/system"
+          },
+          {
+            "current_hash": "63037ea3946dd60daf18c182c9bd8571d192b99f97089feee2cfb7104acf751e",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌5:00",
+            "source": "https://spalot-mrs.com/system"
+          }
+        ],
+        "master_shop_id": "M0118",
+        "slug": "spalot-mrs%ef%bc%88%e3%82%b9%e3%83%91%e3%83%ad%e3%83%83%e3%83%88%e3%83%9f%e3%82%bb%e3%82%b9%ef%bc%89",
+        "title": "SPALOT.Mrs(スパロットミセス) 新大阪",
+        "wp_id": 712
+      },
+      "payload_hash": "ab0ce252f430ad7c0f1019361e8c1b19e9000754656eb36412130e5bcbdcf377",
+      "wp_id": 712
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅徒歩10分・西中島南方駅徒歩3分／堺東駅徒歩10分",
+          "source": "https://ichigo-milk.com/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅／堺東駅",
+          "source": "https://ichigo-milk.com/"
+        }
+      ],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0145",
+      "operation_id": "coverage-m0145-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13,
+          17
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23",
+            "proposed_value": "https://ichigo-milk.com/",
+            "source": "https://ichigo-milk.com/"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話",
+            "source": "https://ichigo-milk.com/"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌6:00",
+            "source": "https://ichigo-milk.com/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "090-4464-1515",
+            "source": "https://ichigo-milk.com/"
+          }
+        ],
+        "master_shop_id": "M0145",
+        "slug": "eskomi-m0145",
+        "title": "イチゴみるく",
+        "wp_id": null
+      },
+      "payload_hash": "10467448cce5ef3c40544b275a1e77817604d1323e041a0de39181a2cff25ccb",
+      "wp_id": null
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://otonajikan.net/"
+        }
+      ],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0167",
+      "operation_id": "coverage-m0167-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23",
+            "proposed_value": "https://otonajikan.net/",
+            "source": "https://otonajikan.net/"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・Web予約",
+            "source": "https://otonajikan.net/"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌2:00",
+            "source": "https://otonajikan.net/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "080-9659-5121",
+            "source": "https://otonajikan.net/"
+          }
+        ],
+        "master_shop_id": "M0167",
+        "slug": "eskomi-m0167",
+        "title": "大人時間",
+        "wp_id": null
+      },
+      "payload_hash": "c3c66a33f0034f069d71f2b103f22717e76dce51ab45bd56a7214b7f12febcb6",
+      "wp_id": null
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "6番出口・東口から案内される複数ルーム",
+          "source": "https://kiwami-spa.net/access"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://kiwami-spa.net/access"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0182",
+      "operation_id": "coverage-m0182-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話",
+            "source": "https://kiwami-spa.net/access"
+          },
+          {
+            "current_hash": "f55d48191c26182a5bb39f92c04ee209c6401fb568e4a7c3e389a3b94408eab3",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌5:00",
+            "source": "https://kiwami-spa.net/access"
+          }
+        ],
+        "master_shop_id": "M0182",
+        "slug": "%e6%a5%b5spa%ef%bc%88%e3%81%8d%e3%82%8f%e3%81%bf%e3%82%b9%e3%83%91%ef%bc%89",
+        "title": "極SPA",
+        "wp_id": 762
+      },
+      "payload_hash": "3994f41b0a60c2de632efa60daa5c16d5e6db04b9791cd3665b85d929fc411f3",
+      "wp_id": 762
+    },
+    {
+      "action": "ADD_AREA_RELATION",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T23:09:52.074000+00:00",
+          "proposed_value": "各線「新大阪駅」 徒歩5分",
+          "source": "https://dsp-osaka.net/access"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T23:09:52.074000+00:00",
+          "proposed_value": "各線「新大阪駅」 徒歩5分",
+          "source": "https://dsp-osaka.net/access"
+        }
+      ],
+      "dry_run_status": "READY_RELATION",
+      "master_shop_id": "M0198",
+      "operation_id": "coverage-m0198-relation",
+      "payload": {
+        "action": "ADD_AREA_RELATION",
+        "area_terms": [
+          13
+        ],
+        "area_terms_to_add": [
+          13
+        ],
+        "fields": [],
+        "master_shop_id": "M0198",
+        "slug": "dsp%ef%bc%88%e3%83%87%e3%82%a3%e3%83%bc%e3%82%a8%e3%82%b9%e3%83%94%e3%83%bc%ef%bc%89",
+        "title": "DSP",
+        "wp_id": 781
+      },
+      "payload_hash": "5c0cd66cd06206c5edf2683d944746f352db6699bc04ede11287ed5287af9fb6",
+      "wp_id": 781
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "堺東駅周辺・大阪府堺市堺区",
+          "source": "https://yoluosaka-spa.com/access/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "堺東駅",
+          "source": "https://yoluosaka-spa.com/access/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0209",
+      "operation_id": "coverage-m0209-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "current_hash": "1aa8fe40c55e28141e278c32515b8239d460d5a5857a7f1261577c5667ee5f53",
+            "field": "official_url",
+            "observed_at": "2026-08-23",
+            "proposed_value": "https://yoluosaka-spa.com/",
+            "source": "https://yoluosaka-spa.com/"
+          },
+          {
+            "current_hash": "bb929b4901911c1b731349e402fd98df158cc0f72eac7e50cbbdacd63f63840b",
+            "field": "shop_address",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "大阪府堺市堺区翁橋町1丁7-1",
+            "source": "https://yoluosaka-spa.com/access/"
+          },
+          {
+            "current_hash": "fc7009a1d8885722a3d69c37cf5f1b814acb8b9e3b2362bbd1de57a3eb9ed06d",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "外部ネット予約 / LINE / 電話",
+            "source": "https://yoluosaka-spa.com/access/"
+          },
+          {
+            "current_hash": "07cf42c91cf8eded83b711ca7a9caac8839ba63f7cb662ec1dc13b4c988444a8",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00～翌4:00",
+            "source": "https://yoluosaka-spa.com/access/"
+          }
+        ],
+        "master_shop_id": "M0209",
+        "slug": "yolu-spa-%e5%a0%ba%e6%9d%b1%ef%bc%88%e3%83%a8%e3%83%ab%e3%82%b9%e3%83%91%ef%bc%89",
+        "title": "YOLUSPA 堺東店",
+        "wp_id": 737
+      },
+      "payload_hash": "922bb000b9a05e21c1b4f34af21e51db8a92ea515356637e017903adb8fc1444",
+      "wp_id": 737
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0217",
+      "operation_id": "coverage-m0217-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-22T23:01:54.043000+00:00",
+            "proposed_value": "https://rb-salon.com/",
+            "source": "https://www.rb-salon.com/shopdata/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T23:01:54.043000+00:00",
+            "proposed_value": "06-6195-8525",
+            "source": "https://www.rb-salon.com/shopdata/"
+          }
+        ],
+        "master_shop_id": "M0217",
+        "slug": "eskomi-m0217",
+        "title": "R&B（アールアンドビー）",
+        "wp_id": null
+      },
+      "payload_hash": "437a720669e7e2158f6cd81bf1f24ec16293abe87d7c6111ba3a2ee0496dcb5e",
+      "wp_id": null
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "東口の案内を公式ページで確認",
+          "source": "https://kamiesute.com/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://kamiesute.com/"
+        }
+      ],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0240",
+      "operation_id": "coverage-m0240-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23",
+            "proposed_value": "https://kamiesute.com/",
+            "source": "https://kamiesute.com/"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話",
+            "source": "https://kamiesute.com/"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌5:00",
+            "source": "https://kamiesute.com/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "06-4400-7342",
+            "source": "https://kamiesute.com/"
+          }
+        ],
+        "master_shop_id": "M0240",
+        "slug": "eskomi-m0240",
+        "title": "神々のエステ",
+        "wp_id": null
+      },
+      "payload_hash": "3b957711f588da268e65a6cb898b6f73bcf311850eac9e6efe82ab8f0cfab208",
+      "wp_id": null
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0241",
+      "operation_id": "coverage-m0241-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13,
+          17
+        ],
+        "fields": [
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・LINE",
+            "source": "https://mrs-komoriuta.com/"
+          },
+          {
+            "current_hash": "35ac7fe7c0f37bfb3c9b0a864273aaa48888b12649afbbc43037bc4cd992afcc",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00〜翌5:00",
+            "source": "https://mrs-komoriuta.com/"
+          }
+        ],
+        "master_shop_id": "M0241",
+        "slug": "%e3%83%9f%e3%82%bb%e3%82%b9%e3%81%ae%e5%ad%90%e5%ae%88%e5%94%84",
+        "title": "ミセスの子守唄",
+        "wp_id": 683
+      },
+      "payload_hash": "cdbe812e803d3ddcf5d752d59ae1ac2763f97d962da2da748d04016efa95df58",
+      "wp_id": 683
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0244",
+      "operation_id": "coverage-m0244-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "current_hash": "de00a7fd3035e9e434230821d4260c566e7ca5a4db8e1da963f2849e1cac50cd",
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10000",
+            "source": "https://amore-spa.com/system/"
+          },
+          {
+            "current_hash": "5d984054e4a4a295dfec88f3b41bda8c2d908c78c684871035501f84c2bd50df",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00～28:00",
+            "source": "https://amore-spa.com/system/"
+          }
+        ],
+        "master_shop_id": "M0244",
+        "slug": "amore%e3%83%bbspa%ef%bc%88%e3%82%a2%e3%83%a2%e3%83%bc%e3%83%ac%e3%82%b9%e3%83%91%ef%bc%89",
+        "title": "Amore・SPA（アモーレ・スパ）堺東",
+        "wp_id": 724
+      },
+      "payload_hash": "1a1da40024a228a450c91fe5af64b479f750db1168100c4e21130c741c757928",
+      "wp_id": 724
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0250",
+      "operation_id": "coverage-m0250-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "basic_price",
+            "observed_at": "2026-08-22T23:15:13.148000+00:00",
+            "proposed_value": "15000",
+            "source": "https://mrs-two-heart.com/system"
+          },
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-22T23:15:11.933000+00:00",
+            "proposed_value": "https://mrs-two-heart.com/",
+            "source": "https://mrs-two-heart.com/about"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T23:15:09.039000+00:00",
+            "proposed_value": "営業時間 10:30～",
+            "source": "https://mrs-two-heart.com/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T23:15:09.039000+00:00",
+            "proposed_value": "080-4371-9845",
+            "source": "https://mrs-two-heart.com/"
+          }
+        ],
+        "master_shop_id": "M0250",
+        "slug": "eskomi-m0250",
+        "title": "Mrs.Two Heart（ミセストゥーハート）",
+        "wp_id": null
+      },
+      "payload_hash": "eac58afc2e9fa2d95604744c0afedc7ca6192d0f19e366e5612e4fb17ac44385",
+      "wp_id": null
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [
+        {
+          "field": "shop_booking_url",
+          "observed_at": "2026-08-22T23:12:38.838000+00:00",
+          "proposed_value": "https://monotone-spa.com/reservation/",
+          "source": "https://monotone-spa.com/reservation/"
+        }
+      ],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0251",
+      "operation_id": "coverage-m0251-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-22T23:12:37.620000+00:00",
+            "proposed_value": "https://monotone-spa.com/top",
+            "source": "https://monotone-spa.com/access/"
+          },
+          {
+            "field": "shop_address",
+            "observed_at": "2026-08-22T23:12:37.620000+00:00",
+            "proposed_value": "大阪府大阪市淀川区",
+            "source": "https://monotone-spa.com/access/"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T23:12:38.838000+00:00",
+            "proposed_value": "LINE・WEB・電話",
+            "source": "https://monotone-spa.com/reservation/"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T23:12:37.620000+00:00",
+            "proposed_value": "営業時間 10:00〜05:00",
+            "source": "https://monotone-spa.com/access/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T23:12:37.620000+00:00",
+            "proposed_value": "080-7716-6175",
+            "source": "https://monotone-spa.com/access/"
+          }
+        ],
+        "master_shop_id": "M0251",
+        "slug": "eskomi-m0251",
+        "title": "MONOTONE SPA（モノトーンスパ）",
+        "wp_id": null
+      },
+      "payload_hash": "d712eb7e8ae0c9053034529a615780771f85c47426f076683dd063a4f6e3006b",
+      "wp_id": null
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T23:06:31.022000+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://amateras-osaka.com/access/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T23:06:31.022000+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://amateras-osaka.com/access/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0260",
+      "operation_id": "coverage-m0260-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "eb669e4124ae39f4d457d64b3a0fda5350f04e2d1ccb731b0cfb0096097c8ebd",
+            "field": "shop_address",
+            "observed_at": "2026-08-22T23:06:31.022000+00:00",
+            "proposed_value": "大阪市淀川区西中島1",
+            "source": "https://amateras-osaka.com/access/"
+          },
+          {
+            "current_hash": "48fe8588ec55457cc4e1df1e1967e586267f513016a4ec7319acccdda9537ace",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T23:06:31.022000+00:00",
+            "proposed_value": "OPEN.11:00～翌3:00",
+            "source": "https://amateras-osaka.com/access/"
+          }
+        ],
+        "master_shop_id": "M0260",
+        "slug": "amateras%ef%bc%88%e3%82%a2%e3%83%9e%e3%83%86%e3%83%a9%e3%82%b9%ef%bc%89",
+        "title": "AMATERAS～アマテラス",
+        "wp_id": 750
+      },
+      "payload_hash": "5d7feaac84468ce7d6c8427a7c62923f8e06c591f4f97e8dd956868d165dc7ea",
+      "wp_id": 750
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0293",
+      "operation_id": "coverage-m0293-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23",
+            "proposed_value": "https://pulchra-osaka.com/",
+            "source": "https://pulchra-osaka.com/"
+          }
+        ],
+        "master_shop_id": "M0293",
+        "slug": "eskomi-m0293",
+        "title": "Pulchra （プルクラ）",
+        "wp_id": null
+      },
+      "payload_hash": "bb418ab228174f90196a7ba8da81592ecce3c8b13f8d638dbc4ceea8fed1fb94",
+      "wp_id": null
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0408",
+      "operation_id": "coverage-m0408-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-22T23:25:50.273000+00:00",
+            "proposed_value": "https://numaruspa.com/",
+            "source": "https://numaruspa.com/access"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T23:25:49.024000+00:00",
+            "proposed_value": "LINE・電話",
+            "source": "https://numaruspa.com/contact"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T23:25:50.273000+00:00",
+            "proposed_value": "080-6305-3631",
+            "source": "https://numaruspa.com/access"
+          }
+        ],
+        "master_shop_id": "M0408",
+        "slug": "eskomi-m0408",
+        "title": "ヌまるSPA新大阪",
+        "wp_id": null
+      },
+      "payload_hash": "a8595024f997bf7a2ed1cbf2eaf6fec65d790900db0dce416115e70a99c5864c",
+      "wp_id": null
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0480",
+      "operation_id": "coverage-m0480-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・Web予約・LINE",
+            "source": "https://www.yudanete.com/"
+          },
+          {
+            "current_hash": "170816a96391f4639a42a8cd657645b2d646f3fe95797346c06198bb186266c9",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00〜翌2:00",
+            "source": "https://www.yudanete.com/"
+          }
+        ],
+        "master_shop_id": "M0480",
+        "slug": "%e3%82%86%e3%81%a0%e3%81%ad%e3%81%a6",
+        "title": "ゆだねて新大阪",
+        "wp_id": 775
+      },
+      "payload_hash": "48871ab6c75df216a6cf59478bbf7f813a1f8d6db96d11cd283232470778d5ce",
+      "wp_id": 775
+    },
+    {
+      "action": "ADD_AREA_RELATION",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T23:29:55.981000+00:00",
+          "proposed_value": "地下鉄御堂筋線「東三国駅」2番出口より徒歩5分",
+          "source": "https://refrelise.net/access/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T23:29:55.981000+00:00",
+          "proposed_value": "地下鉄御堂筋線「東三国駅」2番出口より徒歩5分",
+          "source": "https://refrelise.net/access/"
+        }
+      ],
+      "dry_run_status": "READY_RELATION",
+      "master_shop_id": "M0501",
+      "operation_id": "coverage-m0501-relation",
+      "payload": {
+        "action": "ADD_AREA_RELATION",
+        "area_terms": [
+          13
+        ],
+        "area_terms_to_add": [
+          13
+        ],
+        "fields": [],
+        "master_shop_id": "M0501",
+        "slug": "refre-lise%ef%bc%88%e3%83%aa%e3%83%95%e3%83%ac-%e3%83%aa%e3%82%bb%ef%bc%89",
+        "title": "リフレリセ新大阪",
+        "wp_id": 889
+      },
+      "payload_hash": "5b74a6e29e79eabf83b0ebba5d41cc6c08113328157d6789337d2480b443692b",
+      "wp_id": 889
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "東口から徒歩5分",
+          "source": "https://mrs-rankup.com/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "新大阪駅",
+          "source": "https://mrs-rankup.com/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0536",
+      "operation_id": "coverage-m0536-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "eb863d9de486fb59e5e15173dfab1379711e45d7efc8dfc95a7fe732757587d9",
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "13000",
+            "source": "https://mrs-rankup.com/system"
+          },
+          {
+            "current_hash": "aa767a14415b4d141fb2e8a4a717a4a21d018b07eadba0a41dff759145bd1bde",
+            "field": "shop_address",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "大阪市東淀川区東中島1-14-23",
+            "source": "https://mrs-rankup.com/"
+          },
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・LINE",
+            "source": "https://mrs-rankup.com/"
+          },
+          {
+            "current_hash": "63037ea3946dd60daf18c182c9bd8571d192b99f97089feee2cfb7104acf751e",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌5:00",
+            "source": "https://mrs-rankup.com/"
+          }
+        ],
+        "master_shop_id": "M0536",
+        "slug": "mrs-rank-up%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%a9%e3%83%b3%e3%82%af%e3%82%a2%e3%83%83%e3%83%97%ef%bc%89",
+        "title": "Mrs.RankUp（ミセスランクアップ）",
+        "wp_id": 768
+      },
+      "payload_hash": "3d0aec45a481fcae36cb508bdb974165fa1113677d016c05f71563a08a39f590",
+      "wp_id": 768
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0644",
+      "operation_id": "coverage-m0644-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "7e9d37472a08f24de8a277ed93ebf8cdb6b9c182cbb3c592750031ab5ffdab69",
+            "field": "shop_address",
+            "observed_at": "2026-08-23T02:16:29.032000+00:00",
+            "proposed_value": "大阪府大阪市東淀川区東中島1丁目",
+            "source": "https://yui-mrstei.com/access/"
+          },
+          {
+            "current_hash": "07cf42c91cf8eded83b711ca7a9caac8839ba63f7cb662ec1dc13b4c988444a8",
+            "field": "shop_hours",
+            "observed_at": "2026-08-23T02:16:29.032000+00:00",
+            "proposed_value": "OPEN.10:00~翌04:00(年中無休）",
+            "source": "https://yui-mrstei.com/access/"
+          }
+        ],
+        "master_shop_id": "M0644",
+        "slug": "%e7%b5%90-%e3%83%9f%e3%82%bb%e3%82%b9%e9%82%b8%ef%bc%88%e3%82%86%e3%81%84%ef%bc%89",
+        "title": "結-YUI-ミセス邸",
+        "wp_id": 776
+      },
+      "payload_hash": "3d34caa9d495240edec38ac86fcef241e921882f5348b58c3d9811a2dc71ee7e",
+      "wp_id": 776
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0647",
+      "operation_id": "coverage-m0647-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          13
+        ],
+        "fields": [
+          {
+            "current_hash": "de00a7fd3035e9e434230821d4260c566e7ca5a4db8e1da963f2849e1cac50cd",
+            "field": "basic_price",
+            "observed_at": "2026-08-23T02:13:24.358000+00:00",
+            "proposed_value": "16000",
+            "source": "https://www.embraceosaka.com/post/%E8%BF%91%E6%97%A5%E4%B8%AD%E3%81%AB%E6%96%99%E9%87%91%EF%BC%86%E3%83%A1%E3%83%8B%E3%83%A5%E3%83%BC%E3%82%92%E5%A4%89%E6%9B%B4%E8%87%B4%E3%81%97%E3%81%BE%E3%81%99%EF%BC%81"
+          }
+        ],
+        "master_shop_id": "M0647",
+        "slug": "embrace%ef%bc%88%e3%82%a8%e3%83%b3%e3%83%96%e3%83%ac%e3%82%a4%e3%82%b9%ef%bc%89",
+        "title": "Embrace（エンブレイス）",
+        "wp_id": 866
+      },
+      "payload_hash": "59cf0adafcb1b1eab89649afa706971691ba961066d41499be82deb624d1c589",
+      "wp_id": 866
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "駅すぐ",
+          "source": "https://osaka-incarose.com/system/"
+        },
+        {
+          "field": "shop_booking_url",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "https://r.caskan.jp/",
+          "source": "https://osaka-incarose.com/system/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "堺東駅",
+          "source": "https://osaka-incarose.com/system/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0653",
+      "operation_id": "coverage-m0653-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "current_hash": "eb863d9de486fb59e5e15173dfab1379711e45d7efc8dfc95a7fe732757587d9",
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11000",
+            "source": "https://osaka-incarose.com/system/"
+          },
+          {
+            "current_hash": "fc7009a1d8885722a3d69c37cf5f1b814acb8b9e3b2362bbd1de57a3eb9ed06d",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話・Web予約・LINE",
+            "source": "https://osaka-incarose.com/system/"
+          },
+          {
+            "current_hash": "daf23bb59b57d20fde589650e6a8d19f05a7db5dab9b927dacb987b3fa2a13d3",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00〜翌4:00",
+            "source": "https://osaka-incarose.com/system/"
+          }
+        ],
+        "master_shop_id": "M0653",
+        "slug": "incarose%ef%bc%88%e3%82%a4%e3%83%b3%e3%82%ab%e3%83%ad%e3%83%bc%e3%82%ba%ef%bc%89",
+        "title": "Inca Rose（インカローズ）",
+        "wp_id": 734
+      },
+      "payload_hash": "86bb4e1e212d04d276d470277df4a0afa7ed2acc1305136a422bde4efe553a22",
+      "wp_id": 734
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [
+        {
+          "field": "shop_access",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "南海高野線 堺東駅より徒歩7分",
+          "source": "https://royal-madam.com/system/"
+        },
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "堺東駅",
+          "source": "https://royal-madam.com/system/"
+        }
+      ],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0654",
+      "operation_id": "coverage-m0654-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "field": "basic_price",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "16000",
+            "source": "https://royal-madam.com/system/"
+          },
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23",
+            "proposed_value": "https://royal-madam.com/",
+            "source": "https://royal-madam.com/"
+          },
+          {
+            "field": "shop_address",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "大阪府堺市堺区翁橋町1-8",
+            "source": "https://royal-madam.com/system/"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "外部ネット予約 / LINE / 電話",
+            "source": "https://royal-madam.com/system/"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "10:00～翌5:00",
+            "source": "https://royal-madam.com/system/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "090-6902-9720",
+            "source": "https://royal-madam.com/system/"
+          }
+        ],
+        "master_shop_id": "M0654",
+        "slug": "eskomi-m0654",
+        "title": "ROYAL MADAM（ロイヤルマダム）",
+        "wp_id": null
+      },
+      "payload_hash": "87ee13c739902b09cfbe56e3f9f40eecb05a830d7f2ace132b5a3dd4be9bcf9f",
+      "wp_id": null
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "create_lifecycle": null,
+      "deferred_evidence": [
+        {
+          "field": "shop_station",
+          "observed_at": "2026-08-22T22:45:00+00:00",
+          "proposed_value": "堺東駅",
+          "source": "https://bellrose-osaka.com/"
+        }
+      ],
+      "dry_run_status": "READY_UPDATE",
+      "master_shop_id": "M0655",
+      "operation_id": "coverage-m0655-update",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "current_hash": "68aa206b56005053d03f799181d5dedd8c62c9497396b30522ab3e6a750addd9",
+            "field": "shop_address",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "大阪府堺市堺区翁橋町",
+            "source": "https://bellrose-osaka.com/"
+          },
+          {
+            "current_hash": "884afe76697630384d5efa77ad587be92e4fa8be0432c2d4d2823342807926f3",
+            "field": "shop_booking",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "電話",
+            "source": "https://bellrose-osaka.com/"
+          },
+          {
+            "current_hash": "63037ea3946dd60daf18c182c9bd8571d192b99f97089feee2cfb7104acf751e",
+            "field": "shop_hours",
+            "observed_at": "2026-08-22T22:45:00+00:00",
+            "proposed_value": "11:00〜翌5:00",
+            "source": "https://bellrose-osaka.com/"
+          }
+        ],
+        "master_shop_id": "M0655",
+        "slug": "mrs-bell%ef%bc%86rose-spa%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%99%e3%83%ab%e3%82%a2%e3%83%b3%e3%83%89%e3%83%ad%e3%83%bc%e3%82%ba%e3%82%b9%e3%83%91%ef%bc%89",
+        "title": "Mrs.Bell＆Rose（ミセス ベル＆ローズ）",
+        "wp_id": 727
+      },
+      "payload_hash": "0531d86eff963d06804bafc7a3df9b4240aa8e6348a82493345ded7d63250a4d",
+      "wp_id": 727
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0660",
+      "operation_id": "coverage-m0660-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23T02:18:43.722000+00:00",
+            "proposed_value": "https://mrs-cest-la-vie.com/",
+            "source": "https://mrs-cest-la-vie.com/access"
+          },
+          {
+            "field": "shop_address",
+            "observed_at": "2026-08-23T02:18:43.722000+00:00",
+            "proposed_value": "大阪府堺市堺区翁橋町1丁目近郊",
+            "source": "https://mrs-cest-la-vie.com/access"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-23T02:18:42.486000+00:00",
+            "proposed_value": "LINE・電話",
+            "source": "https://mrs-cest-la-vie.com/contact"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-23T02:18:43.722000+00:00",
+            "proposed_value": "営業時間 10:00 - 03:00",
+            "source": "https://mrs-cest-la-vie.com/access"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-23T02:18:43.722000+00:00",
+            "proposed_value": "080-9760-4077",
+            "source": "https://mrs-cest-la-vie.com/access"
+          }
+        ],
+        "master_shop_id": "M0660",
+        "slug": "eskomi-m0660",
+        "title": "Mrs.C'est la vie（ミセス セラヴィ）",
+        "wp_id": null
+      },
+      "payload_hash": "c589a9824800f0927f60594f707ce5c24d2d1f796ef8b6d71ec4fbc4cfc5fbdf",
+      "wp_id": null
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0661",
+      "operation_id": "coverage-m0661-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23T02:19:28.830000+00:00",
+            "proposed_value": "https://mr-dandies.com/",
+            "source": "https://mr-dandies.com/access"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-23T02:19:27.686000+00:00",
+            "proposed_value": "LINE・電話",
+            "source": "https://mr-dandies.com/contact"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-23T02:19:45.727000+00:00",
+            "proposed_value": "営業時間 10:00 - 05:00",
+            "source": "https://mr-dandies.com/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-23T02:19:45.727000+00:00",
+            "proposed_value": "090-6114-2026",
+            "source": "https://mr-dandies.com/"
+          }
+        ],
+        "master_shop_id": "M0661",
+        "slug": "eskomi-m0661",
+        "title": "Mr.Dandies（ミスター・ダンディーズ）",
+        "wp_id": null
+      },
+      "payload_hash": "a58a780cabeed80c75116f93fc3b0e35638c41bc45bcc354527ff54543f65446",
+      "wp_id": null
+    },
+    {
+      "action": "CREATE_NEW",
+      "create_lifecycle": "draft_then_readback_then_publish",
+      "deferred_evidence": [
+        {
+          "field": "shop_booking_url",
+          "observed_at": "2026-08-23T02:19:55.846000+00:00",
+          "proposed_value": "https://mrs-nostalgia.com/contact",
+          "source": "https://mrs-nostalgia.com/contact"
+        }
+      ],
+      "dry_run_status": "READY_CREATE",
+      "master_shop_id": "M0663",
+      "operation_id": "coverage-m0663-create",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [
+          17
+        ],
+        "fields": [
+          {
+            "field": "official_url",
+            "observed_at": "2026-08-23T02:19:53.502000+00:00",
+            "proposed_value": "https://mrs-nostalgia.com/",
+            "source": "https://mrs-nostalgia.com/access"
+          },
+          {
+            "field": "shop_address",
+            "observed_at": "2026-08-23T02:19:53.502000+00:00",
+            "proposed_value": "大阪府堺市堺区近郊南瓦町近郊",
+            "source": "https://mrs-nostalgia.com/access"
+          },
+          {
+            "field": "shop_booking",
+            "observed_at": "2026-08-23T02:19:55.846000+00:00",
+            "proposed_value": "LINE・WEB・電話",
+            "source": "https://mrs-nostalgia.com/contact"
+          },
+          {
+            "field": "shop_hours",
+            "observed_at": "2026-08-23T02:19:50.457000+00:00",
+            "proposed_value": "営業時間 10:00 - 05:00",
+            "source": "https://mrs-nostalgia.com/"
+          },
+          {
+            "field": "shop_tel",
+            "observed_at": "2026-08-23T02:19:50.457000+00:00",
+            "proposed_value": "090-3206-3368",
+            "source": "https://mrs-nostalgia.com/"
+          }
+        ],
+        "master_shop_id": "M0663",
+        "slug": "eskomi-m0663",
+        "title": "Mrs.Nostalgia（ミセス ノスタルジー）",
+        "wp_id": null
+      },
+      "payload_hash": "9a7666ef72f0cd145e376b5dc90f2f774c9e61c702fe95b647e1b3e8d3c7e073",
+      "wp_id": null
+    }
+  ],
+  "pilot_operation_ids": [
+    "coverage-m0004-update",
+    "coverage-m0118-update",
+    "coverage-m0145-create",
+    "coverage-m0209-update",
+    "coverage-m0251-create",
+    "coverage-m0501-relation",
+    "coverage-m0536-update",
+    "coverage-m0653-update",
+    "coverage-m0654-create"
+  ],
+  "schema_version": 1,
+  "snapshot_fetched_at": "2026-08-25T18:47:17.835167+00:00",
+  "source_hashes": {
+    "ESKOMI_COVERAGE_FIRST_CURRENT_PROPOSED_2026-08-24.csv": "a52764c672743d3ab97e33383ad33eb2e832968da706db1e3546e178837a7e3c",
+    "ESKOMI_COVERAGE_FIRST_WP_ACTIONS_2026-08-24.csv": "63ac63d5da97fc56f52ef173ad260a52177709af9b09c00178f9ae5ba8ef4b67",
+    "ESKOMI_SHINOSAKA_SAKAIHIGASHI_FINAL_DATASET_2026-08-23.csv": "f35dc62c0879ba530012156c7a99c0a842754249462a207be1840c4fea6cacf7",
+    "ESKOMI_SHINOSAKA_SAKAIHIGASHI_WP_PROPOSED_V3_2026-08-23.csv": "6c3e0aa0fc5b1180c39137b466742de073c9077de5713084753735300f646afb"
+  }
+}
