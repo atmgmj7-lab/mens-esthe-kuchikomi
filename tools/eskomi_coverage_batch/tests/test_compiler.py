@@ -92,6 +92,13 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual(9, len(batch.pilot_operations))
         self.assertEqual(10, len(batch.pilot_candidate_rows))
 
+    def test_create_operations_preserve_w3_physical_location_evidence(self):
+        batch = self.compile()
+        by_master = {operation.master_shop_id: operation for operation in batch.operations}
+        self.assertEqual("新大阪駅", by_master["M0167"].location_evidence[0].station)
+        self.assertEqual((), by_master["M0217"].location_evidence)
+        self.assertEqual("大阪府堺市堺区翁橋町1-8", by_master["M0654"].location_evidence[0].address)
+
     def test_source_hashes_cover_all_four_authoritative_inputs(self):
         batch = self.compile()
         self.assertEqual(4, len(batch.source_hashes))

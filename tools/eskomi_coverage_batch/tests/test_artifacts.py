@@ -69,10 +69,12 @@ class ArtifactTest(unittest.TestCase):
             self.assertEqual(30, value["candidate_row_count"])
             self.assertEqual(28, value["execution_entity_count"])
             self.assertEqual(28, len(value["operations"]))
+            self.assertEqual(30, len(value["candidate_rows"]))
             self.assertTrue(all(len(item["payload_hash"]) == 64 for item in value["operations"]))
             m0145 = next(item for item in value["operations"] if item["master_shop_id"] == "M0145")
             self.assertEqual([13, 17], m0145["payload"]["area_terms"])
             self.assertEqual("draft_then_readback_then_publish", m0145["create_lifecycle"])
+            self.assertTrue(m0145["payload"]["physical_location_evidence"])
 
     def test_missing_public_wp_entity_is_recorded_as_hold_without_write_fields(self):
         result = dry_run(
@@ -116,6 +118,7 @@ class ArtifactTest(unittest.TestCase):
             self.assertEqual(9, pilot["pilot_operation_count"])
             self.assertEqual(10, pilot["pilot_candidate_area_row_count"])
             self.assertEqual(9, len(pilot["operations"]))
+            self.assertTrue(all(item["dry_run_status"].startswith("READY_") for item in pilot["operations"]))
 
     def test_remainder_and_rollback_cover_all_nonpilot_entities(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -130,6 +133,20 @@ class ArtifactTest(unittest.TestCase):
             ).read_text(encoding="utf-8")
             self.assertIn("Remainder execution entities: 19", report)
             self.assertIn("Remainder candidate-area rows: 20", report)
+            self.assertIn("Remainder ready execution entities: 15", report)
+            self.assertIn("Remainder HOLD execution entities: 4", report)
+            for master_id in ("M0217", "M0293", "M0408", "M0661"):
+                self.assertIn(master_id, report)
+            self.assertIn("`_escomi_coverage_lock_<sha256(batch_id|operation_id)>`", report)
+            self.assertIn("120 seconds", report)
+            self.assertIn("`_escomi_coverage_ledger_<sha256(batch_id|operation_id)>`", report)
+            self.assertIn("400 days", report)
+            self.assertIn("`coverage_batch_audit`", report)
+            self.assertIn("retained indefinitely", report)
+            self.assertIn("`escomi_publish_coverage_batch`", report)
+            self.assertIn("WordPress usermeta", report)
+            self.assertIn("`ESKOMI_COVERAGE_BATCH_WRITE_ENABLED`", report)
+            self.assertIn("server-only `wp-config.php`", report)
             rollback = (
                 output / "ESKOMI_COVERAGE_ROLLBACK_PLAN_2026-08-25.md"
             ).read_text(encoding="utf-8")

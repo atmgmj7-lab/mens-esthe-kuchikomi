@@ -103,6 +103,19 @@ def operation_record(operation: BatchOperation, entity: EntityResult) -> Dict[st
     }
     if operation.action == "ADD_AREA_RELATION":
         payload["area_terms_to_add"] = list(entity.area_terms_to_add)
+    if operation.action == "CREATE_NEW":
+        payload["physical_location_evidence"] = [
+            {
+                "target_area": item.target_area,
+                "final_area_class": item.final_area_class,
+                "address": item.address,
+                "station": item.station,
+                "access": item.access,
+                "source": item.source,
+                "observed_at": item.observed_at,
+            }
+            for item in operation.location_evidence
+        ]
     return {
         "operation_id": operation.operation_id,
         "master_shop_id": operation.master_shop_id,
@@ -141,6 +154,26 @@ def manifest_value(batch: BatchManifest, result: DryRunResult) -> Dict[str, Any]
         "candidate_row_count": len(batch.candidate_rows),
         "execution_entity_count": len(batch.operations),
         "pilot_operation_ids": list(batch.pilot_operation_ids),
+        "candidate_rows": [
+            {
+                "target_area": row.target_area,
+                "master_shop_id": row.master_shop_id,
+                "canonical_name": row.canonical_name,
+                "final_area_class": row.final_area_class,
+                "wp_id": row.wp_id,
+                "wp_slug": row.wp_slug,
+                "mapping_status": row.mapping_status,
+                "action": row.action,
+                "basic_verified": row.basic_verified,
+                "area_term_id": row.area_term_id,
+                "operation_id": next(
+                    item.operation_id
+                    for item in batch.operations
+                    if item.master_shop_id == row.master_shop_id
+                ),
+            }
+            for row in batch.candidate_rows
+        ],
         "operations": records,
     }
 
@@ -236,6 +269,18 @@ def _report(batch: BatchManifest, result: DryRunResult) -> str:
     pilot_masters = {item.master_shop_id for item in batch.pilot_operations}
     remainder_rows = [row for row in batch.candidate_rows if row.master_shop_id not in pilot_masters]
     remainder_operations = [item for item in batch.operations if item.master_shop_id not in pilot_masters]
+    result_by_id = {item.operation_id: item for item in result.entity_results}
+    remainder_ready = [
+        item
+        for item in remainder_operations
+        if result_by_id[item.operation_id].status.startswith("READY_")
+    ]
+    remainder_hold = [
+        item
+        for item in remainder_operations
+        if result_by_id[item.operation_id].status == "HOLD"
+    ]
+    hold_ids = ", ".join(item.master_shop_id for item in remainder_hold) or "none"
     status_lines = "\n".join(f"- {key}: {counts[key]}" for key in sorted(counts))
     return f"""# Coverage First Batch Prep Report
 
@@ -249,6 +294,8 @@ def _report(batch: BatchManifest, result: DryRunResult) -> str:
 - Initial Pilot candidate-area rows: {len(batch.pilot_candidate_rows)}
 - Remainder execution entities: {len(remainder_operations)}
 - Remainder candidate-area rows: {len(remainder_rows)}
+- Remainder ready execution entities: {len(remainder_ready)}
+- Remainder HOLD execution entities: {len(remainder_hold)}
 - Area contract: `13=shinosaka`, `17=sakai`
 - Duplicate shop candidates: {result.duplicate_shop_count}
 - Duplicate relation candidates: {result.duplicate_relation_count}
@@ -265,6 +312,20 @@ def _report(batch: BatchManifest, result: DryRunResult) -> str:
 3. Python and PHP consume one checked-in golden fixture for current and payload hashes.
 4. Lock, ledger, private audit CPT, capability usermeta, and server-only write constant have explicit storage and lifecycle contracts.
 5. Area term ID and slug pairs are checked before any apply path.
+
+## Persistent state lifecycle
+
+- Lock: non-autoloaded WordPress option `_escomi_coverage_lock_<sha256(batch_id|operation_id)>`; owner-token compare-and-delete at request end, stale compare-and-swap recovery after 120 seconds, and no broad cleanup.
+- Ledger: non-autoloaded WordPress option `_escomi_coverage_ledger_<sha256(batch_id|operation_id)>`; compare-and-swap transitions through `applying`, `applied`, `manual_review_required`, or `rolled_back`; retained for 400 days. Pruning is intentionally not implemented in this task.
+- Audit: private CPT `coverage_batch_audit`, excluded from REST and UI; every attempt appends a new record and records are retained indefinitely.
+- Capability: `escomi_publish_coverage_batch` is stored in the dedicated execution user's WordPress usermeta. Theme load never grants it; a future approved production task grants it immediately before the write window and revokes it after readback or rollback.
+- Write enable: `ESKOMI_COVERAGE_BATCH_WRITE_ENABLED` is a boolean in server-only `wp-config.php`, outside the repository. Its normal state is absent/false; this task did not define or enable it.
+
+## Pilot and remainder decision
+
+- Pilot decision: `PILOT_READY` for 9 operations / 10 candidate-area rows. This is a handoff decision only; no production apply was performed.
+- Remainder decision: {len(remainder_ready)} READY operations use the identical writer, schema, allowlist, hash, and rollback contract and need no second Pilot after a future Pilot PASS unless that contract or current state changes.
+- Remainder HOLD for missing physical location evidence: {hold_ids}. These remain compiled but cannot be applied until new first-party location evidence is mapped and a fresh dry-run passes.
 
 ## Write boundary
 

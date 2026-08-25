@@ -5,6 +5,398 @@
   },
   "batch_id": "coverage-first-2026-08-25",
   "candidate_row_count": 30,
+  "candidate_rows": [
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "Alivie（アリビエ）新大阪店",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0004",
+      "operation_id": "coverage-m0004-update",
+      "target_area": "新大阪",
+      "wp_id": 770,
+      "wp_slug": "alivie-%e6%96%b0%e5%a4%a7%e9%98%aa%e5%a4%a7%e9%98%aa%ef%bc%88%e3%82%a2%e3%83%aa%e3%83%93%e3%82%a8%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "Mrs.OnlyOne（オンリーワン）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0085",
+      "operation_id": "coverage-m0085-update",
+      "target_area": "新大阪",
+      "wp_id": 767,
+      "wp_slug": "mrs-onlyone-%e6%96%b0%e5%a4%a7%e9%98%aa%e5%a4%a7%e9%98%aa%e5%ba%97%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%82%aa%e3%83%b3%e3%83%aa%e3%83%bc%e3%83%af%e3%83%b3%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "SPALOT.Mrs(スパロットミセス) 新大阪",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0118",
+      "operation_id": "coverage-m0118-update",
+      "target_area": "新大阪",
+      "wp_id": 712,
+      "wp_slug": "spalot-mrs%ef%bc%88%e3%82%b9%e3%83%91%e3%83%ad%e3%83%83%e3%83%88%e3%83%9f%e3%82%bb%e3%82%b9%ef%bc%89"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "イチゴみるく",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0145",
+      "operation_id": "coverage-m0145-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "大人時間",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0167",
+      "operation_id": "coverage-m0167-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "極SPA",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0182",
+      "operation_id": "coverage-m0182-update",
+      "target_area": "新大阪",
+      "wp_id": 762,
+      "wp_slug": "%e6%a5%b5spa%ef%bc%88%e3%81%8d%e3%82%8f%e3%81%bf%e3%82%b9%e3%83%91%ef%bc%89"
+    },
+    {
+      "action": "ADD_AREA_RELATION",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "DSP",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_AREA_RELATION_MISSING",
+      "master_shop_id": "M0198",
+      "operation_id": "coverage-m0198-relation",
+      "target_area": "新大阪",
+      "wp_id": 781,
+      "wp_slug": "dsp%ef%bc%88%e3%83%87%e3%82%a3%e3%83%bc%e3%82%a8%e3%82%b9%e3%83%94%e3%83%bc%ef%bc%89"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "R&B（アールアンドビー）",
+      "final_area_class": "BROAD_NEARBY",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0217",
+      "operation_id": "coverage-m0217-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "神々のエステ",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0240",
+      "operation_id": "coverage-m0240-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "ミセスの子守唄",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0241",
+      "operation_id": "coverage-m0241-update",
+      "target_area": "新大阪",
+      "wp_id": 683,
+      "wp_slug": "%e3%83%9f%e3%82%bb%e3%82%b9%e3%81%ae%e5%ad%90%e5%ae%88%e5%94%84"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "Mrs.Two Heart（ミセストゥーハート）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0250",
+      "operation_id": "coverage-m0250-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "MONOTONE SPA（モノトーンスパ）",
+      "final_area_class": "BROAD_NEARBY",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0251",
+      "operation_id": "coverage-m0251-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "AMATERAS～アマテラス",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0260",
+      "operation_id": "coverage-m0260-update",
+      "target_area": "新大阪",
+      "wp_id": 750,
+      "wp_slug": "amateras%ef%bc%88%e3%82%a2%e3%83%9e%e3%83%86%e3%83%a9%e3%82%b9%ef%bc%89"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "Pulchra （プルクラ）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0293",
+      "operation_id": "coverage-m0293-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "ヌまるSPA新大阪",
+      "final_area_class": "BROAD_NEARBY",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0408",
+      "operation_id": "coverage-m0408-create",
+      "target_area": "新大阪",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "ゆだねて新大阪",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0480",
+      "operation_id": "coverage-m0480-update",
+      "target_area": "新大阪",
+      "wp_id": 775,
+      "wp_slug": "%e3%82%86%e3%81%a0%e3%81%ad%e3%81%a6"
+    },
+    {
+      "action": "ADD_AREA_RELATION",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "リフレリセ新大阪",
+      "final_area_class": "BROAD_NEARBY",
+      "mapping_status": "MATCHED_AREA_RELATION_MISSING",
+      "master_shop_id": "M0501",
+      "operation_id": "coverage-m0501-relation",
+      "target_area": "新大阪",
+      "wp_id": 889,
+      "wp_slug": "refre-lise%ef%bc%88%e3%83%aa%e3%83%95%e3%83%ac-%e3%83%aa%e3%82%bb%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "Mrs.RankUp（ミセスランクアップ）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0536",
+      "operation_id": "coverage-m0536-update",
+      "target_area": "新大阪",
+      "wp_id": 768,
+      "wp_slug": "mrs-rank-up%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%a9%e3%83%b3%e3%82%af%e3%82%a2%e3%83%83%e3%83%97%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "結-YUI-ミセス邸",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0644",
+      "operation_id": "coverage-m0644-update",
+      "target_area": "新大阪",
+      "wp_id": 776,
+      "wp_slug": "%e7%b5%90-%e3%83%9f%e3%82%bb%e3%82%b9%e9%82%b8%ef%bc%88%e3%82%86%e3%81%84%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 13,
+      "basic_verified": true,
+      "canonical_name": "Embrace（エンブレイス）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0647",
+      "operation_id": "coverage-m0647-update",
+      "target_area": "新大阪",
+      "wp_id": 866,
+      "wp_slug": "embrace%ef%bc%88%e3%82%a8%e3%83%b3%e3%83%96%e3%83%ac%e3%82%a4%e3%82%b9%ef%bc%89"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "イチゴみるく",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0145",
+      "operation_id": "coverage-m0145-create",
+      "target_area": "堺東",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "YOLUSPA 堺東店",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0209",
+      "operation_id": "coverage-m0209-update",
+      "target_area": "堺東",
+      "wp_id": 737,
+      "wp_slug": "yolu-spa-%e5%a0%ba%e6%9d%b1%ef%bc%88%e3%83%a8%e3%83%ab%e3%82%b9%e3%83%91%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "ミセスの子守唄",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0241",
+      "operation_id": "coverage-m0241-update",
+      "target_area": "堺東",
+      "wp_id": 683,
+      "wp_slug": "%e3%83%9f%e3%82%bb%e3%82%b9%e3%81%ae%e5%ad%90%e5%ae%88%e5%94%84"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "Amore・SPA（アモーレ・スパ）堺東",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0244",
+      "operation_id": "coverage-m0244-update",
+      "target_area": "堺東",
+      "wp_id": 724,
+      "wp_slug": "amore%e3%83%bbspa%ef%bc%88%e3%82%a2%e3%83%a2%e3%83%bc%e3%83%ac%e3%82%b9%e3%83%91%ef%bc%89"
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "Inca Rose（インカローズ）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0653",
+      "operation_id": "coverage-m0653-update",
+      "target_area": "堺東",
+      "wp_id": 734,
+      "wp_slug": "incarose%ef%bc%88%e3%82%a4%e3%83%b3%e3%82%ab%e3%83%ad%e3%83%bc%e3%82%ba%ef%bc%89"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "ROYAL MADAM（ロイヤルマダム）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0654",
+      "operation_id": "coverage-m0654-create",
+      "target_area": "堺東",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "UPDATE_EXISTING",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "Mrs.Bell＆Rose（ミセス ベル＆ローズ）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "MATCHED_EXISTING",
+      "master_shop_id": "M0655",
+      "operation_id": "coverage-m0655-update",
+      "target_area": "堺東",
+      "wp_id": 727,
+      "wp_slug": "mrs-bell%ef%bc%86rose-spa%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%99%e3%83%ab%e3%82%a2%e3%83%b3%e3%83%89%e3%83%ad%e3%83%bc%e3%82%ba%e3%82%b9%e3%83%91%ef%bc%89"
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "Mrs.C'est la vie（ミセス セラヴィ）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0660",
+      "operation_id": "coverage-m0660-create",
+      "target_area": "堺東",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "Mr.Dandies（ミスター・ダンディーズ）",
+      "final_area_class": "BROAD_NEARBY",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0661",
+      "operation_id": "coverage-m0661-create",
+      "target_area": "堺東",
+      "wp_id": null,
+      "wp_slug": ""
+    },
+    {
+      "action": "CREATE_NEW",
+      "area_term_id": 17,
+      "basic_verified": true,
+      "canonical_name": "Mrs.Nostalgia（ミセス ノスタルジー）",
+      "final_area_class": "CORE_LOCATION",
+      "mapping_status": "CREATE_NEW_CANDIDATE",
+      "master_shop_id": "M0663",
+      "operation_id": "coverage-m0663-create",
+      "target_area": "堺東",
+      "wp_id": null,
+      "wp_slug": ""
+    }
+  ],
   "execution_entity_count": 28,
   "mode": "DRY_RUN_ONLY",
   "operations": [
@@ -242,11 +634,31 @@
           }
         ],
         "master_shop_id": "M0145",
+        "physical_location_evidence": [
+          {
+            "access": "新大阪駅徒歩10分・西中島南方駅徒歩3分／堺東駅徒歩10分",
+            "address": "",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23",
+            "source": "https://ichigo-milk.com/",
+            "station": "新大阪駅／堺東駅",
+            "target_area": "新大阪"
+          },
+          {
+            "access": "新大阪駅徒歩10分・西中島南方駅徒歩3分／堺東駅徒歩10分",
+            "address": "",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23",
+            "source": "https://ichigo-milk.com/",
+            "station": "新大阪駅／堺東駅",
+            "target_area": "堺東"
+          }
+        ],
         "slug": "eskomi-m0145",
         "title": "イチゴみるく",
         "wp_id": null
       },
-      "payload_hash": "10467448cce5ef3c40544b275a1e77817604d1323e041a0de39181a2cff25ccb",
+      "payload_hash": "a10b11b53c194019eaa90edb690710acb7526808daa588fcca43643f301cbdec",
       "wp_id": null
     },
     {
@@ -295,11 +707,22 @@
           }
         ],
         "master_shop_id": "M0167",
+        "physical_location_evidence": [
+          {
+            "access": "",
+            "address": "",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23",
+            "source": "https://otonajikan.net/",
+            "station": "新大阪駅",
+            "target_area": "新大阪"
+          }
+        ],
         "slug": "eskomi-m0167",
         "title": "大人時間",
         "wp_id": null
       },
-      "payload_hash": "c3c66a33f0034f069d71f2b103f22717e76dce51ab45bd56a7214b7f12febcb6",
+      "payload_hash": "b7c2abf53126bbbb82323067dba8fa26d076d9df5b7aa9db7cb0baa8b4478149",
       "wp_id": null
     },
     {
@@ -455,7 +878,7 @@
       "action": "CREATE_NEW",
       "create_lifecycle": "draft_then_readback_then_publish",
       "deferred_evidence": [],
-      "dry_run_status": "READY_CREATE",
+      "dry_run_status": "HOLD",
       "master_shop_id": "M0217",
       "operation_id": "coverage-m0217-create",
       "payload": {
@@ -478,11 +901,12 @@
           }
         ],
         "master_shop_id": "M0217",
+        "physical_location_evidence": [],
         "slug": "eskomi-m0217",
         "title": "R&B（アールアンドビー）",
         "wp_id": null
       },
-      "payload_hash": "437a720669e7e2158f6cd81bf1f24ec16293abe87d7c6111ba3a2ee0496dcb5e",
+      "payload_hash": "58096552fdf647aa3ce37c383061b8515679035eb3d1ddd264e886418bbbb9d2",
       "wp_id": null
     },
     {
@@ -537,11 +961,22 @@
           }
         ],
         "master_shop_id": "M0240",
+        "physical_location_evidence": [
+          {
+            "access": "東口の案内を公式ページで確認",
+            "address": "",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23",
+            "source": "https://kamiesute.com/",
+            "station": "新大阪駅",
+            "target_area": "新大阪"
+          }
+        ],
         "slug": "eskomi-m0240",
         "title": "神々のエステ",
         "wp_id": null
       },
-      "payload_hash": "3b957711f588da268e65a6cb898b6f73bcf311850eac9e6efe82ab8f0cfab208",
+      "payload_hash": "97f46e383c7e25673bfbee20c6f4e32c9e352fac765638e3b4cc2192c8b03903",
       "wp_id": null
     },
     {
@@ -656,11 +1091,22 @@
           }
         ],
         "master_shop_id": "M0250",
+        "physical_location_evidence": [
+          {
+            "access": "十三駅東口より徒歩5分",
+            "address": "大阪府大阪市淀川区",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-22T23:15:13.148841+00:00",
+            "source": "https://mrs-two-heart.com/",
+            "station": "十三駅東口より徒歩5分",
+            "target_area": "新大阪"
+          }
+        ],
         "slug": "eskomi-m0250",
         "title": "Mrs.Two Heart（ミセストゥーハート）",
         "wp_id": null
       },
-      "payload_hash": "eac58afc2e9fa2d95604744c0afedc7ca6192d0f19e366e5612e4fb17ac44385",
+      "payload_hash": "d47710bb376eacf208719a7ec0d452a77b21d98f475c09f47bd71d0be0056962",
       "wp_id": null
     },
     {
@@ -715,11 +1161,22 @@
           }
         ],
         "master_shop_id": "M0251",
+        "physical_location_evidence": [
+          {
+            "access": "",
+            "address": "大阪府大阪市淀川区",
+            "final_area_class": "BROAD_NEARBY",
+            "observed_at": "2026-08-22T23:12:38.838528+00:00",
+            "source": "https://monotone-spa.com/top",
+            "station": "",
+            "target_area": "新大阪"
+          }
+        ],
         "slug": "eskomi-m0251",
         "title": "MONOTONE SPA（モノトーンスパ）",
         "wp_id": null
       },
-      "payload_hash": "d712eb7e8ae0c9053034529a615780771f85c47426f076683dd063a4f6e3006b",
+      "payload_hash": "d5477438fb11f4138536ba8e45b797e9d3ea2a42e31496a0dd335ba140e5891f",
       "wp_id": null
     },
     {
@@ -775,7 +1232,7 @@
       "action": "CREATE_NEW",
       "create_lifecycle": "draft_then_readback_then_publish",
       "deferred_evidence": [],
-      "dry_run_status": "READY_CREATE",
+      "dry_run_status": "HOLD",
       "master_shop_id": "M0293",
       "operation_id": "coverage-m0293-create",
       "payload": {
@@ -792,18 +1249,19 @@
           }
         ],
         "master_shop_id": "M0293",
+        "physical_location_evidence": [],
         "slug": "eskomi-m0293",
         "title": "Pulchra （プルクラ）",
         "wp_id": null
       },
-      "payload_hash": "bb418ab228174f90196a7ba8da81592ecce3c8b13f8d638dbc4ceea8fed1fb94",
+      "payload_hash": "c18cce0a877dba1d7bfcfa463b12ca20170cc93857108db0948a8b98e96b0f3f",
       "wp_id": null
     },
     {
       "action": "CREATE_NEW",
       "create_lifecycle": "draft_then_readback_then_publish",
       "deferred_evidence": [],
-      "dry_run_status": "READY_CREATE",
+      "dry_run_status": "HOLD",
       "master_shop_id": "M0408",
       "operation_id": "coverage-m0408-create",
       "payload": {
@@ -832,11 +1290,12 @@
           }
         ],
         "master_shop_id": "M0408",
+        "physical_location_evidence": [],
         "slug": "eskomi-m0408",
         "title": "ヌまるSPA新大阪",
         "wp_id": null
       },
-      "payload_hash": "a8595024f997bf7a2ed1cbf2eaf6fec65d790900db0dce416115e70a99c5864c",
+      "payload_hash": "f80fc939bd40d0e9bc340777b3264cb0f6b6a6333852b12c1411787cef598f91",
       "wp_id": null
     },
     {
@@ -1166,11 +1625,22 @@
           }
         ],
         "master_shop_id": "M0654",
+        "physical_location_evidence": [
+          {
+            "access": "南海高野線 堺東駅より徒歩7分",
+            "address": "大阪府堺市堺区翁橋町1-8",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23",
+            "source": "https://royal-madam.com/",
+            "station": "堺東駅",
+            "target_area": "堺東"
+          }
+        ],
         "slug": "eskomi-m0654",
         "title": "ROYAL MADAM（ロイヤルマダム）",
         "wp_id": null
       },
-      "payload_hash": "87ee13c739902b09cfbe56e3f9f40eecb05a830d7f2ace132b5a3dd4be9bcf9f",
+      "payload_hash": "3dfea15ed2ca809e8b76cece76992b0b1fabf771c758d0fb3cf8bba5885818b0",
       "wp_id": null
     },
     {
@@ -1268,18 +1738,29 @@
           }
         ],
         "master_shop_id": "M0660",
+        "physical_location_evidence": [
+          {
+            "access": "",
+            "address": "大阪府堺市堺区翁橋町1丁目近郊",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23T02:18:43.722901+00:00",
+            "source": "https://mrs-cest-la-vie.com/",
+            "station": "",
+            "target_area": "堺東"
+          }
+        ],
         "slug": "eskomi-m0660",
         "title": "Mrs.C'est la vie（ミセス セラヴィ）",
         "wp_id": null
       },
-      "payload_hash": "c589a9824800f0927f60594f707ce5c24d2d1f796ef8b6d71ec4fbc4cfc5fbdf",
+      "payload_hash": "b55ca647083f4d522e8606c18490172e082aacb3b736a562eb3b6e96e05a0d5c",
       "wp_id": null
     },
     {
       "action": "CREATE_NEW",
       "create_lifecycle": "draft_then_readback_then_publish",
       "deferred_evidence": [],
-      "dry_run_status": "READY_CREATE",
+      "dry_run_status": "HOLD",
       "master_shop_id": "M0661",
       "operation_id": "coverage-m0661-create",
       "payload": {
@@ -1314,11 +1795,12 @@
           }
         ],
         "master_shop_id": "M0661",
+        "physical_location_evidence": [],
         "slug": "eskomi-m0661",
         "title": "Mr.Dandies（ミスター・ダンディーズ）",
         "wp_id": null
       },
-      "payload_hash": "a58a780cabeed80c75116f93fc3b0e35638c41bc45bcc354527ff54543f65446",
+      "payload_hash": "9cb88f95ec3379d0bef7cf2feb58039a2e79e4eeff20a9ae8d13fea9ce31d1e6",
       "wp_id": null
     },
     {
@@ -1373,11 +1855,22 @@
           }
         ],
         "master_shop_id": "M0663",
+        "physical_location_evidence": [
+          {
+            "access": "",
+            "address": "大阪府堺市堺区近郊南瓦町近郊",
+            "final_area_class": "CORE_LOCATION",
+            "observed_at": "2026-08-23T02:19:55.846713+00:00",
+            "source": "https://mrs-nostalgia.com/",
+            "station": "",
+            "target_area": "堺東"
+          }
+        ],
         "slug": "eskomi-m0663",
         "title": "Mrs.Nostalgia（ミセス ノスタルジー）",
         "wp_id": null
       },
-      "payload_hash": "9a7666ef72f0cd145e376b5dc90f2f774c9e61c702fe95b647e1b3e8d3c7e073",
+      "payload_hash": "c93872eb2e2b72679c02197568c7408116a3d191158896922e97edbe7764127e",
       "wp_id": null
     }
   ],
@@ -1393,7 +1886,7 @@
     "coverage-m0654-create"
   ],
   "schema_version": 1,
-  "snapshot_fetched_at": "2026-08-25T18:47:17.835167+00:00",
+  "snapshot_fetched_at": "2026-08-25T19:20:02.789400+00:00",
   "source_hashes": {
     "ESKOMI_COVERAGE_FIRST_CURRENT_PROPOSED_2026-08-24.csv": "a52764c672743d3ab97e33383ad33eb2e832968da706db1e3546e178837a7e3c",
     "ESKOMI_COVERAGE_FIRST_WP_ACTIONS_2026-08-24.csv": "63ac63d5da97fc56f52ef173ad260a52177709af9b09c00178f9ae5ba8ef4b67",

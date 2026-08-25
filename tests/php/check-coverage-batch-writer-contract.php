@@ -413,12 +413,28 @@ $create_operation = array(
         'title' => 'New Shop',
         'slug' => 'eskomi-mcreate',
         'area_terms' => array(13, 17),
+        'physical_location_evidence' => array(
+            array(
+                'target_area' => '新大阪',
+                'final_area_class' => 'CORE_LOCATION',
+                'address' => '大阪市淀川区1',
+                'station' => '新大阪駅',
+                'access' => '新大阪駅徒歩5分',
+                'source' => 'https://new.example/access',
+                'observed_at' => '2026-08-23',
+            ),
+        ),
         'fields' => array(
             array('field' => 'official_url', 'proposed_value' => 'https://new.example/', 'source' => 'https://new.example/', 'observed_at' => '2026-08-23'),
             array('field' => 'shop_tel', 'proposed_value' => '090-1111-2222', 'source' => 'https://new.example/', 'observed_at' => '2026-08-23'),
         ),
     ),
 );
+
+coverage_reset_shop_runtime();
+$missing_location_create = $create_operation;
+$missing_location_create['payload']['physical_location_evidence'] = array();
+coverage_expect_error(escomi_coverage_apply_create($missing_location_create, array()), 'manifest_invalid');
 
 coverage_reset_shop_runtime();
 coverage_seed_shop(99, 'draft', 'Other', 'other');
@@ -434,6 +450,9 @@ $insert_index = array_search('insert:draft', $GLOBALS['coverage_events'], true);
 $readback_index = array_search('readback:post', $GLOBALS['coverage_events'], true);
 $publish_index = array_search('status:publish', $GLOBALS['coverage_events'], true);
 coverage_expect($insert_index !== false && $readback_index > $insert_index && $publish_index > $readback_index, 'Create lifecycle must be draft then readback then publish');
+$GLOBALS['coverage_posts'][$created_id]['post_name'] = 'third-party-slug';
+coverage_expect_error(escomi_coverage_apply_rollback($create_result['rollback']), 'rollback_conflict');
+$GLOBALS['coverage_posts'][$created_id]['post_name'] = 'eskomi-mcreate';
 coverage_expect(escomi_coverage_apply_rollback($create_result['rollback']) === true, 'Create rollback failed');
 coverage_expect($GLOBALS['coverage_posts'][$created_id]['post_status'] === 'draft', 'Create rollback must return post to draft');
 
@@ -489,6 +508,9 @@ $execution_ledger_name = escomi_coverage_ledger_option_name('coverage-test-batch
 $execution_ledger = json_decode($GLOBALS['coverage_options'][$execution_ledger_name] ?? '', true);
 coverage_expect(($execution_ledger['state'] ?? '') === 'applied', 'Execution ledger did not reach applied');
 coverage_expect(!array_key_exists(escomi_coverage_lock_option_name('coverage-test-batch', $execution_operation['operation_id']), $GLOBALS['coverage_options']), 'Execution lock was not released');
+$execution_audit = json_decode($GLOBALS['coverage_posts'][$execution_ledger['audit_id']]['post_content'] ?? '', true);
+coverage_expect(isset($execution_audit['before_hashes']['basic_price'], $execution_audit['after_hashes']['basic_price']), 'Audit must retain before/after hashes');
+coverage_expect(($execution_audit['sources'][0]['source'] ?? '') === 'https://example.test/price', 'Audit must retain approved source evidence');
 $event_count = count($GLOBALS['coverage_events']);
 $replayed = escomi_coverage_execute_operation(
     $execution_operation,
@@ -502,5 +524,36 @@ $replayed = escomi_coverage_execute_operation(
 );
 coverage_expect($replayed instanceof WP_REST_Response && ($replayed->data['duplicate'] ?? false) === true, 'Applied replay must be idempotent');
 coverage_expect(count($GLOBALS['coverage_events']) === $event_count, 'Replay repeated a mutation or audit');
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_options'] = array();
+$GLOBALS['coverage_fail_publish'] = true;
+$execution_create = $create_operation;
+$execution_create['dry_run_status'] = 'READY_CREATE';
+$execution_create['payload_hash'] = escomi_coverage_payload_hash($execution_create['payload']);
+$create_params = array(
+    'batch_id' => 'coverage-create-batch',
+    'operation_id' => $execution_create['operation_id'],
+    'attempt_id' => '750e8400-e29b-41d4-a716-446655440000',
+    'payload_hash' => $execution_create['payload_hash'],
+    'mode' => 'apply',
+);
+$publish_failure = escomi_coverage_execute_operation($execution_create, $create_params);
+coverage_expect_error($publish_failure, 'publish_failed');
+$create_ledger_name = escomi_coverage_ledger_option_name('coverage-create-batch', $execution_create['operation_id']);
+$create_ledger = json_decode($GLOBALS['coverage_options'][$create_ledger_name] ?? '', true);
+coverage_expect(($create_ledger['state'] ?? '') === 'manual_review_required', 'Failed create must enter manual_review_required');
+coverage_expect(is_int($create_ledger['post_id'] ?? null), 'Failed create ledger must retain the draft ID');
+coverage_expect(
+    count(array_filter($GLOBALS['coverage_posts'], fn($post) => ($post['post_type'] ?? '') === 'coverage_batch_audit' && ($post['post_status'] ?? '') === 'private')) === 1,
+    'Failed attempt must append one private audit record'
+);
+$failed_draft_id = $create_ledger['post_id'];
+$GLOBALS['coverage_fail_publish'] = false;
+$create_params['attempt_id'] = '850e8400-e29b-41d4-a716-446655440000';
+$create_retry = escomi_coverage_execute_operation($execution_create, $create_params);
+coverage_expect($create_retry instanceof WP_REST_Response && $create_retry->status === 201, 'Authorized create retry failed');
+coverage_expect(($create_retry->data['post_id'] ?? null) === $failed_draft_id, 'Create retry did not reuse ledger draft');
+coverage_expect(count(array_filter($GLOBALS['coverage_events'], fn($event) => $event === 'insert:draft')) === 1, 'Create execution retry inserted a second draft');
 
 echo "Coverage batch writer boundary PASS\n";

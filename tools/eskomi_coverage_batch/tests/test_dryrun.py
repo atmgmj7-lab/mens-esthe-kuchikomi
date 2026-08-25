@@ -7,6 +7,7 @@ from tools.eskomi_coverage_batch.models import (
     BatchManifest,
     BatchOperation,
     FieldProposal,
+    PhysicalLocationEvidence,
 )
 from tools.eskomi_coverage_batch.wordpress_snapshot import (
     ShopSnapshot,
@@ -35,7 +36,18 @@ def field(name, current, proposed, change="UPDATE"):
     )
 
 
-def operation(action, fields=(), wp_id=10, area_terms=(13,), title="Test Shop", slug="test-shop"):
+def operation(action, fields=(), wp_id=10, area_terms=(13,), title="Test Shop", slug="test-shop", has_location=True):
+    evidence = (
+        PhysicalLocationEvidence(
+            "新大阪",
+            "CORE_LOCATION",
+            "大阪市淀川区1",
+            "新大阪駅",
+            "新大阪駅徒歩5分",
+            "https://example.test/access",
+            "2026-08-23",
+        ),
+    ) if has_location else ()
     return BatchOperation(
         operation_id="coverage-mtest-op",
         master_shop_id="MTEST",
@@ -47,6 +59,7 @@ def operation(action, fields=(), wp_id=10, area_terms=(13,), title="Test Shop", 
         fields=tuple(fields),
         deferred_fields=(),
         payload_hash="a" * 64,
+        location_evidence=evidence,
     )
 
 
@@ -177,6 +190,19 @@ class DryRunTest(unittest.TestCase):
         )
         entity = dry_run(manifest(create), self.snapshot()).entity_results[0]
         self.assertEqual("READY_CREATE", entity.status)
+
+    def test_create_without_physical_location_evidence_is_held(self):
+        create = operation(
+            "CREATE_NEW",
+            fields=(field("official_url", "", "https://new.example/", "CREATE_FIELD"),),
+            wp_id=None,
+            title="New Shop",
+            slug="new-shop",
+            has_location=False,
+        )
+        entity = dry_run(manifest(create), self.snapshot()).entity_results[0]
+        self.assertEqual("HOLD", entity.status)
+        self.assertIn("physical_location_evidence_missing", entity.collisions)
 
     def test_real_batch_dry_run_is_complete_and_deterministic(self):
         batch = compile_batch(ACTIONS, PROPOSED, W3)

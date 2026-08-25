@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Sequence, Tuple
 
 from .hash_contract import payload_hash
-from .models import BatchManifest, BatchOperation, CandidateRow, FieldProposal
+from .models import (
+    BatchManifest,
+    BatchOperation,
+    CandidateRow,
+    FieldProposal,
+    PhysicalLocationEvidence,
+)
 
 
 BATCH_ID = "coverage-first-2026-08-25"
@@ -110,6 +116,9 @@ def _build_operation(rows: Sequence[CandidateRow]) -> BatchOperation:
         if proposal.change_type != "NO_CHANGE" and proposal.proposed_value != ""
     }
     area_terms = tuple(sorted({row.area_term_id for row in rows}))
+    location_evidence = tuple(
+        row.location_evidence for row in rows if row.location_evidence is not None
+    )
     payload = {
         "action": first.action,
         "area_terms": list(area_terms),
@@ -132,6 +141,7 @@ def _build_operation(rows: Sequence[CandidateRow]) -> BatchOperation:
         area_terms=area_terms,
         fields=fields,
         deferred_fields=deferred_fields,
+        location_evidence=location_evidence,
         payload_hash=payload_hash(payload),
     )
 
@@ -144,6 +154,8 @@ def compile_batch(
     actions_path = Path(actions_path)
     proposed_path = Path(proposed_path)
     all_sources = (actions_path, proposed_path, *(Path(path) for path in source_paths))
+    if len(source_paths) < 1:
+        raise BatchCompileError("W3 final dataset is required")
     action_rows = _read_csv(actions_path)
     basic_rows = [row for row in action_rows if row["BASIC_VERIFIED"] == "YES"]
 
@@ -160,6 +172,14 @@ def compile_batch(
             raise BatchCompileError(f"unknown target area: {row['target_area']}")
 
     wanted = set(keys)
+    w3_by_key = {}
+    for row in _read_csv(Path(source_paths[0])):
+        key = (row["area_target"], row["Master_ID"])
+        if key not in wanted:
+            continue
+        if key in w3_by_key:
+            raise BatchCompileError(f"duplicate W3 candidate: {key}")
+        w3_by_key[key] = row
     proposed_by_key: Dict[Tuple[str, str], List[FieldProposal]] = defaultdict(list)
     for row in _read_csv(proposed_path):
         key = (row["target_area"], row["Master_ID"])
@@ -183,6 +203,23 @@ def compile_batch(
         key = (row["target_area"], row["Master_ID"])
         if key not in proposed_by_key:
             raise BatchCompileError(f"missing proposals for {key}")
+        w3 = w3_by_key.get(key)
+        if w3 is None:
+            raise BatchCompileError(f"missing W3 candidate for {key}")
+        has_location = any(w3.get(name, "").strip() for name in ("address", "station", "access"))
+        location_evidence = None
+        if has_location:
+            if not w3["official_URL"].startswith("https://"):
+                raise BatchCompileError(f"HTTPS source required for location evidence {key}")
+            location_evidence = PhysicalLocationEvidence(
+                target_area=row["target_area"],
+                final_area_class=w3["final_area_class"],
+                address=w3["address"],
+                station=w3["station"],
+                access=w3["access"],
+                source=w3["official_URL"],
+                observed_at=w3["official_observedAt"],
+            )
         candidates.append(
             CandidateRow(
                 target_area=row["target_area"],
@@ -198,6 +235,7 @@ def compile_batch(
                 proposals=tuple(
                     sorted(proposed_by_key[key], key=lambda proposal: proposal.field)
                 ),
+                location_evidence=location_evidence,
             )
         )
 

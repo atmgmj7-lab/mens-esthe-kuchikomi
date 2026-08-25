@@ -142,6 +142,8 @@ def _classify(operation: BatchOperation, snapshot: WordPressSnapshot) -> EntityR
     shops_by_id = snapshot.shops_by_id
     if operation.action == "CREATE_NEW":
         collisions = _create_collisions(operation, snapshot.shops)
+        if not operation.location_evidence:
+            collisions = tuple(sorted((*collisions, "physical_location_evidence_missing")))
         return EntityResult(
             operation.operation_id,
             operation.master_shop_id,

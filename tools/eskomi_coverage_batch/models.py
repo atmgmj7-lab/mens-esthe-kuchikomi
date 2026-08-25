@@ -16,6 +16,17 @@ class FieldProposal:
 
 
 @dataclass(frozen=True)
+class PhysicalLocationEvidence:
+    target_area: str
+    final_area_class: str
+    address: str
+    station: str
+    access: str
+    source: str
+    observed_at: str
+
+
+@dataclass(frozen=True)
 class CandidateRow:
     target_area: str
     master_shop_id: str
@@ -28,6 +39,7 @@ class CandidateRow:
     basic_verified: bool
     area_term_id: int
     proposals: Tuple[FieldProposal, ...]
+    location_evidence: Optional[PhysicalLocationEvidence] = None
 
 
 @dataclass(frozen=True)
@@ -42,6 +54,7 @@ class BatchOperation:
     fields: Tuple[FieldProposal, ...]
     deferred_fields: Tuple[FieldProposal, ...]
     payload_hash: str
+    location_evidence: Tuple[PhysicalLocationEvidence, ...] = ()
 
 
 @dataclass(frozen=True)
