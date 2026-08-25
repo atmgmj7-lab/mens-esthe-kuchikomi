@@ -41,6 +41,13 @@ both areas:
 - `M0241` is one `UPDATE_EXISTING` operation for WordPress post 683, which already
   has both area relations.
 
+The 2026-08-26 pre-implementation recheck compared M0145 against all 380 current
+public shops. Its official URL `https://ichigo-milk.com/`, telephone
+`090-4464-1515`, and normalized canonical identity had zero exact collisions; the
+W3 row remained `CORE_LOCATION`, `CONFIRMED`, and observed 2026-08-23. M0145 is
+therefore included in the initial pilot as one cross-area create operation. Apply
+still repeats the same collision checks across all accessible post statuses.
+
 The compiler must preserve both area rows in CSV reporting while emitting only one
 writer operation for each of these Master IDs. A cardinality assertion rejects any
 manifest that is not 30 candidate-area rows and 28 execution entities.
@@ -95,6 +102,15 @@ Production writes are fail-closed behind the WordPress constant
 `true`, apply requests return 503. Authenticated dry-run remains available so a
 future production task can repeat validation before enabling a write window.
 
+### 4.4 Cross-language hash contract
+
+Python and PHP use one checked-in golden fixture at
+`tests/fixtures/coverage-batch-hash-golden.json`. It contains canonical current-hash
+and payload-hash inputs for missing, empty, integer, Unicode, URL-with-slash, and
+cross-area operations plus their literal expected SHA-256 digests. Python and PHP
+tests both load the same expected digests; neither implementation generates the
+expected values during its own test run.
+
 ## 5. Authentication and Authorization
 
 The route requires both:
@@ -106,6 +122,18 @@ The route requires both:
 `current_user_can('edit_post', $post_id)`. `CREATE_NEW` requires the shop post type's
 create/publish capabilities. A future caller uses a dedicated WordPress Application
 Password account; it does not reuse the daily-update account or secret.
+
+The custom capability is stored only in the dedicated user's WordPress usermeta via
+the normal role/capability APIs. Theme load never grants it automatically. A future
+approved production task grants it immediately before the batch window and revokes
+it after final readback or rollback. Application Password lifecycle remains separate
+from this code and is never represented in the manifest.
+
+`ESKOMI_COVERAGE_BATCH_WRITE_ENABLED` is stored as a boolean constant in the
+server-only `wp-config.php` environment, outside the repository and public REST. Its
+normal state is absent/false. A future approved write window sets it to true only
+after authenticated dry-run, and unsets it after the window even if an operation
+fails. This task does not set the constant.
 
 The route returns 503 when the capability contract or batch manifest cannot be
 loaded, 401/403 through WordPress authentication and permission handling, 400 for
@@ -131,7 +159,9 @@ Direct field allowlist:
 Create-only values:
 
 - `post_type` is server-fixed to `shop`.
-- `post_status` is server-fixed to `publish`; the caller cannot provide it.
+- initial `post_status` is server-fixed to `draft`; the caller cannot provide it.
+- the writer changes the draft to `publish` only after ACF, provenance, area, title,
+  slug, and duplicate-protection readback all pass.
 - `post_title` is the approved official name.
 - `post_name` is the approved slug candidate after collision validation.
 - the initial area relations come only from the manifest.
@@ -177,6 +207,10 @@ whitespace, with unescaped Unicode and slashes. Missing values use
 `{"exists":false,"field":"...","value":null}`; an empty string is not equivalent
 to missing.
 
+The operation payload hash uses the same canonical JSON rules with recursively
+lexicographically sorted object keys while preserving array order. The golden fixture
+is the normative cross-language authority for both algorithms.
+
 The compiler computes hashes from the current REST snapshot. The writer recomputes
 them from WordPress immediately before apply. A mismatch marks only that field as
 `CONFLICT`; it is not overwritten. Other ready fields may proceed, but the candidate
@@ -202,8 +236,11 @@ No `NO_CHANGE`, `DEFERRED_FIELD`, or `CONFLICT` field is sent to the mutation la
 
 ## 10. Area Relation Path
 
-Area relation updates are append-only. The writer verifies the target term exists in
-taxonomy `area` and is one of the fixed IDs. If already related, it returns
+Area relation updates are append-only. Before dry-run or apply, both implementations
+must verify the exact taxonomy contract: term ID 13 is taxonomy `area` with slug
+`shinosaka`, and term ID 17 is taxonomy `area` with slug `sakai`. An absent term,
+renamed slug, swapped ID, or different taxonomy returns `AREA_CONTRACT_MISMATCH` and
+blocks every relation or create operation without writing. If already related, it returns
 `NO_CHANGE`. Otherwise it appends the term and verifies readback. It never replaces
 or removes existing relations during forward apply and never changes Primary Area.
 
@@ -222,11 +259,13 @@ post statuses for exact collisions on:
 Any collision returns `CONFLICT` and no post is created. Name similarity alone is not
 used for automatic matching.
 
-The writer creates the post with its server-fixed type and status, writes allowlisted
-ACF fields using resolved field keys, adds fixed area relations, verifies all
-readbacks, and only then records success. If the operation fails before successful
-commit, the post is changed to draft rather than hard-deleted and the failure is
-recorded for manual review.
+The writer creates the post as a draft, writes allowlisted ACF fields using resolved
+field keys, adds fixed area relations, and verifies title, slug, fields, provenance,
+and relations while it is non-public. Only after every required readback passes does
+it transition the same post to publish and verify the final public status. If any
+pre-publish or publish readback fails, the post remains or is returned to draft; it
+is never hard-deleted. The ledger records the draft post ID and
+`MANUAL_REVIEW_REQUIRED`, preventing a retry from creating a second draft.
 
 ## 12. Concurrency and Idempotency
 
@@ -234,11 +273,22 @@ Every execution entity has a deterministic operation ID derived from batch ID,
 Master ID, action, and target entity. Every exact operation has a canonical payload
 hash.
 
-An atomic `add_option()` lock serializes each operation. Its value contains a safe
-timestamp and random token and has a bounded stale-lock recovery path using
-compare-and-swap. The caller never receives the token.
+An atomic non-autoloaded option named
+`_escomi_coverage_lock_<sha256(batch_id|operation_id)>` serializes each operation.
+Its value contains a timestamp and random token. It is deleted by owner-token
+compare-and-delete at request end. A lock older than 120 seconds is recovered only
+by compare-and-swap; no cron or broad lock cleanup runs. The caller never receives
+the token.
 
-The persistent ledger is keyed by batch ID, operation ID, and payload hash. A retry
+The persistent ledger uses one non-autoloaded option named
+`_escomi_coverage_ledger_<sha256(batch_id|operation_id)>`. Its value records schema
+version, payload hash, state (`applying`, `applied`, `manual_review_required`, or
+`rolled_back`), WordPress post ID, changed field hashes, added term IDs, attempt UUID,
+and timestamps. It is created atomically before mutation and updated only by
+compare-and-swap while the operation lock is owned. Ledger options are retained for
+400 days after their last transition; pruning is not implemented in this task and a
+future cleanup may remove only expired terminal ledgers whose audit entry exists.
+A retry
 of an applied operation returns the stored result without creating, relating, or
 updating again. A reused operation ID with a different payload hash is a conflict.
 The dry-run test executes the same compiled batch twice and requires:
@@ -249,7 +299,11 @@ The dry-run test executes the same compiled batch twice and requires:
 
 ## 13. Audit and Rollback
 
-The writer records a private append-only audit entry containing safe identifiers,
+The writer registers private CPT `coverage_batch_audit` with
+`public=false`, `publicly_queryable=false`, `show_in_rest=false`, and no editor UI.
+Each attempt inserts a new private audit post; application code exposes no update or
+delete route for audit records. Audit records are retained indefinitely in this
+task. The writer records safe identifiers,
 field names, before/after hashes, area relations added, created post ID, source URLs,
 observed dates, attempt UUID, result, and timestamps. It never records credentials,
 authorization headers, lock tokens, or full secret-bearing requests.
@@ -276,7 +330,7 @@ No cache request is made in this task's public-data dry-run.
 
 ## 15. Pilot and Remainder Contract
 
-The fixed pilot subset is:
+The fixed initial pilot is nine execution operations:
 
 1. M0004 Alivie, WP 770, UPDATE_EXISTING
 2. M0118 SPALOT.Mrs, WP 712, UPDATE_EXISTING
@@ -286,12 +340,12 @@ The fixed pilot subset is:
 6. M0209 YOLUSPA, WP 737, UPDATE_EXISTING
 7. M0653 Inca Rose, WP 734, UPDATE_EXISTING
 8. M0654 ROYAL MADAM, CREATE_NEW
+9. M0145 Ichigo Milk, CREATE_NEW with area terms 13 and 17
 
-The remainder artifact contains the other 22 candidate-area rows and 20 execution
-entities. A remainder operation is `SAME_CONTRACT_READY` only when its action and all
-write fields were exercised by a passed pilot operation. The cross-area create for
-M0145 is `RE_PILOT_REQUIRED` because it combines CREATE with two area relations; it
-is not silently treated as equivalent to a single-area create.
+The pilot projects to ten candidate-area rows because M0145 appears once per target
+area. The remainder artifact contains the other 20 candidate-area rows and 19
+execution entities. A remainder operation is `SAME_CONTRACT_READY` only when its
+action and all write fields were exercised by a passed pilot operation.
 
 ## 16. Required Outputs
 
@@ -308,6 +362,11 @@ value/hash, proposed value/hash, source URL, observed date, operation ID, payloa
 hash, and defer/conflict reason. The report contains a candidate-level 30/30 summary
 and a separate 28-entity execution summary.
 
+The legacy required filename `PILOT_8_PAYLOAD` is retained for handoff compatibility,
+but its top-level metadata explicitly records `original_pilot_operations=8`,
+`added_pilot_operations=["M0145"]`, `pilot_operation_count=9`, and
+`pilot_candidate_area_row_count=10`.
+
 ## 17. Testing Strategy
 
 All production behavior is developed test-first.
@@ -317,11 +376,17 @@ projection, pilot identity, schema rejection, field deferral, current hashes,
 duplicate discovery, slug collisions, current-state conflicts, output shape, and
 two-pass dry-run idempotency.
 
+The Python and PHP focused suites both load
+`tests/fixtures/coverage-batch-hash-golden.json` and assert every literal current hash
+and payload hash. The PHP suite also proves the fixed area pairs `13=shinosaka` and
+`17=sakai`, while rejecting swapped or renamed terms.
+
 PHP focused tests use WordPress stubs to cover POST-only registration, capability
 checks, disabled-write 503, immutable manifest selection, unknown field rejection,
 ID/slug mismatch, field-level conflict, ACF field-key requirement, no-op updates,
 append-only relations, duplicate create rejection, operation locks, ledger replay,
-rollback restoration, create-to-draft rollback, and safe audit logging.
+draft-first create, readback-gated publish, rollback restoration, create-to-draft
+rollback, concrete ledger lifecycle, and safe append-only audit logging.
 
 Related verification includes:
 
