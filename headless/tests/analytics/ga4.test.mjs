@@ -38,13 +38,18 @@ async function fixture(name) {
 }
 
 async function withSyntheticCredential(callback) {
-  const original = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  process.env.GOOGLE_APPLICATION_CREDENTIALS = await writeSyntheticCredential("ga4-service-account.json");
+  const originalPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalInline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  const path = await writeSyntheticCredential("ga4-service-account.json");
+  delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = path;
   try {
     return await callback();
   } finally {
-    if (original === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    else process.env.GOOGLE_APPLICATION_CREDENTIALS = original;
+    if (originalPath === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    else process.env.GOOGLE_APPLICATION_CREDENTIALS = originalPath;
+    if (originalInline === undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    else process.env.GOOGLE_SERVICE_ACCOUNT_JSON = originalInline;
   }
 }
 
@@ -166,6 +171,20 @@ test("loadGoogleServiceAccount keeps the existing filesystem fallback when inlin
 
   assert.equal(value.state, "ok");
   assert.equal(value.data.clientEmail, syntheticCredential.client_email);
+});
+
+test("filesystem test helper isolates and restores an ambient inline credential", async () => {
+  const originalInline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON = "{}";
+  try {
+    const value = await withSyntheticCredential(() => credentials.loadGoogleServiceAccount());
+    assert.equal(value.state, "ok");
+    assert.equal(value.data.clientEmail, syntheticCredential.client_email);
+    assert.equal(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, "{}");
+  } finally {
+    if (originalInline === undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    else process.env.GOOGLE_SERVICE_ACCOUNT_JSON = originalInline;
+  }
 });
 
 test("loadGoogleServiceAccount gives valid inline JSON priority over a configured file", async () => {
@@ -748,13 +767,18 @@ test("collectGa4 distinguishes actual zero, no rows, malformed rows, HTTP states
     assert.equal(mixedFailures.data, null);
   }
 
-  const original = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalInline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   try {
     const unconfigured = await ga4.collectGa4({ period: basePeriod, propertyId: "123" });
     assert.equal(unconfigured.state, credentialNotConfigured.state);
   } finally {
-    if (original !== undefined) process.env.GOOGLE_APPLICATION_CREDENTIALS = original;
+    if (originalPath === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    else process.env.GOOGLE_APPLICATION_CREDENTIALS = originalPath;
+    if (originalInline === undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    else process.env.GOOGLE_SERVICE_ACCOUNT_JSON = originalInline;
   }
 });
 

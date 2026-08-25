@@ -30,15 +30,19 @@ async function fixture(name) {
 }
 
 async function withCredential(callback) {
-  const original = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalInline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   const path = join(tempRoot, "gsc-service-account.json");
   await writeFile(path, JSON.stringify(credential), "utf8");
+  delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   process.env.GOOGLE_APPLICATION_CREDENTIALS = path;
   try {
     return await callback();
   } finally {
-    if (original === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    else process.env.GOOGLE_APPLICATION_CREDENTIALS = original;
+    if (originalPath === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    else process.env.GOOGLE_APPLICATION_CREDENTIALS = originalPath;
+    if (originalInline === undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    else process.env.GOOGLE_SERVICE_ACCOUNT_JSON = originalInline;
   }
 }
 
@@ -68,6 +72,20 @@ function basePeriod(days = 7) {
 }
 
 after(async () => { await rm(tempRoot, { recursive: true, force: true }); });
+
+test("filesystem test helper isolates and restores an ambient inline credential", async () => {
+  const originalInline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON = "{}";
+  try {
+    const value = await withCredential(() => credentials.loadGoogleServiceAccount());
+    assert.equal(value.state, "ok");
+    assert.equal(value.data.clientEmail, credential.client_email);
+    assert.equal(process.env.GOOGLE_SERVICE_ACCOUNT_JSON, "{}");
+  } finally {
+    if (originalInline === undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    else process.env.GOOGLE_SERVICE_ACCOUNT_JSON = originalInline;
+  }
+});
 
 test("collectGsc discovers final data and clamps copied 7-day periods without mutating requested ranges", async () => {
   const latestFinal = await fixture("latest-final");
@@ -311,14 +329,19 @@ test("collectGsc validates the fixed property before credentials and uses only t
 });
 
 test("collectGsc returns credential missing before API work", async () => {
-  const original = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const originalInline = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   try {
     let calls = 0;
     const value = await gsc.collectGsc({ period: basePeriod(), fetchImpl: async () => { calls += 1; throw new Error("must not fetch"); } });
     assert.equal(value.state, "not_configured");
     assert.equal(calls, 0);
   } finally {
-    if (original !== undefined) process.env.GOOGLE_APPLICATION_CREDENTIALS = original;
+    if (originalPath === undefined) delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    else process.env.GOOGLE_APPLICATION_CREDENTIALS = originalPath;
+    if (originalInline === undefined) delete process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    else process.env.GOOGLE_SERVICE_ACCOUNT_JSON = originalInline;
   }
 });
