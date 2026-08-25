@@ -128,7 +128,7 @@ def _build_operation(rows: Sequence[CandidateRow]) -> BatchOperation:
         canonical_name=first.canonical_name,
         action=first.action,
         wp_id=first.wp_id,
-        wp_slug=first.wp_slug,
+        wp_slug=first.wp_slug or f"eskomi-{first.master_shop_id.lower()}",
         area_terms=area_terms,
         fields=fields,
         deferred_fields=deferred_fields,

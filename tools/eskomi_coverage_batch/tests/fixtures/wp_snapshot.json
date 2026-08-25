@@ -1,0 +1,23 @@
+{
+  "areas": {
+    "13": "shinosaka",
+    "17": "sakai"
+  },
+  "shops": [
+    {
+      "id": 770,
+      "slug": "alivie-shinosaka",
+      "status": "publish",
+      "title": "Alivie（アリビエ）新大阪店",
+      "area_terms": [13],
+      "fields": {
+        "basic_price": "13000",
+        "official_url": "https://www.osaka-alivie.com/",
+        "shop_address": "old address",
+        "shop_booking": "完全予約制",
+        "shop_hours": "old hours",
+        "shop_tel": "080-8850-3660"
+      }
+    }
+  ]
+}

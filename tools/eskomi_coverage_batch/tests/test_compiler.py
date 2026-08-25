@@ -68,6 +68,7 @@ class CompilerTest(unittest.TestCase):
         self.assertEqual("CREATE_NEW", by_master["M0145"].action)
         self.assertEqual((13, 17), by_master["M0145"].area_terms)
         self.assertIsNone(by_master["M0145"].wp_id)
+        self.assertEqual("eskomi-m0145", by_master["M0145"].wp_slug)
         self.assertEqual("UPDATE_EXISTING", by_master["M0241"].action)
         self.assertEqual(683, by_master["M0241"].wp_id)
         self.assertEqual((13, 17), by_master["M0241"].area_terms)
