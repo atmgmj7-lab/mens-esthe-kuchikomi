@@ -1,6 +1,10 @@
 <?php
 // v2026-05-16
 require_once __DIR__ . '/shop-public-meta.php';
+$coverage_batch_writer = __DIR__ . '/coverage-batch-writer.php';
+if (is_readable($coverage_batch_writer)) {
+    require_once $coverage_batch_writer;
+}
 /**
  * =====================================================
  * CSS分割読み込み（安全版）
