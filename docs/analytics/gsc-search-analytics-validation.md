@@ -7,6 +7,13 @@ with `type: "web"`, `dataState: "final"`, and the read-only
 property, and scope are closed in code; callers cannot supply an endpoint or a
 different property.
 
+GSC uses the shared server-only Google credential loader. The loader prefers
+`GOOGLE_SERVICE_ACCOUNT_JSON` and retains `GOOGLE_APPLICATION_CREDENTIALS` as a
+local file fallback only when the inline variable is absent. A present but
+invalid inline value fails closed; it never falls through to a valid local file.
+Both sources must pass the same service-account, RSA private-key, and exact
+Google OAuth token-endpoint validation before any fetch.
+
 For each requested 7-day or 28-day Tokyo period, the adapter first discovers the
 latest final date using a date dimension. It retains copied `requested` ranges,
 then shifts copied `effective` current and previous ranges together to end on the

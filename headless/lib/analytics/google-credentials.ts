@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSign } from "node:crypto";
+import { createPrivateKey, createSign } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import {
@@ -13,6 +13,7 @@ import {
 export const GOOGLE_ANALYTICS_READONLY_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
 export const GOOGLE_SEARCH_CONSOLE_READONLY_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
 const GOOGLE_OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+const MAX_INLINE_CREDENTIAL_BYTES = 16 * 1024;
 
 export type GoogleOAuthScope =
   | typeof GOOGLE_ANALYTICS_READONLY_SCOPE
@@ -47,6 +48,8 @@ type ServiceAccountDocument = {
   token_uri: string;
 };
 
+type CredentialSource = "inline" | "file";
+
 export type GoogleAccessTokenOptions = CredentialOptions & {
   fetchImpl?: typeof fetch;
   now?: () => Date;
@@ -79,10 +82,60 @@ function isServiceAccountDocument(value: unknown): value is ServiceAccountDocume
   return true;
 }
 
+function credentialFailureCode(source: CredentialSource, detail: string): string {
+  return source === "inline" ? `credential_inline_${detail}` : `credential_${detail}`;
+}
+
+function parseGoogleServiceAccount(
+  contents: string,
+  source: CredentialSource
+): AnalyticsSourceResult<GoogleServiceAccount> {
+  if (source === "inline") {
+    if (Buffer.byteLength(contents, "utf8") > MAX_INLINE_CREDENTIAL_BYTES) {
+      return safeFailure("invalid_response", "credential_inline_too_large");
+    }
+    if (contents.trim() === "") {
+      return safeFailure("invalid_response", "credential_inline_empty");
+    }
+  }
+
+  let document: unknown;
+  try {
+    document = JSON.parse(contents);
+  } catch {
+    return safeFailure("invalid_response", credentialFailureCode(source, "invalid_json"));
+  }
+  if (!isServiceAccountDocument(document)) {
+    return safeFailure("invalid_response", credentialFailureCode(source, "invalid_shape"));
+  }
+
+  const privateKey = document.private_key.replaceAll("\\n", "\n");
+  try {
+    const key = createPrivateKey(privateKey);
+    if (key.type !== "private" || key.asymmetricKeyType !== "rsa") {
+      return safeFailure("invalid_response", credentialFailureCode(source, "invalid_private_key"));
+    }
+  } catch {
+    return safeFailure("invalid_response", credentialFailureCode(source, "invalid_private_key"));
+  }
+
+  return analyticsSuccess({
+    clientEmail: document.client_email,
+    privateKey,
+    tokenUri: document.token_uri,
+  });
+}
+
 export async function loadGoogleServiceAccount(
   options: CredentialOptions = {}
 ): Promise<AnalyticsSourceResult<GoogleServiceAccount>> {
-  const credentialPath = (options.env ?? process.env).GOOGLE_APPLICATION_CREDENTIALS;
+  const env = options.env ?? process.env;
+  const inlineCredential = env.GOOGLE_SERVICE_ACCOUNT_JSON;
+  if (inlineCredential !== undefined) {
+    return parseGoogleServiceAccount(inlineCredential, "inline");
+  }
+
+  const credentialPath = env.GOOGLE_APPLICATION_CREDENTIALS;
   if (typeof credentialPath !== "string" || credentialPath.trim() === "") {
     return safeFailure("not_configured", "credential_not_configured");
   }
@@ -94,21 +147,7 @@ export async function loadGoogleServiceAccount(
     return safeFailure("api_error", "credential_unreadable");
   }
 
-  let document: unknown;
-  try {
-    document = JSON.parse(contents);
-  } catch {
-    return safeFailure("invalid_response", "credential_invalid_json");
-  }
-  if (!isServiceAccountDocument(document)) {
-    return safeFailure("invalid_response", "credential_invalid_shape");
-  }
-
-  return analyticsSuccess({
-    clientEmail: document.client_email,
-    privateKey: document.private_key,
-    tokenUri: document.token_uri,
-  });
+  return parseGoogleServiceAccount(contents, "file");
 }
 
 function base64Url(value: string): string {

@@ -78,6 +78,10 @@ function responseForReport(body, template) {
   return template;
 }
 
+function inlineCredentialJson(overrides = {}) {
+  return JSON.stringify({ ...syntheticCredential, ...overrides });
+}
+
 after(async () => { await rm(tempRoot, { recursive: true, force: true }); });
 
 test("buildAnalyticsPeriod uses completed Tokyo calendar days", () => {
@@ -136,6 +140,185 @@ test("loadGoogleServiceAccount reads only the configured path and redacts failur
   assert.equal(valid.state, "ok");
   assert.equal(valid.data.clientEmail, "synthetic-service@example.invalid");
   assert.equal(valid.data.tokenUri, GOOGLE_TOKEN_URI);
+});
+
+test("loadGoogleServiceAccount accepts valid server-only inline JSON without filesystem access", async () => {
+  let fileReads = 0;
+  const value = await credentials.loadGoogleServiceAccount({
+    env: { GOOGLE_SERVICE_ACCOUNT_JSON: inlineCredentialJson() },
+    readFileImpl: async () => {
+      fileReads += 1;
+      throw new Error("filesystem must not be used");
+    },
+  });
+
+  assert.equal(value.state, "ok");
+  assert.equal(value.data.clientEmail, syntheticCredential.client_email);
+  assert.equal(value.data.tokenUri, GOOGLE_TOKEN_URI);
+  assert.equal(fileReads, 0);
+});
+
+test("loadGoogleServiceAccount keeps the existing filesystem fallback when inline JSON is absent", async () => {
+  const path = await writeSyntheticCredential("fallback-service-account.json");
+  const value = await credentials.loadGoogleServiceAccount({
+    env: { GOOGLE_APPLICATION_CREDENTIALS: path },
+  });
+
+  assert.equal(value.state, "ok");
+  assert.equal(value.data.clientEmail, syntheticCredential.client_email);
+});
+
+test("loadGoogleServiceAccount gives valid inline JSON priority over a configured file", async () => {
+  let fileReads = 0;
+  const value = await credentials.loadGoogleServiceAccount({
+    env: {
+      GOOGLE_SERVICE_ACCOUNT_JSON: inlineCredentialJson({ client_email: "inline-service@example.invalid" }),
+      GOOGLE_APPLICATION_CREDENTIALS: await writeSyntheticCredential("lower-priority.json", {
+        client_email: "file-service@example.invalid",
+      }),
+    },
+    readFileImpl: async () => {
+      fileReads += 1;
+      throw new Error("lower-priority file must not be read");
+    },
+  });
+
+  assert.equal(value.state, "ok");
+  assert.equal(value.data.clientEmail, "inline-service@example.invalid");
+  assert.equal(fileReads, 0);
+});
+
+test("loadGoogleServiceAccount fails closed for malformed inline JSON without file fallback", async () => {
+  let fileReads = 0;
+  const value = await credentials.loadGoogleServiceAccount({
+    env: {
+      GOOGLE_SERVICE_ACCOUNT_JSON: '{"private_key":"inline-secret-marker"',
+      GOOGLE_APPLICATION_CREDENTIALS: await writeSyntheticCredential("must-not-mask-inline.json"),
+    },
+    readFileImpl: async () => {
+      fileReads += 1;
+      return JSON.stringify(syntheticCredential);
+    },
+  });
+
+  assert.equal(value.state, "invalid_response");
+  assert.equal(value.warnings[0].code, "credential_inline_invalid_json");
+  assert.equal(fileReads, 0);
+  assert.equal(JSON.stringify(value).includes("inline-secret-marker"), false);
+});
+
+test("loadGoogleServiceAccount rejects incomplete and non-service-account inline documents", async () => {
+  for (const [name, document] of [
+    ["missing required field", { ...syntheticCredential, client_email: undefined }],
+    ["wrong credential type", { ...syntheticCredential, type: "authorized_user" }],
+  ]) {
+    const value = await credentials.loadGoogleServiceAccount({
+      env: { GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify(document) },
+    });
+    assert.equal(value.state, "invalid_response", name);
+    assert.equal(value.warnings[0].code, "credential_inline_invalid_shape", name);
+  }
+});
+
+test("getGoogleAccessToken rejects non-canonical inline OAuth endpoints before fetch", async () => {
+  const rejectedTokenUris = [
+    "https://attacker.example.invalid/token",
+    "http://oauth2.googleapis.com/token",
+    "https://user@oauth2.googleapis.com/token",
+    "https://oauth2.googleapis.com:8443/token",
+    "https://oauth2.googleapis.com/token?target=other",
+    "https://oauth2.googleapis.com/token#fragment",
+    "https://oauth2.googleapis.com/other",
+    "https://oauth2.googleapis.com.example.invalid/token",
+  ];
+
+  for (const tokenUri of rejectedTokenUris) {
+    let fetchCalls = 0;
+    const value = await credentials.getGoogleAccessToken({
+      env: { GOOGLE_SERVICE_ACCOUNT_JSON: inlineCredentialJson({ token_uri: tokenUri }) },
+      fetchImpl: async () => {
+        fetchCalls += 1;
+        return new Response(JSON.stringify({ access_token: "must-not-be-returned" }), { status: 200 });
+      },
+    });
+
+    assert.equal(value.state, "invalid_response", tokenUri);
+    assert.equal(value.warnings[0].code, "credential_inline_invalid_shape", tokenUri);
+    assert.equal(fetchCalls, 0, tokenUri);
+    assert.equal(JSON.stringify(value).includes(tokenUri), false, tokenUri);
+  }
+});
+
+test("loadGoogleServiceAccount rejects a malformed inline private key without leaking it", async () => {
+  const malformedKey = "inline-private-key-secret-marker";
+  let fetchCalls = 0;
+  const value = await credentials.getGoogleAccessToken({
+    env: { GOOGLE_SERVICE_ACCOUNT_JSON: inlineCredentialJson({ private_key: malformedKey }) },
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      return new Response(JSON.stringify({ access_token: "must-not-be-returned" }), { status: 200 });
+    },
+  });
+
+  assert.equal(value.state, "invalid_response");
+  assert.equal(value.warnings[0].code, "credential_inline_invalid_private_key");
+  assert.equal(fetchCalls, 0);
+  assert.equal(JSON.stringify(value).includes(malformedKey), false);
+});
+
+test("loadGoogleServiceAccount treats an explicitly empty inline value as invalid configuration", async () => {
+  const value = await credentials.loadGoogleServiceAccount({
+    env: {
+      GOOGLE_SERVICE_ACCOUNT_JSON: "",
+      GOOGLE_APPLICATION_CREDENTIALS: await writeSyntheticCredential("must-not-mask-empty-inline.json"),
+    },
+  });
+
+  assert.equal(value.state, "invalid_response");
+  assert.equal(value.warnings[0].code, "credential_inline_empty");
+});
+
+test("loadGoogleServiceAccount normalizes escaped newlines in an inline private key", async () => {
+  const escapedPrivateKey = String(syntheticCredential.private_key).replaceAll("\n", "\\n");
+  const value = await credentials.loadGoogleServiceAccount({
+    env: { GOOGLE_SERVICE_ACCOUNT_JSON: inlineCredentialJson({ private_key: escapedPrivateKey }) },
+  });
+
+  assert.equal(value.state, "ok");
+  assert.match(value.data.privateKey, /-----BEGIN PRIVATE KEY-----\n/);
+  assert.equal(value.data.privateKey.includes("\\n"), false);
+});
+
+test("loadGoogleServiceAccount rejects oversized inline JSON without exposing its contents", async () => {
+  const oversizedMarker = "oversized-inline-secret-marker";
+  const value = await credentials.loadGoogleServiceAccount({
+    env: { GOOGLE_SERVICE_ACCOUNT_JSON: `${inlineCredentialJson()}${oversizedMarker.repeat(1024)}` },
+  });
+
+  assert.equal(value.state, "invalid_response");
+  assert.equal(value.warnings[0].code, "credential_inline_too_large");
+  assert.equal(JSON.stringify(value).includes(oversizedMarker), false);
+});
+
+test("getGoogleAccessToken completes the synthetic Vercel inline credential path without secret exposure", async () => {
+  let observedRequest;
+  const inlineJson = inlineCredentialJson();
+  const value = await credentials.getGoogleAccessToken({
+    env: { GOOGLE_SERVICE_ACCOUNT_JSON: inlineJson },
+    now: () => new Date("2026-08-23T00:00:00.000Z"),
+    fetchImpl: async (url, init) => {
+      observedRequest = { url, init };
+      return new Response(JSON.stringify({ access_token: "synthetic-inline-access-token", expires_in: 3600 }), { status: 200 });
+    },
+  });
+
+  assert.equal(value.state, "ok");
+  assert.equal(value.data.accessToken, "synthetic-inline-access-token");
+  assert.equal(observedRequest.url, GOOGLE_TOKEN_URI);
+  assert.equal(observedRequest.init.headers.authorization, undefined);
+  assert.equal(observedRequest.init.body.includes(String(syntheticCredential.private_key)), false);
+  assert.equal(observedRequest.init.body.includes(inlineJson), false);
+  assert.match(new URLSearchParams(observedRequest.init.body).get("assertion"), /^[^.]+\.[^.]+\.[^.]+$/);
 });
 
 test("getGoogleAccessToken rejects non-canonical OAuth endpoints before fetch", async () => {
