@@ -1,0 +1,62 @@
+{
+  "current_hash_cases": [
+    {
+      "name": "missing",
+      "field": "official_url",
+      "exists": false,
+      "value": null,
+      "canonical": "{\"exists\":false,\"field\":\"official_url\",\"value\":null}",
+      "sha256": "530997edcf29345542c8c595011e29dac75d75eb3872c4041d77a71030e7e916"
+    },
+    {
+      "name": "empty",
+      "field": "shop_address",
+      "exists": true,
+      "value": "",
+      "canonical": "{\"exists\":true,\"field\":\"shop_address\",\"value\":\"\"}",
+      "sha256": "6e2de57d5005e1fc8a81d697c6738ced8c0fa8e6785fd543bf045f1972280f2b"
+    },
+    {
+      "name": "integer",
+      "field": "area",
+      "exists": true,
+      "value": 13,
+      "canonical": "{\"exists\":true,\"field\":\"area\",\"value\":13}",
+      "sha256": "4127c7ba4e347661409ac9de6aefdd7145319ed731c7abb23c9ded6bcafcdfca"
+    },
+    {
+      "name": "unicode",
+      "field": "shop_tel",
+      "exists": true,
+      "value": "大阪・新大阪",
+      "canonical": "{\"exists\":true,\"field\":\"shop_tel\",\"value\":\"大阪・新大阪\"}",
+      "sha256": "354d5768af304dbb68e124f279fbfc645d5ba9b56a032ccbfd8adfba5c2fc1e4"
+    },
+    {
+      "name": "url_slash",
+      "field": "official_url",
+      "exists": true,
+      "value": "https://ichigo-milk.com/",
+      "canonical": "{\"exists\":true,\"field\":\"official_url\",\"value\":\"https://ichigo-milk.com/\"}",
+      "sha256": "1e87ccf7f352f893c8eedc677de044adc7ccd868f84da46a402de72cb5c647f5"
+    }
+  ],
+  "payload_hash_cases": [
+    {
+      "name": "m0145_multi_area",
+      "payload": {
+        "action": "CREATE_NEW",
+        "area_terms": [13, 17],
+        "fields": {
+          "official_url": "https://ichigo-milk.com/",
+          "shop_address": "",
+          "shop_tel": "090-4464-1515"
+        },
+        "master_shop_id": "M0145",
+        "title": "イチゴみるく"
+      },
+      "canonical": "{\"action\":\"CREATE_NEW\",\"area_terms\":[13,17],\"fields\":{\"official_url\":\"https://ichigo-milk.com/\",\"shop_address\":\"\",\"shop_tel\":\"090-4464-1515\"},\"master_shop_id\":\"M0145\",\"title\":\"イチゴみるく\"}",
+      "sha256": "05abd8d216965785d94376903588ff6fd7fd27f4f6dcdd56accabcef73e140d3"
+    }
+  ]
+}
