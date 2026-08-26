@@ -97,12 +97,13 @@ the matching Promise in `finally`. The production loader must contain:
 cacheLife({ stale: 0, revalidate: ttl, expire: ttl * 4 });
 ```
 
-If a collected Snapshot is non-cacheable, store the aggregate in the bounded
-period handoff and throw a digest-only internal error before returning so the
-cache handler cannot replace a good entry. Catch it only at the outer server
-boundary, consume the handoff once, and return the failure Snapshot on a cold
-miss. Keep resolved failure Snapshots for only 120 seconds in the separate
-process-local quota guard; never put them in the good Remote Cache.
+If a collected Snapshot is non-cacheable, store the aggregate in a bounded,
+opaque-invocation handoff and throw a digest-only internal error before returning
+so the cache handler cannot replace a good entry. Catch it only at the outer
+server boundary, consume it once, and expire an unrecovered background handoff
+after 120 seconds. Keep resolved failure Snapshots for only 120 seconds in the
+separate process-local quota guard; framework retries must reuse that failure
+without repeating the full external collection.
 
 - [ ] **Step 8: Run the reader tests and verify GREEN**
 
@@ -150,8 +151,10 @@ Expected: FAIL because existing maximum concurrency is 10.
 - [ ] **Step 3: Implement a four-worker ordered mapper**
 
 Create a small internal helper that preallocates its result array, advances one
-shared index, and writes each result to that index. Replace only the ten-report
-`Promise.all`; leave OAuth and report definitions unchanged.
+shared index, and writes each result to that index. Wrap jobs in a module-wide
+four-permit semaphore so simultaneous period collectors share the same
+process-level quota. Replace only the ten-report `Promise.all`; leave OAuth and
+report definitions unchanged.
 
 - [ ] **Step 4: Run the GA4 test and verify GREEN**
 
@@ -253,6 +256,14 @@ concurrency, cleanup, and parity cases PASS.
 Record literal counters for cold 7, warm 7, cold 28, warm 28, ten same-period
 requests, and five view reads. Assert warm/source deltas are zero and each cold
 period performs one full collection.
+
+- [ ] **Step 1a: Exercise the compiled production cache boundary**
+
+After `npm run build`, run the Analytics-owned production E2E with a test-only
+provider-style Remote Cache handler and intercepted synthetic sources. Require
+auth-before-cache, 7/28 separation, same-period single-flight, warm source delta
+zero, five-view source delta zero, stale failed-refresh preservation, opaque
+handoff correlation, `private, no-store`, and Secret exposure zero.
 
 - [ ] **Step 2: Run focused Analytics tests**
 

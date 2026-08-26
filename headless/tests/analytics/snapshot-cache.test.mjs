@@ -18,6 +18,26 @@ function source(state, warnings = []) {
   return { state, collectedAt, warnings };
 }
 
+function siteHealthTarget(state, code = null) {
+  const path = state === "ok" ? "/" : `/area/${state}/`;
+  return {
+    path,
+    url: `https://mens-esthe-kuchikomi.com${path}`,
+    httpStatus: state === "ok" ? 200 : state === "partial" ? 301 : null,
+    checkedAt: collectedAt,
+    state,
+    data: state === "timeout" || state === "api_error" ? null : {
+      title: state === "ok" ? "Page" : null,
+      h1: state === "ok" ? "Heading" : null,
+      canonical: state === "ok" ? `https://mens-esthe-kuchikomi.com${path}` : null,
+      robots: null,
+      indexable: state === "ok" ? true : null,
+      indexabilityReason: state === "ok" ? "indexable" : state === "partial" ? "redirect" : "metadata_invalid",
+    },
+    warnings: code ? [{ code, message: `code=${code}` }] : [],
+  };
+}
+
 function snapshot(overrides = {}) {
   return {
     schemaVersion: "1.0.0",
@@ -90,7 +110,7 @@ test("snapshot cache accepts bounded partials but rejects systemic partial evide
   })), true);
   assert.equal(isAnalyticsSnapshotCacheable(snapshot({
     sources: { web: source("partial", [{ code: "site_health_redirect_http_301", message: "code=site_health_redirect_http_301" }]) },
-    siteHealth: [{ state: "ok" }, { state: "partial" }],
+    siteHealth: [siteHealthTarget("ok"), siteHealthTarget("partial", "site_health_redirect_http_301")],
   })), true);
   assert.equal(isAnalyticsSnapshotCacheable(snapshot({
     sources: { content: source("partial", [{ code: "wordpress_content_partial", message: "code=wordpress_content_partial" }]) },
@@ -109,8 +129,18 @@ test("snapshot cache accepts bounded partials but rejects systemic partial evide
   }
   assert.equal(isAnalyticsSnapshotCacheable(snapshot({
     sources: { web: source("partial", [{ code: "site_health_timeout", message: "code=site_health_timeout" }]) },
-    siteHealth: [{ state: "timeout" }, { state: "api_error" }],
+    siteHealth: [siteHealthTarget("timeout", "site_health_timeout"), siteHealthTarget("api_error", "site_health_request_failed")],
   })), false);
+  for (const state of ["timeout", "api_error", "invalid_response"]) {
+    assert.equal(isAnalyticsSnapshotCacheable(snapshot({
+      sources: { web: source("partial", [{ code: `site_health_${state}`, message: `code=site_health_${state}` }]) },
+      siteHealth: [siteHealthTarget("ok"), siteHealthTarget(state, `site_health_${state}`)],
+    })), false, `mixed web ${state}`);
+  }
+  assert.equal(isAnalyticsSnapshotCacheable(snapshot({
+    sources: { content: source("partial", [{ code: "wordpress_timeout", message: "code=wordpress_timeout" }]) },
+    contentHealth: { areas: [] },
+  })), false, "systemic content partial");
 });
 
 test("snapshot cache rejects every root systemic failure state", () => {
@@ -123,7 +153,12 @@ test("snapshot cache rejects every root systemic failure state", () => {
 
 test("a cache-serialized non-cacheable digest recovers the transient aggregate once", () => {
   const aggregate = snapshot();
-  const handoff = createNonCacheableSnapshotHandoff();
+  const timers = new Map();
+  const handoff = createNonCacheableSnapshotHandoff({
+    createId: () => "one",
+    schedule: (callback) => { timers.set("one", callback); return "one"; },
+    cancel: (handle) => { timers.delete(handle); },
+  });
   let thrown;
   try {
     handoff.reject(7, aggregate);
@@ -132,9 +167,41 @@ test("a cache-serialized non-cacheable digest recovers the transient aggregate o
   }
   assert.equal(Object.hasOwn(thrown, "snapshot"), false);
   const serialized = { name: "Error", message: "masked", digest: thrown.digest };
+  assert.equal(serialized.digest, "analytics-non-cacheable:7:one");
   assert.deepEqual(handoff.recover(serialized), aggregate);
+  assert.equal(timers.size, 0);
   assert.equal(handoff.recover(serialized), null);
-  assert.equal(handoff.recover({ digest: "analytics-non-cacheable:28" }), null);
+  assert.equal(handoff.recover({ digest: "analytics-non-cacheable:28:unknown" }), null);
+});
+
+test("same-period non-cacheable handoffs stay correlated and orphaned values expire", () => {
+  const ids = ["first", "second", "orphan"];
+  const timers = new Map();
+  let nextTimer = 0;
+  const handoff = createNonCacheableSnapshotHandoff({
+    createId: () => ids.shift(),
+    schedule: (callback) => { nextTimer += 1; timers.set(nextTimer, callback); return nextTimer; },
+    cancel: (handle) => { timers.delete(handle); },
+  });
+  const reject = (aggregate) => {
+    try { handoff.reject(7, aggregate); }
+    catch (error) { return { digest: error.digest }; }
+    throw new Error("expected non-cacheable handoff rejection");
+  };
+  const first = snapshot({ generatedAt: "2026-08-26T00:00:01.000Z" });
+  const second = snapshot({ generatedAt: "2026-08-26T00:00:02.000Z" });
+  const firstError = reject(first);
+  const secondError = reject(second);
+
+  assert.deepEqual(handoff.recover(secondError), second);
+  assert.deepEqual(handoff.recover(firstError), first);
+  assert.equal(timers.size, 0);
+
+  const orphan = snapshot({ generatedAt: "2026-08-26T00:00:03.000Z" });
+  const orphanError = reject(orphan);
+  assert.equal(timers.size, 1);
+  [...timers.values()][0]();
+  assert.equal(handoff.recover(orphanError), null);
 });
 
 test("two consecutive 7-day reads collect once", async () => {
@@ -258,7 +325,10 @@ test("a failed refresh keeps the good snapshot and marks stale fallback", async 
   const remote = remoteHarness({
     now: time.now,
     collect: async () => fail
-      ? snapshot({ sources: { ga4: source("auth_error", [{ code: "ga4_auth_error", message: "code=ga4_auth_error" }]) } })
+      ? snapshot({
+        sources: { web: source("partial", [{ code: "site_health_timeout", message: "code=site_health_timeout" }]) },
+        siteHealth: [siteHealthTarget("ok"), siteHealthTarget("timeout", "site_health_timeout")],
+      })
       : good,
   });
   const read = createAnalyticsSnapshotReader({ load: remote.load, now: time.now });
@@ -268,6 +338,7 @@ test("a failed refresh keeps the good snapshot and marks stale fallback", async 
   const fallback = await read({ days: 7 });
   assert.equal(remote.collectorCalls(), 2);
   assert.equal(fallback.sources.ga4.state, "ok");
+  assert.equal(fallback.sources.web.state, "ok");
   assert.equal(fallback.generatedAt, good.generatedAt);
   assert.deepEqual(fallback.warnings, [{
     code: "analytics_snapshot_cache_stale",

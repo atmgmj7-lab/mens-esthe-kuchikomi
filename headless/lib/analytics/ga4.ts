@@ -13,6 +13,8 @@ const GA4_ENDPOINT = "https://analyticsdata.googleapis.com/v1beta/properties";
 const BREAKDOWN_LIMIT = 50;
 const MAX_REPORT_CONCURRENCY = 4;
 const NON_NEGATIVE_METRICS = new Set(["sessions", "activeUsers", "engagedSessions", "keyEvents"]);
+let activeReportRequests = 0;
+const reportPermitWaiters: Array<() => void> = [];
 
 export type Ga4Overview = {
   sessions: number;
@@ -307,6 +309,21 @@ function aggregateAllFailureState(results: AnalyticsSourceResult<unknown>[]): "a
   return "invalid_response";
 }
 
+async function withReportPermit<T>(job: () => Promise<T>): Promise<T> {
+  if (activeReportRequests >= MAX_REPORT_CONCURRENCY) {
+    await new Promise<void>((resolve) => reportPermitWaiters.push(resolve));
+  } else {
+    activeReportRequests += 1;
+  }
+  try {
+    return await job();
+  } finally {
+    const next = reportPermitWaiters.shift();
+    if (next) next();
+    else activeReportRequests -= 1;
+  }
+}
+
 async function runReportJobs<const T extends readonly unknown[]>(
   jobs: { [K in keyof T]: () => Promise<T[K]> }
 ): Promise<T> {
@@ -317,7 +334,7 @@ async function runReportJobs<const T extends readonly unknown[]>(
     while (nextIndex < taskList.length) {
       const index = nextIndex;
       nextIndex += 1;
-      results[index] = await taskList[index]();
+      results[index] = await withReportPermit(taskList[index]);
     }
   };
   await Promise.all(Array.from({ length: Math.min(MAX_REPORT_CONCURRENCY, taskList.length) }, worker));

@@ -25,10 +25,10 @@
 
 - Next.js 16.3.1 `"use cache: remote"` supplies cross-request and Vercel multi-instance persistence without a new dependency.
 - The 7-day and 28-day keys are separate. Revalidation TTL is 900/1,800 seconds; expire is 3,600/7,200 seconds.
-- `ok`, legitimate `no_data`, and bounded usable `partial` Snapshots are cacheable. `not_configured`, `auth_error`, `invalid_response`, `timeout`, and systemic `api_error` are not written to the good Remote Cache.
+- `ok`, legitimate `no_data`, and explicitly bounded usable `partial` Snapshots are cacheable. A Web partial requires every target to be `ok` or a documented redirect; one systemic target rejects it. `not_configured`, `auth_error`, `invalid_response`, `timeout`, and systemic `api_error` are not written to the good Remote Cache.
 - A failed refresh rejects the cache generation, so it cannot overwrite a good entry. A stale-good return retains its original timestamps and adds `analytics_snapshot_cache_stale`.
-- A separate process-local 120-second failure guard suppresses repeated full collections for a resolved systemic cold miss. It holds at most the 7-day and 28-day aggregate Snapshots and is not treated as the Production shared cache.
+- An opaque invocation ID correlates each non-cacheable handoff; unrecovered background handoffs expire after 120 seconds. A separate process-local 120-second failure guard suppresses repeated full collections for a systemic cold miss or framework retry. It holds at most one aggregate per period and is not treated as the Production shared cache.
 
 ## Local verification
 
-Run the focused adapter/snapshot/API/export tests, then all Analytics tests, lint, typecheck, and build. Synthetic source injection exercises the production snapshot construction path; no live Google or WordPress calls are needed for these checks.
+Run the focused adapter/snapshot/API/export tests, then all Analytics tests, lint, typecheck, and build. After build, run `node scripts/analytics/check-snapshot-cache-production.mjs`; its test-only Remote Cache and synthetic fetch interceptor exercise the compiled production boundary without live Google or WordPress calls.

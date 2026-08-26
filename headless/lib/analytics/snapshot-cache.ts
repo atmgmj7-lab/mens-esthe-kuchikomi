@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { cacheLife } from "next/cache";
 
 import type { AnalyticsDays } from "./period";
@@ -12,7 +13,11 @@ export const SNAPSHOT_CACHE_TTL_SECONDS: Readonly<Record<AnalyticsDays, number>>
 
 const CACHEABLE_ROOT_STATES = new Set(["ok", "no_data"]);
 const CACHEABLE_REPORT_PARTIAL = /(?:_no_rows|_pagination_cap)$/u;
+const CACHEABLE_WEB_PARTIAL = /^site_health_redirect_http_3\d\d$/u;
+const CACHEABLE_CONTENT_PARTIAL = new Set(["wordpress_content_partial"]);
 const FAILURE_CACHE_TTL_MILLISECONDS = 120_000;
+const HANDOFF_TTL_MILLISECONDS = 120_000;
+const MAX_PENDING_HANDOFFS = 8;
 
 function partialIsCacheable(source: keyof AnalyticsSnapshot["sources"], snapshot: AnalyticsSnapshot): boolean {
   if (source === "ga4" || source === "gsc") {
@@ -20,9 +25,15 @@ function partialIsCacheable(source: keyof AnalyticsSnapshot["sources"], snapshot
     return warnings.length > 0 && warnings.every((warning) => CACHEABLE_REPORT_PARTIAL.test(warning.code));
   }
   if (source === "web") {
-    return Array.isArray(snapshot.siteHealth) && snapshot.siteHealth.some((target) => target.state === "ok" || target.state === "partial");
+    const targets = snapshot.siteHealth;
+    return Array.isArray(targets) && targets.length > 0 &&
+      snapshot.sources.web.warnings.every((warning) => CACHEABLE_WEB_PARTIAL.test(warning.code)) &&
+      targets.every((target) => target.state === "ok" || target.state === "partial" &&
+        target.warnings.length > 0 && target.warnings.every((warning) => CACHEABLE_WEB_PARTIAL.test(warning.code)));
   }
-  return snapshot.contentHealth !== null;
+  const warnings = snapshot.sources.content.warnings;
+  return snapshot.contentHealth !== null && warnings.length > 0 &&
+    warnings.every((warning) => CACHEABLE_CONTENT_PARTIAL.has(warning.code));
 }
 
 export function isAnalyticsSnapshotCacheable(snapshot: AnalyticsSnapshot): boolean {
@@ -39,10 +50,10 @@ const NON_CACHEABLE_DIGEST_PREFIX = "analytics-non-cacheable:";
 class NonCacheableSnapshotError extends Error {
   readonly digest: string;
 
-  constructor(days: AnalyticsDays) {
+  constructor(days: AnalyticsDays, id: string) {
     super(NON_CACHEABLE_ERROR_MESSAGE);
     this.name = "NonCacheableSnapshotError";
-    this.digest = `${NON_CACHEABLE_DIGEST_PREFIX}${days}`;
+    this.digest = `${NON_CACHEABLE_DIGEST_PREFIX}${days}:${id}`;
   }
 }
 
@@ -50,22 +61,45 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function createNonCacheableSnapshotHandoff() {
-  const pending = new Map<AnalyticsDays, AnalyticsSnapshot>();
+export function createNonCacheableSnapshotHandoff(options: {
+  createId?: () => string;
+  schedule?: (callback: () => void, delayMilliseconds: number) => unknown;
+  cancel?: (handle: unknown) => void;
+} = {}) {
+  const createId = options.createId ?? randomUUID;
+  const schedule = options.schedule ?? ((callback: () => void, delayMilliseconds: number) => {
+    const handle = setTimeout(callback, delayMilliseconds);
+    handle.unref();
+    return handle;
+  });
+  const cancel = options.cancel ?? ((handle: unknown) => clearTimeout(handle as ReturnType<typeof setTimeout>));
+  const pending = new Map<string, { snapshot: AnalyticsSnapshot; timer: unknown }>();
   return {
     reject(days: AnalyticsDays, snapshot: AnalyticsSnapshot): never {
-      pending.set(days, snapshot);
-      throw new NonCacheableSnapshotError(days);
+      const id = createId();
+      if (!/^[a-z0-9_-]{1,64}$/iu.test(id)) throw new Error(NON_CACHEABLE_ERROR_MESSAGE);
+      const key = `${days}:${id}`;
+      if (pending.size >= MAX_PENDING_HANDOFFS) {
+        const oldest = pending.entries().next().value as [string, { snapshot: AnalyticsSnapshot; timer: unknown }] | undefined;
+        if (oldest) {
+          cancel(oldest[1].timer);
+          pending.delete(oldest[0]);
+        }
+      }
+      const timer = schedule(() => pending.delete(key), HANDOFF_TTL_MILLISECONDS);
+      pending.set(key, { snapshot, timer });
+      throw new NonCacheableSnapshotError(days, id);
     },
     recover(error: unknown): AnalyticsSnapshot | null {
       if (!isRecord(error) || typeof error.digest !== "string") return null;
-      const days = error.digest === `${NON_CACHEABLE_DIGEST_PREFIX}7` ? 7
-        : error.digest === `${NON_CACHEABLE_DIGEST_PREFIX}28` ? 28
-          : null;
-      if (days === null) return null;
-      const snapshot = pending.get(days) ?? null;
-      if (snapshot) pending.delete(days);
-      return snapshot;
+      const match = /^analytics-non-cacheable:(7|28):([a-z0-9_-]{1,64})$/iu.exec(error.digest);
+      if (!match) return null;
+      const key = `${match[1]}:${match[2]}`;
+      const entry = pending.get(key);
+      if (!entry) return null;
+      cancel(entry.timer);
+      pending.delete(key);
+      return entry.snapshot;
     },
   };
 }
@@ -117,13 +151,24 @@ export function createAnalyticsSnapshotReader(options: {
 }
 
 const nonCacheableSnapshotHandoff = createNonCacheableSnapshotHandoff();
+const recentRemoteFailures = new Map<AnalyticsDays, { snapshot: AnalyticsSnapshot; expiresAt: number }>();
 
 async function loadRemoteAnalyticsSnapshot(days: AnalyticsDays): Promise<AnalyticsSnapshot> {
   "use cache: remote";
   const ttl = SNAPSHOT_CACHE_TTL_SECONDS[days];
   cacheLife({ stale: 0, revalidate: ttl, expire: ttl * 4 });
+  const now = Date.now();
+  const recentFailure = recentRemoteFailures.get(days);
+  if (recentFailure && now < recentFailure.expiresAt) {
+    nonCacheableSnapshotHandoff.reject(days, recentFailure.snapshot);
+  }
+  if (recentFailure) recentRemoteFailures.delete(days);
   const snapshot = await collectFreshAnalyticsSnapshot({ days });
-  if (!isAnalyticsSnapshotCacheable(snapshot)) nonCacheableSnapshotHandoff.reject(days, snapshot);
+  if (!isAnalyticsSnapshotCacheable(snapshot)) {
+    recentRemoteFailures.set(days, { snapshot, expiresAt: Date.now() + FAILURE_CACHE_TTL_MILLISECONDS });
+    nonCacheableSnapshotHandoff.reject(days, snapshot);
+  }
+  recentRemoteFailures.delete(days);
   return snapshot;
 }
 

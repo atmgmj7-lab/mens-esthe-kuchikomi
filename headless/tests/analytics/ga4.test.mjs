@@ -581,6 +581,46 @@ test("collectGa4 leaves quota headroom with at most four ordered runReport reque
   assert.equal(value.data.devices.current.data[0].deviceCategory, "desktop");
 });
 
+test("concurrent period collectors share one process-wide four-report quota", async () => {
+  const normal = await fixture("normal");
+  let activeRunReports = 0;
+  let maxActiveRunReports = 0;
+  let runReportCalls = 0;
+  const fetchImpl = async (url, init) => {
+    if (String(url) === syntheticCredential.token_uri) {
+      return new Response(JSON.stringify({ access_token: "synthetic-access-token" }), { status: 200 });
+    }
+    runReportCalls += 1;
+    activeRunReports += 1;
+    maxActiveRunReports = Math.max(maxActiveRunReports, activeRunReports);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const body = JSON.parse(init.body);
+      return new Response(JSON.stringify(normal[reportFixtureKey(body)]), { status: 200 });
+    } finally {
+      activeRunReports -= 1;
+    }
+  };
+
+  const [sevenDays, twentyEightDays] = await withSyntheticCredential(() => Promise.all([
+    ga4.collectGa4({
+      period: period.buildAnalyticsPeriod(7, new Date("2026-08-23T00:30:00+09:00")),
+      propertyId: "123",
+      fetchImpl,
+    }),
+    ga4.collectGa4({
+      period: period.buildAnalyticsPeriod(28, new Date("2026-08-23T00:30:00+09:00")),
+      propertyId: "123",
+      fetchImpl,
+    }),
+  ]));
+
+  assert.equal(runReportCalls, 20);
+  assert.ok(maxActiveRunReports <= 4, `max concurrent runReport was ${maxActiveRunReports}`);
+  assert.equal(sevenDays.state, "ok");
+  assert.equal(twentyEightDays.state, "ok");
+});
+
 test("collectGa4 rejects out-of-range metrics and preserves allowed boundaries", async () => {
   const basePeriod = period.buildAnalyticsPeriod(7, new Date("2026-08-23T00:30:00+09:00"));
   const invalidCases = [

@@ -75,8 +75,10 @@ A Snapshot is normally cacheable when every source has one of these states:
 
 The partial-state classifier rejects a partial carrying evidence of an
 authentication failure, invalid payload, timeout, or systemic API failure. A
-Web or Content partial with usable aggregate data and a bounded target/item
-warning remains cacheable.
+Web partial is cacheable only when every target is either `ok` or a documented
+3xx redirect partial; one timeout/API/invalid target rejects the whole Snapshot.
+A Content partial requires usable aggregate data and the explicit bounded
+`wordpress_content_partial` warning.
 
 A Snapshot is non-cacheable when any source is:
 
@@ -96,18 +98,21 @@ the age-based stale warning makes that fallback visible.
 Production Cache Components mask error name, message, and custom properties
 across their Server Component serialization boundary, but preserve an explicit
 `digest`. Therefore the internal error contains only the sanitized period digest
-`analytics-non-cacheable:7|28`. A period-indexed transient handoff Map holds at
-most two aggregate Snapshots and removes a value after the corresponding outer
-reader recovers it. The error does not contain or log the Snapshot, credential,
-token, Authorization header, or PII. Next.js may log the sanitized error name,
-message, and period digest when a cache fill is rejected.
+`analytics-non-cacheable:<period>:<opaque UUID>`. A transient handoff Map uses
+that invocation ID rather than the period alone, holds at most eight aggregate
+Snapshots, removes a recovered value once, and automatically expires an
+unrecovered background-refresh value after 120 seconds. The error does not
+contain or log the Snapshot, credential, token, Authorization header, or PII.
+Next.js may log only the sanitized error name, message, period, and opaque ID
+when a cache fill is rejected.
 
 When no good Remote Cache entry exists, a resolved systemic Snapshot receives a
-separate process-local failure TTL of 120 seconds. This best-effort quota guard
-is not the Production shared cache: it stores only the two period aggregates,
-never overwrites a Remote Cache entry, never stores a rejected Promise, and
-retries after two minutes. A normal or stale-good Snapshot clears the same-period
-failure entry.
+separate process-local failure TTL of 120 seconds. The same quota guard is read
+inside a framework-initiated background retry, so a failed revalidation cannot
+immediately start another full external collection. This best-effort guard is
+not the Production shared cache: it stores only one aggregate per period, never
+overwrites a Remote Cache entry, never stores a rejected Promise, and retries
+after two minutes. A normal or stale-good Snapshot clears the same-period entry.
 
 ## Single-flight
 
@@ -124,10 +129,13 @@ built-in remote-cache backend; no unsupported distributed lock is introduced.
 ## GA4 concurrency
 
 The ten existing GA4 `runReport` definitions remain in their exact current
-order. A dependency-free bounded worker pool processes them with maximum
-concurrency four. Results are written into a preallocated result array by index,
-so overview/current/previous and every breakdown keep their existing mapping.
-The OAuth request is outside this pool and is not counted as a `runReport`.
+order. A dependency-free process-wide semaphore and ordered worker pools keep
+maximum concurrency at four even when 7-day and 28-day collectors run together.
+Results are written into a preallocated result array by index, so
+overview/current/previous and every breakdown keep their existing mapping. The
+OAuth request is outside this pool and is not counted as a `runReport`.
+Separate Vercel instances can each use up to four permits; no unsupported
+distributed semaphore is claimed.
 
 ## API, Dashboard, and Export
 
@@ -163,6 +171,11 @@ Fail-first tests cover:
 
 Performance evidence records cold and warm 7/28 behavior, same-period
 concurrency, five Dashboard views, total collector calls, and source-call deltas.
+A compiled production-server E2E installs a test-only provider-style Remote
+Cache handler and synthetic fetch boundary. It exercises the real
+`getAnalyticsSnapshot()` cache function, authorization, 7/28 keys, warm hits,
+five query views, stale failed background refresh, good-entry preservation, and
+HTTP no-store without live external calls.
 
 ## Rejected alternatives
 
