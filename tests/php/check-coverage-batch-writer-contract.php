@@ -83,8 +83,9 @@ $GLOBALS['coverage_caps'] = array(
     'publish_posts' => true,
 );
 $GLOBALS['coverage_terms'] = array(
-    13 => (object) array('term_id' => 13, 'slug' => 'shinosaka', 'taxonomy' => 'area'),
-    17 => (object) array('term_id' => 17, 'slug' => 'sakai', 'taxonomy' => 'area'),
+    2 => (object) array('term_id' => 2, 'slug' => 'osaka', 'taxonomy' => 'area', 'parent' => 0),
+    13 => (object) array('term_id' => 13, 'slug' => 'shinosaka', 'taxonomy' => 'area', 'parent' => 2),
+    17 => (object) array('term_id' => 17, 'slug' => 'sakai', 'taxonomy' => 'area', 'parent' => 2),
 );
 $GLOBALS['coverage_posts'] = array();
 $GLOBALS['coverage_fields'] = array();
@@ -110,6 +111,12 @@ $GLOBALS['coverage_field_definitions'] = array(
 $GLOBALS['coverage_fail_field'] = null;
 $GLOBALS['coverage_coerce_field'] = null;
 $GLOBALS['coverage_fail_publish'] = false;
+$GLOBALS['coverage_fail_draft'] = false;
+$GLOBALS['coverage_publish_add_terms'] = array();
+$GLOBALS['coverage_publish_field_mutation'] = null;
+$GLOBALS['coverage_publish_provenance_mutation'] = false;
+$GLOBALS['coverage_publish_primary_mutation'] = false;
+$GLOBALS['coverage_publish_slug_mutation'] = null;
 $GLOBALS['coverage_fail_terms_read'] = false;
 $GLOBALS['coverage_drop_existing_terms_once'] = false;
 $GLOBALS['coverage_partial_relation_restore'] = false;
@@ -127,6 +134,19 @@ function register_rest_route($namespace, $route, $args) { $GLOBALS['coverage_rou
 function register_post_type($name, $args) { $GLOBALS['coverage_post_types'][$name] = $args; }
 function current_user_can($capability, ...$_args) { return $GLOBALS['coverage_caps'][$capability] ?? false; }
 function get_term($id, $taxonomy) { return $GLOBALS['coverage_terms'][$id] ?? new WP_Error('missing', 'missing'); }
+function get_ancestors($id, $object_type = '', $resource_type = '') {
+    $ancestors = array();
+    $seen = array();
+    $term = $GLOBALS['coverage_terms'][(int) $id] ?? null;
+    while (is_object($term) && (int) ($term->parent ?? 0) > 0) {
+        $parent = (int) $term->parent;
+        if (isset($seen[$parent])) return array();
+        $seen[$parent] = true;
+        $ancestors[] = $parent;
+        $term = $GLOBALS['coverage_terms'][$parent] ?? null;
+    }
+    return $ancestors;
+}
 function is_wp_error($value) { return $value instanceof WP_Error; }
 function add_option($name, $value, $_deprecated = '', $autoload = 'yes') {
     if (array_key_exists($name, $GLOBALS['coverage_options'])) return false;
@@ -201,10 +221,39 @@ function wp_update_post($args, $wp_error = false) {
     if (($args['post_status'] ?? '') === 'publish' && $GLOBALS['coverage_fail_publish']) {
         return new WP_Error('publish_failed', 'publish failed');
     }
+    if (($args['post_status'] ?? '') === 'draft' && $GLOBALS['coverage_fail_draft']) {
+        return new WP_Error('draft_failed', 'draft failed');
+    }
     foreach ($args as $key => $value) {
         if ($key !== 'ID') $GLOBALS['coverage_posts'][$id][$key] = $value;
     }
-    if (isset($args['post_status'])) $GLOBALS['coverage_events'][] = 'status:' . $args['post_status'];
+    if (isset($args['post_status'])) {
+        $GLOBALS['coverage_events'][] = 'status:' . $args['post_status'];
+        if ($args['post_status'] === 'publish') {
+            if ($GLOBALS['coverage_publish_add_terms']) {
+                $GLOBALS['coverage_relations'][$id] = array_values(array_unique(array_merge(
+                    $GLOBALS['coverage_relations'][$id] ?? array(),
+                    array_map('intval', $GLOBALS['coverage_publish_add_terms'])
+                )));
+                sort($GLOBALS['coverage_relations'][$id], SORT_NUMERIC);
+            }
+            if (is_array($GLOBALS['coverage_publish_field_mutation'])) {
+                foreach ($GLOBALS['coverage_publish_field_mutation'] as $field => $value) {
+                    $GLOBALS['coverage_fields'][$id][$field] = $value;
+                    $GLOBALS['coverage_meta'][$id][$field] = $value;
+                }
+            }
+            if ($GLOBALS['coverage_publish_provenance_mutation']) {
+                $GLOBALS['coverage_meta'][$id]['shop_fact_provenance'][] = array('field' => 'unexpected');
+            }
+            if ($GLOBALS['coverage_publish_primary_mutation']) {
+                $GLOBALS['coverage_meta'][$id]['shop_primary_area_term_id'] = 13;
+            }
+            if (is_string($GLOBALS['coverage_publish_slug_mutation'])) {
+                $GLOBALS['coverage_posts'][$id]['post_name'] = $GLOBALS['coverage_publish_slug_mutation'];
+            }
+        }
+    }
     return $id;
 }
 function wp_get_object_terms($post_id, $taxonomy, $args = array()) {
@@ -315,12 +364,44 @@ coverage_expect_error(escomi_coverage_validate_manifest_contract($invalid_value_
 unlink($invalid_value_path);
 
 coverage_expect(escomi_coverage_validate_area_contract() === true, 'Exact area contract must pass');
+coverage_expect(
+    escomi_coverage_allowed_derived_area_terms(array(13)) === array(2),
+    'Shinosaka must derive only Osaka term 2'
+);
+coverage_expect(
+    escomi_coverage_allowed_derived_area_terms(array(13, 17)) === array(2),
+    'Multiple target terms must de-duplicate their allowed parent'
+);
+$exact_relation_contract = escomi_coverage_validate_area_relation_contract(array(13, 17), array(13, 17));
+coverage_expect(
+    is_array($exact_relation_contract)
+        && $exact_relation_contract['required'] === array(13, 17)
+        && $exact_relation_contract['allowed_derived'] === array(2),
+    'Exact target relation must pass while retaining the derived-term contract'
+);
+$parent_relation_contract = escomi_coverage_validate_area_relation_contract(array(13, 17), array(2, 13, 17));
+coverage_expect(
+    is_array($parent_relation_contract)
+        && $parent_relation_contract['actual'] === array(2, 13, 17),
+    'Allowed parent relation must pass'
+);
+coverage_expect_error(
+    escomi_coverage_validate_area_relation_contract(array(13, 17), array(2, 13, 17, 59)),
+    'unexpected_area_relation'
+);
+coverage_expect_error(
+    escomi_coverage_validate_area_relation_contract(array(13, 17), array(2, 13)),
+    'missing_area_relation'
+);
 $GLOBALS['coverage_terms'][17]->slug = 'sakaihigashi';
 coverage_expect_error(escomi_coverage_validate_area_contract(), 'area_contract_mismatch');
 $GLOBALS['coverage_terms'][17]->slug = 'sakai';
 $GLOBALS['coverage_terms'][17]->taxonomy = 'category';
 coverage_expect_error(escomi_coverage_validate_area_contract(), 'area_contract_mismatch');
 $GLOBALS['coverage_terms'][17]->taxonomy = 'area';
+$GLOBALS['coverage_terms'][13]->parent = 59;
+coverage_expect_error(escomi_coverage_validate_area_contract(), 'area_contract_mismatch');
+$GLOBALS['coverage_terms'][13]->parent = 2;
 
 $GLOBALS['coverage_caps']['escomi_publish_coverage_batch'] = false;
 coverage_expect_error(escomi_coverage_permission(new Coverage_Test_Request(array())), 'rest_forbidden');
@@ -396,6 +477,12 @@ function coverage_reset_shop_runtime(): void {
     $GLOBALS['coverage_fail_field'] = null;
     $GLOBALS['coverage_coerce_field'] = null;
     $GLOBALS['coverage_fail_publish'] = false;
+    $GLOBALS['coverage_fail_draft'] = false;
+    $GLOBALS['coverage_publish_add_terms'] = array();
+    $GLOBALS['coverage_publish_field_mutation'] = null;
+    $GLOBALS['coverage_publish_provenance_mutation'] = false;
+    $GLOBALS['coverage_publish_primary_mutation'] = false;
+    $GLOBALS['coverage_publish_slug_mutation'] = null;
     $GLOBALS['coverage_fail_terms_read'] = false;
     $GLOBALS['coverage_drop_existing_terms_once'] = false;
     $GLOBALS['coverage_partial_relation_restore'] = false;
@@ -692,6 +779,76 @@ coverage_expect_error(escomi_coverage_apply_rollback($create_result['rollback'])
 $GLOBALS['coverage_posts'][$created_id]['post_name'] = 'eskomi-mcreate';
 coverage_expect(escomi_coverage_apply_rollback($create_result['rollback']) === true, 'Create rollback failed');
 coverage_expect($GLOBALS['coverage_posts'][$created_id]['post_status'] === 'draft', 'Create rollback must return post to draft');
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_add_terms'] = array(2);
+$allowed_parent_create = escomi_coverage_apply_create($create_operation, array());
+coverage_expect(!is_wp_error($allowed_parent_create), 'Publish hook allowed parent must pass');
+$allowed_parent_id = $allowed_parent_create['post_id'];
+coverage_expect(
+    $GLOBALS['coverage_relations'][$allowed_parent_id] === array(2, 13, 17),
+    'Publish hook must preserve both target terms and the allowed parent'
+);
+coverage_expect(
+    ($allowed_parent_create['relation_contract']['required'] ?? null) === array(13, 17)
+        && ($allowed_parent_create['relation_contract']['allowed_derived'] ?? null) === array(2),
+    'Create result must record required and allowed-derived relations separately'
+);
+coverage_expect(
+    !metadata_exists('post', $allowed_parent_id, 'shop_primary_area_term_id'),
+    'Allowed parent normalization must not synthesize Primary Area'
+);
+$publish_event = array_search('status:publish', $GLOBALS['coverage_events'], true);
+$post_publish_term_reads = array_keys($GLOBALS['coverage_events'], 'readback:terms', true);
+coverage_expect(
+    $publish_event !== false && max($post_publish_term_reads) > $publish_event,
+    'CREATE must read relations again after publish hooks run'
+);
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_add_terms'] = array(2, 59);
+$unexpected_relation_create = escomi_coverage_apply_create($create_operation, array());
+coverage_expect_error($unexpected_relation_create, 'unexpected_area_relation');
+$unexpected_relation_id = array_key_first($GLOBALS['coverage_posts']);
+coverage_expect(
+    $GLOBALS['coverage_posts'][$unexpected_relation_id]['post_status'] === 'draft',
+    'Unexpected publish relation must fail closed back to draft'
+);
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_add_terms'] = array(2, 59);
+$GLOBALS['coverage_fail_draft'] = true;
+$failed_recovery_create = escomi_coverage_apply_create($create_operation, array());
+coverage_expect_error($failed_recovery_create, 'create_recovery_failed');
+coverage_expect(
+    reset($GLOBALS['coverage_posts'])['post_status'] === 'publish',
+    'Recovery fixture must prove that the invalid shop could not be downgraded'
+);
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_field_mutation'] = array('official_url' => 'https://mutated.example/');
+coverage_expect_error(escomi_coverage_apply_create($create_operation, array()), 'create_post_publish_readback_failed');
+coverage_expect(reset($GLOBALS['coverage_posts'])['post_status'] === 'draft', 'Post-publish ACF mutation must fail closed');
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_field_mutation'] = array('shop_hours' => 'unexpected-hours');
+coverage_expect_error(escomi_coverage_apply_create($create_operation, array()), 'create_post_publish_readback_failed');
+coverage_expect(reset($GLOBALS['coverage_posts'])['post_status'] === 'draft', 'Unplanned allowlisted ACF mutation must fail closed');
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_provenance_mutation'] = true;
+coverage_expect_error(escomi_coverage_apply_create($create_operation, array()), 'create_post_publish_readback_failed');
+coverage_expect(reset($GLOBALS['coverage_posts'])['post_status'] === 'draft', 'Post-publish provenance mutation must fail closed');
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_primary_mutation'] = true;
+coverage_expect_error(escomi_coverage_apply_create($create_operation, array()), 'create_post_publish_readback_failed');
+coverage_expect(reset($GLOBALS['coverage_posts'])['post_status'] === 'draft', 'Post-publish Primary Area mutation must fail closed');
+
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_publish_slug_mutation'] = 'unexpected-slug';
+coverage_expect_error(escomi_coverage_apply_create($create_operation, array()), 'create_post_publish_readback_failed');
+coverage_expect(reset($GLOBALS['coverage_posts'])['post_status'] === 'draft', 'Post-publish identity mutation must fail closed');
 
 coverage_reset_shop_runtime();
 $GLOBALS['coverage_fail_publish'] = true;
@@ -999,5 +1156,173 @@ $GLOBALS['coverage_options'][$m0004_ledger_name] = escomi_coverage_canonical_jso
 $GLOBALS['coverage_posts'][770]['post_name'] = 'drifted-slug';
 coverage_expect_error(escomi_coverage_reconcile_operation($manifest, $operation, $reconcile_request), 'reconcile_state_mismatch');
 $GLOBALS['coverage_posts'][770]['post_name'] = $operation['payload']['slug'];
+
+$m0145 = null;
+foreach ($manifest['operations'] as $item) {
+    if ($item['operation_id'] === 'coverage-m0145-create') { $m0145 = $item; break; }
+}
+coverage_expect(is_array($m0145), 'M0145 production fixture operation missing');
+$m0145_dry_run = escomi_coverage_handle_request(new Coverage_Test_Request(array(
+    'batch_id' => $manifest['batch_id'],
+    'operation_id' => $m0145['operation_id'],
+    'attempt_id' => '050e8400-e29b-41d4-a716-446655440000',
+    'payload_hash' => $m0145['payload_hash'],
+    'mode' => 'dry_run',
+)));
+coverage_expect(
+    $m0145_dry_run instanceof WP_REST_Response
+        && ($m0145_dry_run->data['post_publish_validation'] ?? '') === 'NOT_EXECUTED_DRY_RUN',
+    'CREATE dry-run must not claim that publish-hook validation executed'
+);
+coverage_reset_shop_runtime();
+$GLOBALS['coverage_options'] = array();
+$GLOBALS['coverage_next_audit_id'] = 7000;
+coverage_seed_shop(5070, 'publish', 'イチゴみるく', 'eskomi-m0145');
+$GLOBALS['coverage_relations'][5070] = array(2, 13, 17);
+foreach ($m0145['payload']['fields'] as $item) {
+    $field = $item['field'];
+    $GLOBALS['coverage_fields'][5070][$field] = $item['proposed_value'];
+    $GLOBALS['coverage_meta'][5070][$field] = $item['proposed_value'];
+    $GLOBALS['coverage_meta'][5070]['_' . $field] = $GLOBALS['coverage_field_keys'][$field];
+}
+$GLOBALS['coverage_meta'][5070]['shop_fact_provenance'] = array(
+    array(
+        'field' => 'official',
+        'sourceUrl' => 'https://ichigo-milk.com/',
+        'sourceType' => 'official-site',
+        'observedAt' => '2026-08-23',
+        'reviewedAt' => '2026-08-26',
+        'reviewStatus' => 'reviewed',
+        'publishedValueHash' => escomi_coverage_payload_hash('https://ichigo-milk.com/'),
+    ),
+    array(
+        'field' => 'booking',
+        'sourceUrl' => 'https://ichigo-milk.com/',
+        'sourceType' => 'official-site',
+        'observedAt' => '2026-08-22',
+        'reviewedAt' => '2026-08-26',
+        'reviewStatus' => 'reviewed',
+        'publishedValueHash' => escomi_coverage_payload_hash('電話'),
+    ),
+    array(
+        'field' => 'hours',
+        'sourceUrl' => 'https://ichigo-milk.com/',
+        'sourceType' => 'official-site',
+        'observedAt' => '2026-08-22',
+        'reviewedAt' => '2026-08-26',
+        'reviewStatus' => 'reviewed',
+        'publishedValueHash' => escomi_coverage_payload_hash('11:00〜翌6:00'),
+    ),
+);
+$m0145_ledger_name = escomi_coverage_ledger_option_name($manifest['batch_id'], $m0145['operation_id']);
+$m0145_original_attempt = 'dd2db9d3-1816-44ce-a8cd-de0d5a6cc86e';
+$m0145_ledger = array(
+    'schema_version' => 1,
+    'batch_id' => $manifest['batch_id'],
+    'operation_id' => $m0145['operation_id'],
+    'payload_hash' => $m0145['payload_hash'],
+    'attempt_id' => $m0145_original_attempt,
+    'state' => 'applied',
+    'post_id' => 5070,
+    'before_snapshot' => null,
+    'after_hashes' => array(),
+    'area_terms_added' => array(),
+    'create_stage' => 'draft_created',
+    'created_at' => '2026-08-26T22:00:13+00:00',
+    'updated_at' => '2026-08-26T22:00:13+00:00',
+    'retention_days' => 400,
+    'option_name' => $m0145_ledger_name,
+    'last_error_code' => null,
+    'audit_id' => 5071,
+    'rollback' => array(
+        'action' => 'CREATE_NEW',
+        'post_id' => 5070,
+        'after_status' => 'publish',
+        'slug' => 'eskomi-m0145',
+        'field_names' => array('official_url', 'shop_booking', 'shop_hours', 'shop_tel'),
+        'after_hash' => '157b028b7c3fcdb8d401079b8737a73c83208ab4d3ff22f6cc56594cd46bf8ee',
+    ),
+);
+$GLOBALS['coverage_options'][$m0145_ledger_name] = escomi_coverage_canonical_json($m0145_ledger);
+$GLOBALS['coverage_posts'][5071] = array(
+    'post_type' => 'coverage_batch_audit',
+    'post_status' => 'private',
+    'post_title' => 'Coverage coverage-m0145-create applied',
+    'post_name' => '',
+    'post_content' => escomi_coverage_canonical_json(array(
+        'attempt_id' => $m0145_original_attempt,
+        'batch_id' => $manifest['batch_id'],
+        'operation_id' => $m0145['operation_id'],
+        'payload_hash' => $m0145['payload_hash'],
+        'post_id' => 5070,
+        'state' => 'applied',
+    )),
+);
+$m0145_fields_before = $GLOBALS['coverage_fields'][5070];
+$m0145_meta_before = $GLOBALS['coverage_meta'][5070];
+$m0145_terms_before = $GLOBALS['coverage_relations'][5070];
+$m0145_reconcile_request = array(
+    'batch_id' => $manifest['batch_id'],
+    'operation_id' => $m0145['operation_id'],
+    'attempt_id' => 'f50e8400-e29b-41d4-a716-446655440000',
+    'payload_hash' => $m0145['payload_hash'],
+    'mode' => 'reconcile',
+);
+$m0145_reconciled = escomi_coverage_reconcile_operation($manifest, $m0145, $m0145_reconcile_request);
+coverage_expect(
+    $m0145_reconciled instanceof WP_REST_Response
+        && ($m0145_reconciled->data['status'] ?? '') === 'applied_reconciled',
+    'M0145 applied production state must reconcile without rollback'
+);
+$m0145_reconciled_ledger = json_decode($GLOBALS['coverage_options'][$m0145_ledger_name], true);
+coverage_expect(($m0145_reconciled_ledger['state'] ?? '') === 'applied', 'M0145 reconcile must preserve applied state');
+coverage_expect(($m0145_reconciled_ledger['audit_id'] ?? null) === 5071, 'M0145 reconcile must preserve original applied audit');
+coverage_expect(is_int($m0145_reconciled_ledger['relation_reconcile_audit_id'] ?? null), 'M0145 reconcile audit missing');
+coverage_expect($GLOBALS['coverage_fields'][5070] === $m0145_fields_before, 'M0145 reconcile changed ACF fields');
+coverage_expect($GLOBALS['coverage_meta'][5070] === $m0145_meta_before, 'M0145 reconcile changed provenance or Primary Area');
+coverage_expect($GLOBALS['coverage_relations'][5070] === $m0145_terms_before, 'M0145 reconcile changed area relations');
+$m0145_audit_count = count($GLOBALS['coverage_posts']);
+$m0145_reconcile_again = escomi_coverage_reconcile_operation($manifest, $m0145, $m0145_reconcile_request);
+coverage_expect(
+    $m0145_reconcile_again instanceof WP_REST_Response
+        && ($m0145_reconcile_again->data['duplicate'] ?? false) === true,
+    'M0145 applied reconcile must be idempotent'
+);
+coverage_expect(count($GLOBALS['coverage_posts']) === $m0145_audit_count, 'M0145 reconcile replay appended another audit');
+$GLOBALS['coverage_relations'][5070] = array(2, 13, 17, 59);
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0145, $m0145_reconcile_request),
+    'reconcile_state_mismatch'
+);
+$GLOBALS['coverage_relations'][5070] = array(2, 13, 17);
+$m0145_reconcile_audit_id = $m0145_reconciled_ledger['relation_reconcile_audit_id'];
+$GLOBALS['coverage_posts'][$m0145_reconcile_audit_id]['post_status'] = 'publish';
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0145, $m0145_reconcile_request),
+    'reconcile_audit_mismatch'
+);
+$GLOBALS['coverage_posts'][$m0145_reconcile_audit_id]['post_status'] = 'private';
+$saved_m0145_reconciled_ledger = json_decode($GLOBALS['coverage_options'][$m0145_ledger_name], true);
+$bad_m0145_reconciled_ledger = $saved_m0145_reconciled_ledger;
+$bad_m0145_reconciled_ledger['batch_id'] = 'wrong-batch';
+$GLOBALS['coverage_options'][$m0145_ledger_name] = escomi_coverage_canonical_json($bad_m0145_reconciled_ledger);
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0145, $m0145_reconcile_request),
+    'reconcile_state_mismatch'
+);
+$GLOBALS['coverage_options'][$m0145_ledger_name] = escomi_coverage_canonical_json($saved_m0145_reconciled_ledger);
+$saved_m0145_reconcile_audit = $GLOBALS['coverage_posts'][$m0145_reconcile_audit_id]['post_content'];
+$bad_m0145_reconcile_audit = json_decode($saved_m0145_reconcile_audit, true);
+$bad_m0145_reconcile_audit['batch_id'] = 'wrong-batch';
+$GLOBALS['coverage_posts'][$m0145_reconcile_audit_id]['post_content'] = escomi_coverage_canonical_json($bad_m0145_reconcile_audit);
+coverage_expect(
+    escomi_coverage_find_applied_relation_reconcile_audit($m0145, $saved_m0145_reconciled_ledger) === null,
+    'Final-CAS retry must not reuse a wrong-lineage relation reconcile audit'
+);
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0145, $m0145_reconcile_request),
+    'reconcile_audit_mismatch'
+);
+$GLOBALS['coverage_posts'][$m0145_reconcile_audit_id]['post_content'] = $saved_m0145_reconcile_audit;
 
 echo "Coverage batch writer boundary PASS\n";
