@@ -142,6 +142,23 @@ class DryRunTest(unittest.TestCase):
             {item.field: item.status for item in entity.field_results},
         )
 
+    def test_invalid_basic_price_snapshot_is_conflict_not_exception(self):
+        op = operation(
+            "UPDATE_EXISTING",
+            fields=(field("basic_price", "13000", "10000"),),
+        )
+        shop = ShopSnapshot(
+            10,
+            "test-shop",
+            "publish",
+            "Test Shop",
+            (13,),
+            {"basic_price": "013000"},
+        )
+        entity = dry_run(manifest(op), self.snapshot((shop,))).entity_results[0]
+        self.assertEqual("CONFLICT", entity.status)
+        self.assertEqual("", entity.field_results[0].current_hash)
+
     def test_existing_relation_is_no_change(self):
         op = operation("ADD_AREA_RELATION", fields=(), area_terms=(13, 17))
         shop = ShopSnapshot(10, "test-shop", "publish", "Test Shop", (13, 17), {})

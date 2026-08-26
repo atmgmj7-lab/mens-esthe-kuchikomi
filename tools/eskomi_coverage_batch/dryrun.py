@@ -82,6 +82,19 @@ def _equivalent(field: str, left: Any, right: Any) -> bool:
 def _field_result(proposal: FieldProposal, shop: ShopSnapshot) -> FieldResult:
     exists = proposal.field in shop.fields
     actual = shop.fields.get(proposal.field)
+    try:
+        actual_hash = current_hash(proposal.field, exists, actual)
+    except ValueError:
+        return FieldResult(
+            field=proposal.field,
+            status="CONFLICT",
+            current_value=actual,
+            proposed_value=proposal.proposed_value,
+            expected_current_value=proposal.current_value,
+            current_hash="",
+            source=proposal.source,
+            observed_at=proposal.observed_at,
+        )
     if _equivalent(proposal.field, actual, proposal.proposed_value):
         status = "NO_CHANGE"
     elif proposal.proposed_value == "":
@@ -96,7 +109,7 @@ def _field_result(proposal: FieldProposal, shop: ShopSnapshot) -> FieldResult:
         current_value=actual,
         proposed_value=proposal.proposed_value,
         expected_current_value=proposal.current_value,
-        current_hash=current_hash(proposal.field, exists, actual),
+        current_hash=actual_hash,
         source=proposal.source,
         observed_at=proposal.observed_at,
     )

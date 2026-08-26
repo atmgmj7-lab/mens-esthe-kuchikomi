@@ -17,14 +17,6 @@
       "sha256": "6e2de57d5005e1fc8a81d697c6738ced8c0fa8e6785fd543bf045f1972280f2b"
     },
     {
-      "name": "integer",
-      "field": "area",
-      "exists": true,
-      "value": 13,
-      "canonical": "{\"exists\":true,\"field\":\"area\",\"value\":13}",
-      "sha256": "4127c7ba4e347661409ac9de6aefdd7145319ed731c7abb23c9ded6bcafcdfca"
-    },
-    {
       "name": "unicode",
       "field": "shop_tel",
       "exists": true,
@@ -39,7 +31,39 @@
       "value": "https://ichigo-milk.com/",
       "canonical": "{\"exists\":true,\"field\":\"official_url\",\"value\":\"https://ichigo-milk.com/\"}",
       "sha256": "1e87ccf7f352f893c8eedc677de044adc7ccd868f84da46a402de72cb5c647f5"
+    },
+    {
+      "name": "basic_price_integer",
+      "field": "basic_price",
+      "exists": true,
+      "value": 13000,
+      "canonical": "{\"exists\":true,\"field\":\"basic_price\",\"value\":13000}",
+      "sha256": "860c59958c8f27c7e0e532c9f30efdaeacc2ad416b08f04cfc5ed656845e3bdd"
+    },
+    {
+      "name": "basic_price_numeric_string",
+      "field": "basic_price",
+      "exists": true,
+      "value": "13000",
+      "canonical": "{\"exists\":true,\"field\":\"basic_price\",\"value\":13000}",
+      "sha256": "860c59958c8f27c7e0e532c9f30efdaeacc2ad416b08f04cfc5ed656845e3bdd"
+    },
+    {
+      "name": "japanese_wave_and_slash",
+      "field": "shop_hours",
+      "exists": true,
+      "value": "新大阪～西中島 / 東三国",
+      "canonical": "{\"exists\":true,\"field\":\"shop_hours\",\"value\":\"新大阪～西中島 / 東三国\"}",
+      "sha256": "74a96c3259f2bb024d744e11d0ed584d532de279ca57eaf5d9f0399e8fbb6782"
     }
+  ],
+  "invalid_current_hash_cases": [
+    {"name": "leading_zero", "field": "basic_price", "exists": true, "value": "013000"},
+    {"name": "comma", "field": "basic_price", "exists": true, "value": "13,000"},
+    {"name": "yen_suffix", "field": "basic_price", "exists": true, "value": "13000円"},
+    {"name": "decimal", "field": "basic_price", "exists": true, "value": "13000.0"},
+    {"name": "negative", "field": "basic_price", "exists": true, "value": "-13000"},
+    {"name": "empty", "field": "basic_price", "exists": true, "value": ""}
   ],
   "payload_hash_cases": [
     {
@@ -57,6 +81,21 @@
       },
       "canonical": "{\"action\":\"CREATE_NEW\",\"area_terms\":[13,17],\"fields\":{\"official_url\":\"https://ichigo-milk.com/\",\"shop_address\":\"\",\"shop_tel\":\"090-4464-1515\"},\"master_shop_id\":\"M0145\",\"title\":\"イチゴみるく\"}",
       "sha256": "05abd8d216965785d94376903588ff6fd7fd27f4f6dcdd56accabcef73e140d3"
+    },
+    {
+      "name": "unicode_null_empty_numeric_payload",
+      "payload": {
+        "action": "UPDATE_EXISTING",
+        "fields": [
+          {"field": "basic_price", "proposed_value": "13000"},
+          {"field": "shop_hours", "proposed_value": "10:00～翌5:00"}
+        ],
+        "master_shop_id": "M0004",
+        "nullable": null,
+        "title": "Alivie（アリビエ）新大阪店"
+      },
+      "canonical": "{\"action\":\"UPDATE_EXISTING\",\"fields\":[{\"field\":\"basic_price\",\"proposed_value\":\"13000\"},{\"field\":\"shop_hours\",\"proposed_value\":\"10:00～翌5:00\"}],\"master_shop_id\":\"M0004\",\"nullable\":null,\"title\":\"Alivie（アリビエ）新大阪店\"}",
+      "sha256": "4dffbb976437b51f5699cdef03b204d27b017541b105f533d74c2e37856fbe2e"
     }
   ]
 }
