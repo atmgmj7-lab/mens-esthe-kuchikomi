@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+define('ABSPATH', dirname(__DIR__, 2) . '/');
+
 final class WP_Error {
     private string $code;
     private string $message;
@@ -14,6 +16,7 @@ final class WP_Error {
     public function get_error_code(): string { return $this->code; }
     public function get_error_message(): string { return $this->message; }
     public function get_error_data(): array { return $this->data; }
+    public function add_data(array $data): void { $this->data = $data; }
 }
 
 final class WP_REST_Response {
@@ -128,10 +131,18 @@ $GLOBALS['coverage_cas_calls'] = 0;
 $GLOBALS['coverage_fail_cas_call'] = -1;
 $GLOBALS['coverage_conflict_next_cas'] = false;
 $GLOBALS['coverage_fail_all_cas'] = false;
+$GLOBALS['coverage_registered_meta'] = array();
+$GLOBALS['coverage_filters'] = array();
+$GLOBALS['coverage_source_contracts'] = array();
+$GLOBALS['coverage_head_calls'] = array();
 
 function add_action($hook, $callback) { $GLOBALS['coverage_actions'][$hook][] = $callback; }
+function add_filter($hook, $callback, $priority = 10, $accepted_args = 1) {
+    $GLOBALS['coverage_filters'][$hook][] = compact('callback', 'priority', 'accepted_args');
+}
 function register_rest_route($namespace, $route, $args) { $GLOBALS['coverage_routes'][] = compact('namespace', 'route', 'args'); }
 function register_post_type($name, $args) { $GLOBALS['coverage_post_types'][$name] = $args; }
+function register_post_meta($post_type, $key, $args) { $GLOBALS['coverage_registered_meta'][$key] = compact('post_type', 'args'); }
 function current_user_can($capability, ...$_args) { return $GLOBALS['coverage_caps'][$capability] ?? false; }
 function get_term($id, $taxonomy) { return $GLOBALS['coverage_terms'][$id] ?? new WP_Error('missing', 'missing'); }
 function get_ancestors($id, $object_type = '', $resource_type = '') {
@@ -163,6 +174,45 @@ function update_option($name, $value, $autoload = null) {
 function wp_cache_delete() { return true; }
 function wp_generate_uuid4() { return '550e8400-e29b-41d4-a716-446655440000'; }
 function sanitize_key($value) { return strtolower(preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $value)); }
+function esc_url_raw($value, $protocols = null) {
+    $url = is_string($value) ? trim($value) : '';
+    $parts = parse_url($url);
+    return is_array($parts)
+        && in_array(strtolower((string) ($parts['scheme'] ?? '')), $protocols ?? array('http', 'https'), true)
+        && !empty($parts['host'])
+        ? $url
+        : '';
+}
+function wp_http_validate_url($url) {
+    $parts = parse_url((string) $url);
+    if (!is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https' || empty($parts['host'])) return false;
+    $host = strtolower((string) $parts['host']);
+    if (filter_var($host, FILTER_VALIDATE_IP)) {
+        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) ? $url : false;
+    }
+    $contract = $GLOBALS['coverage_source_contracts'][$url] ?? array('safe' => true);
+    return ($contract['safe'] ?? true) ? $url : false;
+}
+function wp_parse_url($url) { return parse_url((string) $url); }
+function wp_safe_remote_head($url, $args = array()) {
+    $GLOBALS['coverage_head_calls'][$url] = ($GLOBALS['coverage_head_calls'][$url] ?? 0) + 1;
+    $contract = $GLOBALS['coverage_source_contracts'][$url] ?? array('status' => 200);
+    if (isset($contract['error'])) return new WP_Error($contract['error'], 'safe request rejected');
+    return array(
+        'response' => array('code' => (int) ($contract['status'] ?? 200)),
+        'headers' => array('location' => (string) ($contract['location'] ?? '')),
+    );
+}
+function wp_safe_remote_get($url, $args = array()) {
+    $contract = $GLOBALS['coverage_source_contracts'][$url] ?? array('get_status' => 200);
+    if (isset($contract['get_error'])) return new WP_Error($contract['get_error'], 'safe GET rejected');
+    return array(
+        'response' => array('code' => (int) ($contract['get_status'] ?? $contract['status'] ?? 200)),
+        'headers' => array('location' => (string) ($contract['get_location'] ?? $contract['location'] ?? '')),
+    );
+}
+function wp_remote_retrieve_response_code($response) { return (int) ($response['response']['code'] ?? 0); }
+function wp_remote_retrieve_header($response, $name) { return (string) ($response['headers'][strtolower($name)] ?? ''); }
 function metadata_exists($type, $post_id, $key) { return array_key_exists($key, $GLOBALS['coverage_meta'][$post_id] ?? array()); }
 function get_post_meta($post_id, $key, $single = true) { return $GLOBALS['coverage_meta'][$post_id][$key] ?? ''; }
 function update_post_meta($post_id, $key, $value) {
@@ -289,7 +339,109 @@ function coverage_expect_error($value, string $code): void {
     coverage_expect($value instanceof WP_Error && $actual === $code, "Expected WP_Error {$code}, got {$actual}");
 }
 
+require_once dirname(__DIR__, 2) . '/shop-public-meta.php';
 require_once dirname(__DIR__, 2) . '/coverage-batch-writer.php';
+
+$GLOBALS['coverage_source_contracts'] = array(
+    'https://accepted.example/' => array('safe' => true, 'status' => 200),
+    'https://rejected.example/' => array('safe' => false),
+    'https://redirect.example/' => array(
+        'safe' => true,
+        'status' => 301,
+        'location' => 'https://www.redirect.example/final/',
+    ),
+    'https://www.redirect.example/final/' => array('safe' => true, 'status' => 200),
+    'https://cross-host.example/' => array(
+        'safe' => true,
+        'status' => 302,
+        'location' => 'https://different.example/final/',
+    ),
+    'https://different.example/final/' => array('safe' => true, 'status' => 200),
+    'https://not-found.example/' => array('safe' => true, 'status' => 404),
+    'https://unauthorized.example/' => array('safe' => true, 'status' => 401),
+    'https://head-not-allowed.example/' => array('safe' => true, 'status' => 405, 'get_status' => 200),
+    'https://kamiesute.com/' => array('safe' => false, 'error' => 'http_request_failed'),
+);
+$accepted_provenance = escomi_coverage_prepare_provenance(array(), array(
+    array(
+        'field' => 'official_url',
+        'proposed_value' => 'https://accepted.example/',
+        'source' => 'https://accepted.example/',
+        'observed_at' => '2026-08-27',
+    ),
+));
+coverage_expect(
+    is_array($accepted_provenance)
+        && ($accepted_provenance['status'] ?? '') === 'PROVENANCE_READY'
+        && count($accepted_provenance['records'] ?? array()) === 1,
+    'Accepted source must pass the production provenance sanitizer before mutation'
+);
+foreach (array('https://not-found.example/', 'https://unauthorized.example/') as $broken_source) {
+    $broken_result = escomi_coverage_prepare_provenance(array(), array(array(
+        'field' => 'official_url',
+        'proposed_value' => $broken_source,
+        'source' => $broken_source,
+        'observed_at' => '2026-08-27',
+    )));
+    coverage_expect_error($broken_result, 'provenance_source_rejected');
+}
+$head_fallback = escomi_coverage_prepare_provenance(array(), array(array(
+    'field' => 'official_url',
+    'proposed_value' => 'https://head-not-allowed.example/',
+    'source' => 'https://head-not-allowed.example/',
+    'observed_at' => '2026-08-27',
+)));
+coverage_expect(!is_wp_error($head_fallback), 'A bounded safe GET must verify a source when HEAD is not allowed');
+$rejected_provenance = escomi_coverage_prepare_provenance(array(), array(
+    array(
+        'field' => 'official_url',
+        'proposed_value' => 'https://rejected.example/',
+        'source' => 'https://rejected.example/',
+        'observed_at' => '2026-08-27',
+    ),
+));
+coverage_expect_error($rejected_provenance, 'provenance_source_rejected');
+coverage_expect(
+    escomi_coverage_failure_scope($rejected_provenance) === 'CANDIDATE_HOLD',
+    'Candidate-specific provenance rejection must be server-classified before mutation'
+);
+$redirect_provenance = escomi_coverage_prepare_provenance(array(), array(
+    array(
+        'field' => 'official_url',
+        'proposed_value' => 'https://redirect.example/',
+        'source' => 'https://redirect.example/',
+        'observed_at' => '2026-08-27',
+    ),
+));
+coverage_expect(
+    is_array($redirect_provenance)
+        && ($redirect_provenance['records'][0]['sourceUrl'] ?? '') === 'https://www.redirect.example/final/',
+    'Safe same-host redirect must resolve to the final accepted source'
+);
+foreach (array(
+    'https://cross-host.example/',
+    'https://127.0.0.1/private',
+    'not-a-url',
+    'https://kamiesute.com/',
+) as $rejected_source) {
+    $result = escomi_coverage_prepare_provenance(array(), array(
+        array(
+            'field' => 'official_url',
+            'proposed_value' => $rejected_source,
+            'source' => $rejected_source,
+            'observed_at' => '2026-08-27',
+        ),
+    ));
+    coverage_expect_error($result, 'provenance_source_rejected');
+    coverage_expect(
+        escomi_coverage_failure_scope($result) === 'CANDIDATE_HOLD',
+        'Unsafe, malformed, cross-host, or production-DNS source must be candidate HOLD'
+    );
+}
+coverage_expect(
+    escomi_coverage_failure_scope(new WP_Error('manifest_invalid', 'bad manifest')) === 'SYSTEMIC_BLOCKING',
+    'Unscoped runtime contract errors must default to systemic blocking'
+);
 
 coverage_expect(defined('ESKOMI_COVERAGE_LOCK_TTL') && ESKOMI_COVERAGE_LOCK_TTL === 120, 'Lock TTL must be 120 seconds');
 coverage_expect(defined('ESKOMI_COVERAGE_LEDGER_RETENTION_DAYS') && ESKOMI_COVERAGE_LEDGER_RETENTION_DAYS === 400, 'Ledger retention must be 400 days');
@@ -573,6 +725,86 @@ $runtime_params = array(
     'payload_hash' => $runtime_operation['payload_hash'],
     'mode' => 'dry_run',
 );
+$rejected_runtime_operation = $runtime_operation;
+foreach ($rejected_runtime_operation['payload']['fields'] as &$rejected_runtime_field) {
+    $rejected_runtime_field['source'] = 'https://rejected.example/';
+}
+unset($rejected_runtime_field);
+$rejected_runtime_operation['payload_hash'] = escomi_coverage_payload_hash($rejected_runtime_operation['payload']);
+$rejected_runtime_params = array_replace($runtime_params, array(
+    'payload_hash' => $rejected_runtime_operation['payload_hash'],
+));
+$state_before_provenance_hold = array(
+    'posts' => $GLOBALS['coverage_posts'],
+    'fields' => $GLOBALS['coverage_fields'],
+    'meta' => $GLOBALS['coverage_meta'],
+    'relations' => $GLOBALS['coverage_relations'],
+);
+$options_before_provenance_hold = $GLOBALS['coverage_options'];
+$rejected_runtime_validation = escomi_coverage_validate_runtime_operation(
+    $runtime_manifest,
+    $rejected_runtime_operation,
+    $rejected_runtime_params
+);
+coverage_expect(
+    is_array($rejected_runtime_validation)
+        && ($rejected_runtime_validation['status'] ?? '') === 'HOLD'
+        && ($rejected_runtime_validation['classification'] ?? '') === 'CANDIDATE_HOLD'
+        && ($rejected_runtime_validation['hold_reason'] ?? '') === 'provenance_source_rejected',
+    'Dry-run must convert production provenance rejection to a candidate HOLD before mutation'
+);
+coverage_expect(
+    $state_before_provenance_hold === array(
+        'posts' => $GLOBALS['coverage_posts'],
+        'fields' => $GLOBALS['coverage_fields'],
+        'meta' => $GLOBALS['coverage_meta'],
+        'relations' => $GLOBALS['coverage_relations'],
+    ),
+    'Candidate provenance HOLD mutated runtime state'
+);
+coverage_expect($GLOBALS['coverage_options'] === $options_before_provenance_hold, 'Candidate provenance HOLD created a ledger');
+$accepted_runtime_validation = escomi_coverage_validate_runtime_operation(
+    $runtime_manifest,
+    $runtime_operation,
+    $runtime_params
+);
+coverage_expect(
+    is_array($accepted_runtime_validation)
+        && ($accepted_runtime_validation['status'] ?? '') === 'READY_UPDATE'
+        && ($accepted_runtime_validation['classification'] ?? '') === 'SAME_CONTRACT_READY',
+    'A candidate HOLD must not prevent a separate same-contract entity from remaining ready'
+);
+$redirect_runtime_operation = $runtime_operation;
+foreach ($redirect_runtime_operation['payload']['fields'] as &$redirect_runtime_field) {
+    $redirect_runtime_field['source'] = 'https://redirect.example/';
+}
+unset($redirect_runtime_field);
+$redirect_runtime_operation['payload_hash'] = escomi_coverage_payload_hash($redirect_runtime_operation['payload']);
+$redirect_runtime_params = array_replace($runtime_params, array(
+    'payload_hash' => $redirect_runtime_operation['payload_hash'],
+));
+$redirect_runtime_validation = escomi_coverage_validate_runtime_operation(
+    $runtime_manifest,
+    $redirect_runtime_operation,
+    $redirect_runtime_params
+);
+coverage_expect(
+    is_array($redirect_runtime_validation)
+        && ($redirect_runtime_validation['provenance_plan']['records'][0]['sourceUrl'] ?? '')
+            === 'https://www.redirect.example/final/',
+    'Dry-run must retain the final accepted provenance URL in its prepared plan'
+);
+$source_contracts_before_prepared_apply = $GLOBALS['coverage_source_contracts'];
+$GLOBALS['coverage_source_contracts']['https://redirect.example/'] = array('safe' => false);
+$prepared_apply_result = escomi_coverage_apply_update($redirect_runtime_operation, $redirect_runtime_validation);
+$GLOBALS['coverage_source_contracts'] = $source_contracts_before_prepared_apply;
+coverage_expect(!is_wp_error($prepared_apply_result), 'Apply must consume the dry-run prepared provenance plan');
+coverage_expect(
+    ($GLOBALS['coverage_meta'][42]['shop_fact_provenance'][0]['sourceUrl'] ?? '')
+        === 'https://www.redirect.example/final/',
+    'Apply stored a different provenance URL than the production-parity dry-run plan'
+);
+coverage_expect(escomi_coverage_apply_rollback($prepared_apply_result['rollback']) === true, 'Prepared-plan test rollback failed');
 $hold_operation = $runtime_operation;
 $hold_operation['master_shop_id'] = 'M0217';
 $hold_operation['payload']['master_shop_id'] = 'M0217';
@@ -608,9 +840,12 @@ coverage_seed_shop(42, 'publish', 'Test Shop', 'wrong-slug');
 $GLOBALS['coverage_fields'][42] = array('basic_price' => '13000', 'shop_hours' => '10:00');
 $GLOBALS['coverage_meta'][42] = $GLOBALS['coverage_fields'][42];
 $runtime_params['mode'] = 'dry_run';
-coverage_expect_error(
-    escomi_coverage_validate_runtime_operation($runtime_manifest, $runtime_operation, $runtime_params),
-    'shop_identity_mismatch'
+$identity_hold = escomi_coverage_validate_runtime_operation($runtime_manifest, $runtime_operation, $runtime_params);
+coverage_expect(
+    is_array($identity_hold)
+        && ($identity_hold['classification'] ?? '') === 'CANDIDATE_HOLD'
+        && ($identity_hold['hold_reason'] ?? '') === 'shop_identity_mismatch',
+    'Candidate-specific identity drift must be isolated as CANDIDATE_HOLD'
 );
 
 coverage_reset_shop_runtime();
@@ -618,9 +853,12 @@ $GLOBALS['coverage_options'] = array();
 coverage_seed_shop(42);
 $GLOBALS['coverage_fields'][42] = array('basic_price' => '013000', 'shop_hours' => '10:00');
 $GLOBALS['coverage_meta'][42] = $GLOBALS['coverage_fields'][42];
-coverage_expect_error(
-    escomi_coverage_validate_runtime_operation($runtime_manifest, $runtime_operation, $runtime_params),
-    'field_value_invalid'
+$value_hold = escomi_coverage_validate_runtime_operation($runtime_manifest, $runtime_operation, $runtime_params);
+coverage_expect(
+    is_array($value_hold)
+        && ($value_hold['classification'] ?? '') === 'CANDIDATE_HOLD'
+        && ($value_hold['hold_reason'] ?? '') === 'field_value_invalid',
+    'Candidate-specific invalid current value must be isolated as CANDIDATE_HOLD'
 );
 $GLOBALS['coverage_field_definitions']['field_69620c6d5f836']['type'] = 'text';
 coverage_expect_error(escomi_coverage_validate_acf_contract(array('basic_price')), 'acf_field_contract_mismatch');
@@ -1324,5 +1562,217 @@ coverage_expect_error(
     'reconcile_audit_mismatch'
 );
 $GLOBALS['coverage_posts'][$m0145_reconcile_audit_id]['post_content'] = $saved_m0145_reconcile_audit;
+
+$m0240 = null;
+foreach ($manifest['operations'] as $item) {
+    if ($item['operation_id'] === 'coverage-m0240-create') { $m0240 = $item; break; }
+}
+coverage_expect(is_array($m0240), 'M0240 production fixture operation missing');
+$seed_m0240_failure = static function () use ($manifest, $m0240): array {
+    coverage_reset_shop_runtime();
+    $GLOBALS['coverage_options'] = array();
+    $GLOBALS['coverage_next_audit_id'] = 8000;
+    coverage_seed_shop(5086, 'draft', '神々のエステ', 'eskomi-m0240');
+    foreach ($m0240['payload']['fields'] as $item) {
+        $field = $item['field'];
+        $GLOBALS['coverage_fields'][5086][$field] = $item['proposed_value'];
+        $GLOBALS['coverage_meta'][5086][$field] = $item['proposed_value'];
+        $GLOBALS['coverage_meta'][5086]['_' . $field] = $GLOBALS['coverage_field_keys'][$field];
+    }
+    $GLOBALS['coverage_meta'][5086]['shop_fact_provenance'] = array();
+    $GLOBALS['coverage_relations'][5086] = array(13);
+    $ledger_name = escomi_coverage_ledger_option_name($manifest['batch_id'], $m0240['operation_id']);
+    $original_attempt = '4d1497b3-3058-4e1c-b605-2f0c63947c18';
+    $ledger = array(
+        'schema_version' => 1,
+        'batch_id' => $manifest['batch_id'],
+        'operation_id' => $m0240['operation_id'],
+        'payload_hash' => $m0240['payload_hash'],
+        'attempt_id' => $original_attempt,
+        'state' => 'manual_review_required',
+        'post_id' => 5086,
+        'before_snapshot' => null,
+        'after_hashes' => array(),
+        'area_terms_added' => array(),
+        'create_stage' => 'draft_created',
+        'created_at' => '2026-08-27T00:00:00+00:00',
+        'updated_at' => '2026-08-27T00:00:00+00:00',
+        'retention_days' => 400,
+        'option_name' => $ledger_name,
+        'last_error_code' => 'provenance_write_failed',
+        'audit_id' => 5087,
+    );
+    $GLOBALS['coverage_options'][$ledger_name] = escomi_coverage_canonical_json($ledger);
+    $GLOBALS['coverage_posts'][5087] = array(
+        'post_type' => 'coverage_batch_audit',
+        'post_status' => 'private',
+        'post_title' => 'Coverage coverage-m0240-create manual_review_required',
+        'post_name' => '',
+        'post_content' => escomi_coverage_canonical_json(array(
+            'attempt_id' => $original_attempt,
+            'batch_id' => $manifest['batch_id'],
+            'error_code' => 'provenance_write_failed',
+            'operation_id' => $m0240['operation_id'],
+            'payload_hash' => $m0240['payload_hash'],
+            'post_id' => null,
+            'state' => 'manual_review_required',
+        )),
+    );
+    return array('ledger_name' => $ledger_name, 'original_audit' => $GLOBALS['coverage_posts'][5087]['post_content']);
+};
+$m0240_fixture = $seed_m0240_failure();
+$m0240_reconcile = array(
+    'batch_id' => $manifest['batch_id'],
+    'operation_id' => $m0240['operation_id'],
+    'attempt_id' => '1aa5bf86-a466-4b8b-996c-cf3e58cbc235',
+    'payload_hash' => $m0240['payload_hash'],
+    'mode' => 'reconcile',
+);
+$m0240_bad_fixture = $seed_m0240_failure();
+$m0240_bad_ledger = json_decode($GLOBALS['coverage_options'][$m0240_bad_fixture['ledger_name']], true);
+$m0240_bad_ledger['batch_id'] = 'foreign-batch';
+$GLOBALS['coverage_options'][$m0240_bad_fixture['ledger_name']] = escomi_coverage_canonical_json($m0240_bad_ledger);
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile),
+    'reconcile_state_mismatch'
+);
+$m0240_bad_fixture = $seed_m0240_failure();
+$m0240_bad_ledger = json_decode($GLOBALS['coverage_options'][$m0240_bad_fixture['ledger_name']], true);
+$m0240_bad_ledger['audit_id'] = 9999;
+$GLOBALS['coverage_options'][$m0240_bad_fixture['ledger_name']] = escomi_coverage_canonical_json($m0240_bad_ledger);
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile),
+    'reconcile_state_mismatch'
+);
+$m0240_bad_fixture = $seed_m0240_failure();
+$m0240_bad_audit = json_decode($GLOBALS['coverage_posts'][5087]['post_content'], true);
+$m0240_bad_audit['batch_id'] = 'foreign-batch';
+$GLOBALS['coverage_posts'][5087]['post_content'] = escomi_coverage_canonical_json($m0240_bad_audit);
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile),
+    'reconcile_audit_mismatch'
+);
+$m0240_fixture = $seed_m0240_failure();
+$m0240_before = array(
+    'posts' => $GLOBALS['coverage_posts'],
+    'fields' => $GLOBALS['coverage_fields'],
+    'meta' => $GLOBALS['coverage_meta'],
+    'relations' => $GLOBALS['coverage_relations'],
+);
+$m0240_pre_reserve_post_count = count($GLOBALS['coverage_posts']);
+$GLOBALS['coverage_fail_next_cas'] = true;
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile),
+    'ledger_conflict'
+);
+coverage_expect(
+    count($GLOBALS['coverage_posts']) === $m0240_pre_reserve_post_count,
+    'M0240 reconcile must reserve its ledger before appending an audit'
+);
+$GLOBALS['coverage_fail_cas_call'] = $GLOBALS['coverage_cas_calls'] + 2;
+coverage_expect_error(
+    escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile),
+    'ledger_conflict'
+);
+$m0240_post_final_cas_audit_count = count($GLOBALS['coverage_posts']);
+$m0240_held = escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile);
+coverage_expect(
+    count($GLOBALS['coverage_posts']) === $m0240_post_final_cas_audit_count,
+    'M0240 final-CAS retry must reuse its lineage-matched audit'
+);
+coverage_expect(
+    $m0240_held instanceof WP_REST_Response
+        && ($m0240_held->data['status'] ?? '') === 'candidate_hold_provenance'
+        && ($m0240_held->data['classification'] ?? '') === 'CANDIDATE_HOLD',
+    'Rejected M0240 source must reconcile to candidate_hold_provenance'
+);
+$m0240_hold_ledger = json_decode($GLOBALS['coverage_options'][$m0240_fixture['ledger_name']], true);
+coverage_expect(($m0240_hold_ledger['state'] ?? '') === 'candidate_hold_provenance', 'M0240 HOLD ledger state mismatch');
+coverage_expect(($m0240_hold_ledger['failure_audit_id'] ?? null) === 5087, 'M0240 ledger lost original failure audit lineage');
+coverage_expect($GLOBALS['coverage_posts'][5087]['post_content'] === $m0240_fixture['original_audit'], 'M0240 original audit was edited');
+$m0240_hold_audit = json_decode($GLOBALS['coverage_posts'][$m0240_hold_ledger['reconcile_audit_id']]['post_content'] ?? '', true);
+coverage_expect(
+    ($m0240_hold_audit['classification'] ?? '') === 'CANDIDATE_HOLD'
+        && ($m0240_hold_audit['hold_reason'] ?? '') === 'provenance_source_rejected',
+    'M0240 HOLD audit must persist its server-owned classification and reason'
+);
+coverage_expect($GLOBALS['coverage_posts'][5086]['post_status'] === 'draft', 'Rejected M0240 source published its draft');
+coverage_expect($GLOBALS['coverage_fields'] === $m0240_before['fields'], 'M0240 HOLD changed ACF fields');
+coverage_expect($GLOBALS['coverage_meta'] === $m0240_before['meta'], 'M0240 HOLD changed provenance or Primary Area');
+coverage_expect($GLOBALS['coverage_relations'] === $m0240_before['relations'], 'M0240 HOLD changed area relations');
+coverage_expect(count(array_filter($GLOBALS['coverage_events'], fn($event) => $event === 'insert:draft')) === 0, 'M0240 reconcile inserted a duplicate draft');
+coverage_expect(!array_key_exists(escomi_coverage_lock_option_name($manifest['batch_id'], $m0240['operation_id']), $GLOBALS['coverage_options']), 'M0240 HOLD left a lock');
+$m0240_hold_audit_count = count($GLOBALS['coverage_posts']);
+$m0240_held_again = escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile);
+coverage_expect($m0240_held_again instanceof WP_REST_Response && ($m0240_held_again->data['duplicate'] ?? false), 'M0240 HOLD reconcile must be idempotent');
+coverage_expect(count($GLOBALS['coverage_posts']) === $m0240_hold_audit_count, 'M0240 HOLD replay appended a duplicate audit');
+$m0240_dry = escomi_coverage_handle_request(new Coverage_Test_Request(array_replace(
+    $m0240_reconcile,
+    array('mode' => 'dry_run', 'attempt_id' => '2aa5bf86-a466-4b8b-996c-cf3e58cbc235')
+)));
+coverage_expect(
+    $m0240_dry instanceof WP_REST_Response
+        && ($m0240_dry->data['classification'] ?? '') === 'CANDIDATE_HOLD',
+    'Candidate HOLD ledger must remain an isolated dry-run result'
+);
+
+$m0240_fixture = $seed_m0240_failure();
+$GLOBALS['coverage_source_contracts']['https://kamiesute.com/'] = array('safe' => true, 'status' => 200);
+$m0240_ready = escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile);
+coverage_expect(
+    $m0240_ready instanceof WP_REST_Response
+        && ($m0240_ready->data['status'] ?? '') === 'retry_ready',
+    'Accepted M0240 source must reconcile the existing draft to retry_ready'
+);
+$m0240_apply_params = array_replace($m0240_reconcile, array(
+    'mode' => 'apply',
+    'attempt_id' => '3aa5bf86-a466-4b8b-996c-cf3e58cbc235',
+));
+$GLOBALS['coverage_fields'][5086]['shop_hours'] = 'editor-changed-after-reconcile';
+$GLOBALS['coverage_meta'][5086]['shop_hours'] = 'editor-changed-after-reconcile';
+$m0240_write_events_before_drift_apply = count(array_filter(
+    $GLOBALS['coverage_events'],
+    fn($event) => str_starts_with($event, 'field:') || $event === 'terms' || str_starts_with($event, 'status:')
+));
+$m0240_drift_apply = escomi_coverage_execute_operation($m0240, $m0240_apply_params, $manifest);
+coverage_expect_error($m0240_drift_apply, 'reconcile_state_mismatch');
+coverage_expect($GLOBALS['coverage_posts'][5086]['post_status'] === 'draft', 'M0240 drifted retry must remain draft');
+coverage_expect(
+    $GLOBALS['coverage_fields'][5086]['shop_hours'] === 'editor-changed-after-reconcile',
+    'M0240 drifted retry overwrote an editor change'
+);
+coverage_expect(
+    count(array_filter(
+        $GLOBALS['coverage_events'],
+        fn($event) => str_starts_with($event, 'field:') || $event === 'terms' || str_starts_with($event, 'status:')
+    )) === $m0240_write_events_before_drift_apply,
+    'M0240 drifted retry mutated content before failing'
+);
+
+$m0240_fixture = $seed_m0240_failure();
+$m0240_ready = escomi_coverage_reconcile_operation($manifest, $m0240, $m0240_reconcile);
+coverage_expect($m0240_ready instanceof WP_REST_Response, 'M0240 clean retry fixture did not reconcile');
+$m0240_apply_source_calls_before = $GLOBALS['coverage_head_calls']['https://kamiesute.com/'] ?? 0;
+$m0240_applied = escomi_coverage_execute_operation($m0240, $m0240_apply_params, $manifest);
+coverage_expect(
+    $m0240_applied instanceof WP_REST_Response
+        && ($m0240_applied->data['post_id'] ?? null) === 5086
+        && $GLOBALS['coverage_posts'][5086]['post_status'] === 'publish',
+    'M0240 retry must publish the ledger-owned WP5086 draft'
+);
+coverage_expect(count(array_filter($GLOBALS['coverage_events'], fn($event) => $event === 'insert:draft')) === 0, 'M0240 retry created a second draft');
+coverage_expect(
+    ($GLOBALS['coverage_head_calls']['https://kamiesute.com/'] ?? 0) === $m0240_apply_source_calls_before + 1,
+    'M0240 apply must reuse the single provenance plan bound to its fresh state hash'
+);
+$m0240_applied_ledger = json_decode($GLOBALS['coverage_options'][$m0240_fixture['ledger_name']], true);
+coverage_expect(($m0240_applied_ledger['failure_audit_id'] ?? null) === 5087, 'M0240 apply ledger lost original failure lineage');
+coverage_expect(is_int($m0240_applied_ledger['reconcile_audit_id'] ?? null), 'M0240 apply ledger lost reconcile audit lineage');
+$m0240_final_audit = json_decode($GLOBALS['coverage_posts'][$m0240_applied_ledger['audit_id']]['post_content'] ?? '', true);
+coverage_expect(
+    ($m0240_final_audit['previous_audit_id'] ?? null) === $m0240_applied_ledger['reconcile_audit_id'],
+    'M0240 applied audit must link to the reconcile audit'
+);
+$GLOBALS['coverage_source_contracts']['https://kamiesute.com/'] = array('safe' => false, 'error' => 'http_request_failed');
 
 echo "Coverage batch writer boundary PASS\n";

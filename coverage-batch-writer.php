@@ -824,6 +824,232 @@ function escomi_coverage_capture_allowlisted_fields(int $post_id): array
     return $fields;
 }
 
+function escomi_coverage_failure_scope($result): string
+{
+    if (!is_wp_error($result)) {
+        return 'SAME_CONTRACT_READY';
+    }
+    $data = $result->get_error_data();
+    return is_array($data) && ($data['failure_scope'] ?? '') === 'CANDIDATE_HOLD'
+        ? 'CANDIDATE_HOLD'
+        : 'SYSTEMIC_BLOCKING';
+}
+
+function escomi_coverage_provenance_source_error(string $code, string $message, array $data = []): WP_Error
+{
+    return new WP_Error($code, $message, array_merge([
+        'status' => 409,
+        'failure_scope' => 'CANDIDATE_HOLD',
+    ], $data));
+}
+
+function escomi_coverage_candidate_hold_from_error(
+    $error,
+    string $action,
+    $ledger,
+    array $field_contracts
+): array {
+    return [
+        'status' => 'HOLD',
+        'classification' => 'CANDIDATE_HOLD',
+        'hold_reason' => is_wp_error($error) ? (string) $error->get_error_code() : 'candidate_hold',
+        'action' => $action,
+        'duplicate' => false,
+        'ledger' => $ledger,
+        'field_contracts' => $field_contracts,
+    ];
+}
+
+function escomi_coverage_is_candidate_preflight_error($error): bool
+{
+    return is_wp_error($error) && in_array((string) $error->get_error_code(), [
+        'shop_not_found',
+        'shop_identity_mismatch',
+        'field_conflict',
+        'field_value_invalid',
+        'create_collision',
+    ], true);
+}
+
+function escomi_coverage_canonical_source_host(string $url): string
+{
+    $parts = function_exists('wp_parse_url') ? wp_parse_url($url) : parse_url($url);
+    $host = is_array($parts) ? strtolower((string) ($parts['host'] ?? '')) : '';
+    return str_starts_with($host, 'www.') ? substr($host, 4) : $host;
+}
+
+function escomi_coverage_absolute_redirect_url(string $base, string $location): string
+{
+    $location = trim($location);
+    if ($location === '') {
+        return '';
+    }
+    $parts = function_exists('wp_parse_url') ? wp_parse_url($location) : parse_url($location);
+    if (is_array($parts) && !empty($parts['scheme'])) {
+        return $location;
+    }
+    $base_parts = function_exists('wp_parse_url') ? wp_parse_url($base) : parse_url($base);
+    if (!is_array($base_parts) || empty($base_parts['scheme']) || empty($base_parts['host'])) {
+        return '';
+    }
+    $origin = strtolower((string) $base_parts['scheme']) . '://' . (string) $base_parts['host'];
+    if (!empty($base_parts['port'])) {
+        $origin .= ':' . (int) $base_parts['port'];
+    }
+    if (str_starts_with($location, '//')) {
+        return strtolower((string) $base_parts['scheme']) . ':' . $location;
+    }
+    if (str_starts_with($location, '/')) {
+        return $origin . $location;
+    }
+    $path = (string) ($base_parts['path'] ?? '/');
+    $directory = preg_replace('#/[^/]*$#', '/', $path);
+    return $origin . ($directory ?: '/') . $location;
+}
+
+function escomi_coverage_resolve_provenance_source(string $source)
+{
+    if (!function_exists('escomi_shop_public_meta_url')
+        || !function_exists('escomi_sanitize_shop_fact_provenance')
+        || !function_exists('wp_safe_remote_head')
+    ) {
+        return new WP_Error('provenance_contract_unavailable', 'Production provenance sanitizer is unavailable.', [
+            'status' => 503,
+            'failure_scope' => 'SYSTEMIC_BLOCKING',
+        ]);
+    }
+    $accepted = (string) escomi_shop_public_meta_url($source);
+    if ($accepted === '') {
+        return escomi_coverage_provenance_source_error(
+            'provenance_source_rejected',
+            'Provenance source was rejected by WordPress URL safety.'
+        );
+    }
+    $original_host = escomi_coverage_canonical_source_host($accepted);
+    $current = $accepted;
+    for ($redirects = 0; $redirects <= 5; $redirects++) {
+        $response = wp_safe_remote_head($current, [
+            'timeout' => 15,
+            'redirection' => 0,
+            'reject_unsafe_urls' => true,
+            'sslverify' => true,
+        ]);
+        if (is_wp_error($response)) {
+            return escomi_coverage_provenance_source_error(
+                'provenance_source_rejected',
+                'Provenance source safe request failed.',
+                ['cause' => $response->get_error_code()]
+            );
+        }
+        $status = (int) wp_remote_retrieve_response_code($response);
+        if ($status === 405 && function_exists('wp_safe_remote_get')) {
+            $response = wp_safe_remote_get($current, [
+                'timeout' => 15,
+                'redirection' => 0,
+                'reject_unsafe_urls' => true,
+                'sslverify' => true,
+                'limit_response_size' => 1,
+                'headers' => ['Range' => 'bytes=0-0'],
+            ]);
+            if (is_wp_error($response)) {
+                return escomi_coverage_provenance_source_error(
+                    'provenance_source_rejected',
+                    'Provenance source bounded safe GET failed.',
+                    ['cause' => $response->get_error_code()]
+                );
+            }
+            $status = (int) wp_remote_retrieve_response_code($response);
+        }
+        if ($status >= 300 && $status < 400) {
+            if ($redirects === 5) {
+                return escomi_coverage_provenance_source_error(
+                    'provenance_source_rejected',
+                    'Provenance source exceeded the redirect limit.'
+                );
+            }
+            $next = escomi_coverage_absolute_redirect_url(
+                $current,
+                (string) wp_remote_retrieve_header($response, 'location')
+            );
+            $next = $next === '' ? '' : (string) escomi_shop_public_meta_url($next);
+            if ($next === ''
+                || !hash_equals($original_host, escomi_coverage_canonical_source_host($next))
+            ) {
+                return escomi_coverage_provenance_source_error(
+                    'provenance_source_rejected',
+                    'Provenance redirect violated the public host contract.'
+                );
+            }
+            $current = $next;
+            continue;
+        }
+        if ($status < 200 || $status >= 300) {
+            return escomi_coverage_provenance_source_error(
+                'provenance_source_rejected',
+                'Provenance source did not return a safely reachable response.',
+                ['http_status' => $status]
+            );
+        }
+        return $current;
+    }
+    return escomi_coverage_provenance_source_error(
+        'provenance_source_rejected',
+        'Provenance source could not be resolved safely.'
+    );
+}
+
+function escomi_coverage_prepare_provenance(array $current, array $field_items)
+{
+    $replace = [];
+    $resolved = [];
+    foreach ($field_items as $item) {
+        $category = escomi_coverage_provenance_field((string) ($item['field'] ?? ''));
+        if ($category === null) {
+            continue;
+        }
+        $source = (string) ($item['source'] ?? '');
+        if (!array_key_exists($source, $resolved)) {
+            $resolved[$source] = escomi_coverage_resolve_provenance_source($source);
+        }
+        if (is_wp_error($resolved[$source])) {
+            return $resolved[$source];
+        }
+        $replace[$category] = array_merge($item, ['resolved_source' => $resolved[$source]]);
+    }
+    $next = [];
+    foreach ($current as $record) {
+        if (is_array($record) && !isset($replace[(string) ($record['field'] ?? '')])) {
+            $next[] = $record;
+        }
+    }
+    foreach ($replace as $category => $item) {
+        $next[] = [
+            'field' => $category,
+            'sourceUrl' => (string) $item['resolved_source'],
+            'sourceType' => 'official-site',
+            'observedAt' => substr((string) ($item['observed_at'] ?? ''), 0, 10),
+            'reviewedAt' => gmdate('Y-m-d'),
+            'reviewStatus' => 'reviewed',
+            'publishedValueHash' => escomi_coverage_payload_hash($item['proposed_value'] ?? null),
+        ];
+    }
+    $sanitized = escomi_sanitize_shop_fact_provenance($next);
+    if (!is_array($sanitized)
+        || escomi_coverage_canonical_json($sanitized) !== escomi_coverage_canonical_json($next)
+    ) {
+        return escomi_coverage_provenance_source_error(
+            'provenance_source_rejected',
+            'Production provenance sanitizer rejected or transformed a source record.'
+        );
+    }
+    return [
+        'status' => 'PROVENANCE_READY',
+        'current_hash' => escomi_coverage_payload_hash($current),
+        'records' => $sanitized,
+        'resolved_sources' => $resolved,
+    ];
+}
+
 function escomi_coverage_field_snapshots_equal(array $expected, array $actual): bool
 {
     if (array_keys($expected) !== array_keys($actual)) {
@@ -910,7 +1136,11 @@ function escomi_coverage_provenance_field(string $field): ?string
     ][$field] ?? null;
 }
 
-function escomi_coverage_write_provenance(int $post_id, array $field_items): array
+function escomi_coverage_write_provenance(
+    int $post_id,
+    array $field_items,
+    ?array $prepared_plan = null
+): array
 {
     $snapshot = escomi_coverage_capture_provenance($post_id);
     $current = is_array($snapshot['value']) ? $snapshot['value'] : [];
@@ -924,24 +1154,26 @@ function escomi_coverage_write_provenance(int $post_id, array $field_items): arr
     if (!$replace) {
         return ['snapshot' => $snapshot, 'value' => $current, 'changed' => false];
     }
-    $next = [];
-    foreach ($current as $record) {
-        if (is_array($record) && !isset($replace[(string) ($record['field'] ?? '')])) {
-            $next[] = $record;
-        }
+    $plan = $prepared_plan ?? escomi_coverage_prepare_provenance($current, $field_items);
+    if (is_wp_error($plan)) {
+        $data = $plan->get_error_data();
+        $data = is_array($data) ? $data : [];
+        $data['post_id'] = $post_id;
+        $plan->add_data($data);
+        return ['error' => $plan];
     }
-    foreach ($replace as $category => $item) {
-        $observed = substr((string) ($item['observed_at'] ?? ''), 0, 10);
-        $next[] = [
-            'field' => $category,
-            'sourceUrl' => (string) ($item['source'] ?? ''),
-            'sourceType' => 'official-site',
-            'observedAt' => $observed,
-            'reviewedAt' => gmdate('Y-m-d'),
-            'reviewStatus' => 'reviewed',
-            'publishedValueHash' => escomi_coverage_payload_hash($item['proposed_value'] ?? null),
-        ];
+    if (($plan['status'] ?? '') !== 'PROVENANCE_READY'
+        || !is_array($plan['records'] ?? null)
+        || !is_string($plan['current_hash'] ?? null)
+        || !hash_equals($plan['current_hash'], escomi_coverage_payload_hash($current))
+    ) {
+        return ['error' => new WP_Error(
+            'provenance_plan_conflict',
+            'Prepared provenance state changed before apply.',
+            ['status' => 409, 'post_id' => $post_id]
+        )];
     }
+    $next = $plan['records'];
     update_post_meta($post_id, 'shop_fact_provenance', $next);
     if (get_post_meta($post_id, 'shop_fact_provenance', true) !== $next) {
         return ['error' => new WP_Error('provenance_write_failed', 'Provenance could not be stored.', ['status' => 500])];
@@ -980,9 +1212,31 @@ function escomi_coverage_expected_provenance(array $field_items): array
     return $expected;
 }
 
-function escomi_coverage_validate_provenance_state(array $snapshot, array $field_items): bool
+function escomi_coverage_validate_provenance_state(
+    array $snapshot,
+    array $field_items,
+    ?array $prepared_plan = null
+): bool
 {
-    $expected = escomi_coverage_expected_provenance($field_items);
+    $expected = [];
+    if (is_array($prepared_plan['records'] ?? null)) {
+        foreach ($prepared_plan['records'] as $record) {
+            if (!is_array($record) || !is_string($record['field'] ?? null)) {
+                return false;
+            }
+            $expected[(string) $record['field']] = [
+                'field' => (string) $record['field'],
+                'sourceUrl' => (string) ($record['sourceUrl'] ?? ''),
+                'sourceType' => (string) ($record['sourceType'] ?? ''),
+                'observedAt' => (string) ($record['observedAt'] ?? ''),
+                'reviewStatus' => (string) ($record['reviewStatus'] ?? ''),
+                'publishedValueHash' => (string) ($record['publishedValueHash'] ?? ''),
+            ];
+        }
+        ksort($expected, SORT_STRING);
+    } else {
+        $expected = escomi_coverage_expected_provenance($field_items);
+    }
     if (!$expected) {
         return !($snapshot['exists'] ?? false);
     }
@@ -1044,7 +1298,11 @@ function escomi_coverage_capture_create_state(int $post_id)
     ];
 }
 
-function escomi_coverage_validate_create_current_state(array $operation, int $post_id)
+function escomi_coverage_validate_create_current_state(
+    array $operation,
+    int $post_id,
+    ?array $prepared_plan = null
+)
 {
     $state = escomi_coverage_capture_create_state($post_id);
     if (is_wp_error($state)) {
@@ -1095,7 +1353,11 @@ function escomi_coverage_validate_create_current_state(array $operation, int $po
             ]);
         }
     }
-    if (!escomi_coverage_validate_provenance_state($state['provenance'], $payload['fields'] ?? [])) {
+    if (!escomi_coverage_validate_provenance_state(
+        $state['provenance'],
+        $payload['fields'] ?? [],
+        $prepared_plan
+    )) {
         return new WP_Error('create_post_publish_readback_failed', 'Provenance changed during publish.', [
             'status' => 409,
             'post_id' => $post_id,
@@ -1118,9 +1380,14 @@ function escomi_coverage_validate_create_current_state(array $operation, int $po
 function escomi_coverage_validate_create_post_publish_state(
     array $operation,
     int $post_id,
-    array $draft_state
+    array $draft_state,
+    ?array $prepared_plan = null
 ) {
-    $validated = escomi_coverage_validate_create_current_state($operation, $post_id);
+    $validated = escomi_coverage_validate_create_current_state(
+        $operation,
+        $post_id,
+        $prepared_plan
+    );
     if (is_wp_error($validated)) {
         return $validated;
     }
@@ -1209,7 +1476,11 @@ function escomi_coverage_apply_update(array $operation, ?array $validation = nul
             true
         )
     ));
-    $provenance = escomi_coverage_write_provenance($post_id, $provenance_items);
+    $provenance = escomi_coverage_write_provenance(
+        $post_id,
+        $provenance_items,
+        is_array($validation['provenance_plan'] ?? null) ? $validation['provenance_plan'] : null
+    );
     if (isset($provenance['error'])) {
         escomi_coverage_restore_field_snapshots($post_id, $snapshots);
         return $provenance['error'];
@@ -1480,7 +1751,14 @@ function escomi_coverage_apply_create(array $operation, array $ledger, ?array $v
         escomi_coverage_force_draft($post_id);
         return new WP_Error('relation_write_failed', 'Create area relation failed.', ['status' => 500, 'post_id' => $post_id]);
     }
-    $provenance = escomi_coverage_write_provenance($post_id, $payload['fields'] ?? []);
+    $prepared_provenance = is_array($validation['provenance_plan'] ?? null)
+        ? $validation['provenance_plan']
+        : null;
+    $provenance = escomi_coverage_write_provenance(
+        $post_id,
+        $payload['fields'] ?? [],
+        $prepared_provenance
+    );
     if (isset($provenance['error'])) {
         escomi_coverage_force_draft($post_id);
         return $provenance['error'];
@@ -1494,7 +1772,12 @@ function escomi_coverage_apply_create(array $operation, array $ledger, ?array $v
         && $post['title'] === (string) $payload['title']
         && $post['slug'] === (string) $payload['slug']
         && !($draft_state['primary']['exists'] ?? false)
-        && $readback_terms === $terms;
+        && $readback_terms === $terms
+        && escomi_coverage_validate_provenance_state(
+            $draft_state['provenance'] ?? [],
+            $payload['fields'] ?? [],
+            $prepared_provenance
+        );
     foreach ($payload['fields'] ?? [] as $item) {
         $readback_ok = $readback_ok && escomi_coverage_values_equivalent(
             (string) $item['field'],
@@ -1511,7 +1794,12 @@ function escomi_coverage_apply_create(array $operation, array $ledger, ?array $v
         escomi_coverage_force_draft($post_id);
         return new WP_Error('publish_failed', 'Draft could not be published.', ['status' => 500, 'post_id' => $post_id]);
     }
-    $post_publish = escomi_coverage_validate_create_post_publish_state($operation, $post_id, $draft_state);
+    $post_publish = escomi_coverage_validate_create_post_publish_state(
+        $operation,
+        $post_id,
+        $draft_state,
+        $prepared_provenance
+    );
     if (is_wp_error($post_publish)) {
         if (!escomi_coverage_force_draft($post_id)) {
             return new WP_Error('create_recovery_failed', 'Published shop failed validation and could not be returned to draft.', [
@@ -1763,6 +2051,18 @@ function escomi_coverage_validate_runtime_operation(array $manifest, array $oper
         if ($ledger_state === 'manual_review_required') {
             return new WP_Error('reconcile_required', 'Manual-review ledger requires reconciliation.', ['status' => 409]);
         }
+        if ($ledger_state === 'candidate_hold_provenance') {
+            return [
+                'status' => 'HOLD',
+                'classification' => 'CANDIDATE_HOLD',
+                'hold_reason' => (string) ($ledger['hold_reason'] ?? 'provenance_source_rejected'),
+                'action' => (string) ($operation['action'] ?? ''),
+                'post_id' => $ledger['post_id'] ?? null,
+                'duplicate' => true,
+                'ledger' => $ledger,
+                'field_contracts' => $field_contracts,
+            ];
+        }
         if ($ledger_state === 'retry_ready') {
             if (hash_equals((string) ($ledger['attempt_id'] ?? ''), (string) ($params['attempt_id'] ?? ''))) {
                 return new WP_Error('attempt_reuse', 'Retry requires a new attempt identifier.', ['status' => 409]);
@@ -1777,6 +2077,8 @@ function escomi_coverage_validate_runtime_operation(array $manifest, array $oper
     ) {
         return [
             'status' => 'HOLD',
+            'classification' => 'CANDIDATE_HOLD',
+            'hold_reason' => 'fixed_hold',
             'action' => $action,
             'duplicate' => false,
             'ledger' => $ledger,
@@ -1788,7 +2090,9 @@ function escomi_coverage_validate_runtime_operation(array $manifest, array $oper
     } elseif ($action === 'ADD_AREA_RELATION') {
         $identity = escomi_coverage_validate_existing_identity($operation);
         if (is_wp_error($identity)) {
-            return $identity;
+            return escomi_coverage_is_candidate_preflight_error($identity)
+                ? escomi_coverage_candidate_hold_from_error($identity, $action, $ledger, $field_contracts)
+                : $identity;
         }
         $requested = $operation['payload']['area_terms_to_add'] ?? null;
         if (!is_array($requested) || array_diff($requested, [13, 17])) {
@@ -1806,9 +2110,66 @@ function escomi_coverage_validate_runtime_operation(array $manifest, array $oper
             'area_terms_to_add' => $to_add,
         ];
     } elseif ($action === 'CREATE_NEW') {
-        $collision = escomi_coverage_check_create_collisions($operation);
-        if (is_wp_error($collision)) {
-            return $collision;
+        $resume_provenance_plan = null;
+        $resume_post_id = is_array($ledger) && ($ledger['state'] ?? '') === 'retry_ready'
+            ? (int) ($ledger['post_id'] ?? 0)
+            : 0;
+        if ($resume_post_id > 0) {
+            if (($operation['operation_id'] ?? '') === 'coverage-m0240-create') {
+                $m0240_contract = escomi_coverage_reconcile_contracts()['coverage-m0240-create'] ?? null;
+                $m0240_state = is_array($m0240_contract)
+                    ? escomi_coverage_validate_m0240_failed_draft($operation, $m0240_contract)
+                    : new WP_Error('reconcile_contract_unavailable', 'M0240 retry contract is unavailable.', ['status' => 503]);
+                if (is_wp_error($m0240_state)) {
+                    return $m0240_state;
+                }
+                if (($m0240_state['target_state'] ?? '') === 'candidate_hold_provenance') {
+                    $source_error = escomi_coverage_provenance_source_error(
+                        (string) ($m0240_state['hold_reason'] ?? 'provenance_source_rejected'),
+                        'M0240 provenance source is no longer ready for resume.',
+                        ['post_id' => $resume_post_id]
+                    );
+                    return escomi_coverage_candidate_hold_from_error(
+                        $source_error,
+                        $action,
+                        $ledger,
+                        $field_contracts
+                    );
+                }
+                if (!hash_equals(
+                    (string) ($ledger['reconciled_state_hash'] ?? ''),
+                    (string) ($m0240_state['state_hash'] ?? '')
+                )) {
+                    return new WP_Error(
+                        'reconcile_state_mismatch',
+                        'M0240 draft changed after reconciliation.',
+                        ['status' => 409, 'post_id' => $resume_post_id]
+                    );
+                }
+                $resume_provenance_plan = is_array($m0240_state['provenance_plan'] ?? null)
+                    ? $m0240_state['provenance_plan']
+                    : null;
+            }
+            $resume_post = get_post($resume_post_id);
+            if (!$resume_post
+                || get_post_type($resume_post_id) !== 'shop'
+                || get_post_status($resume_post_id) !== 'draft'
+                || (string) $resume_post->post_title !== (string) ($operation['payload']['title'] ?? '')
+                || (string) $resume_post->post_name !== (string) ($operation['payload']['slug'] ?? '')
+            ) {
+                return new WP_Error(
+                    'create_resume_mismatch',
+                    'Ledger-owned draft identity changed before resume.',
+                    ['status' => 409, 'post_id' => $resume_post_id]
+                );
+            }
+        } else {
+            $collision = escomi_coverage_check_create_collisions($operation);
+            if (is_wp_error($collision)) {
+                return escomi_coverage_is_candidate_preflight_error($collision)
+                    ? escomi_coverage_candidate_hold_from_error($collision, $action, $ledger, $field_contracts)
+                    : $collision;
+            }
         }
         $field_keys = [];
         foreach ($operation['payload']['fields'] ?? [] as $item) {
@@ -1819,17 +2180,62 @@ function escomi_coverage_validate_runtime_operation(array $manifest, array $oper
             $field_keys[$field] = $field_contracts[$field]['key'];
         }
         $validation = [
-            'post_id' => null,
+            'post_id' => $resume_post_id ?: null,
             'status' => 'READY_CREATE',
             'field_keys' => $field_keys,
+            'prevalidated_provenance_plan' => $resume_provenance_plan,
         ];
     } else {
         return new WP_Error('operation_not_ready', 'Coverage operation is not ready.', ['status' => 409]);
     }
     if (is_wp_error($validation)) {
-        return $validation;
+        return escomi_coverage_is_candidate_preflight_error($validation)
+            ? escomi_coverage_candidate_hold_from_error($validation, $action, $ledger, $field_contracts)
+            : $validation;
+    }
+    $provenance_items = [];
+    if ($action === 'UPDATE_EXISTING') {
+        $planned_fields = array_fill_keys(array_map(
+            static fn($item): string => (string) ($item['field'] ?? ''),
+            $validation['planned_fields'] ?? []
+        ), true);
+        $provenance_items = array_values(array_filter(
+            $operation['payload']['fields'] ?? [],
+            static fn($item): bool => isset($planned_fields[(string) ($item['field'] ?? '')])
+        ));
+    } elseif ($action === 'CREATE_NEW') {
+        $provenance_items = is_array($operation['payload']['fields'] ?? null)
+            ? $operation['payload']['fields']
+            : [];
+    }
+    if ($provenance_items) {
+        $provenance_post_id = (int) ($validation['post_id'] ?? ($ledger['post_id'] ?? 0));
+        $snapshot = $provenance_post_id > 0
+            ? escomi_coverage_capture_provenance($provenance_post_id)
+            : ['exists' => false, 'value' => []];
+        $plan = is_array($validation['prevalidated_provenance_plan'] ?? null)
+            ? $validation['prevalidated_provenance_plan']
+            : escomi_coverage_prepare_provenance(
+                is_array($snapshot['value'] ?? null) ? $snapshot['value'] : [],
+                $provenance_items
+            );
+        if (is_wp_error($plan)) {
+            return escomi_coverage_failure_scope($plan) === 'CANDIDATE_HOLD'
+                ? escomi_coverage_candidate_hold_from_error($plan, $action, $ledger, $field_contracts)
+                : $plan;
+        }
+        $validation['provenance_plan'] = $plan;
+        $validation['provenance_status'] = $plan['status'];
+    } else {
+        $validation['provenance_plan'] = [
+            'status' => 'PROVENANCE_READY',
+            'records' => [],
+            'resolved_sources' => [],
+        ];
+        $validation['provenance_status'] = 'PROVENANCE_READY';
     }
     return array_merge($validation, [
+        'classification' => 'SAME_CONTRACT_READY',
         'action' => $action,
         'duplicate' => false,
         'ledger' => $ledger,
@@ -1860,7 +2266,278 @@ function escomi_coverage_reconcile_contracts(): array
             'allowed_derived_area_terms' => [2],
             'primary_exists' => false,
         ],
+        'coverage-m0240-create' => [
+            'reconcile_kind' => 'failed_create_provenance',
+            'payload_hash' => '97f46e383c7e25673bfbee20c6f4e32c9e352fac765638e3b4cc2192c8b03903',
+            'failure_audit_id' => 5087,
+            'failure_audit_post_id' => null,
+            'post_id' => 5086,
+            'status' => 'draft',
+            'title' => '神々のエステ',
+            'slug' => 'eskomi-m0240',
+            'area_terms' => [13],
+            'primary_exists' => false,
+            'provenance_exists' => true,
+            'provenance_value' => [],
+            'failure_code' => 'provenance_write_failed',
+        ],
     ];
+}
+
+function escomi_coverage_validate_m0240_failed_draft(array $operation, array $contract)
+{
+    if (!hash_equals((string) ($contract['payload_hash'] ?? ''), (string) ($operation['payload_hash'] ?? ''))
+        || (string) ($operation['operation_id'] ?? '') !== 'coverage-m0240-create'
+        || (string) ($operation['action'] ?? '') !== 'CREATE_NEW'
+    ) {
+        return new WP_Error('payload_mismatch', 'M0240 reconcile operation contract mismatch.', ['status' => 409]);
+    }
+    $post_id = (int) ($contract['post_id'] ?? 0);
+    $post = get_post($post_id);
+    $area_terms = escomi_coverage_current_area_terms($post_id);
+    $provenance = escomi_coverage_capture_provenance($post_id);
+    if (!$post
+        || get_post_type($post_id) !== 'shop'
+        || get_post_status($post_id) !== (string) $contract['status']
+        || (string) $post->post_title !== (string) $contract['title']
+        || (string) $post->post_name !== (string) $contract['slug']
+        || is_wp_error($area_terms)
+        || $area_terms !== $contract['area_terms']
+        || metadata_exists('post', $post_id, 'shop_primary_area_term_id') !== (bool) $contract['primary_exists']
+        || (bool) ($provenance['exists'] ?? false) !== (bool) $contract['provenance_exists']
+        || escomi_coverage_canonical_json($provenance['value'] ?? null)
+            !== escomi_coverage_canonical_json($contract['provenance_value'])
+    ) {
+        return new WP_Error('reconcile_state_mismatch', 'M0240 draft state does not match the recorded failure baseline.', ['status' => 409]);
+    }
+    $field_contracts = escomi_coverage_validate_acf_contract();
+    if (is_wp_error($field_contracts)) {
+        return $field_contracts;
+    }
+    $expected_fields = [];
+    foreach ($operation['payload']['fields'] ?? [] as $item) {
+        $field = (string) ($item['field'] ?? '');
+        if (!isset($field_contracts[$field])) {
+            return new WP_Error('manifest_invalid', 'M0240 field contract mismatch.', ['status' => 503]);
+        }
+        $snapshot = escomi_coverage_capture_field($post_id, $field);
+        if (!($snapshot['exists'] ?? false)
+            || !($snapshot['reference_exists'] ?? false)
+            || !hash_equals((string) $field_contracts[$field]['key'], (string) ($snapshot['reference'] ?? ''))
+            || !escomi_coverage_values_equivalent($field, $snapshot['value'] ?? null, $item['proposed_value'] ?? null)
+        ) {
+            return new WP_Error('reconcile_state_mismatch', 'M0240 draft ACF state changed.', ['status' => 409, 'field' => $field]);
+        }
+        $expected_fields[$field] = $snapshot;
+    }
+    foreach (escomi_coverage_capture_allowlisted_fields($post_id) as $field => $snapshot) {
+        if (!isset($expected_fields[$field])
+            && (($snapshot['exists'] ?? false) || ($snapshot['reference_exists'] ?? false))
+        ) {
+            return new WP_Error('reconcile_state_mismatch', 'M0240 draft contains an unplanned ACF value.', ['status' => 409, 'field' => $field]);
+        }
+    }
+    $plan = escomi_coverage_prepare_provenance(
+        is_array($provenance['value'] ?? null) ? $provenance['value'] : [],
+        $operation['payload']['fields'] ?? []
+    );
+    if (is_wp_error($plan) && escomi_coverage_failure_scope($plan) !== 'CANDIDATE_HOLD') {
+        return $plan;
+    }
+    $target = is_wp_error($plan) ? 'candidate_hold_provenance' : 'retry_ready';
+    $hold_reason = is_wp_error($plan) ? (string) $plan->get_error_code() : null;
+    return [
+        'post_id' => $post_id,
+        'target_state' => $target,
+        'hold_reason' => $hold_reason,
+        'provenance_plan' => is_wp_error($plan) ? null : $plan,
+        'state_hash' => escomi_coverage_payload_hash([
+            'post_id' => $post_id,
+            'status' => (string) $contract['status'],
+            'title' => (string) $contract['title'],
+            'slug' => (string) $contract['slug'],
+            'area_terms' => $area_terms,
+            'primary_exists' => (bool) $contract['primary_exists'],
+            'provenance' => $provenance,
+            'fields' => $expected_fields,
+            'target_state' => $target,
+            'hold_reason' => $hold_reason,
+            'prepared_records' => is_wp_error($plan) ? null : $plan['records'],
+        ]),
+    ];
+}
+
+function escomi_coverage_validate_m0240_failure_audit(
+    array $operation,
+    array $ledger,
+    array $contract
+): bool {
+    $audit = get_post((int) $contract['failure_audit_id']);
+    $body = $audit ? json_decode((string) $audit->post_content, true) : null;
+    return $audit
+        && $audit->post_type === ESKOMI_COVERAGE_AUDIT_POST_TYPE
+        && $audit->post_status === 'private'
+        && is_array($body)
+        && ($body['batch_id'] ?? '') === ($ledger['batch_id'] ?? '')
+        && ($body['state'] ?? '') === 'manual_review_required'
+        && ($body['operation_id'] ?? '') === ($operation['operation_id'] ?? '')
+        && ($body['payload_hash'] ?? '') === ($operation['payload_hash'] ?? '')
+        && ($body['attempt_id'] ?? '') === ($ledger['original_attempt_id'] ?? $ledger['attempt_id'] ?? '')
+        && array_key_exists('post_id', $body)
+        && $body['post_id'] === ($contract['failure_audit_post_id'] ?? null)
+        && ($body['error_code'] ?? '') === ($contract['failure_code'] ?? '');
+}
+
+function escomi_coverage_find_m0240_reconcile_audit(array $operation, array $ledger): ?int
+{
+    foreach ((array) get_posts([
+        'post_type' => ESKOMI_COVERAGE_AUDIT_POST_TYPE,
+        'post_status' => 'private',
+        'posts_per_page' => -1,
+        'fields' => 'ids',
+        'no_found_rows' => true,
+    ]) as $audit_id) {
+        $audit = get_post((int) $audit_id);
+        $body = $audit ? json_decode((string) $audit->post_content, true) : null;
+        if ($audit
+            && $audit->post_type === ESKOMI_COVERAGE_AUDIT_POST_TYPE
+            && $audit->post_status === 'private'
+            && is_array($body)
+            && ($body['batch_id'] ?? '') === ($ledger['batch_id'] ?? '')
+            && ($body['state'] ?? '') === ($ledger['reconcile_target_state'] ?? '')
+            && ($body['operation_id'] ?? '') === ($operation['operation_id'] ?? '')
+            && ($body['payload_hash'] ?? '') === ($operation['payload_hash'] ?? '')
+            && ($body['attempt_id'] ?? '') === ($ledger['reconcile_attempt_id'] ?? '')
+            && ($body['reconciled_state_hash'] ?? '') === ($ledger['reconciled_state_hash'] ?? '')
+            && (int) ($body['previous_audit_id'] ?? 0) === (int) ($ledger['failure_audit_id'] ?? 0)
+            && (int) ($body['post_id'] ?? 0) === (int) ($ledger['post_id'] ?? 0)
+            && ($body['original_attempt_id'] ?? '') === ($ledger['original_attempt_id'] ?? '')
+        ) {
+            return (int) $audit_id;
+        }
+    }
+    return null;
+}
+
+function escomi_coverage_reconcile_m0240_locked(
+    array $manifest,
+    array $operation,
+    array $params,
+    array $contract
+) {
+    $batch_id = (string) $params['batch_id'];
+    $operation_id = (string) $operation['operation_id'];
+    $ledger = escomi_coverage_current_ledger($batch_id, $operation_id);
+    if (is_wp_error($ledger)
+        || (int) ($ledger['schema_version'] ?? 0) !== 1
+        || ($ledger['batch_id'] ?? '') !== $batch_id
+        || ($ledger['operation_id'] ?? '') !== $operation_id
+        || !hash_equals((string) ($ledger['payload_hash'] ?? ''), (string) $operation['payload_hash'])
+        || (int) ($ledger['post_id'] ?? 0) !== (int) $contract['post_id']
+        || (int) ($ledger['audit_id'] ?? 0) !== (int) $contract['failure_audit_id']
+        || ($ledger['option_name'] ?? '') !== escomi_coverage_ledger_option_name($batch_id, $operation_id)
+    ) {
+        return is_wp_error($ledger)
+            ? $ledger
+            : new WP_Error('reconcile_state_mismatch', 'M0240 ledger identity does not match.', ['status' => 409]);
+    }
+    $state = (string) ($ledger['state'] ?? '');
+    if ($state === 'retry_ready') {
+        return new WP_REST_Response([
+            'status' => 'retry_ready',
+            'classification' => 'SAME_CONTRACT_READY',
+            'duplicate' => true,
+            'operation_id' => $operation_id,
+            'post_id' => (int) $contract['post_id'],
+            'reconcile_audit_id' => $ledger['reconcile_audit_id'] ?? null,
+        ], 200);
+    }
+    if ($state === 'candidate_hold_provenance'
+        && ($ledger['reconcile_attempt_id'] ?? '') === (string) $params['attempt_id']
+    ) {
+        return new WP_REST_Response([
+            'status' => 'candidate_hold_provenance',
+            'classification' => 'CANDIDATE_HOLD',
+            'duplicate' => true,
+            'operation_id' => $operation_id,
+            'post_id' => (int) $contract['post_id'],
+            'reconcile_audit_id' => $ledger['reconcile_audit_id'] ?? null,
+        ], 200);
+    }
+    if (!in_array($state, ['manual_review_required', 'candidate_hold_provenance', 'reconciling_m0240'], true)) {
+        return new WP_Error('reconcile_state_mismatch', 'M0240 ledger is not eligible for reconciliation.', ['status' => 409]);
+    }
+    if (!escomi_coverage_validate_m0240_failure_audit($operation, $ledger, $contract)) {
+        return new WP_Error('reconcile_audit_mismatch', 'M0240 original failure audit does not match.', ['status' => 409]);
+    }
+    if ($state !== 'reconciling_m0240') {
+        $validated = escomi_coverage_validate_m0240_failed_draft($operation, $contract);
+        if (is_wp_error($validated)) {
+            return $validated;
+        }
+        $reserved = escomi_coverage_transition_ledger($ledger, [
+            'state' => 'reconciling_m0240',
+            'failure_audit_id' => (int) $contract['failure_audit_id'],
+            'original_attempt_id' => (string) ($ledger['original_attempt_id'] ?? $ledger['attempt_id'] ?? ''),
+            'reconcile_attempt_id' => (string) $params['attempt_id'],
+            'reconcile_target_state' => (string) $validated['target_state'],
+            'reconciled_state_hash' => (string) $validated['state_hash'],
+            'hold_reason' => $validated['hold_reason'],
+        ]);
+        if (is_wp_error($reserved)) {
+            return $reserved;
+        }
+        $ledger = $reserved;
+    } elseif (($ledger['reconcile_attempt_id'] ?? '') !== (string) $params['attempt_id']) {
+        return new WP_Error('reconcile_state_mismatch', 'M0240 reconcile attempt changed while reserved.', ['status' => 409]);
+    } else {
+        $validated = escomi_coverage_validate_m0240_failed_draft($operation, $contract);
+        if (is_wp_error($validated)
+            || !hash_equals((string) ($ledger['reconciled_state_hash'] ?? ''), (string) ($validated['state_hash'] ?? ''))
+            || ($ledger['reconcile_target_state'] ?? '') !== ($validated['target_state'] ?? '')
+        ) {
+            return is_wp_error($validated)
+                ? $validated
+                : new WP_Error('reconcile_state_mismatch', 'M0240 draft changed while reconciliation was reserved.', ['status' => 409]);
+        }
+    }
+    $audit_id = escomi_coverage_find_m0240_reconcile_audit($operation, $ledger);
+    if ($audit_id === null) {
+        $audit_id = escomi_coverage_append_audit([
+            'batch_id' => $manifest['batch_id'],
+            'operation_id' => $operation_id,
+            'attempt_id' => (string) $ledger['reconcile_attempt_id'],
+            'state' => (string) $ledger['reconcile_target_state'],
+            'classification' => ($ledger['reconcile_target_state'] ?? '') === 'retry_ready'
+                ? 'SAME_CONTRACT_READY'
+                : 'CANDIDATE_HOLD',
+            'post_id' => (int) $contract['post_id'],
+            'payload_hash' => $operation['payload_hash'],
+            'previous_audit_id' => (int) $contract['failure_audit_id'],
+            'reconciled_state_hash' => (string) $ledger['reconciled_state_hash'],
+            'original_attempt_id' => (string) $ledger['original_attempt_id'],
+            'hold_reason' => $ledger['hold_reason'] ?? null,
+        ]);
+    }
+    if (is_wp_error($audit_id)) {
+        return $audit_id;
+    }
+    $target = (string) $ledger['reconcile_target_state'];
+    $transitioned = escomi_coverage_transition_ledger($ledger, [
+        'state' => $target,
+        'reconcile_audit_id' => $audit_id,
+        'reconciled_at' => gmdate('c'),
+    ]);
+    return is_wp_error($transitioned)
+        ? $transitioned
+        : new WP_REST_Response([
+            'status' => $target,
+            'classification' => $target === 'retry_ready' ? 'SAME_CONTRACT_READY' : 'CANDIDATE_HOLD',
+            'duplicate' => false,
+            'operation_id' => $operation_id,
+            'post_id' => (int) $contract['post_id'],
+            'reconcile_audit_id' => $audit_id,
+        ], 200);
 }
 
 function escomi_coverage_validate_reconcile_state(array $operation, array $contract)
@@ -2228,6 +2905,23 @@ function escomi_coverage_reconcile_operation(array $manifest, array $operation, 
         }
         return $applied_result;
     }
+    if (($contract['reconcile_kind'] ?? '') === 'failed_create_provenance') {
+        $m0240_result = null;
+        try {
+            $m0240_result = escomi_coverage_reconcile_m0240_locked(
+                $manifest,
+                $operation,
+                $params,
+                $contract
+            );
+        } finally {
+            $m0240_released = escomi_coverage_release_lock($lock);
+        }
+        if (!$m0240_released && !is_wp_error($m0240_result)) {
+            return new WP_Error('lock_release_failed', 'M0240 reconcile completed but lock release failed.', ['status' => 503]);
+        }
+        return $m0240_result;
+    }
     $result = null;
     try {
         $ledger = escomi_coverage_current_ledger((string) $params['batch_id'], (string) $params['operation_id']);
@@ -2353,6 +3047,8 @@ function escomi_coverage_append_audit(array $event)
         'operation_id',
         'attempt_id',
         'state',
+        'classification',
+        'hold_reason',
         'post_id',
         'payload_hash',
         'changed_fields',
@@ -2525,6 +3221,7 @@ function escomi_coverage_execute_operation(array $operation, array $params, ?arr
                         'changed_fields' => $applied['changed_fields'] ?? [],
                         'area_terms_added' => $applied['area_terms_added'] ?? [],
                         'duplicate' => false,
+                        'previous_audit_id' => $ledger['reconcile_audit_id'] ?? null,
                     ], escomi_coverage_audit_evidence($operation, $applied));
                     $audit_id = escomi_coverage_append_audit($audit_event);
                     if (is_wp_error($audit_id)) {
@@ -2664,6 +3361,8 @@ function escomi_coverage_handle_request($request)
             'batch_id' => $params['batch_id'],
             'operation_id' => $params['operation_id'],
             'status' => $validation['status'] ?? 'HOLD',
+            'classification' => $validation['classification'] ?? 'SYSTEMIC_BLOCKING',
+            'hold_reason' => $validation['hold_reason'] ?? null,
             'validation' => 'PASS',
             'duplicate' => $validation['duplicate'] ?? false,
             'post_id' => $validation['post_id'] ?? null,
