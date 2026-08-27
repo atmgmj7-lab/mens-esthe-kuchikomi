@@ -197,26 +197,36 @@ Verify `origin/main` divergence and exclude unrelated main release commits. Comm
 **Files:**
 - Production replace only: `wp-content/themes/swell_child/coverage-batch-writer.php`
 
-- [ ] **Step 1: Patch with WRITE_ENABLED FALSE**
+- [x] **Step 1: Patch with WRITE_ENABLED FALSE**
 
 Back up the exact current writer, upload to a temporary path, run PHP syntax and SHA checks, then atomically replace the writer. Recheck writer/manifest/functions SHA and endpoint with content mutation 0.
 
-- [ ] **Step 2: Run production sanitizer parity evidence**
+- [x] **Step 2: Run production sanitizer parity evidence**
 
 Verify accepted, same-host redirect, unsafe/private/malformed rejection, and the M0240 classification without enabling writes.
 
-- [ ] **Step 3: Fresh-classify all 11 unfinished entities**
+- [x] **Step 3: Fresh-classify all 11 unfinished entities**
 
 Invoke the production REST handler for M0240 and the ten NOT_STARTED operations. If any response is `SYSTEMIC_BLOCKING`, keep the gate FALSE and stop. Exclude only server-classified `CANDIDATE_HOLD` operations.
 
-- [ ] **Step 4: Reconcile M0240**
+- [x] **Step 4: Reconcile M0240**
 
 With the current classification C, reconcile WP5086 to an idempotent candidate HOLD. Confirm draft, original audit 5087, new lineage audit, unchanged ACF/relations/Primary Area, no duplicate, lock 0, and no public route.
 
-- [ ] **Step 5: Apply only SAME_CONTRACT_READY operations**
+- [x] **Step 5: Apply only SAME_CONTRACT_READY operations**
 
 Enable the gate only around sequential REST apply. After every operation verify final readback, ledger, audit, lock, duplicate, relation, Primary Area, and unknown meta. A mutation-time failure is systemic and stops the batch. Always restore gate FALSE.
 
-- [ ] **Step 6: Coverage and public QA**
+- [x] **Step 6: Coverage and public QA**
 
 Measure direct term 13 and 17 relations from WordPress, compare 53/20 and sprint 48/18 baselines, then verify Top, both area pages, changed shops, and M0240 non-exposure. Stop before Wave2.
+
+## Execution evidence (2026-08-27)
+
+- Source commits: `0d0344c7532d3acfb39bffa56bf483d1b6ef66a8`, `b904c42e046ac320036a58feece916f0f0597d1f`.
+- Production writer SHA-256: `8014ec1e4cb9bbcf78aa75555e27cb21f211a64017d56a2c03eaaa4ce59c3cc3`.
+- Fresh classification: 9 `SAME_CONTRACT_READY`, 2 `CANDIDATE_HOLD` (M0240 and M0655), 0 `SYSTEMIC_BLOCKING`.
+- Applied: M0241, M0244, M0250, M0260, M0480, M0644, M0647, M0660, M0663.
+- M0240: WP5086 remains draft; audit 5087 retained; candidate-hold lineage audit 5126; public route 404.
+- Coverage: shinosaka 53 to 54 (sprint 48 to 54); sakai 20 to 22 (sprint 18 to 22).
+- Final safety: WRITE_ENABLED false, lock count 0, hard delete 0, Wave2 not started.
