@@ -1143,6 +1143,23 @@ coverage_expect(!array_key_exists(escomi_coverage_lock_option_name('coverage-tes
 $execution_audit = json_decode($GLOBALS['coverage_posts'][$execution_ledger['audit_id']]['post_content'] ?? '', true);
 coverage_expect(isset($execution_audit['before_hashes']['basic_price'], $execution_audit['after_hashes']['basic_price']), 'Audit must retain before/after hashes');
 coverage_expect(($execution_audit['sources'][0]['source'] ?? '') === 'https://example.test/price', 'Audit must retain approved source evidence');
+$applied_dry_validation = escomi_coverage_validate_runtime_operation(
+    array('batch_id' => 'coverage-test-batch'),
+    $execution_operation,
+    array(
+        'batch_id' => 'coverage-test-batch',
+        'operation_id' => $execution_operation['operation_id'],
+        'attempt_id' => '750e8400-e29b-41d4-a716-446655440000',
+        'payload_hash' => $execution_operation['payload_hash'],
+        'mode' => 'dry_run',
+    )
+);
+coverage_expect(
+    is_array($applied_dry_validation)
+        && ($applied_dry_validation['status'] ?? '') === 'NO_CHANGE'
+        && ($applied_dry_validation['classification'] ?? '') === 'SAME_CONTRACT_READY',
+    'Applied dry-run must remain a non-blocking SAME_CONTRACT_READY result'
+);
 $event_count = count($GLOBALS['coverage_events']);
 $replayed = escomi_coverage_execute_operation(
     $execution_operation,

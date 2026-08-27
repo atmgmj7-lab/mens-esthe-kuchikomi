@@ -2041,6 +2041,7 @@ function escomi_coverage_validate_runtime_operation(array $manifest, array $oper
         if ($ledger_state === 'applied') {
             return [
                 'status' => 'NO_CHANGE',
+                'classification' => 'SAME_CONTRACT_READY',
                 'action' => $operation['action'],
                 'post_id' => $ledger['post_id'] ?? $operation['wp_id'] ?? null,
                 'duplicate' => true,
