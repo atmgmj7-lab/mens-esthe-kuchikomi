@@ -49,6 +49,7 @@ const viewports = [...standardViewports, ...boundaryViewports];
 // Test-only review and smoke hooks keep focused probes fast and are inert in normal runs.
 const testHook = process.env.PORTAL_QA_TEST_HOOK || "";
 const headed = process.env.PORTAL_QA_HEADED === "1";
+const CSS_LAYOUT_UNIT_EPSILON = 1 / 64;
 const summaryFileName = testHook === "smoke" ? "summary-headless-smoke.json" : "summary.json";
 const graphFixtureHook = testHook === "graph-fixture" || testHook === "graph-fixture-all";
 const runViewports = testHook === "graph-fixture-all" ? viewports : testHook ? viewports.slice(0, 1) : viewports;
@@ -477,6 +478,7 @@ async function collectMetrics(page) {
       .map((cta) => ({
         kind: cta.getAttribute("data-shop-cta-kind"),
         position: cta.getAttribute("data-shop-cta-position"),
+        computedMinHeight: Number.parseFloat(getComputedStyle(cta).minHeight),
         box: rect(cta)
       }));
     const cardElements = [...document.querySelectorAll('article[data-area-shop-card="true"]')]
@@ -1008,10 +1010,16 @@ function assertRuntimeGeometry(metrics, route, viewport) {
     });
   }
   for (const [index, cta] of metrics.ctas.entries()) {
-    check(cta.box.height >= 44, `${label} CTA ${index + 1} height`, {
+    check(cta.computedMinHeight >= 44, `${label} CTA ${index + 1} CSS minimum height`, {
       kind: cta.kind,
       position: cta.position,
-      height: cta.box.height
+      computedMinHeight: cta.computedMinHeight
+    });
+    check(cta.box.height + CSS_LAYOUT_UNIT_EPSILON >= 44, `${label} CTA ${index + 1} height`, {
+      kind: cta.kind,
+      position: cta.position,
+      height: cta.box.height,
+      epsilon: CSS_LAYOUT_UNIT_EPSILON
     });
   }
 

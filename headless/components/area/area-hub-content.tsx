@@ -10,6 +10,11 @@ import {
 import { AreaHubThemeBanner } from "@/components/area/hub/AreaHubThemeBanner";
 import { AreaHubSectionHeader } from "@/components/area/hub/AreaHubSectionHeader";
 import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
+import {
+  AreaEditorialHoursSummary,
+  AreaEditorialPriceSummary,
+  AreaEditorialStationSummary,
+} from "@/components/area/AreaEditorialDepth";
 import { RankingComparisonTable } from "@/components/area/hub/RankingComparisonTable";
 import { RankingHeroCards } from "@/components/area/hub/RankingHeroCards";
 import { RankingSpecialtyPagedList } from "@/components/area/hub/RankingSpecialtyPagedList";
@@ -35,6 +40,7 @@ import {
   type PriorityAreaCapabilities,
 } from "@/lib/priority-area-precision";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { AreaDepthEditorial } from "@/lib/area-depth-editorial";
 
 export const REVIEW_POLICY =
   "当サイトでは、ユーザー投稿口コミと掲載情報コメントを分けて扱います。ユーザー口コミは、投稿経路、承認状態、公開状態、店舗との紐付けを確認できるものだけを掲載します。掲載情報コメントは、公式サイト・公開情報・料金・営業時間・アクセス・予約導線などをもとに比較しやすいよう整理したもので、口コミ件数や評価には含めません。";
@@ -74,10 +80,19 @@ const GUIDE_POINTS = [
 
 export function buildFaqItems(
   ctx: AreaHubContext,
-  { includeBeginner = true }: { includeBeginner?: boolean } = {},
+  {
+    includeBeginner = true,
+    additionalItems = [],
+  }: {
+    includeBeginner?: boolean;
+    additionalItems?: Array<{ question: string; answer: string }>;
+  } = {},
 ) {
   if (ctx.faqItems?.length) {
-    return ctx.faqItems.map((item) => ({ ...item }));
+    return [
+      ...ctx.faqItems.map((item) => ({ ...item })),
+      ...additionalItems.map((item) => ({ ...item })),
+    ];
   }
 
   const items = [
@@ -105,7 +120,7 @@ export function buildFaqItems(
       answer:
         "営業時間・料金・予約方法が分かりやすい店舗から比較し、公式サイトや店舗ページで最新情報を確認してから問い合わせることをおすすめします。「初心者向け」セクションも参考にしてください。"
     });
-  return items;
+  return [...items, ...additionalItems.map((item) => ({ ...item }))];
 }
 
 export function AreaFaqSection({
@@ -324,12 +339,14 @@ export function AreaHubCompareTabsSections({
   hubContext,
   precisionMode = false,
   capabilities = resolvePriorityAreaCapabilities(rankingShops, targetArea),
+  editorial = null,
 }: {
   rankingShops: ShopView[];
   targetArea: Pick<AreaView, "slug" | "name">;
   hubContext: AreaHubContext;
   precisionMode?: boolean;
   capabilities?: PriorityAreaCapabilities;
+  editorial?: AreaDepthEditorial | null;
 }) {
   const { lateNightShops, beginnerShops, stationShops, pricedShops, sortedRanking } =
     useRankingBuckets(rankingShops, targetArea, precisionMode);
@@ -343,6 +360,7 @@ export function AreaHubCompareTabsSections({
       label: "料金比較",
       content: (
         <CompareTabPanel theme="price" areaSlug={targetArea.slug} ja={priceTableTitle} intro="掲載店舗の料金目安を一覧で比較できます。">
+          <AreaEditorialPriceSummary editorial={editorial} />
           <RankingComparisonTable shops={pricedShops.length > 0 ? pricedShops : sortedRanking.slice(0, 15)} />
         </CompareTabPanel>
       ),
@@ -352,6 +370,7 @@ export function AreaHubCompareTabsSections({
       label: "深夜営業",
       content: (
         <CompareTabPanel theme="late-night" areaSlug={targetArea.slug} ja={`深夜営業の${hubContext.name}メンズエステ`}>
+          <AreaEditorialHoursSummary editorial={editorial} />
           {lateNightShops.length > 0 ? (
             <RankingSpecialtyPagedList shops={lateNightShops} targetArea={targetArea} variant="late-night" pageSize={specialtyPageSize} ariaLabel="深夜営業店舗のページ送り" />
           ) : (
@@ -412,10 +431,12 @@ export function AreaHubPriceAndGuideSections({
   rankingShops,
   hubContext,
   precisionMode = false,
+  editorial = null,
 }: {
   rankingShops: ShopView[];
   hubContext: AreaHubContext;
   precisionMode?: boolean;
+  editorial?: AreaDepthEditorial | null;
 }) {
   const prices = rankingShops.map(extractShopConfirmedPriceYen).filter((p): p is number => p !== null);
   const minPrice = prices.length ? Math.min(...prices) : null;
@@ -447,6 +468,8 @@ export function AreaHubPriceAndGuideSections({
         )}
       </AreaHubSectionShell>
       ) : null}
+
+      <AreaEditorialStationSummary editorial={editorial} />
 
       {hubContext.guidePath ? (
         <AreaHubSectionShell theme="guide" areaSlug={hubContext.slug} id="how-to-choose">

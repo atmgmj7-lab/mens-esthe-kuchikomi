@@ -16,6 +16,10 @@ import { AreaHubPriorityLinks } from "@/components/area/hub/AreaHubPriorityLinks
 import { AreaHubDecisionGuide } from "@/components/area/hub/AreaHubDecisionGuide";
 import { AreaShopList } from "@/components/area/hub/AreaShopList";
 import {
+  AreaEditorialCoverageBlock,
+  AreaEditorialPortalTherapist,
+} from "@/components/area/AreaEditorialDepth";
+import {
   aggregateReviewCountLabel,
   resolveAreaHubContext,
   resolveLastUpdatedLabel
@@ -31,6 +35,10 @@ import {
 } from "@/lib/priority-area-precision";
 import { resolveAreaFeatureVisual, type AreaFeatureItem } from "@/lib/design-constants";
 import { canonicalUrl, faqJsonLd, shopItemListJsonLd } from "@/lib/seo";
+import {
+  buildAreaDepthMethodologyFaq,
+  resolveAreaDepthEditorial,
+} from "@/lib/area-depth-editorial";
 import type { CSSProperties } from "react";
 import type { ApprovedGlobalReviewResult, AreaView, ShopView } from "@/lib/wp/types";
 
@@ -96,8 +104,12 @@ export function AreaHubPageTemplate({
     : allShops;
   const capabilities = resolvePriorityAreaCapabilities(mainShops, area);
   const hasCompareTabs = !precisionMode || Object.values(capabilities).some(Boolean);
+  const editorial = resolveAreaDepthEditorial(area.slug, mainShops.length);
   const faqItems = buildFaqItems(hubContext, {
     includeBeginner: !precisionMode || capabilities.beginner,
+    additionalItems: editorial?.featureFlags.methodologyFaq
+      ? [buildAreaDepthMethodologyFaq(editorial)]
+      : [],
   });
   const faqSchema = faqJsonLd(faqItems);
   const lastUpdated = resolveLastUpdatedLabel(mainShops);
@@ -198,6 +210,7 @@ export function AreaHubPageTemplate({
       </section>
 
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-content-shell">
+        <AreaEditorialCoverageBlock editorial={editorial} />
         <AreaHubDecisionGuide
           hubContext={hubContext}
           shops={mainShops}
@@ -223,6 +236,8 @@ export function AreaHubPageTemplate({
           showCompareLink={hasCompareTabs}
         />
         {!precisionMode ? <AreaPromotionSection shops={mainShops} targetArea={area} /> : null}
+
+        <AreaEditorialPortalTherapist editorial={editorial} />
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
@@ -251,6 +266,7 @@ export function AreaHubPageTemplate({
           hubContext={hubContext}
           precisionMode={precisionMode}
           capabilities={capabilities}
+          editorial={editorial}
         />
         {precisionMode ? (
           <AreaPromotionSection shops={mainShops} targetArea={area} />
@@ -261,6 +277,7 @@ export function AreaHubPageTemplate({
           rankingShops={mainShops}
           hubContext={hubContext}
           precisionMode={precisionMode}
+          editorial={editorial}
         />
         {precisionMode ? (
           <AreaHubLocalGuideSection

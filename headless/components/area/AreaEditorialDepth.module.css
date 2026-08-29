@@ -1,0 +1,255 @@
+.section,
+.inlinePanel {
+  min-width: 0;
+  border: 1px solid rgba(83, 63, 44, 0.14);
+  background: linear-gradient(145deg, #fffdf9 0%, #f8f3eb 100%);
+  color: #392f28;
+  box-shadow: 0 16px 40px rgba(74, 55, 39, 0.07);
+}
+
+.section {
+  margin-block: 32px;
+  padding: clamp(24px, 4vw, 42px);
+  border-radius: 22px;
+}
+
+.coverage {
+  margin-top: 28px;
+}
+
+.inlinePanel {
+  margin-bottom: 24px;
+  padding: clamp(20px, 3vw, 30px);
+  border-radius: 18px;
+}
+
+.headingRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.eyebrow,
+.cardLabel {
+  margin: 0 0 7px;
+  color: #8a6548;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.section h2,
+.inlinePanel h3,
+.detailCard h3 {
+  margin: 0;
+  color: #2f2721;
+  line-height: 1.45;
+}
+
+.section h2 {
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+}
+
+.inlinePanel h3,
+.detailCard h3 {
+  font-size: 1.05rem;
+}
+
+.lead {
+  margin: 14px 0 22px;
+  line-height: 1.85;
+}
+
+.sampleBadge,
+.limitedBadge {
+  flex: 0 0 auto;
+  margin: 0;
+  border-radius: 999px;
+  background: #5e4938;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+}
+
+.limitedBadge {
+  background: #936b2f;
+}
+
+.coverageGrid,
+.twoColumnGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.coverageGrid {
+  margin: 0;
+}
+
+.metricCard,
+.detailCard {
+  min-width: 0;
+  border: 1px solid rgba(83, 63, 44, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 16px;
+}
+
+.metricCard dt {
+  color: #66584d;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.metricCard dd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 7px 0 0;
+}
+
+.metricCard dd strong {
+  color: #33261d;
+  font-size: 1.3rem;
+}
+
+.metricCard dd span,
+.metricCard .missing,
+.sourceNote,
+.caution {
+  color: #74675e;
+  font-size: 0.78rem;
+}
+
+.metricCard .missing {
+  margin: 5px 0 0;
+}
+
+.twoColumnGrid {
+  margin-top: 20px;
+}
+
+.detailCard p {
+  line-height: 1.75;
+}
+
+.largeValue {
+  margin: 16px 0 10px;
+  color: #5b3d27;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 750;
+  line-height: 1;
+}
+
+.largeValue span {
+  margin-left: 4px;
+  font-size: 0.9rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.summaryGrid div {
+  min-width: 0;
+  border-left: 2px solid #b99a77;
+  padding-left: 12px;
+}
+
+.summaryGrid dt {
+  color: #766960;
+  font-size: 0.76rem;
+}
+
+.summaryGrid dd {
+  margin: 4px 0 0;
+  font-weight: 750;
+}
+
+.bandList,
+.stationGrid,
+.inlineList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bandList,
+.stationGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+}
+
+.bandList li,
+.stationGrid li {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid rgba(83, 63, 44, 0.11);
+  padding: 9px 2px;
+  font-size: 0.84rem;
+}
+
+.inlineList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: #66584d;
+  font-size: 0.78rem;
+}
+
+.caution {
+  margin: 14px 0 0;
+  line-height: 1.7;
+}
+
+.sourceNote {
+  margin: 18px 0 0;
+  line-height: 1.7;
+}
+
+.stationGrid {
+  margin-top: 16px;
+}
+
+@media (max-width: 767px) {
+  .section {
+    margin-block: 24px;
+    padding: 22px 18px;
+    border-radius: 16px;
+  }
+
+  .inlinePanel {
+    padding: 20px 16px;
+  }
+
+  .headingRow {
+    display: grid;
+    gap: 12px;
+  }
+
+  .sampleBadge,
+  .limitedBadge {
+    justify-self: start;
+  }
+
+  .coverageGrid,
+  .twoColumnGrid,
+  .bandList,
+  .stationGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,31 @@
+area,page_url,component,source_action,implementation_result,implementation_evidence,observed_at
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,Title / Description / H1,KEEP,NO_CHANGE_REQUIRED,既存metadataとH1を変更せず維持,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,BreadcrumbList,KEEP,NO_CHANGE_REQUIRED,既存BreadcrumbList生成を変更せず維持,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,ItemList,KEEP_WITH_GUARD,IMPLEMENTED,表示用mainShopsと同じ配列および既存PR除外条件から生成,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,FAQPage,UPDATE_COPY,IMPLEMENTED,同一faqItemsを画面表示とFAQPage schemaへ供給し調査方法FAQを追加,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,Review / Rating schema,DO_NOT_ADD,NOT_APPLICABLE,ReviewおよびRating schemaを追加していない,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,店舗一覧,KEEP,NO_CHANGE_REQUIRED,既存AreaShopListとshop URLを変更せず維持,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,編集部Coverage block,ADD,IMPLEMENTED,hero直後に58店舗母数とfield別確認件数率未確認件数をSSR表示,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,料金分布,REPLACE_DATA_LAYER,IMPLEMENTED,既存料金比較表直前に公式確認済み18件のmin median maxと価格帯をSSR表示,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,営業時間データ,REPLACE_DATA_LAYER,IMPLEMENTED,深夜section冒頭に確認26件と解析可能21件の集計をSSR表示,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,駅・access傾向,ADD,IMPLEMENTED,料金相場後にfirst-party標本15件の駅bucketをSSR表示,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,複数媒体掲載確認,ADD,IMPLEMENTED,店舗一覧前にEXTERNAL_PORTAL_FACTとして複数媒体22店舗をSSR表示,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,Therapist data,ADD_CONDITIONAL,IMPLEMENTED,店舗一覧前に9店舗192名と年齢既知167名の限定標本をSSR表示,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,ランキングsection,DO_NOT_ADD,NOT_APPLICABLE,新規ランキングや順位を追加していない,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,口コミsection,KEEP_EMPTY_STATE,NO_CHANGE_REQUIRED,承認済み口コミの既存表示条件を変更せず維持,2026-08-29T02:27:02.532Z
+新大阪,https://mens-esthe-kuchikomi.com/area/shinosaka/,最新店舗,DEFER,DEFERRED_DATA_REQUIRED,信頼できる公開日と新規判定dataがないため未実装,2026-08-29T02:27:02.532Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,Title / Description / H1,KEEP,NO_CHANGE_REQUIRED,既存metadataとH1を変更せず維持,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,BreadcrumbList,KEEP,NO_CHANGE_REQUIRED,既存BreadcrumbList生成を変更せず維持,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,ItemList,KEEP_WITH_GUARD,IMPLEMENTED,表示用mainShopsと同じ配列および既存PR除外条件から生成,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,FAQPage,UPDATE_COPY,IMPLEMENTED,同一faqItemsを画面表示とFAQPage schemaへ供給し調査方法FAQを追加,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,Review / Rating schema,DO_NOT_ADD,NOT_APPLICABLE,ReviewおよびRating schemaを追加していない,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,店舗一覧,KEEP,NO_CHANGE_REQUIRED,既存AreaShopListとshop URLを変更せず維持,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,編集部Coverage block,ADD,IMPLEMENTED,hero直後に25店舗母数とfield別確認件数率未確認件数をSSR表示,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,料金分布,REPLACE_DATA_LAYER,IMPLEMENTED,既存料金比較表直前に公式確認済み5件の限定標本と注意書きをSSR表示,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,営業時間データ,REPLACE_DATA_LAYER,IMPLEMENTED,深夜section冒頭に確認12件と解析可能12件の集計をSSR表示,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,駅・access傾向,ADD,IMPLEMENTED,料金相場後にfirst-party標本6件の駅bucketをSSR表示,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,複数媒体掲載確認,ADD,IMPLEMENTED,店舗一覧前にEXTERNAL_PORTAL_FACTとして複数媒体6店舗をSSR表示,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,Therapist data,ADD_CONDITIONAL,IMPLEMENTED,店舗一覧前に3店舗63名と年齢既知63名の限定標本をSSR表示,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,ランキングsection,DO_NOT_ADD,NOT_APPLICABLE,新規ランキングや順位を追加していない,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,口コミsection,KEEP_EMPTY_STATE,NO_CHANGE_REQUIRED,承認済み口コミの既存表示条件を変更せず維持,2026-08-29T02:27:39.383Z
+堺東,https://mens-esthe-kuchikomi.com/area/sakai/,最新店舗,DEFER,DEFERRED_DATA_REQUIRED,信頼できる公開日と新規判定dataがないため未実装,2026-08-29T02:27:39.383Z
