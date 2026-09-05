@@ -118,6 +118,12 @@ const components = loadTsx("components/area/AreaEditorialDepth.tsx", {
   "./AreaEditorialDepth.module.css": new Proxy({}, { get: (_target, key) => String(key) }),
 });
 
+assert.equal(
+  typeof components.AreaSupportingInfoDisclosure,
+  "function",
+  "Area supporting information must expose a semantic disclosure wrapper",
+);
+
 function renderAll(editorial) {
   return [
     "AreaEditorialCoverageBlock",
@@ -136,6 +142,14 @@ const sakaiHtml = renderAll(sakai);
 const shinosakaCoverageHtml = renderToStaticMarkup(
   React.createElement(components.AreaEditorialCoverageBlock, { editorial: shinosaka }),
 );
+const shinosakaSupportingHtml = renderToStaticMarkup(
+  React.createElement(
+    components.AreaSupportingInfoDisclosure,
+    { areaLabel: shinosaka.areaLabel },
+    React.createElement(components.AreaEditorialCoverageBlock, { editorial: shinosaka }),
+    React.createElement(components.AreaEditorialPortalTherapist, { editorial: shinosaka }),
+  ),
+);
 
 for (const [html, expected] of [
   [shinosakaHtml, ["58店舗", "30件", "51.7%", "18件", "15,000円", "26件", "新大阪13件", "192名", "22店舗"]],
@@ -153,6 +167,13 @@ assert.match(shinosakaHtml, /外部媒体は公開掲載の確認事実/);
 assert.doesNotMatch(shinosakaHtml + sakaiHtml, /No\.1|掲載数No\.1|地域最多|一番多い|最大\d+媒体|おすすめ順位|口コミ評価|星評価/);
 assert.doesNotMatch(shinosakaHtml + sakaiHtml, />0円</);
 assert.doesNotMatch(shinosakaCoverageHtml, /<p[^>]*>未確認/, "coverage dl must keep missing counts in dt/dd semantics");
+assert.match(shinosakaSupportingHtml, /^<details[^>]*data-area-supporting-disclosure="true"/);
+assert.doesNotMatch(shinosakaSupportingHtml, /^<details[^>]*\sopen(?:=|\s|>)/, "supporting information must be collapsed by default");
+assert.match(shinosakaSupportingHtml, /<summary[^>]*>[^<]*新大阪の調査データ・選び方を見る/);
+const shinosakaSupportingText = shinosakaSupportingHtml.replace(/<[^>]+>/g, "");
+for (const token of ["公開58店舗", "30件", "51.7%", "192名", "22店舗", "2026年8月29日"]) {
+  assert.ok(shinosakaSupportingText.includes(token), `collapsed SSR markup must retain ${token}`);
+}
 
 const shinosakaFaq = buildAreaDepthMethodologyFaq(shinosaka);
 const sakaiFaq = buildAreaDepthMethodologyFaq(sakai);
@@ -175,10 +196,15 @@ const editorialIndex = template.indexOf("<AreaEditorialPortalTherapist");
 const shopListIndex = template.indexOf('id="shop-list"');
 assert.ok(coverageIndex >= 0 && coverageIndex < decisionIndex, "coverage must be first below the hero");
 assert.ok(editorialIndex >= 0 && editorialIndex < shopListIndex, "portal/therapist must precede shop list");
+assert.equal((template.match(/<AreaEditorialCoverageBlock/g) ?? []).length, 1, "coverage renderer must not be duplicated");
+assert.equal((template.match(/<AreaEditorialPortalTherapist/g) ?? []).length, 1, "cross-source renderer must not be duplicated");
+assert.match(template, /const supportingInformation = \([\s\S]*?<AreaEditorialCoverageBlock[\s\S]*?<AreaHubDecisionGuide[\s\S]*?<AreaEditorialPortalTherapist/);
+assert.match(template, /editorial \? \([\s\S]*?<AreaSupportingInfoDisclosure areaLabel=\{editorial\.areaLabel\}>[\s\S]*?\{supportingInformation\}[\s\S]*?<\/AreaSupportingInfoDisclosure>[\s\S]*?: supportingInformation/);
 
 const css = read("components/area/AreaEditorialDepth.module.css");
 assert.match(css, /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
 assert.match(css, /@media\s*\(max-width:\s*767px\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/);
 assert.match(css, /min-width:\s*0/);
+assert.doesNotMatch(css, /display:\s*none|visibility:\s*hidden|opacity:\s*0/);
 
 console.log("area depth editorial contract checks passed");

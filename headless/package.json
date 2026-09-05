@@ -68,6 +68,7 @@
     "test:five-area-decision-guide": "node scripts/check-five-area-decision-guide.mjs",
     "test:area-depth-editorial": "node scripts/check-area-depth-editorial-contract.mjs",
     "test:area-depth-ssr": "node scripts/check-area-depth-ssr.mjs",
+    "test:area-first-shop-visibility-browser": "node scripts/check-area-first-shop-visibility-browser.mjs",
     "test:nodemailer-security": "node scripts/check-nodemailer-security-contract.mjs",
     "test:xserver-ssh-deploy": "node scripts/check-xserver-ssh-deploy-contract.mjs",
     "test:wp-phase0-security": "node scripts/check-wp-phase0-security-contract.mjs && php ../tests/php/check-ai-update-route-security.php",

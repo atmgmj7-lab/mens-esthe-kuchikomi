@@ -18,6 +18,7 @@ import { AreaShopList } from "@/components/area/hub/AreaShopList";
 import {
   AreaEditorialCoverageBlock,
   AreaEditorialPortalTherapist,
+  AreaSupportingInfoDisclosure,
 } from "@/components/area/AreaEditorialDepth";
 import {
   aggregateReviewCountLabel,
@@ -130,6 +131,37 @@ export function AreaHubPageTemplate({
   const heroStyle = heroVisual.image
     ? ({ ["--es-area-hero-image" as string]: `url("${heroVisual.image}")` } as CSSProperties)
     : undefined;
+  const supportingInformation = (
+    <>
+      <AreaEditorialCoverageBlock editorial={editorial} />
+      <AreaHubDecisionGuide
+        hubContext={hubContext}
+        shops={mainShops}
+        precisionMode={precisionMode}
+        capabilities={capabilities}
+        approvedReviewCount={approvedReviewCount}
+      />
+      {precisionMode && reviewResult ? (
+        <AreaLatestReviews reviewResult={reviewResult} hubContext={hubContext} />
+      ) : null}
+      {!precisionMode ? (
+        <AreaHubLocalGuideSection
+          hubContext={hubContext}
+          precisionMode={false}
+          capabilities={capabilities}
+        />
+      ) : null}
+      <AreaHubRankingTop
+        rankingShops={mainShops}
+        targetArea={area}
+        hubContext={hubContext}
+        rankingEntries={formalRankingEntries}
+        showCompareLink={hasCompareTabs}
+      />
+      {!precisionMode ? <AreaPromotionSection shops={mainShops} targetArea={area} /> : null}
+      <AreaEditorialPortalTherapist editorial={editorial} />
+    </>
+  );
 
   return (
     <main
@@ -210,34 +242,11 @@ export function AreaHubPageTemplate({
       </section>
 
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-content-shell">
-        <AreaEditorialCoverageBlock editorial={editorial} />
-        <AreaHubDecisionGuide
-          hubContext={hubContext}
-          shops={mainShops}
-          precisionMode={precisionMode}
-          capabilities={capabilities}
-          approvedReviewCount={approvedReviewCount}
-        />
-        {precisionMode && reviewResult ? (
-          <AreaLatestReviews reviewResult={reviewResult} hubContext={hubContext} />
-        ) : null}
-        {!precisionMode ? (
-          <AreaHubLocalGuideSection
-            hubContext={hubContext}
-            precisionMode={false}
-            capabilities={capabilities}
-          />
-        ) : null}
-        <AreaHubRankingTop
-          rankingShops={mainShops}
-          targetArea={area}
-          hubContext={hubContext}
-          rankingEntries={formalRankingEntries}
-          showCompareLink={hasCompareTabs}
-        />
-        {!precisionMode ? <AreaPromotionSection shops={mainShops} targetArea={area} /> : null}
-
-        <AreaEditorialPortalTherapist editorial={editorial} />
+        {editorial ? (
+          <AreaSupportingInfoDisclosure areaLabel={editorial.areaLabel}>
+            {supportingInformation}
+          </AreaSupportingInfoDisclosure>
+        ) : supportingInformation}
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />

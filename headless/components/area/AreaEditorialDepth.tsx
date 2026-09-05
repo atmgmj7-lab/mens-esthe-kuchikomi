@@ -1,4 +1,5 @@
 import type { AreaDepthEditorial } from "@/lib/area-depth-editorial";
+import type { ReactNode } from "react";
 import styles from "./AreaEditorialDepth.module.css";
 
 function formatRate(value: number) {
@@ -14,6 +15,25 @@ function SourceNote({ editorial }: { editorial: AreaDepthEditorial }) {
     <p className={styles.sourceNote}>
       公式情報など店舗自身が公開する一次情報を確認。調査更新日：{editorial.observedDateLabel}
     </p>
+  );
+}
+
+export function AreaSupportingInfoDisclosure({
+  areaLabel,
+  children,
+}: {
+  areaLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className={styles.supportingDisclosure} data-area-supporting-disclosure="true">
+      <summary className={styles.supportingSummary}>
+        {areaLabel}の調査データ・選び方を見る
+      </summary>
+      <div className={styles.supportingContent} data-area-supporting-content="true">
+        {children}
+      </div>
+    </details>
   );
 }
 

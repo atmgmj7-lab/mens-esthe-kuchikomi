@@ -49,6 +49,26 @@ for (const fixture of fixtures) {
   for (const block of ["coverage", "price", "hours", "station", "portal-therapist"]) {
     assert.ok(html.includes(`data-area-depth="${block}"`), `${fixture.slug} must SSR-render ${block}`);
   }
+  const disclosureStart = html.indexOf('data-area-supporting-disclosure="true"');
+  const disclosureEnd = html.indexOf("</details>", disclosureStart);
+  const shopListStart = html.indexOf('id="shop-list"');
+  const disclosureHtml = html.slice(disclosureStart, shopListStart);
+  const disclosureText = disclosureHtml.replace(/<!--[\s\S]*?-->|<[^>]+>/g, "");
+  assert.ok(disclosureStart >= 0, `${fixture.slug} must SSR-render the supporting disclosure`);
+  assert.ok(disclosureEnd > disclosureStart, `${fixture.slug} supporting disclosure must close after its content`);
+  assert.ok(
+    /<summary[^>]*>/.test(html) && disclosureText.includes(`${fixture.slug === "shinosaka" ? "新大阪" : "堺東"}の調査データ・選び方を見る`),
+    `${fixture.slug} must SSR-render the disclosure summary`,
+  );
+  assert.doesNotMatch(
+    html.slice(Math.max(0, disclosureStart - 200), disclosureStart + 200),
+    /\sopen(?:=|\s|>)/,
+    `${fixture.slug} supporting disclosure must be collapsed by default`,
+  );
+  for (const block of ["coverage", "portal-therapist"]) {
+    const blockIndex = html.indexOf(`data-area-depth="${block}"`);
+    assert.ok(blockIndex > disclosureStart && blockIndex < shopListStart, `${fixture.slug} ${block} must remain in disclosure SSR content before shop list`);
+  }
   assert.ok(
     html.indexOf('data-area-depth="coverage"') < html.indexOf("area-decision-guide"),
     `${fixture.slug} coverage must precede decision guide`,
