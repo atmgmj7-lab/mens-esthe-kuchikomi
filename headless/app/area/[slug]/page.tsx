@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { sanitizeAreaText } from "@/lib/area-content-integrity";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
-import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
+import { renderAreaHubRouteContent } from "@/components/area/AreaHubRouteContent";
 import { AreaPageView } from "@/components/AreaPageView";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { isHubTemplateArea } from "@/lib/area-hub-config";
@@ -12,11 +12,9 @@ import {
   resolveAreaHubPageTitle
 } from "@/lib/area-shop-utils";
 import { resolveAreaRankingEntries } from "@/lib/area-shop-ranking";
-import { loadPriorityAreaApprovedReviews } from "@/lib/priority-area-hub";
 import { shouldLoadLegacyAreaRanking } from "@/lib/priority-area-precision";
 import {
   getAreaBySlug,
-  getAreaRankingShops,
   getAreaShops,
   getAreas,
   getChildAreas,
@@ -37,6 +35,8 @@ const AREA_SLUG_ALIASES: Record<string, string> = {
   "sakaisuji-hommachi": "sakaisujihonmachi"
 };
 
+const STATIC_AREA_ROUTES = new Set(["shinosaka", "sakai"]);
+
 function parsePage(value: string | undefined): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 1) return 1;
@@ -46,7 +46,7 @@ function parsePage(value: string | undefined): number {
 export async function generateStaticParams() {
   return getStaticParamsOrFallback(
     "area static params",
-    getAreas,
+    async () => (await getAreas()).filter((area) => !STATIC_AREA_ROUTES.has(area.slug)),
     (area) => ({ slug: area.slug }),
     [{ slug: "osaka" }]
   );
@@ -110,36 +110,7 @@ async function AreaPageContent({ params, searchParams }: Props) {
   const isHub = isHubTemplateArea(slug);
 
   if (isHub) {
-    const [childAreas, siblingAreas, parentArea, allShops, rankingMap, areaFeatures, areaReviewResult] = await Promise.all([
-      withWpBuildFallback(`area hub children ${area.slug}`, () => getChildAreas(area.id), []),
-      withWpBuildFallback(`area hub siblings ${area.slug}`, () => getSiblingAreas(area), []),
-      withWpBuildFallback(`area hub parent ${area.slug}`, () => getParentArea(area), null),
-      withWpBuildFallback(`area hub shops ${area.slug}`, () => getAreaRankingShops(area.id), []),
-      shouldLoadLegacyAreaRanking(area)
-        ? withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
-        : Promise.resolve({}),
-      withWpBuildFallback("home featured areas for area hero", getHomeFeaturedAreas, []),
-      withWpBuildFallback(
-        `priority area approved reviews ${area.slug}`,
-        () => loadPriorityAreaApprovedReviews(area),
-        null,
-      ),
-    ]);
-    const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
-
-    return (
-      <AreaHubPageTemplate
-        area={area}
-        allShops={allShops}
-        legacyPage={currentPage}
-        parentArea={parentArea}
-        siblingAreas={siblingAreas}
-        childAreas={childAreas}
-        rankingEntries={rankingEntries}
-        areaFeatures={areaFeatures}
-        reviewResult={areaReviewResult}
-      />
-    );
+    return renderAreaHubRouteContent(area, currentPage);
   }
 
   const emptyShopsResult = { shops: [], totalPages: 1 };

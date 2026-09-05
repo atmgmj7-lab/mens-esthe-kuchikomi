@@ -318,12 +318,14 @@ assert.equal(
 );
 
 const areaPageSource = read("app/area/[slug]/page.tsx");
+const areaHubRouteSource = read("components/area/AreaHubRouteContent.tsx");
 assert.ok(
-  areaPageSource.includes("loadPriorityAreaApprovedReviews"),
+  areaPageSource.includes("renderAreaHubRouteContent")
+    && areaHubRouteSource.includes("loadPriorityAreaApprovedReviews"),
   "the Area route must use the accepted primary-Area approved-review reader",
 );
 assert.ok(
-  /areaReviewResult[\s\S]*?<AreaHubPageTemplate[\s\S]*?reviewResult=\{areaReviewResult\}/u.test(areaPageSource),
+  /areaReviewResult[\s\S]*?<AreaHubPageTemplate[\s\S]*?reviewResult=\{areaReviewResult\}/u.test(areaHubRouteSource),
   "the Area route must pass the approved review result to the hub template",
 );
 
