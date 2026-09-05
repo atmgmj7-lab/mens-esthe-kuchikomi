@@ -37,4 +37,4 @@
 
 - before/after JSONとheadless screenshotsは `headless/reports/area-first-shop-visibility-hotfix-01/` に生成する。
 - task fileだけを明示stageし、local commitする。
-- 独立reviewでCritical/Important 0を確認後、push/deployへ進まず停止する。
+- 実装証拠を返却し、独立review・次Task・push・deployへ進まず停止する。
