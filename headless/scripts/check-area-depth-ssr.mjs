@@ -50,8 +50,11 @@ for (const fixture of fixtures) {
     assert.ok(html.includes(`data-area-depth="${block}"`), `${fixture.slug} must SSR-render ${block}`);
   }
   const disclosureStart = html.indexOf('data-area-supporting-disclosure="true"');
-  const disclosureEnd = html.indexOf("</details>", disclosureStart);
   const shopListStart = html.indexOf('id="shop-list"');
+  // PPR may interleave streamed payload markup, so pair the disclosure with the
+  // final closing tag before the shop list. The browser contract also verifies
+  // the hydrated and JavaScript-disabled DOM containment directly.
+  const disclosureEnd = html.lastIndexOf("</details>", shopListStart);
   const disclosureHtml = html.slice(disclosureStart, shopListStart);
   const disclosureText = disclosureHtml.replace(/<!--[\s\S]*?-->|<[^>]+>/g, "");
   assert.ok(disclosureStart >= 0, `${fixture.slug} must SSR-render the supporting disclosure`);
@@ -67,7 +70,7 @@ for (const fixture of fixtures) {
   );
   for (const block of ["coverage", "portal-therapist"]) {
     const blockIndex = html.indexOf(`data-area-depth="${block}"`);
-    assert.ok(blockIndex > disclosureStart && blockIndex < shopListStart, `${fixture.slug} ${block} must remain in disclosure SSR content before shop list`);
+    assert.ok(blockIndex > disclosureStart && blockIndex < shopListStart, `${fixture.slug} ${block} must remain in supporting SSR content before shop list`);
   }
   assert.ok(
     html.indexOf('data-area-depth="coverage"') < html.indexOf("area-decision-guide"),

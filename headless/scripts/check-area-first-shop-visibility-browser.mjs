@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -6,10 +7,13 @@ import { chromium } from "@playwright/test";
 
 const baseUrl = process.env.AREA_VISIBILITY_BASE_URL ?? "http://127.0.0.1:3117";
 const mode = process.env.AREA_VISIBILITY_MODE === "baseline" ? "baseline" : "after";
+const expectedBaseSha = "7cf39fb4dbd45a820d5ca9e0b17b7097464a91a1";
+const sourceSha = process.env.AREA_VISIBILITY_SOURCE_SHA
+  ?? execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 const reportRoot = path.resolve(process.env.AREA_VISIBILITY_REPORT_DIR ?? "reports/area-first-shop-visibility-hotfix-01");
 const beforeReportPath = process.env.AREA_VISIBILITY_BEFORE_REPORT
   ? path.resolve(process.env.AREA_VISIBILITY_BEFORE_REPORT)
-  : path.join(reportRoot, "before.json");
+  : path.join(reportRoot, "baseline.json");
 const reportPath = path.join(reportRoot, `${mode}.json`);
 const screenshotDir = path.join(reportRoot, "screenshots");
 const widths = [1440, 1280, 1024, 901, 900, 390, 375, 320];
@@ -33,6 +37,7 @@ const fixtures = [
 const failures = [];
 const measurements = [];
 const seo = {};
+const screenshotFiles = [];
 let assertions = 0;
 
 function check(condition, label, details = {}) {
@@ -45,6 +50,37 @@ function collectTypes(value, types = []) {
   if (typeof value["@type"] === "string") types.push(value["@type"]);
   for (const nested of Object.values(value)) collectTypes(nested, types);
   return types;
+}
+
+function normalizeItemList(schema) {
+  return {
+    ...schema,
+    itemListElement: [...schema.itemListElement]
+      .map(({ position: _position, ...item }) => item)
+      .sort((left, right) => left.url.localeCompare(right.url, "ja")),
+  };
+}
+
+function normalizeHtmlText(html) {
+  return html.replace(/<!--[\s\S]*?-->|<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function supportingSsrText(html, runMode) {
+  const shopListAttribute = html.indexOf('id="shop-list"');
+  const end = html.lastIndexOf("<", shopListAttribute);
+  const marker = runMode === "baseline"
+    ? "escomi-final-area-content-shell\""
+    : 'data-area-supporting-content="true"';
+  const markerIndex = html.indexOf(marker);
+  const start = html.indexOf(">", markerIndex) + 1;
+  assert.ok(markerIndex >= 0 && start > markerIndex && end > start, `supporting SSR range must exist in ${runMode}`);
+  return normalizeHtmlText(html.slice(start, end));
+}
+
+async function saveScreenshot(page, file) {
+  await fs.rm(file, { force: true });
+  await page.screenshot({ path: file, fullPage: true });
+  screenshotFiles.push(file);
 }
 
 await fs.mkdir(screenshotDir, { recursive: true });
@@ -114,10 +150,16 @@ try {
             expandedGeometry,
           );
           if (width === 1440 || width === 390) {
-            await page.screenshot({ path: path.join(screenshotDir, `after-expanded-${fixture.slug}-${width}.png`), fullPage: true });
+            await saveScreenshot(page, path.join(screenshotDir, `after-expanded-${fixture.slug}-${width}.png`));
           }
           await summary.press("Space");
           check(!(await disclosure.evaluate((node) => node.open)), `${fixture.slug} ${width}px Space closes disclosure`);
+          if (width === 1440) {
+            await summary.click();
+            check(await disclosure.evaluate((node) => node.open), `${fixture.slug} ${width}px pointer click opens disclosure`);
+            await summary.click();
+            check(!(await disclosure.evaluate((node) => node.open)), `${fixture.slug} ${width}px second pointer click closes disclosure`);
+          }
         }
       }
 
@@ -133,7 +175,7 @@ try {
       }
 
       if (width === 1440 || width === 390) {
-        await page.screenshot({ path: path.join(screenshotDir, `${mode}-${fixture.slug}-${width}.png`), fullPage: true });
+        await saveScreenshot(page, path.join(screenshotDir, `${mode}-${fixture.slug}-${width}.png`));
       }
 
       measurements.push({
@@ -150,19 +192,32 @@ try {
 
     const rawResponse = await fetch(`${baseUrl}/area/${fixture.slug}/`);
     const rawHtml = await rawResponse.text();
-    const rawText = rawHtml.replace(/<!--[\s\S]*?-->|<[^>]+>/g, "");
+    const normalizedSupportingSsrText = supportingSsrText(rawHtml, mode);
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.goto(`${baseUrl}/area/${fixture.slug}/`, { waitUntil: "domcontentloaded" });
     await page.locator('#shop-list [data-area-shop-card="true"]').first().waitFor({ state: "visible", timeout: 30_000 });
-    const pageEvidence = await page.evaluate(() => ({
-      title: document.title,
-      metaDescription: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
-      h1: document.querySelector("h1")?.textContent?.trim() ?? "",
-      canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
-      robots: document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "",
-      shopCards: document.querySelectorAll('[data-area-shop-card="true"]').length,
-      jsonLd: [...document.querySelectorAll('script[type="application/ld+json"]')].map((node) => JSON.parse(node.textContent ?? "null")),
-    }));
+    const pageEvidence = await page.evaluate((runMode) => {
+      const normalize = (value) => value.replace(/\s+/g, " ").trim();
+      const supportingContent = document.querySelector('[data-area-supporting-content="true"]');
+      const contentShell = document.querySelector(".escomi-final-area-content-shell");
+      const preShopChildren = contentShell
+        ? [...contentShell.children].filter((node) => node.id !== "shop-list" && !node.previousElementSibling?.matches("#shop-list, #shop-list ~ *"))
+        : [];
+      return {
+        title: document.title,
+        metaDescription: document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "",
+        h1: document.querySelector("h1")?.textContent?.trim() ?? "",
+        canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "",
+        robots: document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "",
+        supportingDomText: normalize(
+          runMode === "after"
+            ? supportingContent?.textContent ?? ""
+            : preShopChildren.map((node) => node.textContent ?? "").join(""),
+        ),
+        shopCards: document.querySelectorAll('[data-area-shop-card="true"]').length,
+        jsonLd: [...document.querySelectorAll('script[type="application/ld+json"]')].map((node) => JSON.parse(node.textContent ?? "null")),
+      };
+    }, mode);
     await page.close();
     const types = pageEvidence.jsonLd.flatMap((value) => collectTypes(value));
     const itemLists = pageEvidence.jsonLd.filter((value) => value?.["@type"] === "ItemList");
@@ -174,11 +229,17 @@ try {
       h1: pageEvidence.h1,
       canonical: pageEvidence.canonical,
       robots: pageEvidence.robots,
-      indexable: !/noindex/i.test(pageEvidence.robots),
+      xRobotsTag: rawResponse.headers.get("x-robots-tag") ?? "",
+      indexable: rawResponse.status === 200
+        && !/noindex/i.test(`${pageEvidence.robots} ${rawResponse.headers.get("x-robots-tag") ?? ""}`),
+      responseStatus: rawResponse.status,
+      finalPath: new URL(rawResponse.url).pathname,
+      supportingDomText: pageEvidence.supportingDomText,
+      supportingSsrText: normalizedSupportingSsrText,
       breadcrumbList: breadcrumbLists,
-      itemList: itemLists,
+      itemList: itemLists.map(normalizeItemList),
       faqPage: faqPages,
-      jsonLd: pageEvidence.jsonLd,
+      jsonLdTypes: [...types].sort(),
       shopCards: pageEvidence.shopCards,
     };
     seo[fixture.slug] = seoEvidence;
@@ -195,17 +256,37 @@ try {
       check(/<details[^>]*data-area-supporting-disclosure="true"/i.test(rawHtml), `${fixture.slug} disclosure exists in SSR HTML`);
       check(!/<details[^>]*data-area-supporting-disclosure="true"[^>]*\sopen(?:=|\s|>)/i.test(rawHtml), `${fixture.slug} SSR disclosure is closed by default`);
       for (const token of fixture.supportingTokens) {
-        check(rawText.includes(token), `${fixture.slug} SSR retains ${token}`);
+        check(normalizedSupportingSsrText.includes(token), `${fixture.slug} disclosure SSR retains ${token}`);
       }
+      const noJsContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
+      const noJsPage = await noJsContext.newPage();
+      const noJsResponse = await noJsPage.goto(`${baseUrl}/area/${fixture.slug}/`, { waitUntil: "load" });
+      const noJsDisclosure = noJsPage.locator('details[data-area-supporting-disclosure="true"]');
+      check(noJsResponse?.status() === 200, `${fixture.slug} JavaScript-disabled HTTP 200`);
+      check(await noJsDisclosure.count() === 1, `${fixture.slug} JavaScript-disabled disclosure exists`);
+      check(await noJsDisclosure.locator('[data-area-depth="coverage"]').count() === 1, `${fixture.slug} JavaScript-disabled coverage is disclosure child`);
+      check(await noJsDisclosure.locator('[data-area-depth="portal-therapist"]').count() === 1, `${fixture.slug} JavaScript-disabled cross-source data is disclosure child`);
+      const noJsSupportingText = normalizeHtmlText(await noJsDisclosure.locator('[data-area-supporting-content="true"]').textContent() ?? "");
+      check(noJsSupportingText === pageEvidence.supportingDomText, `${fixture.slug} JavaScript-disabled supporting text is complete`);
+      await noJsContext.close();
     }
   }
 
   if (mode === "after") {
     const beforeReport = JSON.parse(await fs.readFile(beforeReportPath, "utf8"));
+    check(beforeReport.taskId === "AREA-FIRST-SHOP-VISIBILITY-HOTFIX-01", "baseline report task ID is valid");
+    check(beforeReport.mode === "baseline", "baseline report mode is valid");
+    check(beforeReport.sourceSha === expectedBaseSha, "baseline report source SHA is valid", { sourceSha: beforeReport.sourceSha });
     for (const fixture of fixtures) {
       assert.deepEqual(seo[fixture.slug], beforeReport.seo[fixture.slug], `${fixture.slug} SEO/schema evidence must remain byte-equivalent as JSON`);
       assertions += 1;
     }
+    const nonTargetPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    const nonTargetResponse = await nonTargetPage.goto(`${baseUrl}/area/umeda/`, { waitUntil: "domcontentloaded" });
+    await nonTargetPage.locator('#shop-list [data-area-shop-card="true"]').first().waitFor({ state: "visible", timeout: 30_000 });
+    check(nonTargetResponse?.status() === 200, "non-target umeda HTTP 200");
+    check(await nonTargetPage.locator('details[data-area-supporting-disclosure="true"]').count() === 0, "non-target umeda disclosure=0");
+    await nonTargetPage.close();
   }
 } catch (error) {
   failures.push({ label: "browser contract completed", details: { message: String(error?.stack ?? error) } });
@@ -216,17 +297,14 @@ try {
 const report = {
   taskId: "AREA-FIRST-SHOP-VISIBILITY-HOTFIX-01",
   mode,
+  sourceSha,
   baseUrl,
   headless: true,
   generatedAt: new Date().toISOString(),
   assertions,
   measurements,
   seo,
-  screenshots: fixtures.flatMap((fixture) => [1440, 390].flatMap((width) => {
-    const screenshots = [path.join(screenshotDir, `${mode}-${fixture.slug}-${width}.png`)];
-    if (mode === "after") screenshots.push(path.join(screenshotDir, `after-expanded-${fixture.slug}-${width}.png`));
-    return screenshots;
-  })),
+  screenshots: screenshotFiles,
   failures,
 };
 await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
