@@ -1,5 +1,5 @@
 import https from "node:https";
-import { WP_ORIGIN_IP, wpOriginHost } from "@/lib/wp/origin";
+import { WP_ORIGIN_IP, wpOriginHost, wpOriginTlsServername } from "@/lib/wp/origin";
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
@@ -93,7 +93,7 @@ export function requestWpOrigin(
         {
           hostname: WP_ORIGIN_IP,
           port: 443,
-          servername: wpOriginHost,
+          servername: wpOriginTlsServername,
           rejectUnauthorized: true,
           path,
           method,

@@ -62,7 +62,7 @@ const areaUtils = loadTsModule("lib/area-shop-utils.ts", (id) => {
       NIHONBASHI_HUB_TITLE: ""
     };
   }
-  if (id === "@/lib/wp/client") return { safeText };
+  if (id === "@/lib/wp/text") return { safeText };
   if (id === "@/lib/shop-fact-normalization") return factNormalization;
   if (id === "@/lib/price-normalization") {
     return {

@@ -92,7 +92,7 @@ const shopRanking = compileModule("lib/shop-ranking.ts", {
     classifyShopRelation: () => "core",
     shopUpdatedTimestamp: () => 0
   },
-  "@/lib/wp/client": { safeText: (value) => typeof value === "string" ? value : "" }
+  "@/lib/wp/text": { safeText: (value) => typeof value === "string" ? value : "" }
 });
 const wpClient = {
   rendered: (value) => value?.rendered ?? "",

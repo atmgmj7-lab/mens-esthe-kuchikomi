@@ -78,7 +78,7 @@ const realAreaUtils = compileModule("lib/area-shop-utils.ts", {
     fillHubPageToken: (value) => value,
     getHubTemplateConfig: () => null,
   },
-  "@/lib/wp/client": { safeText: (value, fallback = "") => typeof value === "string" ? value : fallback },
+  "@/lib/wp/text": { safeText: (value, fallback = "") => typeof value === "string" ? value : fallback },
   "@/lib/price-normalization": {
     formatPriceForDisplay: () => "",
     normalizePrice: () => ({ status: "unknown" }),

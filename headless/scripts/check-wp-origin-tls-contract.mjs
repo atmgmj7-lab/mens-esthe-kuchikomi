@@ -10,7 +10,8 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (file) => readFileSync(join(root, file), "utf8");
 
 const originRequestSource = read("lib/wp/origin-request.ts");
-const originSource = read("lib/wp/origin.ts");
+const originConfigSource = read("lib/wp/origin-config.mjs");
+const originConfig = await import(new URL("../lib/wp/origin-config.mjs", import.meta.url));
 const cutoverChecklist = readFileSync(
   join(root, "../pm/HEADLESS-CUTOVER-CHECKLIST.md"),
   "utf8"
@@ -23,7 +24,22 @@ assert.doesNotMatch(
   /rejectUnauthorized\s*:\s*false/,
   "TLS certificate verification must never be disabled"
 );
-assert.match(originSource, /`https:\/\/\$\{WP_ORIGIN_IP\}`/, "origin base URL must be HTTPS");
+assert.equal(new URL(originConfig.wpOriginBaseUrl).protocol, "https:", "origin base URL must be HTTPS");
+assert.equal(
+  originConfig.wpOriginTlsServername,
+  "sv16727.xserver.jp",
+  "default TLS name must match the verified Xserver certificate"
+);
+assert.equal(
+  originConfig.wpOriginHost,
+  "mens-esthe-kuchikomi.com",
+  "default HTTP Host must select the canonical WordPress virtual host"
+);
+assert.doesNotMatch(
+  originConfigSource,
+  /NEXT_PUBLIC_WP_ORIGIN_TLS_SERVERNAME/,
+  "the TLS origin name must remain server-only"
+);
 assert.match(cutoverChecklist, /https:\/\/85\.131\.213\.108\/wp-json/);
 assert.doesNotMatch(cutoverChecklist, /WP_API_BASE_URL[^\n]+http:\/\/85\.131\.213\.108/);
 assert.match(cutoverChecklist, /85\.131\.213\.108:443/);
@@ -86,7 +102,8 @@ vm.runInNewContext(
       if (id === "@/lib/wp/origin") {
         return {
           WP_ORIGIN_IP: "85.131.213.108",
-          wpOriginHost: "mens-esthe-kuchikomi.com"
+          wpOriginHost: "mens-esthe-kuchikomi.com",
+          wpOriginTlsServername: "sv16727.xserver.jp"
         };
       }
       throw new Error(`Unexpected import in origin TLS test: ${id}`);
@@ -111,10 +128,18 @@ assert.equal(response.status, 302, "origin redirects must be returned without au
 assert.equal(requestCount, 1, "origin helper must not open a second request for redirects");
 assert.equal(capturedOptions.hostname, "85.131.213.108");
 assert.equal(capturedOptions.port, 443);
-assert.equal(capturedOptions.servername, "mens-esthe-kuchikomi.com");
+assert.equal(
+  capturedOptions.servername,
+  "sv16727.xserver.jp",
+  "TLS verification must use the certificate-matching Xserver name"
+);
 assert.equal(capturedOptions.rejectUnauthorized, true);
 const upstreamHeaders = new Headers(capturedOptions.headers);
-assert.equal(upstreamHeaders.get("host"), "mens-esthe-kuchikomi.com");
+assert.equal(
+  upstreamHeaders.get("host"),
+  "mens-esthe-kuchikomi.com",
+  "HTTP Host must continue routing to the canonical WordPress virtual host"
+);
 assert.equal(upstreamHeaders.get("authorization"), "Basic test-only-credential");
 assert.equal(upstreamHeaders.get("cookie"), "wordpress_test_cookie=test-only");
 assert.equal(Buffer.from(writtenBody).toString("utf8"), "{}");

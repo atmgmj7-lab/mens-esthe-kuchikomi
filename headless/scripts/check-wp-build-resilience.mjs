@@ -164,6 +164,21 @@ function loadWpClient({
             wpOriginHost: "wp.example.test"
           };
         }
+        if (id === "@/lib/wp/text") {
+          return {
+            safeText(value, fallback = "") {
+              if (typeof value === "string") return value;
+              if (typeof value === "number") return String(value);
+              return fallback;
+            },
+            stripHtml(value) {
+              return typeof value === "string" ? value.replace(/<[^>]*>/g, "").trim() : "";
+            },
+            rendered(value) {
+              return value?.rendered || "";
+            }
+          };
+        }
         throw new Error(`Unexpected import in wp client test: ${id}`);
       },
       setTimeout

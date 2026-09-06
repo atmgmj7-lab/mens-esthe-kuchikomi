@@ -7,7 +7,7 @@ import {
   NIHONBASHI_HUB_TITLE
 } from "@/lib/area-hub-config";
 import type { AreaHubRelationConfig, AreaHubSeoConfig } from "@/lib/area-hub-config";
-import { safeText } from "@/lib/wp/client";
+import { safeText } from "@/lib/wp/text";
 import {
   formatPriceForDisplay,
   normalizePrice,

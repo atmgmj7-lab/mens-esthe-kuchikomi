@@ -1,6 +1,8 @@
 import { requestWpOrigin, resolveWpOriginTimeoutMs } from "@/lib/wp/origin-request";
 import { usesWpOriginIp } from "@/lib/wp/origin";
 
+export { rendered, safeText, stripHtml } from "@/lib/wp/text";
+
 const DEFAULT_WP_API_BASE = "https://85.131.213.108/wp-json";
 const DEFAULT_WP_BASE = "https://mens-esthe-kuchikomi.com";
 
@@ -118,25 +120,6 @@ export async function wpFetchPaginated<T>(
       totalPages: Number(response.headers.get("x-wp-totalpages") || 1)
     }
   };
-}
-
-export function safeText(value: unknown, fallback = ""): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  return fallback;
-}
-
-export function stripHtml(value: unknown): string {
-  return safeText(value)
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function rendered(value: { rendered?: string } | undefined): string {
-  return value?.rendered || "";
 }
 
 export function absoluteUrl(path: string): string {

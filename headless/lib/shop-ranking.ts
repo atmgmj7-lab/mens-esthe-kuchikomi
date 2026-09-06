@@ -5,7 +5,7 @@ import {
   shopUpdatedTimestamp,
   type AreaHubContext
 } from "@/lib/area-shop-utils";
-import { safeText } from "@/lib/wp/client";
+import { safeText } from "@/lib/wp/text";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
 /**

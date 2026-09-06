@@ -1,9 +1,7 @@
-const DEFAULT_WP_ORIGIN_HOST = "mens-esthe-kuchikomi.com";
-
-export const WP_ORIGIN_IP = "85.131.213.108";
-export const wpOriginBaseUrl = `https://${WP_ORIGIN_IP}`;
-export const wpOriginHost = process.env.WP_ORIGIN_HOST || DEFAULT_WP_ORIGIN_HOST;
-
-export function usesWpOriginIp(apiBase: string): boolean {
-  return apiBase.includes(WP_ORIGIN_IP);
-}
+export {
+  WP_ORIGIN_IP,
+  usesWpOriginIp,
+  wpOriginBaseUrl,
+  wpOriginHost,
+  wpOriginTlsServername
+} from "@/lib/wp/origin-config.mjs";
