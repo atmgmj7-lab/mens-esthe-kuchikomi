@@ -10,6 +10,7 @@ on:
       - main
     paths-ignore:
       - 'headless/**'
+      - '.github/workflows/**'
       - 'pm/**'
       - 'docs/**'
       - 'tools/**'

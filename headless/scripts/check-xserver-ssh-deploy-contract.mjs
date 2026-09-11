@@ -33,6 +33,78 @@ const stageValidatorSource = await readFile(stageValidatorPath, "utf8");
 const EXPECTED_THEME_PATH =
   "/home/xs454693/mens-esthe-kuchikomi.com/public_html/wp-content/themes/swell_child/";
 
+function extractPushPathIgnores() {
+  const block = workflowSource.match(
+    /^    paths-ignore:\s*\n((?:^      -\s+.+(?:\n|$))+)/m,
+  );
+  assert.ok(block, "Xserver workflow push trigger must define paths-ignore");
+  return block[1]
+    .split(/\r?\n/)
+    .map((line) => line.match(/^      -\s+['\"]?([^'\"]+)['\"]?$/)?.[1])
+    .filter(Boolean);
+}
+
+function matchesIgnoredPath(filePath, pattern) {
+  if (pattern.endsWith("/**")) {
+    const directory = pattern.slice(0, -3);
+    return filePath === directory || filePath.startsWith(`${directory}/`);
+  }
+  if (pattern.startsWith("*.") && !pattern.includes("/")) {
+    return !filePath.includes("/") && filePath.endsWith(pattern.slice(1));
+  }
+  return filePath === pattern;
+}
+
+const pushPathIgnores = extractPushPathIgnores();
+const shouldTriggerXserver = (changedFiles) =>
+  changedFiles.some(
+    (filePath) =>
+      !pushPathIgnores.some((pattern) => matchesIgnoredPath(filePath, pattern)),
+  );
+
+for (const fixture of [
+  { label: "headless app only", files: ["headless/app/page.tsx"] },
+  { label: "headless scripts only", files: ["headless/scripts/check-example.mjs"] },
+  {
+    label: "headless deployment workflow only",
+    files: [".github/workflows/deploy-headless.yml"],
+  },
+  { label: "Xserver workflow definition only", files: [".github/workflows/deploy.yml"] },
+  {
+    label: "headless workflow and source combination",
+    files: [".github/workflows/deploy-headless.yml", "headless/lib/wp/origin.ts"],
+  },
+  {
+    label: "corrective release candidate",
+    files: [
+      ".github/workflows/deploy.yml",
+      ".github/workflows/deploy-headless.yml",
+      "headless/scripts/check-xserver-ssh-deploy-contract.mjs",
+      "headless/scripts/check-wp-origin-tls-contract.mjs",
+    ],
+  },
+]) {
+  assert.equal(
+    shouldTriggerXserver(fixture.files),
+    false,
+    `${fixture.label} must not trigger the Xserver deploy workflow`,
+  );
+}
+
+for (const filePath of [
+  "functions.php",
+  "style.css",
+  "dashboard/app/page.tsx",
+  "scripts/validate-xserver-deploy-stage.sh",
+  "scripts/xserver-predeploy-php-dependencies.txt",
+]) {
+  assert.equal(
+    shouldTriggerXserver([filePath]),
+    true,
+    `${filePath} must continue to trigger the Xserver deploy workflow`,
+  );
+}
+
 function extractWorkflowStep(stepName) {
   const marker = `      - name: ${stepName}\n`;
   const start = workflowSource.indexOf(marker);

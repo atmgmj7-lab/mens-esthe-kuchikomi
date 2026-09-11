@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -143,6 +144,45 @@ assert.equal(
 assert.equal(upstreamHeaders.get("authorization"), "Basic test-only-credential");
 assert.equal(upstreamHeaders.get("cookie"), "wordpress_test_cookie=test-only");
 assert.equal(Buffer.from(writtenBody).toString("utf8"), "{}");
+
+function runCriticalPreflightWithTlsServername(servername) {
+  return spawnSync(
+    process.execPath,
+    [join(root, "scripts/wp-critical-build-preflight.mjs")],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        WP_ORIGIN_HOST: originConfig.wpOriginHost,
+        WP_ORIGIN_TLS_SERVERNAME: servername
+      },
+      timeout: 30_000
+    }
+  );
+}
+
+const validTlsPreflight = runCriticalPreflightWithTlsServername(
+  originConfig.wpOriginTlsServername
+);
+assert.equal(
+  validTlsPreflight.status,
+  0,
+  `the configured certificate-matching TLS server name must reach WordPress: ${validTlsPreflight.stderr}`
+);
+assert.match(validTlsPreflight.stdout, /critical WordPress Area shinosaka: PASS/);
+assert.match(validTlsPreflight.stdout, /critical WordPress Area sakai: PASS/);
+
+const invalidTlsPreflight = runCriticalPreflightWithTlsServername("invalid.example");
+assert.notEqual(
+  invalidTlsPreflight.status,
+  0,
+  "a reserved nonmatching TLS server name must fail hostname verification"
+);
+assert.match(
+  invalidTlsPreflight.stderr,
+  /Hostname\/IP does not match certificate's altnames|ERR_TLS_CERT_ALTNAME_INVALID/,
+  "the negative probe must fail specifically at TLS hostname verification"
+);
 
 for (const routeFile of [
   "app/wp-json/[[...path]]/route.ts",

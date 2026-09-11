@@ -212,4 +212,33 @@ assert.match(
   "workflow must reject fallback/not-found critical Area artifacts"
 );
 
+const requiredReleaseSteps = [
+  "Critical WordPress build preflight",
+  "Build (CI validation)",
+  "Verify critical Area validation artifacts",
+  "Vercel build (prebuilt)",
+  "Verify critical Area build artifacts",
+  "Deploy to Vercel production"
+];
+const requiredReleaseStepPositions = requiredReleaseSteps.map((stepName) => {
+  const position = workflow.indexOf(`      - name: ${stepName}`);
+  assert.notEqual(position, -1, `release workflow step must exist: ${stepName}`);
+  return position;
+});
+assert.deepEqual(
+  requiredReleaseStepPositions,
+  [...requiredReleaseStepPositions].sort((left, right) => left - right),
+  "critical preflight and artifact guards must run before Vercel deployment"
+);
+
+const vercelArtifactGuardStep = workflow.match(
+  /- name: Verify critical Area build artifacts([\s\S]*?)(?=\n\s+- name:)/
+)?.[1];
+assert.ok(vercelArtifactGuardStep, "Vercel artifact guard step must exist");
+assert.match(
+  vercelArtifactGuardStep,
+  /npm run verify:critical-area-build-artifacts -- --vercel/,
+  "the post-Vercel-build guard must inspect the Vercel output"
+);
+
 console.log("WordPress critical build fail-closed contract checks passed");
