@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
+import { createExactCurlEnvironment } from "./lib/exact-curl-environment.mjs";
 
 import {
   buildExactAreaCurlOptions,
@@ -38,11 +39,18 @@ function sanitize(value) {
 }
 
 function runVercel(arguments_, label) {
-  const result = spawnSync("vercel", arguments_, {
-    encoding: "utf8",
-    env: process.env,
-    maxBuffer: 20 * 1024 * 1024,
-  });
+  // Centralize isolation so every authenticated curl path gets a fresh config.
+  const isolated = arguments_[0] === "curl" ? createExactCurlEnvironment() : null;
+  let result;
+  try {
+    result = spawnSync("vercel", arguments_, {
+      encoding: "utf8",
+      env: isolated?.env ?? process.env,
+      maxBuffer: 20 * 1024 * 1024,
+    });
+  } finally {
+    isolated?.cleanup();
+  }
   if (result.error) throw new Error(`${label} failed: ${sanitize(result.error.message)}`);
   if (result.status !== 0) {
     throw new Error(`${label} failed with exit ${result.status}: ${sanitize(result.stderr).trim()}`);

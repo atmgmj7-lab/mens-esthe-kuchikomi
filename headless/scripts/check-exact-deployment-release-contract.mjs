@@ -6,6 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import * as releaseContract from "./lib/exact-deployment-release-contract.mjs";
+import { checkCurlConfigIsolation } from "./check-exact-curl-config-isolation.mjs";
+import { createExactCurlEnvironment } from "./lib/exact-curl-environment.mjs";
 
 const {
   buildExactAreaCurlOptions,
@@ -229,9 +231,9 @@ function close(server) {
   return new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
 
-function run(command, arguments_) {
+function run(command, arguments_, env) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, arguments_, { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(command, arguments_, { stdio: ["ignore", "pipe", "pipe"], env });
     let stdout = "";
     let stderr = "";
     child.stdout.setEncoding("utf8");
@@ -323,6 +325,7 @@ if (typeof buildExactAreaCurlOptions === "function") {
   });
   const sourceAddress = await listen(source);
   const curlDirectory = mkdtempSync(path.join(os.tmpdir(), "eskomi-exact-curl-"));
+  const isolated = createExactCurlEnvironment();
   try {
     const curlResult = await run("curl", [
       `http://127.0.0.1:${sourceAddress.port}/area/shinosaka/`,
@@ -332,12 +335,13 @@ if (typeof buildExactAreaCurlOptions === "function") {
         path.join(curlDirectory, "headers"),
         path.join(curlDirectory, "body"),
       ),
-    ]);
+    ], isolated.env);
     check(curlResult.status === 0, `direct curl fixture must complete: ${curlResult.stderr.trim()}`);
     check(curlResult.stdout.trim() === "302", "direct curl fixture must expose the initial 302");
     check(destinationHits === 0, "redirect target must not receive a request");
     check(forwardedProtectionHeader === "", "protection bypass header must not cross the redirect boundary");
   } finally {
+    isolated.cleanup();
     await close(source);
     await close(destination);
     rmSync(curlDirectory, { recursive: true, force: true });
@@ -473,5 +477,6 @@ try {
   rmSync(fixtureDirectory, { recursive: true, force: true });
 }
 
+await checkCurlConfigIsolation(check);
 console.log(JSON.stringify({ assertions, failures }, null, 2));
 if (failures.length > 0) process.exitCode = 1;
