@@ -9,6 +9,10 @@ import {
   normalizeSupportingText as normalizeText,
   rawSupportingDisclosureEvidence as rawDisclosureEvidence,
 } from "./lib/area-supporting-ppr-contract.mjs";
+import {
+  validateApplicationAreaRobots,
+  validateNoRankingUi,
+} from "./lib/exact-deployment-release-contract.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixtures = [
@@ -104,6 +108,13 @@ try {
       timeout: 60_000,
     });
     const rawHtml = (await response.body()).toString("utf8");
+    const responseHeaders = await response.allHeaders();
+    const applicationRobots = validateApplicationAreaRobots(fixture.slug, {
+      status: response.status(),
+      headers: responseHeaders,
+      html: rawHtml,
+    });
+    const ranking = validateNoRankingUi(fixture.slug, rawHtml);
     const { disclosureHtml, disclosureText, hiddenSegments } = rawDisclosureEvidence(rawHtml);
     const disclosure = page.locator('details[data-area-supporting-disclosure="true"]');
     const summary = disclosure.locator("summary");
@@ -175,6 +186,10 @@ try {
       portalCount,
       internalLinkCount,
       internalLinkClickable,
+      applicationRobotsIndexable: applicationRobots.indexable,
+      rankingSections: ranking.rankingSections,
+      rankingCards: ranking.rankingCards,
+      rankingPositionBadges: ranking.rankingPositionBadges,
       noJsSupportingTextLength: domText.length,
     });
   }

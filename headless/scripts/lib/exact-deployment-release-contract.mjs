@@ -74,13 +74,14 @@ function canonicalHref(html) {
   return "";
 }
 
-function htmlRobots(html) {
+function htmlRobotsValues(html) {
+  const values = [];
   for (const match of html.matchAll(/<meta\b[^>]*>/giu)) {
     if (tagAttribute(match[0], "name").toLowerCase() === "robots") {
-      return tagAttribute(match[0], "content");
+      values.push(tagAttribute(match[0], "content"));
     }
   }
-  return "";
+  return values;
 }
 
 function jsonLdObjects(html) {
@@ -108,6 +109,80 @@ function normalizedHeaders(headers) {
   ]));
 }
 
+function containsNoindex(value) {
+  return /\bnoindex\b/iu.test(value);
+}
+
+function requireHtmlIndexable(slug, html, phase) {
+  requireCondition(
+    !htmlRobotsValues(html).some(containsNoindex),
+    `${slug} ${phase} HTML robots must not contain noindex`,
+  );
+}
+
+export function rankingUiEvidence(html) {
+  const tags = [...html.matchAll(/<[a-z][^>]*>/giu)].map((match) => match[0]);
+  let rankingSections = 0;
+  let rankingCards = 0;
+  let rankingPositionBadges = 0;
+  for (const tag of tags) {
+    if (tagAttribute(tag, "id") === "ranking") rankingSections += 1;
+    const classTokens = tagAttribute(tag, "class").split(/\s+/u).filter(Boolean);
+    if (classTokens.includes("ranking-card")) rankingCards += 1;
+    if (
+      classTokens.includes("ranking-card__rank")
+      || classTokens.some((token) => /^ranking-card--rank-\d+$/u.test(token))
+    ) {
+      rankingPositionBadges += 1;
+    }
+  }
+  return { rankingSections, rankingCards, rankingPositionBadges };
+}
+
+export function validateNoRankingUi(slug, html) {
+  const ranking = rankingUiEvidence(html);
+  requireCondition(ranking.rankingSections === 0, `${slug} ranking section must be absent`);
+  requireCondition(ranking.rankingCards === 0, `${slug} ranking cards must be absent`);
+  requireCondition(ranking.rankingPositionBadges === 0, `${slug} ranking position badges must be absent`);
+  return ranking;
+}
+
+export function validateApplicationAreaRobots(slug, response) {
+  const headers = normalizedHeaders(response?.headers);
+  requireCondition(response?.status === 200, `${slug} application HTTP status must be 200`);
+  requireCondition(
+    !containsNoindex(headers["x-robots-tag"] ?? ""),
+    `${slug} application X-Robots-Tag must not contain noindex`,
+  );
+  requireHtmlIndexable(slug, typeof response?.html === "string" ? response.html : "", "application");
+  return { slug, indexable: true };
+}
+
+export function validatePostPromotionAreaRobots(slug, response) {
+  const headers = normalizedHeaders(response?.headers);
+  requireCondition(response?.status === 200, `${slug} post-promotion HTTP status must be 200`);
+  requireCondition(
+    !containsNoindex(headers["x-robots-tag"] ?? ""),
+    `${slug} post-promotion X-Robots-Tag must not contain noindex`,
+  );
+  requireHtmlIndexable(slug, typeof response?.html === "string" ? response.html : "", "post-promotion");
+  return { slug, indexable: true };
+}
+
+function validateStagedAreaRobots(slug, headers, html) {
+  const xRobotsTag = headers["x-robots-tag"] ?? "";
+  const directives = xRobotsTag
+    .split(",")
+    .map((directive) => directive.trim().toLowerCase())
+    .filter(Boolean);
+  requireCondition(
+    directives.every((directive) => directive === "noindex"),
+    `${slug} staged X-Robots-Tag contains unsupported directives`,
+  );
+  requireHtmlIndexable(slug, html, "staged");
+  return containsNoindex(xRobotsTag);
+}
+
 function validateArea(fixture, response) {
   requireCondition(response && typeof response === "object", `${fixture.slug} response evidence is required`);
   requireCondition(response.status === 200, `${fixture.slug} HTTP status must be 200`);
@@ -121,22 +196,14 @@ function validateArea(fixture, response) {
   );
 
   const headers = normalizedHeaders(response.headers);
-  const xRobotsTag = headers["x-robots-tag"] ?? "";
-  if (/\bnoindex\b/iu.test(xRobotsTag)) {
-    requireCondition(
-      /^vercel$/iu.test(headers.server ?? ""),
-      `${fixture.slug} application X-Robots-Tag must not contain noindex`,
-    );
-  }
-
-  const robots = htmlRobots(html);
-  requireCondition(!/\bnoindex\b/iu.test(robots), `${fixture.slug} HTML robots must not contain noindex`);
+  const stagedHeaderNoindexPresent = validateStagedAreaRobots(fixture.slug, headers, html);
   requireCondition(tagText(html, "title") === fixture.title, `${fixture.slug} title must match the production contract`);
   requireCondition(tagText(html, "h1") === fixture.h1, `${fixture.slug} H1 must match the production contract`);
   requireCondition(canonicalHref(html) === fixture.canonical, `${fixture.slug} canonical must match the production contract`);
 
   const shopCards = (html.match(/data-area-shop-card=["']true["']/giu) ?? []).length;
   requireCondition(shopCards === fixture.shopCount, `${fixture.slug} shop card count must be ${fixture.shopCount}`);
+  validateNoRankingUi(fixture.slug, html);
 
   const schemas = jsonLdObjects(html);
   const breadcrumbLists = schemas.filter((schema) => schema?.["@type"] === "BreadcrumbList");
@@ -188,7 +255,7 @@ function validateArea(fixture, response) {
     status: response.status,
     shopCards,
     itemListItems: itemLists[0].itemListElement.length,
-    platformHeaderNoindexAllowed: /\bnoindex\b/iu.test(xRobotsTag),
+    stagedHeaderNoindexPresent,
     htmlNoindex: false,
     supportingCompleteness: "100%",
   };

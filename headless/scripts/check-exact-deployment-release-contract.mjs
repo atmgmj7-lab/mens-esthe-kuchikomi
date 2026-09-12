@@ -4,7 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { validateExactDeploymentRelease } from "./lib/exact-deployment-release-contract.mjs";
+import * as releaseContract from "./lib/exact-deployment-release-contract.mjs";
+
+const {
+  validateApplicationAreaRobots,
+  validateExactDeploymentRelease,
+  validatePostPromotionAreaRobots,
+} = releaseContract;
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "../..");
@@ -38,6 +44,7 @@ function workflowStep(name) {
 
 const stagedDeployStep = workflowStep("Create staged Vercel production deployment");
 const exactQaStep = workflowStep("Verify exact staged deployment");
+const handoffStep = workflowStep("Record staged release gate result");
 
 check(
   workflow.includes("npm install --global vercel@54.13.0"),
@@ -76,6 +83,17 @@ check(
 check(
   workflow.includes("PROMOTION_STATUS=NOT_PROMOTED"),
   "workflow must report PROMOTION_STATUS=NOT_PROMOTED",
+);
+check(
+  handoffStep.includes("POST_PROMOTION REQUIRED")
+    && handoffStep.includes("JavaScript-enabled browser QA PASS")
+    && handoffStep.includes("no-JS supporting completeness: 100%"),
+  "workflow handoff must preserve the post-promotion browser and no-JS gates",
+);
+check(
+  handoffStep.includes("RELEASE_CLOSED = NO")
+    && handoffStep.includes("ROLLBACK_DECISION_REQUIRED"),
+  "workflow handoff must fail closed after a post-promotion QA failure",
 );
 check(
   typeof packageJson.scripts["test:exact-deployment-release"] === "string",
@@ -187,6 +205,10 @@ try {
   const result = validateExactDeploymentRelease(validEvidence());
   check(result.status === "PASS", "valid exact deployment evidence must pass");
   check(result.promotionStatus === "NOT_PROMOTED", "valid evidence must stop before promotion");
+  check(
+    validEvidence().areas.shinosaka.html.includes('"position":1'),
+    "ordinary ItemList positions must remain valid release evidence",
+  );
 } catch (error) {
   check(false, `valid exact deployment evidence failed: ${error?.message}`);
 }
@@ -197,9 +219,12 @@ expectFailure("SHA mismatch", (value) => { value.deployment.meta.eskomiGitSha = 
 expectFailure("shinosaka 404", (value) => { value.areas.shinosaka.status = 404; }, "shinosaka HTTP status must be 200");
 expectFailure("sakai 404", (value) => { value.areas.sakai.status = 404; }, "sakai HTTP status must be 200");
 expectFailure("Next notFound", (value) => { value.areas.shinosaka.html += '<meta name="next-error" content="not-found">'; }, "shinosaka Next notFound fallback detected");
-expectFailure("HTML noindex", (value) => { value.areas.shinosaka.html = value.areas.shinosaka.html.replace("index, follow", "noindex, nofollow"); }, "shinosaka HTML robots must not contain noindex");
+expectFailure("HTML noindex", (value) => { value.areas.shinosaka.html = value.areas.shinosaka.html.replace("index, follow", "noindex, nofollow"); }, "shinosaka staged HTML robots must not contain noindex");
 expectFailure("shop count", (value) => { value.areas.sakai.html = value.areas.sakai.html.replace(' data-area-shop-card="true"', ""); }, "sakai shop card count must be 25");
 expectFailure("ItemList count", (value) => { value.areas.shinosaka.html = value.areas.shinosaka.html.replace('"numberOfItems":58', '"numberOfItems":57'); }, "shinosaka ItemList numberOfItems must be 58");
+expectFailure("ranking section", (value) => { value.areas.shinosaka.html = value.areas.shinosaka.html.replace("<main", '<section id="ranking"></section><main'); }, "shinosaka ranking section must be absent");
+expectFailure("ranking card", (value) => { value.areas.sakai.html = value.areas.sakai.html.replace("<main", '<article class="ranking-card">根拠なし順位</article><main'); }, "sakai ranking cards must be absent");
+expectFailure("ranking badge", (value) => { value.areas.shinosaka.html = value.areas.shinosaka.html.replace("<main", '<span class="ranking-card__rank ranking-card--rank-1">1</span><main'); }, "shinosaka ranking position badges must be absent");
 expectFailure("outside hidden PPR dependency", (value) => { value.areas.sakai.html = value.areas.sakai.html.replace('<div hidden id="S:unrelated">unrelated</div>', '<div hidden id="S:leak"><section data-area-depth="coverage">leak</section></div>'); }, "sakai coverage must not depend on an outside hidden PPR segment");
 expectFailure("details hidden by PPR segment", (value) => {
   value.areas.shinosaka.html = value.areas.shinosaka.html
@@ -207,6 +232,68 @@ expectFailure("details hidden by PPR segment", (value) => {
     .replace("</details>", "</details></div>");
 }, "shinosaka details must not be inside a hidden PPR segment");
 expectFailure("already promoted", (value) => { value.deployment.aliases.push("mens-esthe-kuchikomi.com"); }, "deployment must not be promoted to the production domain");
+expectFailure("staged robots extra directive", (value) => { value.areas.shinosaka.headers["x-robots-tag"] = "noindex, nofollow"; }, "shinosaka staged X-Robots-Tag contains unsupported directives");
+
+try {
+  const evidence = validEvidence();
+  evidence.areas.shinosaka.headers.server = "application-server";
+  validateExactDeploymentRelease(evidence);
+  check(true, "staged noindex acceptance must not depend on the Server header");
+} catch (error) {
+  check(false, `staged noindex acceptance must not depend on the Server header: ${error?.message}`);
+}
+
+check(
+  typeof validateApplicationAreaRobots === "function",
+  "application robots validator must exist",
+);
+if (typeof validateApplicationAreaRobots === "function") {
+  for (const fixture of [
+    {
+      label: "application header noindex",
+      response: { status: 200, headers: { "x-robots-tag": "noindex" }, html: areaHtml(areaFixtures[0]) },
+      message: "shinosaka application X-Robots-Tag must not contain noindex",
+    },
+    {
+      label: "application HTML noindex",
+      response: { status: 200, headers: {}, html: areaHtml(areaFixtures[0]).replace("index, follow", "noindex, nofollow") },
+      message: "shinosaka application HTML robots must not contain noindex",
+    },
+  ]) {
+    try {
+      validateApplicationAreaRobots("shinosaka", fixture.response);
+      check(false, `${fixture.label}: expected failure`);
+    } catch (error) {
+      check(error instanceof Error && error.message.includes(fixture.message), `${fixture.label}: ${error?.message}`);
+    }
+  }
+}
+
+check(
+  typeof validatePostPromotionAreaRobots === "function",
+  "post-promotion robots validator must exist",
+);
+if (typeof validatePostPromotionAreaRobots === "function") {
+  for (const fixture of [
+    {
+      label: "post-promotion header noindex",
+      response: { status: 200, headers: { "x-robots-tag": "noindex" }, html: areaHtml(areaFixtures[1]) },
+      message: "sakai post-promotion X-Robots-Tag must not contain noindex",
+    },
+    {
+      label: "post-promotion HTML noindex",
+      response: { status: 200, headers: {}, html: areaHtml(areaFixtures[1]).replace("index, follow", "noindex") },
+      message: "sakai post-promotion HTML robots must not contain noindex",
+    },
+  ]) {
+    try {
+      validatePostPromotionAreaRobots("sakai", fixture.response);
+      check(false, `${fixture.label}: expected failure`);
+    } catch (error) {
+      check(error instanceof Error && error.message.includes(fixture.message), `${fixture.label}: ${error?.message}`);
+    }
+  }
+}
 
 const fixtureDirectory = mkdtempSync(path.join(os.tmpdir(), "eskomi-exact-deployment-"));
 try {

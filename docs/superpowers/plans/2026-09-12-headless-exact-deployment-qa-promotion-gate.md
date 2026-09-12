@@ -18,6 +18,8 @@
 - Use `--prod --skip-domain`; never run `vercel promote` or alias assignment in this workflow.
 - Exact deployment URL is the primary QA target; `HEADLESS_CI_CHECK_URL` may only remain as a separately named auxiliary public-domain check.
 - Allow Vercel platform `X-Robots-Tag: noindex` only before promotion; reject HTML/application noindex.
+- Prove application indexability separately on a production-mode local Next response; do not infer header provenance from `server: Vercel`.
+- After promotion, require custom-domain HTTP 200, header/HTML noindex absence, 58/25 shop and ItemList counts, canonical/schema parity, JavaScript browser QA, and 100% no-JS completeness. Any failure leaves `RELEASE_CLOSED = NO` and requires a rollback decision.
 - Runtime audit must remain Critical 0 / High 0 and dependency versions must not change.
 
 ---
@@ -58,7 +60,9 @@
 
 - [ ] **Step 2: Implement the minimum pure validator**
 
-  Validate URL/ID/SHA identity, READY production target, absence of production-domain aliases, HTTP 200, title/H1/canonical, HTML robots, required schemas, 58/25 shops, disclosure containment, supporting tokens, internal links, and outside hidden-segment independence.
+  Validate URL/ID/SHA identity, READY production target, absence of production-domain aliases, HTTP 200, title/H1/canonical, HTML robots, required schemas, 58/25 shops, absence of ranking section/cards/badges, disclosure containment, supporting tokens, internal links, and outside hidden-segment independence.
+
+  Validate application robots separately against the production-mode local Next response. Staged exact deployments may carry only the supported `noindex` header directive and must not use the `Server` header as a provenance signal. Export the same header/HTML noindex rejection for the post-promotion custom-domain gate.
 
 - [ ] **Step 3: Add the authenticated transport CLI**
 
@@ -90,7 +94,7 @@
 
 - [ ] **Step 3: Run primary exact QA and stop**
 
-  Invoke the dedicated CLI with the exact URL/ID/SHA, write only non-secret identity and PASS status to the job summary, and do not call promote or alias commands.
+  Invoke the dedicated CLI with the exact URL/ID/SHA, write only non-secret identity and PASS status to the job summary, and do not call promote or alias commands. Persist the required post-promotion HTTP/robots/count/canonical/schema/JavaScript/no-JS checks and the `RELEASE_CLOSED = NO` rollback boundary in that summary.
 
 - [ ] **Step 4: Isolate the legacy public-domain check**
 
