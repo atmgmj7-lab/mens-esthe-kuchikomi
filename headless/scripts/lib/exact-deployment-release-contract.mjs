@@ -23,6 +23,9 @@ const PRODUCTION_DOMAINS = new Set([
   "mens-esthe-kuchikomi.com",
   "www.mens-esthe-kuchikomi.com",
 ]);
+const CRITICAL_AREA_SLUGS = new Set(
+  CRITICAL_AREA_RELEASE_FIXTURES.map(({ slug }) => slug),
+);
 
 function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
@@ -107,6 +110,93 @@ function normalizedHeaders(headers) {
     key.toLowerCase(),
     Array.isArray(value) ? value.join(", ") : String(value ?? ""),
   ]));
+}
+
+export function validateExactDeploymentUrl(value) {
+  requireCondition(typeof value === "string" && value !== "", "exact deployment URL is required");
+  let exactUrl;
+  try {
+    exactUrl = new URL(value);
+  } catch {
+    throw new Error("exact deployment URL must be valid HTTPS");
+  }
+  requireCondition(exactUrl.protocol === "https:", "exact deployment URL must be valid HTTPS");
+  requireCondition(
+    exactUrl.username === "" && exactUrl.password === "",
+    "exact deployment URL must not contain userinfo",
+  );
+  requireCondition(
+    exactUrl.pathname === "/" && exactUrl.search === "" && exactUrl.hash === "",
+    "exact deployment URL must not contain a path, query, or fragment",
+  );
+  requireCondition(
+    exactUrl.hostname.endsWith(".vercel.app"),
+    "exact deployment URL must use a Vercel deployment hostname",
+  );
+  return exactUrl.origin;
+}
+
+export function exactDeploymentAreaPath(slug) {
+  requireCondition(
+    CRITICAL_AREA_SLUGS.has(slug),
+    `unsupported exact-deployment Area slug: ${String(slug)}`,
+  );
+  return `/area/${slug}/`;
+}
+
+export function buildExactAreaCurlOptions(headerPath, bodyPath) {
+  return [
+    "--silent",
+    "--show-error",
+    "--suppress-connect-headers",
+    "--connect-timeout",
+    "15",
+    "--max-time",
+    "60",
+    "--dump-header",
+    headerPath,
+    "--output",
+    bodyPath,
+    "--write-out",
+    "%{http_code}",
+  ];
+}
+
+export function parseDirectHttpResponseHeaders(source, reportedStatus, slug) {
+  const responseBlocks = String(source ?? "")
+    .split(/\r?\n\r?\n/u)
+    .map((value) => value.trim())
+    .filter((value) => /^HTTP\//u.test(value))
+    .map((block) => {
+      const lines = block.split(/\r?\n/u);
+      const statusMatch = lines[0].match(/^HTTP\/\S+\s+(\d{3})(?:\s|$)/u);
+      requireCondition(statusMatch, `${slug} direct response contained an invalid HTTP status line`);
+      const headers = {};
+      for (const line of lines.slice(1)) {
+        const separator = line.indexOf(":");
+        if (separator <= 0) continue;
+        const name = line.slice(0, separator).trim().toLowerCase();
+        const value = line.slice(separator + 1).trim();
+        headers[name] = headers[name] ? `${headers[name]}, ${value}` : value;
+      }
+      return { status: Number(statusMatch[1]), headers };
+    });
+  const finalResponses = responseBlocks.filter(({ status }) => status >= 200);
+  requireCondition(
+    finalResponses.length === 1,
+    `${slug} authenticated request must contain exactly one direct final response`,
+  );
+  const response = finalResponses[0];
+  requireCondition(
+    response.status === reportedStatus,
+    `${slug} direct HTTP status does not match curl reported status`,
+  );
+  requireCondition(response.status === 200, `${slug} direct HTTP status must be 200`);
+  requireCondition(
+    !("location" in response.headers),
+    `${slug} direct response must not include Location`,
+  );
+  return response.headers;
 }
 
 function containsNoindex(value) {
@@ -196,6 +286,7 @@ function validateArea(fixture, response) {
   );
 
   const headers = normalizedHeaders(response.headers);
+  requireCondition(!("location" in headers), `${fixture.slug} response must not include Location`);
   const stagedHeaderNoindexPresent = validateStagedAreaRobots(fixture.slug, headers, html);
   requireCondition(tagText(html, "title") === fixture.title, `${fixture.slug} title must match the production contract`);
   requireCondition(tagText(html, "h1") === fixture.h1, `${fixture.slug} H1 must match the production contract`);
@@ -262,17 +353,7 @@ function validateArea(fixture, response) {
 }
 
 export function validateExactDeploymentRelease(evidence) {
-  const exactDeploymentUrl = evidence?.exactDeploymentUrl ?? "";
-  requireCondition(exactDeploymentUrl !== "", "exact deployment URL is required");
-  let exactUrl;
-  try {
-    exactUrl = new URL(exactDeploymentUrl);
-  } catch {
-    throw new Error("exact deployment URL must be valid HTTPS");
-  }
-  requireCondition(exactUrl.protocol === "https:", "exact deployment URL must be valid HTTPS");
-  requireCondition(exactUrl.pathname === "/" && exactUrl.search === "" && exactUrl.hash === "", "exact deployment URL must not contain a path, query, or fragment");
-  requireCondition(exactUrl.hostname.endsWith(".vercel.app"), "exact deployment URL must use a Vercel deployment hostname");
+  const exactUrl = new URL(validateExactDeploymentUrl(evidence?.exactDeploymentUrl ?? ""));
 
   const deploymentId = evidence?.deploymentId ?? "";
   requireCondition(deploymentId !== "", "deployment ID is required");

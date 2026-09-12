@@ -7,7 +7,11 @@ import process from "node:process";
 import { spawnSync } from "node:child_process";
 
 import {
+  buildExactAreaCurlOptions,
   CRITICAL_AREA_RELEASE_FIXTURES,
+  exactDeploymentAreaPath,
+  parseDirectHttpResponseHeaders,
+  validateExactDeploymentUrl,
   validateExactDeploymentRelease,
 } from "./lib/exact-deployment-release-contract.mjs";
 
@@ -58,63 +62,35 @@ function readFixtureJson(directory, name) {
   return parseJson(readFileSync(path.join(directory, name), "utf8"), `${name} fixture`);
 }
 
-function parseFinalHeaders(source) {
-  const blocks = source
-    .split(/\r?\n\r?\n/u)
-    .map((value) => value.trim())
-    .filter((value) => /^HTTP\//u.test(value));
-  const finalBlock = blocks.at(-1) ?? "";
-  const headers = {};
-  for (const line of finalBlock.split(/\r?\n/u).slice(1)) {
-    const separator = line.indexOf(":");
-    if (separator <= 0) continue;
-    const name = line.slice(0, separator).trim().toLowerCase();
-    const value = line.slice(separator + 1).trim();
-    headers[name] = headers[name] ? `${headers[name]}, ${value}` : value;
-  }
-  return headers;
-}
-
 function collectAreaResponse(exactDeploymentUrl, slug, temporaryDirectory) {
   const headerPath = path.join(temporaryDirectory, `${slug}.headers`);
   const bodyPath = path.join(temporaryDirectory, `${slug}.html`);
   const output = runVercel([
     "curl",
-    `/area/${slug}/`,
+    exactDeploymentAreaPath(slug),
     "--deployment",
     exactDeploymentUrl,
     "--",
-    "--silent",
-    "--show-error",
-    "--location",
-    "--max-redirs",
-    "5",
-    "--connect-timeout",
-    "15",
-    "--max-time",
-    "60",
-    "--dump-header",
-    headerPath,
-    "--output",
-    bodyPath,
-    "--write-out",
-    "%{http_code}",
+    ...buildExactAreaCurlOptions(headerPath, bodyPath),
   ], `${slug} authenticated request`);
   const statusMatch = output.trim().match(/(\d{3})$/u);
   if (!statusMatch) throw new Error(`${slug} authenticated request did not report an HTTP status`);
+  const status = Number(statusMatch[1]);
   return {
-    status: Number(statusMatch[1]),
-    headers: parseFinalHeaders(readFileSync(headerPath, "utf8")),
+    status,
+    headers: parseDirectHttpResponseHeaders(readFileSync(headerPath, "utf8"), status, slug),
     html: readFileSync(bodyPath, "utf8"),
   };
 }
 
 function collectLiveEvidence({ exactDeploymentUrl, deploymentId, expectedSha }) {
+  const validatedExactDeploymentUrl = validateExactDeploymentUrl(exactDeploymentUrl);
+  for (const { slug } of CRITICAL_AREA_RELEASE_FIXTURES) exactDeploymentAreaPath(slug);
   if (!process.env.VERCEL_TOKEN) {
     throw new Error("VERCEL_TOKEN is required for protected exact deployment QA");
   }
   const inspect = parseJson(
-    runVercel(["inspect", exactDeploymentUrl, "--format=json"], "Vercel inspect"),
+    runVercel(["inspect", validatedExactDeploymentUrl, "--format=json"], "Vercel inspect"),
     "Vercel inspect",
   );
   const deployment = parseJson(
@@ -128,9 +104,16 @@ function collectLiveEvidence({ exactDeploymentUrl, deploymentId, expectedSha }) 
   try {
     const areas = Object.fromEntries(CRITICAL_AREA_RELEASE_FIXTURES.map(({ slug }) => [
       slug,
-      collectAreaResponse(exactDeploymentUrl, slug, temporaryDirectory),
+      collectAreaResponse(validatedExactDeploymentUrl, slug, temporaryDirectory),
     ]));
-    return { exactDeploymentUrl, deploymentId, expectedSha, inspect, deployment, areas };
+    return {
+      exactDeploymentUrl: validatedExactDeploymentUrl,
+      deploymentId,
+      expectedSha,
+      inspect,
+      deployment,
+      areas,
+    };
   } finally {
     rmSync(temporaryDirectory, { recursive: true, force: true });
   }
@@ -158,15 +141,16 @@ try {
   if (!exactDeploymentUrl) throw new Error("exact deployment URL is required");
   if (!deploymentId) throw new Error("deployment ID is required");
   if (!expectedSha) throw new Error("expected Git SHA is required");
+  const validatedExactDeploymentUrl = validateExactDeploymentUrl(exactDeploymentUrl);
 
   const evidence = arguments_["fixture-dir"]
     ? collectFixtureEvidence({
-      exactDeploymentUrl,
+      exactDeploymentUrl: validatedExactDeploymentUrl,
       deploymentId,
       expectedSha,
       fixtureDirectory: path.resolve(arguments_["fixture-dir"]),
     })
-    : collectLiveEvidence({ exactDeploymentUrl, deploymentId, expectedSha });
+    : collectLiveEvidence({ exactDeploymentUrl: validatedExactDeploymentUrl, deploymentId, expectedSha });
   console.log(JSON.stringify(validateExactDeploymentRelease(evidence), null, 2));
 } catch (error) {
   console.error(`Exact deployment release QA failed: ${sanitize(error instanceof Error ? error.message : error)}`);

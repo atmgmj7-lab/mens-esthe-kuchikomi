@@ -1,5 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +8,11 @@ import { fileURLToPath } from "node:url";
 import * as releaseContract from "./lib/exact-deployment-release-contract.mjs";
 
 const {
+  buildExactAreaCurlOptions,
+  exactDeploymentAreaPath,
+  parseDirectHttpResponseHeaders,
   validateApplicationAreaRobots,
+  validateExactDeploymentUrl,
   validateExactDeploymentRelease,
   validatePostPromotionAreaRobots,
 } = releaseContract;
@@ -201,6 +206,144 @@ function expectFailure(label, mutate, expectedMessage) {
   }
 }
 
+function expectThrows(label, operation, expectedMessage) {
+  try {
+    operation();
+    check(false, `${label}: expected failure`);
+  } catch (error) {
+    check(
+      error instanceof Error && error.message.includes(expectedMessage),
+      `${label}: expected ${JSON.stringify(expectedMessage)}, got ${JSON.stringify(error?.message)}`,
+    );
+  }
+}
+
+function listen(server) {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve(server.address()));
+  });
+}
+
+function close(server) {
+  return new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+}
+
+function run(command, arguments_) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, arguments_, { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.once("error", reject);
+    child.once("close", (status) => resolve({ status, stdout, stderr }));
+  });
+}
+
+check(typeof validateExactDeploymentUrl === "function", "exact deployment URL validator must exist");
+if (typeof validateExactDeploymentUrl === "function") {
+  check(validateExactDeploymentUrl(exactUrl) === exactUrl, "exact deployment URL validator must retain the exact origin");
+  expectThrows("exact URL production hostname", () => validateExactDeploymentUrl("https://mens-esthe-kuchikomi.com"), "Vercel deployment hostname");
+  expectThrows("exact URL path", () => validateExactDeploymentUrl(`${exactUrl}/area/shinosaka/`), "path, query, or fragment");
+  expectThrows("exact URL userinfo", () => validateExactDeploymentUrl("https://user:password@escomi-headless-test-user.vercel.app"), "must not contain userinfo");
+}
+
+check(typeof exactDeploymentAreaPath === "function", "fixed exact-deployment Area path resolver must exist");
+if (typeof exactDeploymentAreaPath === "function") {
+  check(exactDeploymentAreaPath("shinosaka") === "/area/shinosaka/", "shinosaka request path must be fixed");
+  check(exactDeploymentAreaPath("sakai") === "/area/sakai/", "sakai request path must be fixed");
+  expectThrows("unexpected Area path", () => exactDeploymentAreaPath("umeda"), "unsupported exact-deployment Area slug");
+}
+
+check(typeof buildExactAreaCurlOptions === "function", "direct exact-deployment curl options builder must exist");
+if (typeof buildExactAreaCurlOptions === "function") {
+  const options = buildExactAreaCurlOptions("/tmp/headers", "/tmp/body");
+  check(!options.includes("--location"), "exact-deployment request must not enable redirect following");
+  check(!options.includes("--max-redirs"), "exact-deployment request must not configure redirect following");
+  check(options.includes("--suppress-connect-headers"), "exact-deployment request must suppress proxy CONNECT headers");
+}
+
+check(typeof parseDirectHttpResponseHeaders === "function", "direct HTTP response parser must exist");
+if (typeof parseDirectHttpResponseHeaders === "function") {
+  const directHeaders = parseDirectHttpResponseHeaders(
+    "HTTP/2 200\r\nserver: Vercel\r\nx-robots-tag: noindex\r\n\r\n",
+    200,
+    "shinosaka",
+  );
+  check(directHeaders.server === "Vercel", "direct 200 response headers must be retained");
+  const informationalHeaders = parseDirectHttpResponseHeaders(
+    "HTTP/1.1 103 Early Hints\r\nlink: </style.css>; rel=preload\r\n\r\nHTTP/1.1 200 OK\r\nserver: Vercel\r\n\r\n",
+    200,
+    "shinosaka",
+  );
+  check(informationalHeaders.server === "Vercel", "informational response before direct 200 must remain valid");
+  expectThrows(
+    "cross-origin 302",
+    () => parseDirectHttpResponseHeaders("HTTP/2 302\r\nlocation: https://example.com/\r\n\r\n", 302, "shinosaka"),
+    "direct HTTP status must be 200",
+  );
+  expectThrows(
+    "old Production redirect",
+    () => parseDirectHttpResponseHeaders("HTTP/2 307\r\nlocation: https://mens-esthe-kuchikomi.com/area/shinosaka/\r\n\r\n", 307, "shinosaka"),
+    "direct HTTP status must be 200",
+  );
+  expectThrows(
+    "same-origin redirect",
+    () => parseDirectHttpResponseHeaders(`HTTP/2 308\r\nlocation: ${exactUrl}/area/shinosaka\r\n\r\n`, 308, "shinosaka"),
+    "direct HTTP status must be 200",
+  );
+  expectThrows(
+    "redirect chain",
+    () => parseDirectHttpResponseHeaders("HTTP/2 302\r\nlocation: https://example.com/\r\n\r\nHTTP/2 200\r\nserver: Vercel\r\n\r\n", 200, "shinosaka"),
+    "must contain exactly one direct final response",
+  );
+  expectThrows(
+    "200 with Location",
+    () => parseDirectHttpResponseHeaders("HTTP/2 200\r\nlocation: https://example.com/\r\n\r\n", 200, "shinosaka"),
+    "must not include Location",
+  );
+}
+
+if (typeof buildExactAreaCurlOptions === "function") {
+  let destinationHits = 0;
+  let forwardedProtectionHeader = "";
+  const destination = createServer((request, response) => {
+    destinationHits += 1;
+    forwardedProtectionHeader = String(request.headers["x-vercel-protection-bypass"] ?? "");
+    response.writeHead(200, { "content-type": "text/plain" });
+    response.end("wrong origin");
+  });
+  const destinationAddress = await listen(destination);
+  const source = createServer((_request, response) => {
+    response.writeHead(302, { location: `http://127.0.0.1:${destinationAddress.port}/target` });
+    response.end("redirect");
+  });
+  const sourceAddress = await listen(source);
+  const curlDirectory = mkdtempSync(path.join(os.tmpdir(), "eskomi-exact-curl-"));
+  try {
+    const curlResult = await run("curl", [
+      `http://127.0.0.1:${sourceAddress.port}/area/shinosaka/`,
+      "--header",
+      "x-vercel-protection-bypass: test-only-token",
+      ...buildExactAreaCurlOptions(
+        path.join(curlDirectory, "headers"),
+        path.join(curlDirectory, "body"),
+      ),
+    ]);
+    check(curlResult.status === 0, `direct curl fixture must complete: ${curlResult.stderr.trim()}`);
+    check(curlResult.stdout.trim() === "302", "direct curl fixture must expose the initial 302");
+    check(destinationHits === 0, "redirect target must not receive a request");
+    check(forwardedProtectionHeader === "", "protection bypass header must not cross the redirect boundary");
+  } finally {
+    await close(source);
+    await close(destination);
+    rmSync(curlDirectory, { recursive: true, force: true });
+  }
+}
+
 try {
   const result = validateExactDeploymentRelease(validEvidence());
   check(result.status === "PASS", "valid exact deployment evidence must pass");
@@ -233,6 +376,7 @@ expectFailure("details hidden by PPR segment", (value) => {
 }, "shinosaka details must not be inside a hidden PPR segment");
 expectFailure("already promoted", (value) => { value.deployment.aliases.push("mens-esthe-kuchikomi.com"); }, "deployment must not be promoted to the production domain");
 expectFailure("staged robots extra directive", (value) => { value.areas.shinosaka.headers["x-robots-tag"] = "noindex, nofollow"; }, "shinosaka staged X-Robots-Tag contains unsupported directives");
+expectFailure("unexpected Location evidence", (value) => { value.areas.shinosaka.headers.location = "https://example.com/"; }, "shinosaka response must not include Location");
 
 try {
   const evidence = validEvidence();
