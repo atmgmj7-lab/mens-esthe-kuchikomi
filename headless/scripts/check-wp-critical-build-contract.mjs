@@ -218,7 +218,9 @@ const requiredReleaseSteps = [
   "Verify critical Area validation artifacts",
   "Vercel build (prebuilt)",
   "Verify critical Area build artifacts",
-  "Deploy to Vercel production"
+  "Create staged Vercel production deployment",
+  "Verify exact staged deployment",
+  "Record staged release gate result"
 ];
 const requiredReleaseStepPositions = requiredReleaseSteps.map((stepName) => {
   const position = workflow.indexOf(`      - name: ${stepName}`);

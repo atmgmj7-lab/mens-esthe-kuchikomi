@@ -5,6 +5,11 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
+import {
+  normalizeSupportingText as normalizeText,
+  rawSupportingDisclosureEvidence as rawDisclosureEvidence,
+} from "./lib/area-supporting-ppr-contract.mjs";
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixtures = [
   {
@@ -18,14 +23,6 @@ const fixtures = [
     supportingTokens: ["公開25店舗", "11件", "44%", "編集部の横断確認データ", "63名", "6店舗"],
   },
 ];
-
-function normalizeText(value) {
-  return value.replace(/\s+/gu, " ").trim();
-}
-
-function htmlText(value) {
-  return normalizeText(value.replace(/<!--[\s\S]*?-->/gu, "").replace(/<[^>]+>/gu, ""));
-}
 
 function availablePort() {
   return new Promise((resolve, reject) => {
@@ -81,22 +78,6 @@ async function stopProductionServer(child) {
     new Promise((resolve) => setTimeout(resolve, 5_000)),
   ]);
   if (child.exitCode === null) child.kill("SIGKILL");
-}
-
-function rawDisclosureEvidence(html) {
-  const marker = 'data-area-supporting-disclosure="true"';
-  const markerIndex = html.indexOf(marker);
-  const openIndex = html.lastIndexOf("<details", markerIndex);
-  const closeIndex = html.indexOf("</details>", markerIndex);
-  const disclosureHtml = openIndex >= 0 && closeIndex > openIndex
-    ? html.slice(openIndex, closeIndex + "</details>".length)
-    : "";
-  const outsideHtml = disclosureHtml
-    ? `${html.slice(0, openIndex)}${html.slice(closeIndex + "</details>".length)}`
-    : html;
-  const hiddenSegments = [...outsideHtml.matchAll(/<div hidden(?:="")? id="S:[^"]+">([\s\S]*?)(?=<div hidden(?:="")? id="S:|$)/gu)]
-    .map((match) => match[1]);
-  return { disclosureHtml, disclosureText: htmlText(disclosureHtml), hiddenSegments };
 }
 
 const failures = [];

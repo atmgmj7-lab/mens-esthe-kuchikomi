@@ -71,7 +71,7 @@ jobs:
         run: npm run lint
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@54.13.0
 
       - name: Link Vercel project
         run: |
@@ -119,39 +119,92 @@ jobs:
       - name: Verify critical Area build artifacts
         run: npm run verify:critical-area-build-artifacts -- --vercel
 
-      - name: Deploy to Vercel production
+      - name: Create staged Vercel production deployment
         id: deploy
         run: |
           set -euo pipefail
 
-          # set -e のまま command substitution すると vercel deploy 失敗時に OUTPUT が空のまま step が終了する。
-          # 先に exit code を受け、マスク済み stdout/stderr を必ずログへ出してから失敗させる。
-          set +e
-          OUTPUT=$(vercel deploy --prebuilt --prod --yes --archive=tgz 2>&1)
-          STATUS=$?
-          set -e
-
-          SANITIZED_OUTPUT=$(echo "$OUTPUT" | sed -E 's/(SMTP_PASS|VERCEL_TOKEN|REVALIDATE_SECRET)=[^[:space:]]+/\1=***/g')
-          echo "$SANITIZED_OUTPUT"
-
-          if [ "$STATUS" -ne 0 ]; then
-            echo "::error::Vercel deploy failed with exit code $STATUS"
-            exit "$STATUS"
-          fi
-
-          DEPLOYMENT_URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | tail -1 || true)
-          if [ -z "$DEPLOYMENT_URL" ]; then
-            echo "::error::Vercel デプロイ URL を取得できませんでした。CLI の出力に https URL が含まれているか確認してください。"
+          DEPLOYMENT_URL=$(vercel deploy \
+            --prebuilt \
+            --prod \
+            --skip-domain \
+            --yes \
+            --archive=tgz \
+            --meta eskomiGitSha="$GITHUB_SHA")
+          DEPLOYMENT_URL=$(printf '%s\n' "$DEPLOYMENT_URL" | grep -oE 'https://[^[:space:]]+\.vercel\.app' | tail -1 || true)
+          if [ -z "$DEPLOYMENT_URL" ] || [[ "$DEPLOYMENT_URL" != https://*.vercel.app ]]; then
+            echo "::error::Exact Vercel deployment URLを取得できませんでした。"
             exit 1
           fi
-          echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
-          echo "::notice::Vercel 本番デプロイ URL: $DEPLOYMENT_URL"
 
-      - name: SEO cutover check
+          INSPECT_JSON=$(vercel inspect "$DEPLOYMENT_URL" --format=json)
+          DEPLOYMENT_ID=$(printf '%s' "$INSPECT_JSON" | node -e '
+            let source = "";
+            process.stdin.on("data", (chunk) => { source += chunk; });
+            process.stdin.on("end", () => {
+              const value = JSON.parse(source);
+              if (!value.id) process.exit(1);
+              process.stdout.write(value.id);
+            });
+          ')
+          if [[ ! "$DEPLOYMENT_ID" =~ ^dpl_[A-Za-z0-9]+$ ]]; then
+            echo "::error::Exact Vercel deployment IDを取得できませんでした。"
+            exit 1
+          fi
+
+          echo "url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
+          echo "id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          echo "::notice::Staged Vercel deployment: $DEPLOYMENT_ID ($DEPLOYMENT_URL)"
+
+      - name: Verify exact staged deployment
+        id: exact_qa
+        env:
+          EXACT_DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+          EXACT_DEPLOYMENT_ID: ${{ steps.deploy.outputs.id }}
+          EXPECTED_GIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          QA_RESULT=$(npm run --silent qa:exact-deployment-release -- \
+            --url "$EXACT_DEPLOYMENT_URL" \
+            --id "$EXACT_DEPLOYMENT_ID" \
+            --expected-sha "$EXPECTED_GIT_SHA")
+          printf '%s\n' "$QA_RESULT"
+          VERIFIED_SHA=$(printf '%s' "$QA_RESULT" | node -e '
+            let source = "";
+            process.stdin.on("data", (chunk) => { source += chunk; });
+            process.stdin.on("end", () => {
+              const value = JSON.parse(source);
+              if (value.status !== "PASS" || value.exactQa !== "PASS" || value.promotionStatus !== "NOT_PROMOTED") process.exit(1);
+              process.stdout.write(value.verifiedSha);
+            });
+          ')
+          test "$VERIFIED_SHA" = "$EXPECTED_GIT_SHA"
+          echo "verified-sha=$VERIFIED_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Legacy public-domain auxiliary SEO check
+        if: ${{ vars.HEADLESS_CI_CHECK_URL != '' }}
         env:
           HEADLESS_CI_CHECK_URL: ${{ vars.HEADLESS_CI_CHECK_URL }}
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          CHECK_URL="${HEADLESS_CI_CHECK_URL:-$DEPLOYMENT_URL}"
-          echo "SEO チェック対象: $CHECK_URL"
-          npm run seo:cutover-check -- "$CHECK_URL"
+          echo "Auxiliary public-domain SEO check: $HEADLESS_CI_CHECK_URL"
+          npm run seo:cutover-check -- "$HEADLESS_CI_CHECK_URL"
+
+      - name: Record staged release gate result
+        env:
+          EXACT_DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+          EXACT_DEPLOYMENT_ID: ${{ steps.deploy.outputs.id }}
+          EXPECTED_GIT_SHA: ${{ github.sha }}
+          VERIFIED_GIT_SHA: ${{ steps.exact_qa.outputs.verified-sha }}
+        run: |
+          PROMOTION_STATUS=NOT_PROMOTED
+          {
+            echo "## Exact staged deployment release gate"
+            echo "- deployment ID: $EXACT_DEPLOYMENT_ID"
+            echo "- deployment URL: $EXACT_DEPLOYMENT_URL"
+            echo "- expected Git SHA: $EXPECTED_GIT_SHA"
+            echo "- verified deployment SHA: $VERIFIED_GIT_SHA"
+            echo "- exact QA: PASS"
+            echo "- promotion: $PROMOTION_STATUS"
+            echo "- next action: USER_APPROVAL_REQUIRED"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PROMOTION_STATUS=$PROMOTION_STATUS"
