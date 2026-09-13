@@ -13,13 +13,35 @@ on:
       - 'headless/**'
       - '.github/workflows/deploy-headless.yml'
   workflow_dispatch:
+    inputs:
+      preflight_only:
+        description: 'Read-only WordPress origin probe; skip the deployment job'
+        type: boolean
+        default: false
 
 defaults:
   run:
     working-directory: headless
 
 jobs:
+  origin-probe:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.preflight_only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Read-only critical WordPress origin probe
+        run: node scripts/wp-critical-build-preflight.mjs
+
   deploy:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.preflight_only }}
     runs-on: ubuntu-latest
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

@@ -82,6 +82,121 @@ await assert.rejects(
   "preflight must reject origin timeouts"
 );
 
+// Resilience must retry only network failures, never invalid origin responses.
+const validResponse = (slug) => ({ status: 200, body: JSON.stringify([slug === "shinosaka" ? shinosakaTerm : sakaiTerm]) });
+const networkError = (code) => Object.assign(new Error("fixture credential=https://user:password@example.invalid"), { code });
+let retryCalls = [];
+let delays = [];
+let attemptEvidence = [];
+assert.deepEqual(await preflight.runCriticalAreaPreflight({
+  requestArea: async (slug) => {
+    retryCalls.push(slug);
+    if (retryCalls.length === 1) throw networkError("ETIMEDOUT");
+    return validResponse(slug);
+  },
+  sleep: async (ms) => delays.push(ms),
+  onAttempt: (event) => attemptEvidence.push(event),
+}), [{ slug: "shinosaka", id: 13 }, { slug: "sakai", id: 17 }], "first timeout then success recovers");
+assert.deepEqual(retryCalls, ["shinosaka", "shinosaka", "sakai"]);
+assert.deepEqual(delays, [500]);
+assert.equal(attemptEvidence.length, 3);
+assert.equal(attemptEvidence[0].errorCode, "ETIMEDOUT");
+assert.equal(attemptEvidence[0].transport, "fixed-ip");
+assert.equal(attemptEvidence[0].attempt, 1);
+assert.ok(Number.isFinite(attemptEvidence[0].elapsedMs));
+assert.doesNotMatch(JSON.stringify(attemptEvidence), /password|credential|headers|example.invalid/);
+for (const code of ["ETIMEDOUT", "ECONNRESET", "ENETUNREACH", "EHOSTUNREACH", "EAI_AGAIN", "ECONNREFUSED"]) {
+  let calls = 0; const backoffs = [];
+  await assert.rejects(() => preflight.runCriticalAreaPreflight({
+    requestArea: async () => { calls++; throw networkError(code); },
+    sleep: async (ms) => backoffs.push(ms),
+  }));
+  assert.equal(calls, 3, `${code}: all attempts fail, capped at three`);
+  assert.deepEqual(backoffs, [500, 1000]);
+}
+for (const code of ["CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT", "ERR_TLS_CERT_ALTNAME_INVALID", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "ENOTFOUND", "UNKNOWN"]) {
+  let calls = 0;
+  await assert.rejects(() => preflight.runCriticalAreaPreflight({ requestArea: async () => { calls++; throw networkError(code); } }));
+  assert.equal(calls, 1, `${code}: permanent failures are not retried`);
+}
+for (const response of [
+  { status: 500, body: "[]" }, { status: 403, body: "[]" }, { status: 200, body: "invalid" },
+  { status: 200, body: JSON.stringify([sakaiTerm]) },
+  ...["13", 0, -1, 1.5, null].map((id) => ({ status: 200, body: JSON.stringify([{ ...shinosakaTerm, id }]) })),
+]) {
+  let calls = 0;
+  await assert.rejects(() => preflight.runCriticalAreaPreflight({ requestArea: async () => { calls++; return response; } }));
+  assert.equal(calls, 1, "invalid WP response fails immediately rather than retrying into PASS");
+}
+let partialCalls = [];
+await assert.rejects(() => preflight.runCriticalAreaPreflight({
+  requestArea: async (slug) => { partialCalls.push(slug); if (slug === "sakai") throw networkError("ETIMEDOUT"); return validResponse(slug); },
+  sleep: async () => {},
+}));
+assert.deepEqual(partialCalls, ["shinosaka", "sakai", "sakai", "sakai"], "second Area failure blocks whole preflight");
+for (const [input, expected] of [[undefined,15000], ["5000",10000], ["12000",12000], ["90000",15000], ["bad",15000], ["0",15000], ["-1",15000], ["Infinity",15000]]) {
+  assert.equal(preflight.resolvePreflightTimeoutMs(input), expected, "effective timeout is bounded, raw config not logged");
+}
+const { EventEmitter } = await import("node:events");
+const { mock } = await import("node:test");
+mock.timers.enable({ apis: ["setTimeout"] });
+try {
+  let requestOptions;
+  let destroyed = 0;
+  const pending = preflight.requestCriticalArea("shinosaka", {
+    timeoutMs: 10000,
+    requestImpl: (options) => {
+      requestOptions = options;
+      const request = new EventEmitter();
+      request.setTimeout = () => request;
+      request.end = () => {};
+      request.destroy = (error) => { destroyed++; request.emit("error", error); };
+      return request;
+    },
+  });
+  const rejection = assert.rejects(pending, { code: "ETIMEDOUT" });
+  mock.timers.tick(10000);
+  await rejection;
+  assert.equal(destroyed,1,"absolute deadline cancels even a pre-socket stall");
+  assert.equal(requestOptions.hostname,"85.131.213.108");
+  assert.equal(requestOptions.servername,"sv16727.xserver.jp");
+  assert.equal(requestOptions.headers.Host,"mens-esthe-kuchikomi.com");
+  assert.equal(requestOptions.rejectUnauthorized,true);
+  assert.equal(requestOptions.method,"GET");
+} finally { mock.timers.reset(); }
+
+// Exercise the actual request adapter, including permanent status and cleanup.
+for (const scenario of ["success", "http500", "oversized", "aborted", "tls"]) {
+  let requestDestroyed = false;
+  let responseDestroyed = false;
+  const result = preflight.requestCriticalArea("shinosaka", {
+    requestImpl: (_options, callback) => {
+      const request = new EventEmitter();
+      request.setTimeout = () => request;
+      request.destroy = () => { requestDestroyed = true; };
+      request.end = () => queueMicrotask(() => {
+        if (scenario === "tls") { request.emit("error", networkError("ERR_TLS_CERT_ALTNAME_INVALID")); return; }
+        const response = new EventEmitter();
+        response.statusCode = scenario === "http500" ? 500 : 200;
+        response.destroy = () => { responseDestroyed = true; };
+        callback(response);
+        if (scenario === "success") { response.emit("data", Buffer.from(validResponse("shinosaka").body)); response.emit("end"); }
+        if (scenario === "oversized") response.emit("data", Buffer.alloc(1_000_001));
+        if (scenario === "aborted") response.emit("aborted");
+        // HTTP500 intentionally never ends its body; it must still fail immediately.
+      });
+      return request;
+    },
+  });
+  if (scenario === "success") assert.equal((await result).status, 200);
+  else {
+    const codes = { http500: "WP_HTTP_STATUS", oversized: "WP_RESPONSE_TOO_LARGE", aborted: "ECONNRESET", tls: "ERR_TLS_CERT_ALTNAME_INVALID" };
+    await assert.rejects(result, { code: codes[scenario] });
+    if (scenario !== "tls") assert.equal(requestDestroyed, true, "failed response cancels request");
+    if (scenario === "http500") assert.equal(responseDestroyed, true);
+  }
+}
+
 const validNextManifest = {
   routes: {
     "/area/shinosaka": {
@@ -181,6 +296,15 @@ for (const leaked of ["sv16727.xserver.jp", "WP_ORIGIN_TLS_SERVERNAME", "85.131.
 }
 
 const workflow = readFileSync(join(root, "../.github/workflows/deploy-headless.yml"), "utf8");
+assert.match(workflow, /preflight_only:[\s\S]*?type: boolean[\s\S]*?default: false/, "probe must be opt-in");
+assert.match(workflow, /deploy:\n    if: \$\{\{ github.event_name != 'workflow_dispatch' \|\| !inputs.preflight_only \}\}/, "probe dispatch must exclude deploy job before any Secret/build step");
+const probe = workflow.match(/  origin-probe:([\s\S]*?)(?=\n  deploy:)/)?.[1];
+assert.ok(probe);
+assert.match(probe, /github.event_name == 'workflow_dispatch' && inputs.preflight_only/);
+assert.match(probe, /contents: read/);
+assert.match(probe, /timeout-minutes: 3/);
+assert.match(probe, /run: node scripts\/wp-critical-build-preflight\.mjs/);
+assert.doesNotMatch(probe, /secrets\.|vercel|npm run build|curl|write-all/);
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 assert.match(
   packageJson.scripts.test,
