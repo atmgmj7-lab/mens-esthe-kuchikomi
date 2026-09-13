@@ -41,6 +41,7 @@ const componentClassContract = {
   ],
   "components/shop-detail/ShopDetailSections.tsx": [],
   "components/shop-detail/ShopDetailModuleList.tsx": [
+    "compactSection", "emptyReviews", "compactReviewLinks",
     "kicker",
     "nearbyContent",
     "reviews",
@@ -51,12 +52,12 @@ const componentClassContract = {
     "sourceNote",
     "textLink"
   ],
-  "components/shop-detail/ShopOverviewSection.tsx": ["catch", "informationDashboard", "kicker", "overviewBody", "richText", "section", "sectionHeading", "sourceNote", "sourceSeparated"],
+  "components/shop-detail/ShopOverviewSection.tsx": ["catch", "compactSection", "informationDashboard", "kicker", "overviewBody", "richText", "section", "sectionHeading", "sourceNote", "sourceSeparated"],
   "components/shop-detail/ShopPricesSection.tsx": ["kicker", "section", "sectionHeading", "sourceNote", "table"],
   "components/shop-detail/ShopFeaturesSection.tsx": ["features", "kicker", "section", "sectionHeading"],
-  "components/shop-detail/ShopAccessSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading"],
-  "components/shop-detail/ShopBasicInformationSection.tsx": ["infoTable", "kicker", "section", "sectionAnchor", "sectionHeading", "sourceNote"],
-  "components/shop-detail/ShopInformationCoverage.tsx": ["coverageCard", "coverageCount", "coverageItems", "coverageTrack", "dashboardCardHeader", "dashboardEyebrow", "sourceNote"],
+  "components/shop-detail/ShopAccessSection.tsx": ["infoList", "kicker", "section", "sectionAnchor", "sectionHeading"],
+  "components/shop-detail/ShopBasicInformationSection.tsx": ["infoList", "kicker", "section", "sectionAnchor", "sectionHeading", "sourceNote"],
+  "components/shop-detail/ShopInformationCoverage.tsx": ["compactTrust", "coverageCard", "coverageCount", "coverageItems", "coverageTrack", "dashboardCardHeader", "dashboardEyebrow", "sourceNote"],
   "components/shop-detail/ShopRankingSnapshot.tsx": ["dashboardCardHeader", "dashboardEyebrow", "prLabel", "rankingCard", "rankingMeta", "rankingValue"],
   "components/shop-detail/ShopOwnerCta.tsx": [
     "kicker",
@@ -875,7 +876,7 @@ for (const [selector, label, surfaceColor] of [
   [".primaryAction:focus-visible", "primary and fixed primary actions", "#ffffff"],
   [".secondaryAction:focus-visible", "secondary and fixed secondary actions", "#ffffff"],
   [".sectionNavLink:focus-visible", "section navigation links", "#ffffff"],
-  [".infoTable a:focus-visible", "official information links", "#ffffff"],
+  [".infoList a:focus-visible", "official information links", "#ffffff"],
   [".textLink:focus-visible", "review text links", "#ffffff"],
   [".ownerCta > a:focus-visible", "owner CTA link", green]
 ]) {
@@ -1035,7 +1036,7 @@ for (const [selectorPattern, label] of [
   [/\.primaryAction/, "primary action"],
   [/\.secondaryAction/, "secondary action"],
   [/\.textLink/, "review text link"],
-  [/\.infoTable\s+a/, "official information link"],
+  [/\.infoList\s+a/, "official information link"],
   [/\.sectionNavLink/, "section navigation link"],
   [/\.ownerCta\s*>\s*a/, "owner CTA link"],
   [/\.fixedActions\s+a/, "fixed action"]
@@ -1046,8 +1047,8 @@ for (const [selectorPattern, label] of [
 for (const [selectorPattern, label] of [
   [/\.actions\s+a/, "action label"],
   [/\.table\s+(?:th|td)/, "price table value"],
-  [/\.infoTable\s+(?:th|td)/, "information table value"],
-  [/\.infoTable\s+a/, "long official URL"],
+  [/\.infoList\s+dd/, "information list value"],
+  [/\.infoList\s+a/, "long official URL"],
   [/\.ownerCta\s*>\s*a/, "owner CTA label"],
   [/\.fixedActions\s+a/, "fixed CTA label"]
 ]) {
@@ -1267,7 +1268,7 @@ function disconnectFixedActionHeightVariable(source) {
 }
 
 function overrideFocusOutline(source) {
-  return `${source}\n.primaryAction:focus-visible,\n.secondaryAction:focus-visible,\n.sectionNavLink:focus-visible,\n.infoTable a:focus-visible,\n.textLink:focus-visible,\n.reviewSubmitLink:focus-visible,\n.relatedLinks a:focus-visible,\n.ownerCta > a:focus-visible {\n  outline: none;\n  outline-width: 0;\n}\n`;
+  return `${source}\n.primaryAction:focus-visible,\n.secondaryAction:focus-visible,\n.sectionNavLink:focus-visible,\n.infoList a:focus-visible,\n.textLink:focus-visible,\n.reviewSubmitLink:focus-visible,\n.relatedLinks a:focus-visible,\n.ownerCta > a:focus-visible {\n  outline: none;\n  outline-width: 0;\n}\n`;
 }
 
 function assertMutationsAreRejected(source) {

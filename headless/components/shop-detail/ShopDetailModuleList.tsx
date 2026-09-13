@@ -26,6 +26,21 @@ function ReviewsModule({ context, reviewResult, reviewSubmitUrl }: ModuleRendere
   const shopSlug = normalizePublicShopSlug(context.model.slug);
   const reviewPage = reviewResult.status === "available" ? reviewResult.page : null;
   const reviews = reviewPage?.reviews ?? [];
+  if (context.review.status === "available" && context.review.totalApproved === 0) {
+    return (
+      <section id="reviews" className={`${styles.section} ${styles.compactSection}`}>
+        <div className={styles.sectionHeading}><p className={styles.kicker}>REVIEWS &amp; EXPERIENCE</p><h2>口コミ・体験</h2></div>
+        <div className={styles.emptyReviews}>
+          <p>この店舗の承認済み口コミはまだありません。</p>
+          <Link href={reviewSubmitUrl} className={styles.reviewSubmitLink}>この店舗の口コミを書く</Link>
+          <div className={styles.compactReviewLinks}>
+            {shopSlug ? <Link href={`/shops/${shopSlug}/reviews/`}>この店舗の口コミ・体験一覧を見る</Link> : null}
+            <Link href="/reviews/">関西の口コミ・体験を探す</Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section id="reviews" className={styles.section}>
       <div className={styles.sectionHeading}><p className={styles.kicker}>REVIEWS &amp; EXPERIENCE</p><h2>口コミ・体験</h2></div>

@@ -1150,3 +1150,49 @@
     --shop-title-size: 23px;
   }
 }
+
+/* Information stays label-above-value at every viewport width. */
+.infoList {
+  min-width: 0;
+  margin: 0;
+}
+.infoList > div {
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.infoList dt {
+  margin-bottom: 5px;
+  color: var(--sub);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.infoList dd {
+  margin: 0;
+  color: var(--green);
+  font-weight: 600;
+  line-height: 1.65;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.infoList a {
+  overflow-wrap: anywhere;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  color: var(--green);
+  text-underline-offset: 0.18em;
+}
+.section.compactSection { padding: 26px 0; }
+.compactTrust { min-width: 0; color: var(--sub); }
+.compactTrust summary { cursor: pointer; padding: 10px 0; overflow-wrap: anywhere; }
+.compactTrust summary strong { color: var(--green); }
+.compactTrust summary span { display: block; margin-top: 4px; font-size: 0.85rem; }
+.emptyReviews { display: grid; gap: 12px; min-width: 0; }
+.emptyReviews p { margin: 0; }
+.compactReviewLinks { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 0.8rem; }
+.compactReviewLinks a { display: inline-flex; align-items: center; min-height: 44px; overflow-wrap: anywhere; }
+.infoList a:focus-visible,
+.compactTrust summary:focus-visible,
+.compactReviewLinks a:focus-visible { outline: 2px solid var(--green); outline-offset: 4px; }

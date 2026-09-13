@@ -15,6 +15,13 @@ export function ShopOverviewSection({
   const hasDescription = Boolean(
     model.catchText || model.introductionText || model.recommendText || model.summaryText
   );
+  if (!hasDescription) {
+    return coverage ? (
+      <section id="shop-information" className={`${styles.section} ${styles.compactSection}`} aria-label="店舗情報の確認状況">
+        <ShopInformationCoverage coverage={coverage} compact />
+      </section>
+    ) : null;
+  }
   return (
     <section id="shop-information" className={styles.section}>
       <div className={styles.sectionHeading}>

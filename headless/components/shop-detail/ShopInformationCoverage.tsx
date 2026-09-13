@@ -6,7 +6,26 @@ function formatDate(value: string): string {
   return `${year}年${month}月${day}日`;
 }
 
-export function ShopInformationCoverage({ coverage }: { coverage: Coverage }) {
+export function ShopInformationCoverage({ coverage, compact = false }: { coverage: Coverage; compact?: boolean }) {
+  if (compact) {
+    return (
+      <details className={styles.compactTrust}>
+        <summary>
+          <strong>店舗情報確認済み {coverage.verifiedCount}/{coverage.totalCount}</strong>
+          {coverage.latestReviewedAt ? (
+            <span>最終確認 <time dateTime={coverage.latestReviewedAt}>{formatDate(coverage.latestReviewedAt)}</time></span>
+          ) : null}
+        </summary>
+        <ul className={styles.coverageItems}>
+          {coverage.items.map((item) => (
+            <li key={item.key} data-verified={item.verified ? "true" : "false"}>
+              {item.label}<small>{item.verified ? "確認済み" : "未確認"}</small>
+            </li>
+          ))}
+        </ul>
+      </details>
+    );
+  }
   const percentage = (coverage.verifiedCount / coverage.totalCount) * 100;
   return (
     <section className={styles.coverageCard} aria-labelledby="shop-information-coverage-title">
