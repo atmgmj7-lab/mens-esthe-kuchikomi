@@ -1,8 +1,9 @@
-import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
+import { wpFetch } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
-import type { AreaView, ShopView, WpShop, WpTerm } from "@/lib/wp/types";
+import { getAreaShopOrderIndex, fetchAreaShopsInOrder } from "@/lib/wp/area-shop-order";
+import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
   return {
@@ -118,13 +119,12 @@ export async function getAreaShops(
     `area:shops:${areaId}:pp:${perPage}:page:${page}`
   );
   try {
-    const { data: shops, pagination } = await wpFetchPaginated<WpShop[]>(
-      `/wp/v2/shop?area=${areaId}&per_page=${perPage}&page=${page}&_embed=1`
-    );
-    return {
-      shops: shops.map(normalizeShop),
-      totalPages: Math.max(1, pagination.totalPages)
-    };
+    if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 100) throw new Error("Invalid area page request");
+    const index = await getAreaShopOrderIndex(areaId);
+    const totalPages = Math.max(1, Math.ceil(index.length / perPage));
+    const entries = index.slice((page - 1) * perPage, page * perPage);
+    const shops = await fetchAreaShopsInOrder(areaId, entries);
+    return { shops: shops.map(normalizeShop), totalPages };
   } catch (error) {
     logWpBuildFallback(`area shops ${areaId}`, error);
     return {
@@ -139,22 +139,12 @@ export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", `area:shops:${areaId}`, `area:shops:${areaId}:ranking`);
-  const all: ShopView[] = [];
-  let page = 1;
-  let totalPages = 1;
-
   try {
-    do {
-      const { data, pagination } = await wpFetchPaginated<WpShop[]>(
-        `/wp/v2/shop?area=${areaId}&per_page=100&page=${page}&_embed=1`
-      );
-      all.push(...data.map(normalizeShop));
-      totalPages = Math.max(1, pagination.totalPages);
-      page += 1;
-    } while (page <= totalPages);
+    const index = await getAreaShopOrderIndex(areaId);
+    const shops = await fetchAreaShopsInOrder(areaId, index);
+    return shops.map(normalizeShop);
   } catch (error) {
     logWpBuildFallback(`area ranking shops ${areaId}`, error);
+    return [];
   }
-
-  return all;
 }

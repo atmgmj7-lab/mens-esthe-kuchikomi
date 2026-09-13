@@ -36,6 +36,7 @@ const areas = [
   { id: 4, slug: "umeda", name: "梅田", h1: "梅田のメンズエステおすすめ一覧｜大阪駅・北新地の料金・深夜比較", nearby: ["shinosaka", "sakaisujihonmachi"], exact: 5, related: 2, unclassified: 1 },
 ];
 const fixtureSourceFiles = [
+  "lib/wp/area-shop-order.ts",
   "components/area/AreaEditorialDepth.module.css",
   "components/area/AreaEditorialDepth.tsx",
   "components/area/hub/AreaHubPriorityLinks.tsx",
