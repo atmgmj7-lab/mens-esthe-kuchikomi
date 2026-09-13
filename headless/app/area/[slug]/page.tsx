@@ -3,6 +3,7 @@ import { sanitizeAreaText } from "@/lib/area-content-integrity";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { renderAreaHubRouteContent } from "@/components/area/AreaHubRouteContent";
+import { AreaShopListScrollOnPage } from "@/components/area/hub/AreaShopListScrollOnPage";
 import { AreaPageView } from "@/components/AreaPageView";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { isHubTemplateArea } from "@/lib/area-hub-config";
@@ -36,6 +37,7 @@ const AREA_SLUG_ALIASES: Record<string, string> = {
 };
 
 const STATIC_AREA_ROUTES = new Set(["shinosaka", "sakai"]);
+const STATIC_PRIORITY_HUB_CONTENT = new Set(["umeda", "sakaisujihonmachi", "nihonbashi"]);
 
 function parsePage(value: string | undefined): number {
   const parsed = Number(value);
@@ -85,12 +87,34 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   });
 }
 
-export default function AreaPage({ params, searchParams }: Props) {
+export default async function AreaPage({ params, searchParams }: Props) {
+  const { slug } = await params;
+  if (STATIC_PRIORITY_HUB_CONTENT.has(slug) && isHubTemplateArea(slug)) {
+    const area = await withWpBuildFallback(`area page ${slug}`, () => getAreaBySlug(slug), null);
+    // Precision hubs render all shops and never use the legacy page for ranking.
+    // Keep their content in the static shell; only page-dependent scrolling waits
+    // for searchParams. The ID guard preserves the legacy path for other areas.
+    if (area && !shouldLoadLegacyAreaRanking(area)) {
+      return (
+        <>
+          {await renderAreaHubRouteContent(area, 1)}
+          <Suspense fallback={null}>
+            <PriorityHubLegacyPageScroll searchParams={searchParams} />
+          </Suspense>
+        </>
+      );
+    }
+  }
   return (
     <Suspense fallback={<RoutePageFallback variant="area" />}>
       <AreaPageContent params={params} searchParams={searchParams} />
     </Suspense>
   );
+}
+
+async function PriorityHubLegacyPageScroll({ searchParams }: Pick<Props, "searchParams">) {
+  const { page } = await searchParams;
+  return <AreaShopListScrollOnPage currentPage={parsePage(page)} />;
 }
 
 async function AreaPageContent({ params, searchParams }: Props) {
