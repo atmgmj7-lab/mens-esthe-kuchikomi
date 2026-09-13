@@ -158,6 +158,9 @@ for (const alias of fixture.aliases) {
 }
 
 const sharedRouteModule = compileModule("components/area/AreaHubRouteContent.tsx", {
+  // Lane C composition is covered separately; retain this foundation fixture's absent slot.
+  "@/components/area/hub/AreaVerifiedLineSection": { AreaVerifiedLineSection: () => null },
+  "@/lib/area-verified-line-comparison": { buildAreaVerifiedLineComparison: () => [] },
   "@/components/area/AreaHubPageTemplate": {
     AreaHubPageTemplate: ({ area, allShops, legacyPage }) => React.createElement(
       "div",

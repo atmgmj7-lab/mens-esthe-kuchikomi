@@ -187,6 +187,30 @@ function normalizeProvenance(value: unknown): ShopFactProvenance[] {
   return [...latestByField.values()];
 }
 
+/** Strict official evidence for a public fact; legacy six-field coverage stays unchanged. */
+export function resolveVerifiedShopFactProvenance(
+  field: ShopFactField,
+  model: ShopDetailViewModel,
+  value: unknown,
+): ShopFactProvenance | null {
+  if (!Array.isArray(value)) return null;
+  const records = value.filter((item) => item && typeof item === "object" && item.field === field);
+  if (records.length === 0) return null;
+  // Validate each record before deduplication so a malformed/conflicting record cannot disappear.
+  const normalized = records.map((record) => normalizeProvenance([record])[0]);
+  const first = normalized[0];
+  if (!first || normalized.some((record) => !record || JSON.stringify(record) !== JSON.stringify(first))) return null;
+  if (first.sourceType !== "official-site" || first.reviewStatus !== "reviewed" ||
+      first.publishedValueHash !== hashShopFactValue(field, model)) return null;
+  const officialUrl = normalizeHttpUrl(model.actions.find((action) => action.kind === "official")?.href);
+  if (!officialUrl) return null;
+  const official = new URL(officialUrl);
+  const source = new URL(first.sourceUrl);
+  if (official.username || official.password || source.username || source.password) return null;
+  if (official.hostname.replace(/^www\./, "") !== source.hostname.replace(/^www\./, "")) return null;
+  return first;
+}
+
 export function buildShopInformationCoverage(
   model: ShopDetailViewModel,
   value: unknown

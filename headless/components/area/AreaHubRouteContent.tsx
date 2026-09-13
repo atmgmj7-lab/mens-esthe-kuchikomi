@@ -1,3 +1,5 @@
+import { AreaVerifiedLineSection } from "@/components/area/hub/AreaVerifiedLineSection";
+import { buildAreaVerifiedLineComparison } from "@/lib/area-verified-line-comparison";
 import type { Metadata } from "next";
 import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
 import {
@@ -37,6 +39,8 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
       null,
     ),
   ]);
+  const lineComparison = buildAreaVerifiedLineComparison(area, allShops);
+  const lineSlot = lineComparison.length > 0 ? <AreaVerifiedLineSection shops={lineComparison} /> : null;
   const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
 
   return (
@@ -50,6 +54,7 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
       rankingEntries={rankingEntries}
       areaFeatures={areaFeatures}
       reviewResult={areaReviewResult}
+      slots={{ afterComparison: lineSlot }}
     />
   );
 }
