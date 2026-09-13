@@ -40,7 +40,7 @@ import {
   buildAreaDepthMethodologyFaq,
   resolveAreaDepthEditorial,
 } from "@/lib/area-depth-editorial";
-import type { CSSProperties } from "react";
+import { isValidElement, type CSSProperties, type ReactElement } from "react";
 import type { ApprovedGlobalReviewResult, AreaView, ShopView } from "@/lib/wp/types";
 
 function areaHubBreadcrumbJsonLd(
@@ -74,6 +74,10 @@ function areaHubBreadcrumbJsonLd(
   };
 }
 
+export type AreaHubSlots = {
+  afterComparison?: ReactElement | null;
+};
+
 export function AreaHubPageTemplate({
   area,
   allShops,
@@ -85,6 +89,7 @@ export function AreaHubPageTemplate({
   formalRankingEntries = [],
   areaFeatures = [],
   reviewResult = null,
+  slots,
 }: {
   area: AreaView;
   allShops: ShopView[];
@@ -96,6 +101,7 @@ export function AreaHubPageTemplate({
   formalRankingEntries?: readonly FormalAreaRankingEntry[];
   areaFeatures?: readonly AreaFeatureItem[];
   reviewResult?: ApprovedGlobalReviewResult | null;
+  slots?: AreaHubSlots;
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
@@ -277,6 +283,7 @@ export function AreaHubPageTemplate({
           capabilities={capabilities}
           editorial={editorial}
         />
+        {isValidElement(slots?.afterComparison) ? slots.afterComparison : null}
         {precisionMode ? (
           <AreaPromotionSection shops={mainShops} targetArea={area} />
         ) : (

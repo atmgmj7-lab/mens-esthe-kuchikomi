@@ -1,0 +1,11 @@
+{
+  "templateBase": "e18de64df6da98866e32881dc7d6e373106f61da",
+  "htmlSha256": {
+    "shinosaka": "db3fd5f13aa383083d2c7685500425a1570a4b38bcf5d371a810d1f869846e38",
+    "sakai": "b33186c332ba2c3cf33e7d50b981d0f0fd716d2132661436fbbf1825d7d3380f",
+    "umeda": "5a691b249c2bd7b6b0673643d31ff4d95062f3bd4446a4cc17a9d0c565a6ffb7",
+    "sakaisujihonmachi": "b93c1b7337df1326f7e42b43ee0eff844b68a6ec438f4c34805afe28a6f29ef2",
+    "nihonbashi": "fccb8243215c79a194ae7d584ae31001b9a56bccae37ab41aea422b52a413875",
+    "nonprecision-umeda": "58b4bbde1ec21a27c9bbeb06f299ea0c39ee10b5db88fcd09728c05996f652db"
+  }
+}
