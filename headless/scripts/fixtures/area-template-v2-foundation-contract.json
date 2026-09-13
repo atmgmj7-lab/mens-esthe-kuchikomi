@@ -1,0 +1,89 @@
+{
+  "contractVersion": "AREA-TEMPLATE-V2-FOUNDATION-01A",
+  "characterizedBase": "e18de64df6da98866e32881dc7d6e373106f61da",
+  "areas": [
+    {
+      "slug": "shinosaka",
+      "termId": 13,
+      "routeKind": "dedicated-static",
+      "routeFile": "app/area/shinosaka/page.tsx",
+      "publicShopCount": 58,
+      "editorial": true,
+      "title": "新大阪のメンズエステおすすめ一覧｜西中島・東三国の料金比較",
+      "description": "新大阪エリアに掲載されているメンズエステを、西中島・東三国など周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、確認できる条件だけを掲載します。",
+      "h1": "新大阪のメンズエステおすすめ一覧｜西中島・東三国の料金比較",
+      "canonical": "https://mens-esthe-kuchikomi.com/area/shinosaka/",
+      "shopListH2": "新大阪メンズエステ店舗一覧"
+    },
+    {
+      "slug": "sakai",
+      "termId": 17,
+      "routeKind": "dedicated-static",
+      "routeFile": "app/area/sakai/page.tsx",
+      "publicShopCount": 25,
+      "editorial": true,
+      "title": "堺東のメンズエステおすすめ一覧｜堺市の料金・深夜・口コミ比較",
+      "description": "堺東エリアに掲載されているメンズエステを、堺市内周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、確認できる条件だけを掲載し、未確認値は補いません。",
+      "h1": "堺東のメンズエステおすすめ一覧｜堺市の料金・深夜・口コミ比較",
+      "canonical": "https://mens-esthe-kuchikomi.com/area/sakai/",
+      "shopListH2": "堺・堺東メンズエステ店舗一覧"
+    },
+    {
+      "slug": "umeda",
+      "termId": 4,
+      "routeKind": "dynamic",
+      "routeFile": "app/area/[slug]/page.tsx",
+      "publicShopCount": null,
+      "editorial": false,
+      "title": "梅田のメンズエステおすすめ一覧｜大阪駅・北新地の料金・深夜比較",
+      "description": "梅田エリアに掲載されているメンズエステを、大阪駅・北新地など周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から、現在確認できる条件だけを掲載します。",
+      "h1": "梅田のメンズエステおすすめ一覧｜大阪駅・北新地の料金・深夜比較",
+      "canonical": "https://mens-esthe-kuchikomi.com/area/umeda/",
+      "shopListH2": "梅田メンズエステ店舗一覧"
+    },
+    {
+      "slug": "sakaisujihonmachi",
+      "termId": 46,
+      "routeKind": "dynamic",
+      "routeFile": "app/area/[slug]/page.tsx",
+      "publicShopCount": null,
+      "editorial": false,
+      "title": "堺筋本町のメンズエステおすすめ一覧｜料金・深夜・口コミ比較",
+      "description": "堺筋本町エリアに掲載されているメンズエステを、本町・北浜など周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細への導線から、現在確認できる情報だけを掲載します。",
+      "h1": "堺筋本町のメンズエステおすすめ一覧｜料金・深夜・口コミ比較",
+      "canonical": "https://mens-esthe-kuchikomi.com/area/sakaisujihonmachi/",
+      "shopListH2": "堺筋本町メンズエステ店舗一覧"
+    },
+    {
+      "slug": "nihonbashi",
+      "termId": 7,
+      "routeKind": "dynamic",
+      "routeFile": "app/area/[slug]/page.tsx",
+      "publicShopCount": null,
+      "editorial": false,
+      "title": "大阪・日本橋のメンズエステおすすめ一覧｜難波・近鉄日本橋で比較",
+      "description": "大阪日本橋エリアに掲載されているメンズエステを、近鉄日本橋・なんばなど周辺の案内とあわせて比較できます。承認済み口コミ、掲載料金、営業時間、店舗詳細の公開情報から確認できる内容だけを掲載します。",
+      "h1": "大阪・日本橋のメンズエステおすすめ一覧｜難波・近鉄日本橋で比較",
+      "canonical": "https://mens-esthe-kuchikomi.com/area/nihonbashi/",
+      "shopListH2": "日本橋メンズエステ店舗一覧"
+    }
+  ],
+  "aliases": [
+    {
+      "from": "sakaisuji-hommachi",
+      "to": "sakaisujihonmachi",
+      "page": 2,
+      "redirect": "/area/sakaisujihonmachi/?page=2"
+    }
+  ],
+  "optionalSlot01B": {
+    "implemented": false,
+    "acceptance": [
+      "absent data renders no heading, wrapper, spacing, or anchor",
+      "absent data renders no placeholder or preparation copy",
+      "absent slot does not change existing module order",
+      "present slot content is server rendered",
+      "slot adds no unnecessary client boundary"
+    ]
+  }
+}

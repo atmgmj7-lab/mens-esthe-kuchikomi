@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { chromium } from "@playwright/test";
+import { compareImmutableEvidence, assertCurrentFacts, extractShopViews, currentSourceFacts } from "./lib/area-visibility-data-contract.mjs";
 
 const baseUrl = process.env.AREA_VISIBILITY_BASE_URL ?? "http://127.0.0.1:3117";
 const mode = process.env.AREA_VISIBILITY_MODE === "baseline" ? "baseline" : "after";
@@ -38,6 +39,7 @@ const failures = [];
 const measurements = [];
 const seo = {};
 const screenshotFiles = [];
+const currentDataEvidence = {};
 let assertions = 0;
 
 function check(condition, label, details = {}) {
@@ -193,6 +195,8 @@ try {
     const rawResponse = await fetch(`${baseUrl}/area/${fixture.slug}/`);
     const rawHtml = await rawResponse.text();
     const normalizedSupportingSsrText = supportingSsrText(rawHtml, mode);
+    const sourceShops = mode === "after" ? extractShopViews(rawHtml) : null;
+    const sourceFacts = sourceShops ? currentSourceFacts(sourceShops) : null;
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.goto(`${baseUrl}/area/${fixture.slug}/`, { waitUntil: "domcontentloaded" });
     await page.locator('#shop-list [data-area-shop-card="true"]').first().waitFor({ state: "visible", timeout: 30_000 });
@@ -268,6 +272,18 @@ try {
       check(await noJsDisclosure.locator('[data-area-depth="portal-therapist"]').count() === 1, `${fixture.slug} JavaScript-disabled cross-source data is disclosure child`);
       const noJsSupportingText = normalizeHtmlText(await noJsDisclosure.locator('[data-area-supporting-content="true"]').textContent() ?? "");
       check(noJsSupportingText === pageEvidence.supportingDomText, `${fixture.slug} JavaScript-disabled supporting text is complete`);
+      assertCurrentFacts(sourceFacts, { ssr: normalizedSupportingSsrText, dom: pageEvidence.supportingDomText, noJs: noJsSupportingText });
+      assertions += 1;
+      assert.equal(sourceShops.length, fixture.publicShopCount, "source ShopView count");
+      const itemSlugs = itemLists[0].itemListElement.map((item) => decodeURIComponent(new URL(item.url).pathname.split("/").filter(Boolean).at(-1))).sort();
+      assert.deepEqual(sourceShops.map((shop) => decodeURIComponent(shop.slug)).sort(), itemSlugs, "source identities match ItemList");
+      const rawSchemas = [...rawHtml.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((match) => JSON.parse(match[1]));
+      assert.deepEqual(pageEvidence.jsonLd, rawSchemas, "same-run complete SSR/hydrated schema including order");
+      const noJsSchemas = await noJsPage.locator('script[type="application/ld+json"]').evaluateAll((nodes) => nodes.map((node) => JSON.parse(node.textContent)));
+      assert.deepEqual(noJsSchemas, rawSchemas, "same-run complete SSR/no-JS schema including order");
+      itemLists[0].itemListElement.forEach((item, index) => assert.equal(item.position, index + 1, "ItemList positions"));
+      currentDataEvidence[fixture.slug] = { sourceFacts, sourceShops: sourceShops.map((shop) => ({ id: shop.id, slug: shop.slug, acf: shop.acf })), supportingNoJsText: noJsSupportingText, rawSchemas };
+      assertions += 5;
       await noJsContext.close();
     }
   }
@@ -278,7 +294,7 @@ try {
     check(beforeReport.mode === "baseline", "baseline report mode is valid");
     check(beforeReport.sourceSha === expectedBaseSha, "baseline report source SHA is valid", { sourceSha: beforeReport.sourceSha });
     for (const fixture of fixtures) {
-      assert.deepEqual(seo[fixture.slug], beforeReport.seo[fixture.slug], `${fixture.slug} SEO/schema evidence must remain byte-equivalent as JSON`);
+      compareImmutableEvidence(beforeReport.seo[fixture.slug], seo[fixture.slug]);
       assertions += 1;
     }
     const nonTargetPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -305,6 +321,7 @@ const report = {
   measurements,
   seo,
   screenshots: screenshotFiles,
+  currentDataEvidence,
   failures,
 };
 await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
