@@ -71,6 +71,7 @@ export function AreaShopList({
   legacyPage = 1,
   rankingEntries = [],
   precisionMode = false,
+  informationOrder,
   capabilities = resolvePriorityAreaCapabilities(shops, targetArea),
 }: {
   shops: ShopView[];
@@ -78,6 +79,7 @@ export function AreaShopList({
   legacyPage?: number;
   rankingEntries?: AreaShopRankingEntry[];
   precisionMode?: boolean;
+  informationOrder?: { afterMidnightShopIds: number[] };
   capabilities?: PriorityAreaCapabilities;
 }) {
   const pageSize = useShopListPageSize();
@@ -86,45 +88,56 @@ export function AreaShopList({
   const [visibleCount, setVisibleCount] = useState(pageSize.initial);
   const [urlReady, setUrlReady] = useState(false);
 
+  const filterPredicate = useMemo(() => {
+    if (!informationOrder) return matchesPriorityAreaShopListFilter;
+    const midnightIds = new Set(informationOrder.afterMidnightShopIds);
+    return (shop: ShopView, filter: ShopListFilterId, area: Pick<AreaView, "slug" | "name">) => filter === "late-night"
+      ? midnightIds.has(shop.id)
+      : matchesPriorityAreaShopListFilter(shop, filter, area);
+  }, [informationOrder]);
   const filterOptions = useMemo(
-    () => precisionMode
+    () => (precisionMode
       ? SHOP_LIST_FILTER_OPTIONS.filter((option) => (
           option.id !== "reviews" &&
           (option.id !== "beginner" || capabilities.beginner) &&
           (option.id !== "station" || capabilities.station)
         ))
-      : SHOP_LIST_FILTER_OPTIONS,
-    [capabilities.beginner, capabilities.station, precisionMode],
+      : SHOP_LIST_FILTER_OPTIONS).map((option) => informationOrder && option.id === "late-night"
+        ? { ...option, label: "24時以降営業確認済み" }
+        : option),
+    [capabilities.beginner, capabilities.station, precisionMode, informationOrder],
   );
-  const sortOptions = useMemo(
-    () => (precisionMode && !capabilities.station
+  const sortOptions = useMemo<typeof SHOP_LIST_SORT_OPTIONS>(
+    () => informationOrder
+      ? [{ id: "recommended", label: "情報充実順" }]
+      : (precisionMode && !capabilities.station
       ? SHOP_LIST_SORT_OPTIONS.filter((option) => option.id !== "station")
       : SHOP_LIST_SORT_OPTIONS
     ).map((option) => precisionMode && option.id === "recommended"
       ? { ...option, label: "掲載順" }
       : option),
-    [capabilities.station, precisionMode],
+    [capabilities.station, precisionMode, informationOrder],
   );
   const orderedShops = useMemo(() => {
     if (!precisionMode) {
       return prepareAreaShopListView(shops, activeFilters, activeSort, targetArea, rankingEntries);
     }
-    const filtered = filterAreaShops(shops, activeFilters, targetArea, matchesPriorityAreaShopListFilter);
-    if (activeSort === "recommended") return filtered;
+    const filtered = filterAreaShops(shops, activeFilters, targetArea, filterPredicate);
+    if (informationOrder || activeSort === "recommended") return filtered;
     if (activeSort === "station") {
       return [...filtered].sort((left, right) => Number(hasPriorityStationWalk(right)) - Number(hasPriorityStationWalk(left)));
     }
     return prepareAreaShopListView(filtered, [], activeSort, targetArea, []);
-  }, [shops, activeFilters, activeSort, targetArea, rankingEntries, precisionMode]);
+  }, [shops, activeFilters, activeSort, targetArea, rankingEntries, precisionMode, informationOrder, filterPredicate]);
   const relaxSuggestions = useMemo(
     () => getFilterRelaxationSuggestions(
       shops,
       activeFilters,
       targetArea,
       3,
-      precisionMode ? matchesPriorityAreaShopListFilter : undefined,
+      precisionMode ? filterPredicate : undefined,
     ),
-    [shops, activeFilters, targetArea, precisionMode]
+    [shops, activeFilters, targetArea, precisionMode, filterPredicate]
   );
 
   useEffect(() => {
@@ -200,7 +213,16 @@ export function AreaShopList({
   };
 
   return (
-    <div className="area-shop-list-interactive">
+    <div className={`area-shop-list-interactive${informationOrder ? " area-shop-list-interactive--information" : ""}`}>
+      {informationOrder ? (
+        <noscript><style>{`
+          .area-shop-list-interactive--information .area-shop-list-interactive__item { display: block !important; }
+          .area-shop-list-interactive--information .area-shop-list-controls,
+          .area-shop-list-interactive--information .area-shop-list-mobile-drawer,
+          .area-shop-list-interactive--information .area-shop-list-interactive__status,
+          .area-shop-list-interactive--information .area-shop-list-interactive__more { display: none !important; }
+        `}</style></noscript>
+      ) : null}
       <div className="area-shop-list-controls area-shop-list-controls--desktop">
         <AreaFilterChips
           id="shop-list-filters"

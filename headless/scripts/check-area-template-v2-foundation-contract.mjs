@@ -253,6 +253,9 @@ const areaUtils = {
 };
 const Link = ({ href, children, ...props }) => React.createElement("a", { href, ...props }, children);
 const templateModule = compileModule("components/area/AreaHubPageTemplate.tsx", {
+  // Keep the pre-ordering foundation fixture; V1 order/SEO is covered by its dedicated live contract.
+  "@/lib/area-shop-ordering": { isAreaInformationOrderingTarget: () => false },
+  "@/lib/area-after-midnight-comparison": { buildAreaAfterMidnightComparison: () => [] },
   "@/components/area/hub/AreaPromotionSection": { AreaPromotionSection: marker("promotion") },
   "next/link": Link,
   "@/components/area/AreaLatestReviews": { AreaLatestReviews: marker("latest-reviews") },

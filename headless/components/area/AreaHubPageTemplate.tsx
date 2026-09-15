@@ -1,3 +1,5 @@
+import { buildAreaShopOrdering, isAreaInformationOrderingTarget } from "@/lib/area-shop-ordering";
+import { buildAreaAfterMidnightComparison } from "@/lib/area-after-midnight-comparison";
 import { AreaPromotionSection } from "@/components/area/hub/AreaPromotionSection";
 import Link from "next/link";
 import { AreaLatestReviews } from "@/components/area/AreaLatestReviews";
@@ -106,9 +108,16 @@ export function AreaHubPageTemplate({
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
   const precisionMode = isPriorityAreaPrecisionTarget(area);
-  const mainShops: ShopView[] = precisionMode
+  const informationOrder = isAreaInformationOrderingTarget(area);
+  const relatedShops: ShopView[] = precisionMode
     ? [...selectAreaRelationShops(allShops, area)]
     : allShops;
+  const mainShops = informationOrder
+    ? buildAreaShopOrdering(relatedShops, area).entries.map(({ shop }) => shop)
+    : relatedShops;
+  const afterMidnightShopIds = informationOrder
+    ? buildAreaAfterMidnightComparison(area, relatedShops).map(({ shopId }) => shopId)
+    : [];
   const capabilities = resolvePriorityAreaCapabilities(mainShops, area);
   const hasCompareTabs = !precisionMode || Object.values(capabilities).some(Boolean);
   const editorial = resolveAreaDepthEditorial(area.slug, mainShops.length);
@@ -256,13 +265,16 @@ export function AreaHubPageTemplate({
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />
-          <p className="area-hub-section__intro">{hubContext.shopListIntro}</p>
+          <p className="area-hub-section__intro">{informationOrder
+            ? "エリアとの関連性、公式確認済み情報の充実度・確認日で整理しています。"
+            : hubContext.shopListIntro}</p>
           <div
             data-area-precision-mode={precisionMode ? "true" : undefined}
           >
             {mainShops.length > 0 ? (
               <AreaShopList
                 shops={mainShops}
+                informationOrder={informationOrder ? { afterMidnightShopIds } : undefined}
                 targetArea={area}
                 legacyPage={legacyPage}
                 rankingEntries={rankingEntries}
@@ -285,7 +297,7 @@ export function AreaHubPageTemplate({
         />
         {isValidElement(slots?.afterComparison) ? slots.afterComparison : null}
         {precisionMode ? (
-          <AreaPromotionSection shops={mainShops} targetArea={area} />
+          <AreaPromotionSection shops={relatedShops} targetArea={area} limit={informationOrder ? relatedShops.length : undefined} />
         ) : (
           <AreaLatestReviews shops={mainShops} hubContext={hubContext} />
         )}
