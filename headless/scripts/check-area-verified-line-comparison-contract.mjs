@@ -112,3 +112,5 @@ equal((manyHtml.match(/data-verified-line-shop=/g) ?? []).length, 9, 'collapsed 
 assert.ok(!manyHtml.includes('application/ld+json')); checks++;
 console.log(JSON.stringify({ pass: true, checks }));
 export { load, root };
+
+export function setRouteShops(shops) { routeShops = shops; }

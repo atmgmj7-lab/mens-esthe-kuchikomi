@@ -1,3 +1,5 @@
+import { AreaAfterMidnightSection } from "@/components/area/hub/AreaAfterMidnightSection";
+import { buildAreaAfterMidnightComparison } from "@/lib/area-after-midnight-comparison";
 import { AreaVerifiedLineSection } from "@/components/area/hub/AreaVerifiedLineSection";
 import { buildAreaVerifiedLineComparison } from "@/lib/area-verified-line-comparison";
 import type { Metadata } from "next";
@@ -41,6 +43,10 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
   ]);
   const lineComparison = buildAreaVerifiedLineComparison(area, allShops);
   const lineSlot = lineComparison.length > 0 ? <AreaVerifiedLineSection shops={lineComparison} /> : null;
+  const afterMidnight = buildAreaAfterMidnightComparison(area, allShops);
+  const comparisonSlot = afterMidnight.length > 0
+    ? <>{lineSlot}<AreaAfterMidnightSection shops={afterMidnight} /></>
+    : lineSlot;
   const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
 
   return (
@@ -54,7 +60,7 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
       rankingEntries={rankingEntries}
       areaFeatures={areaFeatures}
       reviewResult={areaReviewResult}
-      slots={{ afterComparison: lineSlot }}
+      slots={{ afterComparison: comparisonSlot }}
     />
   );
 }

@@ -158,6 +158,8 @@ for (const alias of fixture.aliases) {
 }
 
 const sharedRouteModule = compileModule("components/area/AreaHubRouteContent.tsx", {
+  "@/components/area/hub/AreaAfterMidnightSection": { AreaAfterMidnightSection: () => null },
+  "@/lib/area-after-midnight-comparison": { buildAreaAfterMidnightComparison: () => [] },
   // Lane C composition is covered separately; retain this foundation fixture's absent slot.
   "@/components/area/hub/AreaVerifiedLineSection": { AreaVerifiedLineSection: () => null },
   "@/lib/area-verified-line-comparison": { buildAreaVerifiedLineComparison: () => [] },
