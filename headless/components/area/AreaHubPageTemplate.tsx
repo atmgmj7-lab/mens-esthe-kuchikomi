@@ -1,3 +1,4 @@
+import { AreaEditorialFeaturedShops } from "@/components/area/hub/AreaEditorialFeaturedShops";
 import { buildAreaShopOrdering, isAreaInformationOrderingTarget } from "@/lib/area-shop-ordering";
 import { buildAreaAfterMidnightComparison } from "@/lib/area-after-midnight-comparison";
 import { AreaPromotionSection } from "@/components/area/hub/AreaPromotionSection";
@@ -262,6 +263,8 @@ export function AreaHubPageTemplate({
             {supportingInformation}
           </AreaSupportingInfoDisclosure>
         ) : supportingInformation}
+
+        <AreaEditorialFeaturedShops area={area} shops={relatedShops} />
 
         <AreaHubSectionShell theme="shop-list" areaSlug={area.slug} id="shop-list">
           <AreaHubSectionHeader theme="shop-list" areaSlug={area.slug} ja={hubContext.shopListH2} />

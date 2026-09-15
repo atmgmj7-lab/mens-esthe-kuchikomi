@@ -222,6 +222,7 @@ export function normalizeShop(post: WpShop): ShopView {
   const terms = embeddedTerms(post);
   return {
     id: post.id,
+    publicationStatus: post.status,
     slug: post.slug,
     link: post.link,
     title,

@@ -95,6 +95,7 @@ export type ShopMediaView = {
 
 export type ShopView = {
   id: number;
+  publicationStatus?: string;
   slug: string;
   link: string;
   title: string;
