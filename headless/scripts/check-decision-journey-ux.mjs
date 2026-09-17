@@ -9,6 +9,7 @@ const comparisonCss = read("components/area/comparison/AreaShopComparisonExperie
 const globals = read("app/globals.css");
 const natural = read("components/common/AreaShopCard.tsx");
 const featured = read("components/area/hub/AreaEditorialFeaturedShopCard.tsx");
+const featuredCss = read("components/area/hub/AreaEditorialFeaturedShops.module.css");
 
 assert.match(experience, /data-area-comparison-scroll-lock/, "open dialog exposes scroll lock state");
 assert.match(experience, /const root = document\.documentElement;[\s\S]+root\.style\.overflow = "hidden"/, "dialog locks root scrolling");
@@ -21,5 +22,6 @@ assert.match(globals, /data-area-comparison-launcher[^\n]+data-active="true"[^\n
 assert.match(comparisonCss, /min-height:\s*44px/, "comparison controls retain accessible target size");
 assert.match(natural, /data-review-prefill="natural"/, "natural cards retain review action");
 assert.match(featured, /data-review-prefill="featured"/, "featured cards retain review action");
+assert.match(featuredCss, /\.item\s*\{[^}]*display:\s*grid[^}]*grid-template-rows:/s, "featured card and actions occupy separate rows");
 
-console.log(JSON.stringify({ pass: true, uxContracts: 11 }));
+console.log(JSON.stringify({ pass: true, uxContracts: 12 }));
