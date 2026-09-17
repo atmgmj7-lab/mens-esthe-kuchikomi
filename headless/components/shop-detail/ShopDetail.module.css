@@ -1013,6 +1013,16 @@
     display: none;
   }
 
+  /* Keep a phone route in normal flow when the two fixed slots omit it. */
+  .page:not(:has(.fixedActions [data-shop-cta-kind="tel"])) .hero .actions:has([data-shop-cta-kind="tel"]) {
+    display: flex;
+    padding-bottom: 6px;
+  }
+
+  .hero .actions [data-shop-cta-kind]:not([data-shop-cta-kind="tel"]) {
+    display: none;
+  }
+
   .actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1800,6 +1800,15 @@ img {
   transform: translateY(-2px);
 }
 
+@media (max-width: 760px) {
+  /* The Shop Detail fixed bar is 65px plus the device safe area. */
+  body:has(main[data-shop-detail-root] [data-shop-cta-position="fixed"]) .hl-back-to-top {
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* ── Animations ── */
 @keyframes hlFadeIn {
   from {
