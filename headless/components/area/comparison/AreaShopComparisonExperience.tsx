@@ -136,9 +136,14 @@ function ComparisonDialog({
             <p>{item.relation.areaName}・{item.relation.label}</p>
             <h3>{item.name}</h3>
             {item.requiresPromotionDisclosure ? <PromotionDisclosureBadge /> : null}
-            <Link href={item.detailUrl} data-area-comparison-detail={item.shopId}>
-              店舗詳細を見る<span aria-hidden="true"> →</span>
-            </Link>
+            <div className={styles.headingActions}>
+              <Link href={item.detailUrl} data-area-comparison-detail={item.shopId}>
+                店舗詳細を見る<span aria-hidden="true"> →</span>
+              </Link>
+              <Link href={item.reviewSubmitUrl} data-review-prefill="comparison">
+                口コミを書く
+              </Link>
+            </div>
           </article>
         ))}
       </div>

@@ -19,6 +19,7 @@ type AreaShopCardProps = {
   rank?: number | null;
   showRank?: boolean;
   comparisonControl?: ReactNode;
+  reviewSubmitUrl?: string;
 };
 
 export function AreaShopCard({
@@ -27,6 +28,7 @@ export function AreaShopCard({
   rank = null,
   showRank = Boolean(rank),
   comparisonControl,
+  reviewSubmitUrl,
 }: AreaShopCardProps) {
   const model = buildAreaShopCardViewModel(shop, targetArea, {
     rank,
@@ -87,13 +89,18 @@ export function AreaShopCard({
             ))}
           </dl>
         ) : null}
-        {model.quickLinks.length > 0 ? (
+        {model.quickLinks.length > 0 || reviewSubmitUrl ? (
           <nav className={styles.quickLinks} aria-label={`${model.title.text}のページ内リンク`}>
             {model.quickLinks.map((link) => (
               <Link key={link.key} href={link.href} className={styles.quickLink}>
                 {link.label}
               </Link>
             ))}
+            {reviewSubmitUrl ? (
+              <Link href={reviewSubmitUrl} className={styles.quickLink} data-review-prefill="natural">
+                この店舗の口コミを書く
+              </Link>
+            ) : null}
           </nav>
         ) : null}
       </div>

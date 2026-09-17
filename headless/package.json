@@ -18,6 +18,7 @@
     "test:area-shop-card-view-model": "node scripts/check-area-shop-card-view-model.mjs",
     "test:area-shop-comparison": "node scripts/check-area-shop-comparison.mjs",
     "test:area-shop-comparison-browser": "node scripts/check-area-shop-comparison-browser.mjs",
+    "test:review-submit-prefill": "node scripts/check-review-submit-prefill.mjs",
     "test:editorial-placeholder": "node scripts/check-editorial-placeholder-contract.mjs",
     "test:area-list-route-contract": "node scripts/check-area-list-route-contract.mjs",
     "test:price-normalization": "node scripts/check-price-normalization.mjs",

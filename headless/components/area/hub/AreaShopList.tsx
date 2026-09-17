@@ -23,6 +23,7 @@ import {
   type ShopListSortId
 } from "@/lib/area-shop-list-controls";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import { buildReviewSubmitUrl } from "@/lib/review-links";
 
 const MOBILE_PAGE_SIZE = { initial: 7, loadMore: 7 };
 const DESKTOP_PAGE_SIZE = { initial: 10, loadMore: 10 };
@@ -301,6 +302,7 @@ export function AreaShopList({
                     rank={rank}
                     showRank={rank !== null}
                     comparisonControl={<AreaShopComparisonToggle shopId={shop.id} location="natural" />}
+                    reviewSubmitUrl={informationOrder ? buildReviewSubmitUrl(shop.slug) : undefined}
                   />
                 </div>
               );

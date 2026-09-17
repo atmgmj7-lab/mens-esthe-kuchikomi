@@ -2,6 +2,7 @@ import { AreaEditorialFeaturedShopCard } from "@/components/area/hub/AreaEditori
 import { buildAreaShopCardViewModel } from "@/lib/area-shop-card-view-model";
 import { buildAreaEditorialFeature } from "@/lib/area-editorial-featured";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import { buildReviewSubmitUrl } from "@/lib/review-links";
 import styles from "./AreaEditorialFeaturedShops.module.css";
 
 export function AreaEditorialFeaturedShops({ area, shops }: {
@@ -22,6 +23,7 @@ export function AreaEditorialFeaturedShops({ area, shops }: {
             shopId={shop.id}
             card={card}
             requiresDisclosure={shop.ranking.promotion.requiresDisclosure}
+            reviewSubmitUrl={buildReviewSubmitUrl(shop.slug)}
           />;
         })}
       </ul>

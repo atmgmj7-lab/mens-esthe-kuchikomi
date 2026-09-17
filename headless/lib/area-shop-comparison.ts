@@ -8,6 +8,7 @@ import {
   resolveVerifiedShopFactProvenance,
 } from "@/lib/shop-information-coverage";
 import type { AreaView, ShopFactProvenance, ShopView } from "@/lib/wp/types";
+import { buildReviewSubmitUrl } from "@/lib/review-links";
 
 export type AreaShopComparisonFact = Readonly<{
   status: "verified" | "unverified";
@@ -20,6 +21,7 @@ export type AreaShopComparisonItem = Readonly<{
   shopId: number;
   name: string;
   detailUrl: string;
+  reviewSubmitUrl: string;
   requiresPromotionDisclosure: boolean;
   relation: Readonly<{ areaName: string; label: "主な掲載エリア" | "関連掲載エリア" }>;
   hours: AreaShopComparisonFact;
@@ -97,6 +99,7 @@ export function buildAreaShopComparisonItems(
       shopId: shop.id,
       name: model.title,
       detailUrl: card.title.href,
+      reviewSubmitUrl: buildReviewSubmitUrl(shop.slug),
       requiresPromotionDisclosure: shop.ranking.promotion.requiresDisclosure,
       relation: Object.freeze({
         areaName: area.name,

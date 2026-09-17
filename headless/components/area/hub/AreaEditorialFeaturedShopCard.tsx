@@ -11,10 +11,12 @@ export function AreaEditorialFeaturedShopCard({
   shopId,
   card,
   requiresDisclosure,
+  reviewSubmitUrl,
 }: {
   shopId: number;
   card: AreaShopCardViewModel;
   requiresDisclosure: boolean;
+  reviewSubmitUrl: string;
 }) {
   return (
     <li data-editorial-featured-shop={shopId} className={styles.item}>
@@ -26,7 +28,12 @@ export function AreaEditorialFeaturedShopCard({
           <span className={styles.cta}>店舗詳細を見る<span aria-hidden="true"> →</span></span>
         </span>
       </Link>
-      <AreaShopComparisonToggle shopId={shopId} location="featured" className={styles.compare} />
+      <div className={styles.actions}>
+        <AreaShopComparisonToggle shopId={shopId} location="featured" className={styles.compare} />
+        <Link href={reviewSubmitUrl} className={styles.review} data-review-prefill="featured">
+          口コミを書く
+        </Link>
+      </div>
     </li>
   );
 }

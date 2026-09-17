@@ -154,6 +154,7 @@
 .shopHeading p { margin: 0 0 5px; color: #66757a; font-size: 11px; }
 .shopHeading h3 { margin: 0 0 10px; color: #143d4d; font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
 .shopHeading a { display: inline-flex; min-height: 44px; align-items: center; color: #143d4d; font-size: 13px; font-weight: 800; }
+.headingActions { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 
 .fields { margin: 0; padding: 10px 22px 24px; }
 .field {

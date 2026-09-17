@@ -4,8 +4,9 @@ import { Suspense } from "react";
 import { ReviewSubmitForm } from "@/components/reviews/ReviewSubmitForm";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { filterReviewSubmitShops, normalizeReviewHubQuery } from "@/lib/review-hub";
+import { resolveReviewSubmitPrefill } from "@/lib/review-submit-prefill";
 import { pageMetadata } from "@/lib/seo";
-import { getAllShopsForListing, getShopBySlug } from "@/lib/wp/shops";
+import { getAllShopsForListing } from "@/lib/wp/shops";
 
 export const metadata: Metadata = pageMetadata({
   title: "口コミを投稿する",
@@ -32,12 +33,11 @@ export default function ReviewSubmitPage({ searchParams }: Props) {
 
 async function ReviewSubmitPageContent({ searchParams }: Props) {
   const params = await searchParams;
-  const rawShop = params.shop;
-  const shopSlug = typeof rawShop === "string" ? rawShop.trim() : "";
   const areaContext = normalizeReviewHubQuery({ area: params.area }).area;
+  const allShops = await getAllShopsForListing();
+  const shop = resolveReviewSubmitPrefill(params.shop, allShops);
 
-  if (!shopSlug) {
-    const allShops = await getAllShopsForListing();
+  if (!shop) {
     const shops = filterReviewSubmitShops(allShops, areaContext);
     const areaName = areaContext
       ? allShops.flatMap((shop) => shop.terms).find((term) => term.slug === areaContext)?.name ?? null
@@ -64,28 +64,6 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
               <p className="hl-contact-error" role="status">指定されたエリアに表示できる公開店舗がありません。</p>
             )}
             <p><Link href="/shops/">店舗一覧を見る</Link></p>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
-  const shop = await getShopBySlug(shopSlug);
-
-  if (!shop) {
-    return (
-      <main id="main_content" className="l-mainContent l-article">
-        <div className="l-mainContent__inner hl-page-inner">
-          <section className="hl-contact-section">
-            <h1 className="hl-contact-heading">口コミを投稿する</h1>
-            <p className="hl-contact-error" role="alert">
-              指定された店舗が見つかりません。URLをご確認ください。
-            </p>
-            <p>
-              <Link href="/shops/" className="area-hub-btn area-hub-btn--outline">
-                店舗一覧へ
-              </Link>
-            </p>
           </section>
         </div>
       </main>
