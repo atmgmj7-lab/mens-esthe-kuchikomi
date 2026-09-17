@@ -17,6 +17,7 @@
     "test:shop-content-accuracy": "node scripts/check-shop-content-accuracy.mjs",
     "test:area-shop-card-view-model": "node scripts/check-area-shop-card-view-model.mjs",
     "test:area-shop-comparison": "node scripts/check-area-shop-comparison.mjs",
+    "test:area-comparison-deferred-facts": "node scripts/check-area-comparison-deferred-facts.mjs",
     "test:area-shop-comparison-browser": "node scripts/check-area-shop-comparison-browser.mjs",
     "test:review-submit-prefill": "node scripts/check-review-submit-prefill.mjs",
     "test:editorial-placeholder": "node scripts/check-editorial-placeholder-contract.mjs",

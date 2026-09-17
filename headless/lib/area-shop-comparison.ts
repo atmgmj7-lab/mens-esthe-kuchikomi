@@ -9,13 +9,14 @@ import {
 } from "@/lib/shop-information-coverage";
 import type { AreaView, ShopFactProvenance, ShopView } from "@/lib/wp/types";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
+import {
+  confirmedComparisonFact,
+  unavailableComparisonFact,
+  unknownComparisonFact,
+  type AreaShopComparisonFact,
+} from "@/lib/area-shop-comparison-facts";
 
-export type AreaShopComparisonFact = Readonly<{
-  status: "verified" | "unverified";
-  value: string;
-  href?: string;
-  rel?: string;
-}>;
+export type { AreaShopComparisonFact } from "@/lib/area-shop-comparison-facts";
 
 export type AreaShopComparisonItem = Readonly<{
   shopId: number;
@@ -30,32 +31,33 @@ export type AreaShopComparisonItem = Readonly<{
   official: AreaShopComparisonFact;
   access: AreaShopComparisonFact;
   information: AreaShopComparisonFact;
+  price: AreaShopComparisonFact;
+  webBooking: AreaShopComparisonFact;
   reviewedAt: string | null;
 }>;
 
-const UNVERIFIED: AreaShopComparisonFact = Object.freeze({ status: "unverified", value: "未確認" });
+const UNKNOWN = unknownComparisonFact("公開情報または確認済み根拠が不足");
+const DEFERRED_UNAVAILABLE = unavailableComparisonFact("比較用の確認済みデータ未連携");
 
 export function isAreaShopComparisonTarget(area: Pick<AreaView, "id" | "slug">): boolean {
   return (area.id === 13 && area.slug === "shinosaka")
     || (area.id === 17 && area.slug === "sakai");
 }
 
-function verified(value: string, href?: string, rel?: string): AreaShopComparisonFact {
-  return Object.freeze({
-    status: "verified",
-    value,
-    ...(href ? { href } : {}),
-    ...(rel ? { rel } : {}),
-  });
-}
-
-function verifiedInfoValue(
+function confirmedInfoValue(
   evidence: ShopFactProvenance | null,
   value: string | undefined,
   href?: string,
   rel?: string,
 ): AreaShopComparisonFact {
-  return evidence && value ? verified(value, href, rel) : UNVERIFIED;
+  return evidence && value ? confirmedComparisonFact(value, {
+    sourceUrl: evidence.sourceUrl,
+    observedAt: evidence.observedAt,
+    reviewedAt: evidence.reviewedAt,
+    publishedValueHash: evidence.publishedValueHash,
+    ...(href ? { href } : {}),
+    ...(rel ? { rel } : {}),
+  }) : UNKNOWN;
 }
 
 export function buildAreaShopComparisonItems(
@@ -63,8 +65,8 @@ export function buildAreaShopComparisonItems(
   shops: readonly ShopView[],
 ): AreaShopComparisonItem[] {
   if (!isAreaShopComparisonTarget(area)) return [];
-  const afterMidnightIds = new Set(
-    buildAreaAfterMidnightComparison(area, shops).map((shop) => shop.shopId),
+  const afterMidnightById = new Map(
+    buildAreaAfterMidnightComparison(area, shops).map((shop) => [shop.shopId, shop] as const),
   );
   const lineById = new Map(
     buildAreaVerifiedLineComparison(area, shops).map((shop) => [shop.shopId, shop] as const),
@@ -78,6 +80,7 @@ export function buildAreaShopComparisonItems(
     const officialEvidence = resolveVerifiedShopFactProvenance("official", model, provenance);
     const card = buildAreaShopCardViewModel(shop, area, { showRank: false });
     const line = lineById.get(shop.id);
+    const afterMidnight = afterMidnightById.get(shop.id);
     const hours = model.infoRows.find((row) => row.key === "hours")?.value;
     const access = model.infoRows.find((row) => row.key === "station")?.value
       || model.infoRows.find((row) => row.key === "address")?.value;
@@ -105,19 +108,29 @@ export function buildAreaShopComparisonItems(
         areaName: area.name,
         label: isPrimary ? "主な掲載エリア" : "関連掲載エリア",
       }),
-      hours: verifiedInfoValue(hoursEvidence, hours),
-      afterMidnight: afterMidnightIds.has(shop.id) ? verified("確認済み") : UNVERIFIED,
-      line: line ? verified("対応確認", line.lineUrl, line.outboundRel) : UNVERIFIED,
-      official: verifiedInfoValue(
+      hours: confirmedInfoValue(hoursEvidence, hours),
+      afterMidnight: afterMidnight ? confirmedComparisonFact("確認済み", {
+        sourceUrl: afterMidnight.sourceUrl,
+        reviewedAt: afterMidnight.reviewedAt,
+      }) : UNKNOWN,
+      line: line ? confirmedComparisonFact("対応確認", {
+        href: line.lineUrl,
+        rel: line.outboundRel,
+        sourceUrl: line.sourceUrl,
+        reviewedAt: line.reviewedAt,
+      }) : UNKNOWN,
+      official: confirmedInfoValue(
         officialEvidence,
         official ? "公式サイトあり" : undefined,
         official?.href,
         officialCardAction?.rel,
       ),
-      access: verifiedInfoValue(accessEvidence, access),
+      access: confirmedInfoValue(accessEvidence, access),
       information: strictEvidence.length > 0
-        ? verified(`${strictEvidence.length}/4項目確認`)
-        : UNVERIFIED,
+        ? confirmedComparisonFact(`${strictEvidence.length}/4項目確認`)
+        : UNKNOWN,
+      price: DEFERRED_UNAVAILABLE,
+      webBooking: DEFERRED_UNAVAILABLE,
       reviewedAt: latestReviewedAt?.slice(0, 10) ?? null,
     });
   });

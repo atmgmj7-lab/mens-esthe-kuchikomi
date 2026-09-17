@@ -21,6 +21,7 @@ import type {
   AreaShopComparisonFact,
   AreaShopComparisonItem,
 } from "@/lib/area-shop-comparison";
+import { visibleComparisonFieldKeys } from "@/lib/area-shop-comparison-facts";
 import styles from "./AreaShopComparisonExperience.module.css";
 
 type ComparisonContextValue = Readonly<{
@@ -60,11 +61,11 @@ export function AreaShopComparisonToggle({
 }
 
 function FactValue({ fact }: { fact: AreaShopComparisonFact }) {
-  const content = fact.href ? (
+  const content = fact.status === "confirmed" && fact.href ? (
     <a href={fact.href} target="_blank" rel={fact.rel ?? "noreferrer"}>{fact.value}</a>
   ) : fact.value;
   return (
-    <span className={fact.status === "verified" ? styles.verified : styles.unverified}>
+    <span className={fact.status === "confirmed" ? styles.verified : styles.unverified}>
       {content}
     </span>
   );
@@ -77,6 +78,11 @@ const COMPARISON_FIELDS = [
   ["official", "公式サイト"],
   ["access", "アクセス"],
   ["information", "情報確認状況"],
+] as const;
+
+const DEFERRED_COMPARISON_FIELDS = [
+  ["price", "料金"],
+  ["webBooking", "Web予約"],
 ] as const;
 
 function ComparisonDialog({
@@ -96,6 +102,12 @@ function ComparisonDialog({
   const comparisonColumns = {
     "--comparison-columns": selectedItems.length,
   } as CSSProperties;
+  const fieldLabels = new Map([...COMPARISON_FIELDS, ...DEFERRED_COMPARISON_FIELDS]);
+  const visibleFieldKeys = visibleComparisonFieldKeys(
+    selectedItems,
+    COMPARISON_FIELDS.map(([key]) => key),
+    DEFERRED_COMPARISON_FIELDS.map(([key]) => key),
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -149,14 +161,14 @@ function ComparisonDialog({
       </div>
 
       <dl className={styles.fields}>
-        {COMPARISON_FIELDS.map(([key, label]) => (
+        {visibleFieldKeys.map((key) => (
           <div
             key={key}
             className={styles.field}
             data-area-comparison-field={key}
             style={comparisonColumns}
           >
-            <dt>{label}</dt>
+            <dt>{fieldLabels.get(key)}</dt>
             {selectedItems.map((item) => (
               <dd key={item.shopId}>
                 <span className={styles.mobileShopName}>{item.name}</span>

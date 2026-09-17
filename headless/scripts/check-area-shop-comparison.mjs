@@ -102,20 +102,24 @@ const verified = items.find((item) => item.shopId === 712);
 assert.equal(verified.name, "店舗712");
 assert.equal(verified.detailUrl, "/shops/shop-712/");
 assert.equal(verified.relation.label, "主な掲載エリア");
-assert.deepEqual({ ...verified.hours }, { status: "verified", value: "11:00〜翌5:00" });
-assert.deepEqual({ ...verified.afterMidnight }, { status: "verified", value: "確認済み" });
-assert.equal(verified.line.status, "verified");
-assert.equal(verified.official.status, "verified");
-assert.equal(verified.access.status, "verified");
-assert.deepEqual({ ...verified.information }, { status: "verified", value: "4/4項目確認" });
+assert.equal(verified.hours.status, "confirmed");
+assert.equal(verified.hours.value, "11:00〜翌5:00");
+assert.equal(verified.afterMidnight.status, "confirmed");
+assert.equal(verified.afterMidnight.value, "確認済み");
+assert.equal(verified.line.status, "confirmed");
+assert.equal(verified.official.status, "confirmed");
+assert.equal(verified.access.status, "confirmed");
+assert.deepEqual({ ...verified.information }, { status: "confirmed", value: "4/4項目確認" });
+assert.equal(verified.price.status, "unavailable");
+assert.equal(verified.webBooking.status, "unavailable");
 assert.equal(verified.reviewedAt, "2026-09-17");
 
 const missing = items.find((item) => item.shopId === 901);
 assert.equal(missing.relation.label, "関連掲載エリア");
-assert.deepEqual({ ...missing.afterMidnight }, { status: "unverified", value: "未確認" });
-assert.deepEqual({ ...missing.line }, { status: "unverified", value: "未確認" });
-assert.deepEqual({ ...missing.access }, { status: "unverified", value: "未確認" });
-assert.deepEqual({ ...missing.information }, { status: "unverified", value: "未確認" });
+assert.equal(missing.afterMidnight.status, "unknown");
+assert.equal(missing.line.status, "unknown");
+assert.equal(missing.access.status, "unknown");
+assert.equal(missing.information.status, "unknown");
 assert.equal(missing.reviewedAt, null, "untrusted coverage dates must not be published");
 assert.equal(JSON.stringify(missing).includes("非対応"), false, "missing facts must never become unsupported claims");
 assert.equal(JSON.stringify(items).includes("料金"), false, "price must not enter comparison V1");
@@ -126,7 +130,7 @@ const emptyFactsItem = modelModule.buildAreaShopComparisonItems(area, [shop(902,
 })])[0];
 assert.deepEqual(
   { ...emptyFactsItem.information },
-  { status: "verified", value: "1/4項目確認" },
+  { status: "confirmed", value: "1/4項目確認" },
   "strict evidence for empty displayed facts must not inflate the coverage count",
 );
 
