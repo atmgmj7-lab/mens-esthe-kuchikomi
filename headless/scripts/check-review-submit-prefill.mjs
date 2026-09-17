@@ -35,6 +35,8 @@ const featuredCard = read("components/area/hub/AreaEditorialFeaturedShopCard.tsx
 const comparison = read("components/area/comparison/AreaShopComparisonExperience.tsx");
 
 assert.match(route, /resolveReviewSubmitPrefill/, "submit route must use exact public-shop resolver");
+assert.doesNotMatch(route, /<Suspense/, "direct review form must be present in no-JS initial HTML");
+assert.match(route, /export const instant = false/, "review form uses blocking SSR for no-JS output");
 assert.match(route, /path:\s*"\/reviews\/submit\/"/, "canonical remains query-free");
 assert.doesNotMatch(route, /指定された店舗が見つかりません/, "invalid query must return the normal form");
 assert.match(form, /投稿先店舗：<strong>\{shopTitle\}<\/strong>/, "prefilled shop is visible");

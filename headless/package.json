@@ -19,6 +19,7 @@
     "test:area-shop-comparison": "node scripts/check-area-shop-comparison.mjs",
     "test:area-comparison-deferred-facts": "node scripts/check-area-comparison-deferred-facts.mjs",
     "test:decision-journey-ux": "node scripts/check-decision-journey-ux.mjs",
+    "test:decision-bundle-browser": "node scripts/check-decision-bundle-browser.mjs",
     "test:area-shop-comparison-browser": "node scripts/check-area-shop-comparison-browser.mjs",
     "test:review-submit-prefill": "node scripts/check-review-submit-prefill.mjs",
     "test:editorial-placeholder": "node scripts/check-editorial-placeholder-contract.mjs",

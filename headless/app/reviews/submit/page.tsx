@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { ReviewSubmitForm } from "@/components/reviews/ReviewSubmitForm";
-import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { filterReviewSubmitShops, normalizeReviewHubQuery } from "@/lib/review-hub";
 import { resolveReviewSubmitPrefill } from "@/lib/review-submit-prefill";
 import { pageMetadata } from "@/lib/seo";
@@ -19,16 +17,14 @@ export const metadata: Metadata = pageMetadata({
   }
 });
 
+export const instant = false;
+
 type Props = {
   searchParams: Promise<{ shop?: string | string[]; area?: string | string[] }>;
 };
 
-export default function ReviewSubmitPage({ searchParams }: Props) {
-  return (
-    <Suspense fallback={<RoutePageFallback variant="static" />}>
-      <ReviewSubmitPageContent searchParams={searchParams} />
-    </Suspense>
-  );
+export default async function ReviewSubmitPage({ searchParams }: Props) {
+  return ReviewSubmitPageContent({ searchParams });
 }
 
 async function ReviewSubmitPageContent({ searchParams }: Props) {
