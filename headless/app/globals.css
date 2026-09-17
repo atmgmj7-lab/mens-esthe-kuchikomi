@@ -1800,6 +1800,10 @@ img {
   transform: translateY(-2px);
 }
 
+body:has([data-area-comparison-launcher][data-active="true"]) .escomi-final-site-footer {
+  padding-bottom: calc(176px + env(safe-area-inset-bottom));
+}
+
 @media (max-width: 760px) {
   /* The Shop Detail fixed bar is 65px plus the device safe area. */
   body:has(main[data-shop-detail-root] [data-shop-cta-position="fixed"]) .hl-back-to-top {

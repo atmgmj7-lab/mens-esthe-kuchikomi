@@ -120,12 +120,27 @@ function ComparisonDialog({
     }
   }, [dialogRef, open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+    };
+  }, [open]);
+
   return (
     <dialog
       ref={dialogRef}
       className={styles.dialog}
       aria-labelledby="area-shop-comparison-title"
       data-area-comparison-dialog="true"
+      data-area-comparison-scroll-lock={open ? "true" : "false"}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
