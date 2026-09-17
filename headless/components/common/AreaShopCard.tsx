@@ -10,6 +10,7 @@ import {
   secondaryGroupTitle
 } from "@/lib/area-shop-utils";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { ReactNode } from "react";
 import styles from "./AreaShopCard.module.css";
 
 type AreaShopCardProps = {
@@ -17,13 +18,15 @@ type AreaShopCardProps = {
   targetArea: Pick<AreaView, "slug" | "name">;
   rank?: number | null;
   showRank?: boolean;
+  comparisonControl?: ReactNode;
 };
 
 export function AreaShopCard({
   shop,
   targetArea,
   rank = null,
-  showRank = Boolean(rank)
+  showRank = Boolean(rank),
+  comparisonControl,
 }: AreaShopCardProps) {
   const model = buildAreaShopCardViewModel(shop, targetArea, {
     rank,
@@ -35,11 +38,14 @@ export function AreaShopCard({
   return (
     <article className={styles.card} data-area-shop-card="true">
       <header className={styles.header}>
-        <h3 className={styles.title}>
-          <Link href={model.title.href} className={styles.titleLink}>
-            {model.title.text}
-          </Link>
-        </h3>
+        <div className={styles.titleRow}>
+          <h3 className={styles.title}>
+            <Link href={model.title.href} className={styles.titleLink}>
+              {model.title.text}
+            </Link>
+          </h3>
+          {comparisonControl}
+        </div>
         {model.tags.length > 0 ? (
           <ul className={styles.tags} aria-label={`${model.title.text}の公開情報タグ`}>
             {model.tags.map((tag) => (

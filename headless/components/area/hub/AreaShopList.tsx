@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AreaFilterChips } from "@/components/area/hub/AreaFilterChips";
 import { AreaSortTabs } from "@/components/area/hub/AreaSortTabs";
 import { AreaShopCard } from "@/components/common/AreaShopCard";
+import { AreaShopComparisonToggle } from "@/components/area/comparison/AreaShopComparisonExperience";
 import { type AreaShopRankingEntry } from "@/lib/area-shop-ranking";
 import {
   hasPriorityStationWalk,
@@ -299,6 +300,7 @@ export function AreaShopList({
                     targetArea={targetArea}
                     rank={rank}
                     showRank={rank !== null}
+                    comparisonControl={<AreaShopComparisonToggle shopId={shop.id} location="natural" />}
                   />
                 </div>
               );

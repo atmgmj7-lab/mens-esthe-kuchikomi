@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { AreaShopCardImage } from "@/components/common/AreaShopCardImage";
-import { PromotionDisclosureBadge } from "@/components/common/PromotionDisclosureBadge";
+import { AreaEditorialFeaturedShopCard } from "@/components/area/hub/AreaEditorialFeaturedShopCard";
 import { buildAreaShopCardViewModel } from "@/lib/area-shop-card-view-model";
 import { buildAreaEditorialFeature } from "@/lib/area-editorial-featured";
 import type { AreaView, ShopView } from "@/lib/wp/types";
@@ -19,18 +17,12 @@ export function AreaEditorialFeaturedShops({ area, shops }: {
       <ul className={styles.list}>
         {feature.shops.map((shop) => {
           const card = buildAreaShopCardViewModel(shop, area, { showRank: false });
-          return (
-            <li key={shop.id} data-editorial-featured-shop={shop.id}>
-              <Link className={styles.card} href={card.title.href}>
-                <span className={styles.image}><AreaShopCardImage {...card.image} /></span>
-                <span className={styles.body}>
-                  <span className={styles.name}>{card.title.text}</span>
-                  {shop.ranking.promotion.requiresDisclosure ? <PromotionDisclosureBadge /> : null}
-                  <span className={styles.cta}>店舗詳細を見る<span aria-hidden="true"> →</span></span>
-                </span>
-              </Link>
-            </li>
-          );
+          return <AreaEditorialFeaturedShopCard
+            key={shop.id}
+            shopId={shop.id}
+            card={card}
+            requiresDisclosure={shop.ranking.promotion.requiresDisclosure}
+          />;
         })}
       </ul>
     </section>

@@ -1807,6 +1807,12 @@ img {
     width: 44px;
     height: 44px;
   }
+
+  body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
+    bottom: calc(176px + env(safe-area-inset-bottom));
+    width: 44px;
+    height: 44px;
+  }
 }
 
 /* ── Animations ── */

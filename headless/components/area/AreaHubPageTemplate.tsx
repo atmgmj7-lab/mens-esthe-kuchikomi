@@ -1,4 +1,6 @@
 import { AreaEditorialFeaturedShops } from "@/components/area/hub/AreaEditorialFeaturedShops";
+import { AreaShopComparisonProvider } from "@/components/area/comparison/AreaShopComparisonExperience";
+import { buildAreaShopComparisonItems } from "@/lib/area-shop-comparison";
 import { buildAreaShopOrdering, isAreaInformationOrderingTarget } from "@/lib/area-shop-ordering";
 import { buildAreaAfterMidnightComparison } from "@/lib/area-after-midnight-comparison";
 import { AreaPromotionSection } from "@/components/area/hub/AreaPromotionSection";
@@ -119,6 +121,7 @@ export function AreaHubPageTemplate({
   const afterMidnightShopIds = informationOrder
     ? buildAreaAfterMidnightComparison(area, relatedShops).map(({ shopId }) => shopId)
     : [];
+  const comparisonItems = buildAreaShopComparisonItems(area, mainShops);
   const capabilities = resolvePriorityAreaCapabilities(mainShops, area);
   const hasCompareTabs = !precisionMode || Object.values(capabilities).some(Boolean);
   const editorial = resolveAreaDepthEditorial(area.slug, mainShops.length);
@@ -257,6 +260,7 @@ export function AreaHubPageTemplate({
         </div>
       </section>
 
+      <AreaShopComparisonProvider areaName={area.name} items={comparisonItems}>
       <div className="l-main_content__inner hl-page-inner escomi-final-area-shell escomi-final-area-content-shell">
         {editorial ? (
           <AreaSupportingInfoDisclosure areaLabel={editorial.areaLabel}>
@@ -341,6 +345,7 @@ export function AreaHubPageTemplate({
           </section>
         ) : null}
       </div>
+      </AreaShopComparisonProvider>
     </main>
   );
 }

@@ -2,7 +2,7 @@
 .title { margin: 0 0 6px; color: #203c44; font-size: 1rem; line-height: 1.5; }
 .description { margin: 0 0 10px; font-size: .75rem; line-height: 1.6; }
 .list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.list li { min-width: 0; }
+.item { position: relative; min-width: 0; padding-bottom: 50px; }
 .card { display: flex; align-items: center; gap: 10px; min-height: 76px; height: 100%; padding: 8px; border: 1px solid #dce7df; border-radius: 8px; background: #fff; color: #203c44; text-decoration: none; }
 .image { display: block; flex: 0 0 64px; width: 64px; height: 48px; overflow: hidden; border-radius: 4px; }
 .body { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -10,4 +10,5 @@
 .cta { font-size: .75rem; line-height: 1.5; text-decoration: underline; text-underline-offset: 3px; }
 .card:focus-visible { outline: 3px solid #216443; outline-offset: 2px; }
 .card:hover { border-color: #216443; }
+.compare { position: absolute; right: 8px; bottom: 2px; left: 8px; width: calc(100% - 16px); }
 @media (max-width: 640px) { .list { grid-template-columns: minmax(0, 1fr); } }

@@ -18,6 +18,15 @@
   min-width: 0;
 }
 
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.titleRow .title { flex: 1 1 auto; min-width: 0; }
+
 .title {
   margin: 0;
   color: #143d4d;
@@ -256,6 +265,7 @@
 }
 
 @media (max-width: 360px) {
+  .titleRow { flex-direction: column; }
   .facts {
     grid-template-columns: minmax(0, 1fr);
   }
