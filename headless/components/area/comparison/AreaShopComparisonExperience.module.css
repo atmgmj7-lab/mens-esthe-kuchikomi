@@ -54,7 +54,7 @@
 }
 
 .launcherSummary strong { color: #143d4d; font-size: 14px; }
-.launcherSummary button { border: 0; background: transparent; color: #52656d; text-decoration: underline; }
+.launcherSummary button { min-height: 44px; padding-inline: 8px; border: 0; background: transparent; color: #52656d; text-decoration: underline; }
 
 .selectedList {
   display: flex;
@@ -87,8 +87,9 @@
 
 .selectedList button {
   display: inline-flex;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   align-items: center;
   justify-content: center;
   border: 0;

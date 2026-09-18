@@ -164,10 +164,10 @@ function ComparisonDialog({
             <h3>{item.name}</h3>
             {item.requiresPromotionDisclosure ? <PromotionDisclosureBadge /> : null}
             <div className={styles.headingActions}>
-              <Link href={item.detailUrl} data-area-comparison-detail={item.shopId}>
+              <Link href={item.detailUrl} data-area-comparison-detail={item.shopId} onClick={onClose}>
                 店舗詳細を見る<span aria-hidden="true"> →</span>
               </Link>
-              <Link href={item.reviewSubmitUrl} data-review-prefill="comparison">
+              <Link href={item.reviewSubmitUrl} data-review-prefill="comparison" onClick={onClose}>
                 口コミを書く
               </Link>
             </div>
@@ -226,6 +226,7 @@ export function AreaShopComparisonProvider({
   if (items.length === 0) return children;
 
   const closeComparison = () => {
+    if (dialogRef.current?.open) dialogRef.current.close();
     setOpen(false);
     requestAnimationFrame(() => openerRef.current?.focus());
   };

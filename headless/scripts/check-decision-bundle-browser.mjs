@@ -60,19 +60,88 @@ async function discoverShopRoutes() {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   await page.goto(`${origin}/area/shinosaka/`, { waitUntil: "domcontentloaded" });
   await page.locator("#shop-list [data-area-shop-card=true]").first().waitFor({ state: "visible" });
-  const routeForId = async (id) => page.locator(`#shop-list [data-area-shop-card=true]:has([data-area-comparison-shop="${id}"]) a[href^="/shops/"]`).first().getAttribute("href");
+  const cardForId = (id) => page.locator(`#shop-list [data-area-shop-card=true]:has([data-area-comparison-shop="${id}"])`).first();
+  const routeForId = async (id) => cardForId(id).locator('a[href^="/shops/"]').first().getAttribute("href");
   const first = await routeForId(712);
   const second = await routeForId(768);
+  const firstName = (await cardForId(712).locator("h3").textContent())?.trim();
+  const secondName = (await cardForId(768).locator("h3").textContent())?.trim();
   await page.goto(`${origin}/area/sakai/`, { waitUntil: "domcontentloaded" });
   await page.locator("#shop-list [data-area-shop-card=true]").first().waitFor({ state: "visible" });
   const sakai = await page.locator("#shop-list [data-area-shop-card=true] a[href^='/shops/']").first().getAttribute("href");
+  const sakaiName = (await page.locator("#shop-list [data-area-shop-card=true]").first().locator("h3").textContent())?.trim();
   await page.close();
-  ok(first && second && sakai, "three canonical shop routes discovered from Area DOM");
+  ok(first && second && sakai && firstName && secondName && sakaiName, "three canonical shop routes discovered from Area DOM");
   return [
-    { id: 712, route: first },
-    { id: 768, route: second },
-    { id: "sakai-representative", route: sakai },
+    { id: 712, route: first, name: firstName },
+    { id: 768, route: second, name: secondName },
+    { id: "sakai-representative", route: sakai, name: sakaiName },
   ];
+}
+
+async function verifyDecisionJourney(areaSlug) {
+  const context = await browser.newContext({ javaScriptEnabled: true, serviceWorkers: "block", viewport: { width: 390, height: 800 } });
+  const page = await context.newPage();
+  await page.goto(`${origin}/area/${areaSlug}/`, { waitUntil: "domcontentloaded" });
+  await page.locator("#shop-list [data-area-shop-card=true]").first().waitFor({ state: "visible" });
+  const natural = page.locator("#shop-list [data-area-comparison-location=natural]:visible");
+  let targetId;
+
+  if (areaSlug === "shinosaka") {
+    await page.locator('[data-area-comparison-location="featured"][data-area-comparison-shop="712"]').click();
+    equal(
+      await page.locator('[data-area-comparison-location="natural"][data-area-comparison-shop="712"]').getAttribute("aria-pressed"),
+      "true",
+      "Shinosaka featured 712 synchronizes with its natural card",
+    );
+    await page.locator('[data-area-comparison-location="featured"][data-area-comparison-shop="768"]').click();
+    const naturalIds = await natural.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-area-comparison-shop")));
+    const thirdId = naturalIds.find((id) => id !== "712" && id !== "768");
+    ok(thirdId, "Shinosaka third comparison candidate exists");
+    await page.locator(`[data-area-comparison-location="natural"][data-area-comparison-shop="${thirdId}"]`).click();
+    targetId = "768";
+  } else {
+    for (let index = 0; index < 3; index += 1) await natural.nth(index).click();
+    targetId = await natural.nth(1).getAttribute("data-area-comparison-shop");
+  }
+
+  const launcher = page.locator("[data-area-comparison-launcher=true]");
+  equal((await launcher.locator("[data-area-comparison-open=true]").textContent())?.trim(), "3店舗を比較", `${areaSlug} journey selects three shops`);
+  await launcher.locator("[data-area-comparison-open=true]").click();
+  const detailLink = page.locator(`[data-area-comparison-detail="${targetId}"]`);
+  const expectedName = (await detailLink.locator("xpath=ancestor::article").locator("h3").textContent())?.trim();
+  ok(expectedName, `${areaSlug} journey target name exists`);
+  await detailLink.click();
+  await page.locator("main[data-shop-detail-root]").waitFor({ state: "visible" });
+
+  const detailReviewLink = page.locator('a[href*="/reviews/submit"][href*="shop="]').first();
+  const detailReviewHref = await detailReviewLink.getAttribute("href");
+  const expectedIdentifier = new URL(detailReviewHref, origin).searchParams.get("shop");
+  ok(expectedIdentifier, `${areaSlug} detail review identifier exists`);
+  await detailReviewLink.click();
+  await page.locator(".hl-review-form__shop").waitFor({ state: "visible" });
+  equal((await page.locator(".hl-review-form__shop strong").textContent())?.trim(), expectedName, `${areaSlug} detail click pre-fills the exact compared shop`);
+  equal(new URL(page.url()).searchParams.get("shop"), expectedIdentifier, `${areaSlug} journey preserves canonical identifier`);
+
+  await page.goto(`${origin}/area/${areaSlug}/`, { waitUntil: "domcontentloaded" });
+  await page.locator("#shop-list [data-area-shop-card=true]").first().waitFor({ state: "visible" });
+  const alternateCards = page.locator("#shop-list [data-area-shop-card=true]:visible");
+  let alternateIndex = 0;
+  for (let index = 0; index < await alternateCards.count(); index += 1) {
+    const id = await alternateCards.nth(index).locator("[data-area-comparison-shop]").getAttribute("data-area-comparison-shop");
+    if (id !== String(targetId)) { alternateIndex = index; break; }
+  }
+  const alternateCard = alternateCards.nth(alternateIndex);
+  const alternateName = (await alternateCard.locator("h3").textContent())?.trim();
+  const alternateReview = alternateCard.locator('[data-review-prefill="natural"]');
+  const alternateHref = await alternateReview.getAttribute("href");
+  const alternateIdentifier = new URL(alternateHref, origin).searchParams.get("shop");
+  await alternateReview.click();
+  await page.locator(".hl-review-form__shop").waitFor({ state: "visible" });
+  equal((await page.locator(".hl-review-form__shop strong").textContent())?.trim(), alternateName, `${areaSlug} alternate shop re-prefills exactly`);
+  equal(new URL(page.url()).searchParams.get("shop"), alternateIdentifier, `${areaSlug} alternate identifier replaces prior target`);
+  scenarios.push({ kind: "decision-journey", route: `/area/${areaSlug}/`, width: 390, js: true, pass: true });
+  await context.close();
 }
 
 try {
@@ -123,6 +192,10 @@ try {
       await toggles.nth(1).click();
       const launcher = page.locator("[data-area-comparison-launcher=true]");
       const opener = launcher.locator("[data-area-comparison-open=true]");
+      equal(await launcher.locator("button:visible").evaluateAll((nodes) => nodes.filter((node) => {
+        const rect = node.getBoundingClientRect();
+        return rect.width < 44 || rect.height < 44;
+      }).length), 0, `${area.slug} ${width} launcher targets are at least 44px`);
       await opener.click();
       const dialog = page.locator("[data-area-comparison-dialog=true]");
       equal(await dialog.isVisible(), true, `${area.slug} ${width} dialog visible`);
@@ -155,6 +228,9 @@ try {
     scenarios.push({ kind: "area", route, width: 390, js: false, pass: true });
     await noJs.close();
   }
+
+  await verifyDecisionJourney("shinosaka");
+  await verifyDecisionJourney("sakai");
 
   for (const shop of shopRoutes) {
     const baseline = await baselineFor(shop.route, "main[data-shop-detail-root]");
@@ -196,7 +272,8 @@ try {
       const response = await page.goto(`${origin}${reviewUrl}`, { waitUntil: "domcontentloaded" });
       equal(response?.status(), 200, `${shop.id} ${width} prefilled review HTTP 200`);
       await page.locator(".hl-review-form__shop").waitFor({ state: "visible" });
-      ok((await page.locator(".hl-review-form__shop").textContent())?.includes("投稿先店舗："), `${shop.id} ${width} target visibly confirmed`);
+      const prefilledName = (await page.locator(".hl-review-form__shop strong").textContent())?.trim();
+      equal(prefilledName, shop.name, `${shop.id} ${width} exact shop prefilled`);
       equal(await page.locator("#review-rating-total").inputValue(), "", `${shop.id} ${width} rating remains empty`);
       equal(await page.locator("#review-body").inputValue(), "", `${shop.id} ${width} body remains empty`);
       equal(await page.locator("link[rel=canonical]").getAttribute("href"), `${baselineOrigin}/reviews/submit/`, `${shop.id} ${width} query-free canonical`);

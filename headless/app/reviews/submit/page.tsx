@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ReviewSubmitForm } from "@/components/reviews/ReviewSubmitForm";
 import { filterReviewSubmitShops, normalizeReviewHubQuery } from "@/lib/review-hub";
-import { resolveReviewSubmitPrefill } from "@/lib/review-submit-prefill";
+import {
+  normalizeReviewSubmitPrefillIdentifier,
+  resolveReviewSubmitPrefill,
+} from "@/lib/review-submit-prefill";
 import { pageMetadata } from "@/lib/seo";
-import { getAllShopsForListing } from "@/lib/wp/shops";
+import { getAllShopsForListing, getShopBySlug } from "@/lib/wp/shops";
 
 export const metadata: Metadata = pageMetadata({
   title: "口コミを投稿する",
@@ -30,10 +33,12 @@ export default async function ReviewSubmitPage({ searchParams }: Props) {
 async function ReviewSubmitPageContent({ searchParams }: Props) {
   const params = await searchParams;
   const areaContext = normalizeReviewHubQuery({ area: params.area }).area;
-  const allShops = await getAllShopsForListing();
-  const shop = resolveReviewSubmitPrefill(params.shop, allShops);
+  const identifier = normalizeReviewSubmitPrefillIdentifier(params.shop);
+  const candidate = identifier ? await getShopBySlug(identifier) : null;
+  const shop = resolveReviewSubmitPrefill(params.shop, candidate ? [candidate] : []);
 
   if (!shop) {
+    const allShops = await getAllShopsForListing();
     const shops = filterReviewSubmitShops(allShops, areaContext);
     const areaName = areaContext
       ? allShops.flatMap((shop) => shop.terms).find((term) => term.slug === areaContext)?.name ?? null

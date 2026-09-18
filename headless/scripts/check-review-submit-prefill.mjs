@@ -13,6 +13,7 @@ assert.ok(
 );
 const prefill = load(resolve(root, "lib/review-submit-prefill.ts"));
 assert.equal(typeof prefill.resolveReviewSubmitPrefill, "function");
+assert.equal(typeof prefill.normalizeReviewSubmitPrefillIdentifier, "function");
 
 const shops = [
   { id: 712, slug: "spalot-mrs", title: "SPALOT.Mrs", publicationStatus: "publish" },
@@ -27,6 +28,8 @@ assert.equal(prefill.resolveReviewSubmitPrefill("missing-shop", shops), null, "m
 assert.equal(prefill.resolveReviewSubmitPrefill("draft-shop", shops), null, "draft shop fails safe");
 assert.equal(prefill.resolveReviewSubmitPrefill("SPALOT.Mrs", shops), null, "shop name is not an identifier");
 assert.equal(prefill.resolveReviewSubmitPrefill("spalot-mrs/other", shops), null, "invalid identifier fails safe");
+assert.equal(prefill.normalizeReviewSubmitPrefillIdentifier("spalot-mrs"), "spalot-mrs");
+assert.equal(prefill.normalizeReviewSubmitPrefillIdentifier(["spalot-mrs"]), null);
 
 const route = read("app/reviews/submit/page.tsx");
 const form = read("components/reviews/ReviewSubmitForm.tsx");
@@ -35,6 +38,7 @@ const featuredCard = read("components/area/hub/AreaEditorialFeaturedShopCard.tsx
 const comparison = read("components/area/comparison/AreaShopComparisonExperience.tsx");
 
 assert.match(route, /resolveReviewSubmitPrefill/, "submit route must use exact public-shop resolver");
+assert.match(route, /getShopBySlug\(identifier\)/, "valid identifier uses direct shop lookup beyond listing pagination");
 assert.doesNotMatch(route, /<Suspense/, "direct review form must be present in no-JS initial HTML");
 assert.match(route, /export const instant = false/, "review form uses blocking SSR for no-JS output");
 assert.match(route, /path:\s*"\/reviews\/submit\/"/, "canonical remains query-free");

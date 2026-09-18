@@ -1801,11 +1801,11 @@ img {
 }
 
 body:has([data-area-comparison-launcher][data-active="true"]) .escomi-final-site-footer {
-  padding-bottom: calc(176px + env(safe-area-inset-bottom));
+  padding-bottom: calc(220px + env(safe-area-inset-bottom));
 }
 
 body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
-  bottom: calc(176px + env(safe-area-inset-bottom));
+  bottom: calc(220px + env(safe-area-inset-bottom));
 }
 
 @media (max-width: 760px) {

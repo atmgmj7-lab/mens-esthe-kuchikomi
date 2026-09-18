@@ -19,3 +19,10 @@ export function resolveReviewSubmitPrefill<T extends ReviewSubmitShop>(
     && normalizePublicShopSlug(shop.slug) === slug
   )) ?? null;
 }
+
+export function normalizeReviewSubmitPrefillIdentifier(
+  rawShop: string | string[] | undefined,
+): string | null {
+  if (typeof rawShop !== "string") return null;
+  return normalizePublicShopSlug(rawShop) || null;
+}

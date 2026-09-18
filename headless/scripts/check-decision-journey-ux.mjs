@@ -15,13 +15,17 @@ assert.match(experience, /data-area-comparison-scroll-lock/, "open dialog expose
 assert.match(experience, /const root = document\.documentElement;[\s\S]+root\.style\.overflow = "hidden"/, "dialog locks root scrolling");
 assert.match(experience, /const body = document\.body;[\s\S]+body\.style\.overflow = "hidden"/, "dialog locks body scrolling");
 assert.match(experience, /requestAnimationFrame\(\(\) => openerRef\.current\?\.focus\(\)\)/, "close restores opener focus");
+assert.match(experience, /dialogRef\.current\?\.open\) dialogRef\.current\.close\(\)/, "route transitions synchronously leave the dialog top layer");
+assert.match(experience, /data-area-comparison-detail=\{item\.shopId\} onClick=\{onClose\}/, "detail transition closes the dialog first");
 assert.match(experience, /onCancel=/, "Escape/cancel is handled");
 assert.match(experience, /<noscript>/, "comparison controls have a no-JS fallback");
 assert.match(globals, /data-area-comparison-launcher[^\n]+data-active="true"[^\n]+\.escomi-final-site-footer/, "active launcher gives the footer clearance");
 assert.match(globals, /data-area-comparison-launcher[^\n]+data-active="true"[^\n]+\.hl-back-to-top/, "top control clears active launcher");
 assert.match(comparisonCss, /min-height:\s*44px/, "comparison controls retain accessible target size");
+assert.match(comparisonCss, /\.launcherSummary button\s*\{[^}]*min-height:\s*44px/s, "clear action retains accessible target height");
+assert.match(comparisonCss, /\.selectedList button\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px/s, "remove action retains 44px target");
 assert.match(natural, /data-review-prefill="natural"/, "natural cards retain review action");
 assert.match(featured, /data-review-prefill="featured"/, "featured cards retain review action");
 assert.match(featuredCss, /\.item\s*\{[^}]*display:\s*grid[^}]*grid-template-rows:/s, "featured card and actions occupy separate rows");
 
-console.log(JSON.stringify({ pass: true, uxContracts: 12 }));
+console.log(JSON.stringify({ pass: true, uxContracts: 16 }));
