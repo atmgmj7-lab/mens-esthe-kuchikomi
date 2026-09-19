@@ -1,0 +1,72 @@
+<?php
+/** Real local InnoDB SQL/locking integration; WP APIs are bounded shims, no WordPress runtime. */
+define('ABSPATH',__DIR__);
+$port=(int)getenv('ESKOMI_FIXTURE_DB_PORT');
+if (!$port) {fwrite(STDERR,"ESKOMI_FIXTURE_DB_PORT required; local fixture only\n");exit(2);}
+mysqli_report(MYSQLI_REPORT_OFF);
+function connect_fixture(){global $port;$db=new mysqli('127.0.0.1','root','local-fixture-only','escomi_fixture',$port);if($db->connect_errno)throw new RuntimeException('local fixture unavailable');$db->set_charset('utf8mb4');$db->query('SET SESSION innodb_lock_wait_timeout=1');return $db;}
+class WP_Error {public $code,$data;function __construct($c,$m='',$d=[]){$this->code=$c;$this->data=$d;}}
+class WP_REST_Response {public $data,$status;function __construct($d,$s=200){$this->data=$d;$this->status=$s;}function header($k,$v){}}
+class DBRequest {function __construct(private $data){}function get_json_params(){return $this->data;}function get_method(){return 'POST';}function get_param($k){return $this->data[$k]??null;}function get_body(){return json_encode($this->data);}}
+function add_action(...$x){} function add_filter(...$x){} function register_rest_route(...$x){}
+function is_wp_error($x){return $x instanceof WP_Error;}
+function current_user_can($c,...$x){return $GLOBALS['authorized']??true;}
+function wp_get_current_user(){return (object)['caps'=>['manage_shop_public_meta'=>$GLOBALS['authorized']??true]];}
+function get_current_user_id(){return 9;}
+function current_time($f,$gmt=false){return gmdate($f);}
+function sanitize_key($v){return preg_replace('/[^a-z0-9_\-]/','',strtolower($v));}
+function sanitize_text_field($v){return trim(strip_tags($v));}
+function sanitize_textarea_field($v){return trim(strip_tags($v));}
+function esc_url_raw($v,$p=[]){return $v;}
+function wp_http_validate_url($v){return filter_var($v,FILTER_VALIDATE_URL);}
+function maybe_serialize($v){return is_array($v)||is_object($v)?serialize($v):$v;}
+function maybe_unserialize($v){if(is_string($v)&&preg_match('/^(a|O|s|b|i|d):|^N;/',$v)){return unserialize($v,['allowed_classes'=>false]);}return $v;}
+function wp_slash($v){return $v;} function wp_unslash($v){return $v;}
+function wp_json_encode($v,$flags=0,$depth=512){return json_encode($v,$flags,$depth);}
+function wp_salt($scheme='auth'){return 'local-fixture-signing-salt-not-production';}
+function clean_post_cache($id){$GLOBALS['cache_events'][]=['clean',$GLOBALS['wpdb']->in_tx];}
+function wp_cache_delete(...$x){$GLOBALS['cache_events'][]=['delete',$GLOBALS['wpdb']->in_tx];}
+function do_action(...$x){$GLOBALS['hook_events'][]=[$x,$GLOBALS['wpdb']->in_tx];}
+function wp_get_object_terms($id,$taxonomy,$args=[]){global $wpdb;$r=$wpdb->get_col($wpdb->prepare("SELECT term_taxonomy_id FROM {$wpdb->term_relationships} WHERE object_id=%d ORDER BY term_taxonomy_id",$id));return array_map('intval',$r);}
+class RealFixtureDB {
+ public $posts='wp_posts',$postmeta='wp_postmeta',$term_relationships='wp_term_relationships',$term_taxonomy='wp_term_taxonomy',$prefix='wp_',$last_error='',$insert_id=0,$in_tx=false,$after_mutation=null;
+ public mysqli $db;
+ function __construct(){$this->db=connect_fixture();}
+ function prepare($sql,...$args){if(count($args)==1&&is_array($args[0]))$args=$args[0];$i=0;return preg_replace_callback('/%[sd]/',function($m)use(&$i,$args){$v=$args[$i++];return $m[0]==='%d'?(string)(int)$v:"'".$this->db->real_escape_string((string)$v)."'";},$sql);}
+ function query($sql){$r=$this->db->query($sql);$this->last_error=$this->db->error;$this->insert_id=$this->db->insert_id;if($r!==false){if($sql==='START TRANSACTION')$this->in_tx=true;if(in_array($sql,['COMMIT','ROLLBACK']))$this->in_tx=false;if(preg_match('/^(UPDATE|INSERT|DELETE)/i',$sql)&&is_callable($this->after_mutation))($this->after_mutation)($sql);}return $r===false?false:($r instanceof mysqli_result?$r->num_rows:$this->db->affected_rows);}
+ function get_results($sql){$r=$this->db->query($sql);$this->last_error=$this->db->error;if($r===false)return null;$a=[];while($v=$r->fetch_object())$a[]=$v;return $a;}
+ private function objects($sql){$r=$this->db->query($sql);$a=[];while($v=$r->fetch_object())$a[]=$v;return $a;}
+ function get_row($sql){$a=$this->get_results($sql);return $a[0]??null;}
+ function get_col($sql){$r=$this->db->query($sql);$this->last_error=$this->db->error;$a=[];if($r===false)return $a;while($v=$r->fetch_row())$a[]=$v[0];return $a;}
+ function get_var($sql){return $this->get_col($sql)[0]??null;}
+ function update($table,$data,$where){$sets=[];$conditions=[];foreach($data as $k=>$v)$sets[]=$this->prepare("`$k`=%s",$v);foreach($where as $k=>$v)$conditions[]=$this->prepare("`$k`=%s",$v);return $this->query('UPDATE '.$table.' SET '.implode(',',$sets).' WHERE '.implode(' AND ',$conditions));}
+ function insert($table,$data){return $this->query('INSERT INTO '.$table.' (`'.implode('`,`',array_keys($data)).'`) VALUES ('.implode(',',array_map(fn($v)=>$this->prepare('%s',$v),array_values($data))).')');}
+ function delete($table,$where){$a=[];foreach($where as $k=>$v)$a[]=$this->prepare("`$k`=%s",$v);return $this->query('DELETE FROM '.$table.' WHERE '.implode(' AND ',$a));}
+ function suppress_errors($v=true){return false;}
+}
+require __DIR__.'/../../shop-public-meta.php';
+require __DIR__.'/../../official-facts-rest.php';
+$wpdb=new RealFixtureDB();$observer=connect_fixture();$passed=0;
+function check_db($ok,$label){global $passed;if(!$ok){fwrite(STDERR,"FAIL: $label\n");exit(1);}++$passed;echo "PASS $label\n";}
+foreach(['DROP TABLE IF EXISTS wp_term_taxonomy','DROP TABLE IF EXISTS wp_term_relationships','DROP TABLE IF EXISTS wp_postmeta','DROP TABLE IF EXISTS wp_posts',
+'CREATE TABLE wp_term_taxonomy (term_taxonomy_id BIGINT UNSIGNED PRIMARY KEY,term_id BIGINT UNSIGNED,taxonomy VARCHAR(32)) ENGINE=InnoDB',
+'CREATE TABLE wp_posts (ID BIGINT UNSIGNED PRIMARY KEY,post_name VARCHAR(200),post_status VARCHAR(20),post_type VARCHAR(20)) ENGINE=InnoDB',
+'CREATE TABLE wp_postmeta (meta_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,post_id BIGINT UNSIGNED,meta_key VARCHAR(255),meta_value LONGTEXT,KEY post_id(post_id),KEY meta_key(meta_key(191))) ENGINE=InnoDB',
+'CREATE TABLE wp_term_relationships (object_id BIGINT UNSIGNED,term_taxonomy_id BIGINT UNSIGNED,term_order INT DEFAULT 0,PRIMARY KEY(object_id,term_taxonomy_id)) ENGINE=InnoDB'] as $sql)if($wpdb->query($sql)===false)throw new RuntimeException('fixture setup failed');
+function reset_db(){global $wpdb;$wpdb->after_mutation=null;$wpdb->query('DROP TRIGGER IF EXISTS reject_provenance');$wpdb->query('DELETE FROM wp_postmeta');$wpdb->query('DELETE FROM wp_term_relationships');$wpdb->query('DELETE FROM wp_term_taxonomy');$wpdb->query("INSERT INTO wp_term_taxonomy VALUES(13,13,'area')");$wpdb->query('DELETE FROM wp_posts');$wpdb->query("INSERT INTO wp_posts VALUES(1,'shop-one','publish','shop')");$wpdb->query('INSERT INTO wp_term_relationships VALUES(1,13,0)');foreach(['shop_hours'=>'10:00～22:00','shop_tel'=>'080-1234-5678','shop_fact_provenance'=>[]] as $k=>$v)$wpdb->insert('wp_postmeta',['post_id'=>1,'meta_key'=>$k,'meta_value'=>maybe_serialize($v)]);$GLOBALS['hook_events']=[];$GLOBALS['cache_events']=[];$GLOBALS['authorized']=true;}
+function db_payload(){ $canonical=json_encode('11:00~23:00',JSON_UNESCAPED_UNICODE);$today=gmdate('Y-m-d');return ['batch_id'=>'11111111-1111-4111-8111-111111111111','wp_id'=>1,'slug'=>'shop-one','expected'=>escomi_official_facts_snapshot(1),'updates'=>['shop_hours'=>'11:00～23:00'],'provenance'=>[['field'=>'hours','sourceUrl'=>'https://official.example/access','sourceType'=>'official-site','observedAt'=>$today,'reviewedAt'=>$today,'reviewStatus'=>'reviewed','publishedValueHash'=>hash('sha256',$canonical)]],'canonical'=>['hours'=>$canonical],'audit'=>['shop_hours'=>['source_url'=>'https://official.example/access','checked_at'=>$today]]];}
+function observed_hours(){global $observer;return $observer->query("SELECT meta_value FROM wp_postmeta WHERE post_id=1 AND meta_key='shop_hours'")->fetch_row()[0];}
+reset_db();$p=db_payload();$observed=[];$wpdb->after_mutation=function($sql)use(&$observed){$observed[]=observed_hours();};$r=escomi_official_facts_apply(new DBRequest($p));$wpdb->after_mutation=null;
+check_db(!is_wp_error($r)&&$r->data['state']==='APPLIED','real SQL apply');check_db(observed_hours()==='11:00～23:00','observer sees committed facts');check_db($observed&&count(array_unique($observed))===1&&$observed[0]==='10:00～22:00','separate connection sees no uncommitted facts');check_db(!array_filter($GLOBALS['hook_events'],fn($v)=>$v[1]),'no hook publication inside transaction');check_db(!array_filter($GLOBALS['cache_events'],fn($v)=>$v[1]),'no cache publication inside transaction');check_db(escomi_official_facts_snapshot(1)['fields']['shop_fact_provenance']['value']===$p['provenance'],'real SQL provenance persisted');$r2=escomi_official_facts_apply(new DBRequest($p));check_db(!is_wp_error($r2)&&$r2->data['state']==='NOOP','real SQL idempotency');
+reset_db();$p=db_payload();$wpdb->query("CREATE TRIGGER reject_provenance BEFORE UPDATE ON wp_postmeta FOR EACH ROW BEGIN IF NEW.meta_key='shop_fact_provenance' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture rejection'; END IF; END");$r=escomi_official_facts_apply(new DBRequest($p));check_db(is_wp_error($r),'real DB midway failure rejected');check_db(observed_hours()==='10:00～22:00'&&escomi_official_facts_snapshot(1)['fields']['shop_fact_provenance']['value']===[],'real InnoDB rollback restores fact and provenance');check_db(!$GLOBALS['hook_events'],'failed transaction publishes no hooks');
+reset_db();$p=db_payload();$observer->query('START TRANSACTION');$observer->query('SELECT ID FROM wp_posts WHERE ID=1 FOR UPDATE');$r=escomi_official_facts_apply(new DBRequest($p));$observer->query('ROLLBACK');check_db(is_wp_error($r),'real lock wait conflict fails closed');check_db(observed_hours()==='10:00～22:00','lock conflict zero fact writes');
+reset_db();$p=db_payload();$observer->query("UPDATE wp_postmeta SET meta_value='080-0000-0000' WHERE meta_key='shop_tel'");$r=escomi_official_facts_apply(new DBRequest($p));check_db(is_wp_error($r)&&$r->code==='snapshot_conflict','unchanged contributor concurrent edit rejected');check_db(observed_hours()==='10:00～22:00','stale snapshot zero fact writes');
+reset_db();$p=db_payload();$r=escomi_official_facts_apply(new DBRequest($p));check_db(!is_wp_error($r),'rollback setup apply');$receipt=$r->data['receipt'];$rollback=['batch_id'=>$p['batch_id'],'wp_id'=>1,'slug'=>'shop-one','receipt'=>$receipt];$r=escomi_official_facts_rollback(new DBRequest($rollback));check_db(!is_wp_error($r)&&$r->data['state']==='ROLLED_BACK','signed receipt real SQL rollback');check_db(escomi_official_facts_snapshot(1)===$p['expected'],'signed rollback exact full snapshot restored');$r=escomi_official_facts_rollback(new DBRequest($rollback));check_db(!is_wp_error($r)&&$r->data['state']==='NOOP','rollback idempotent');
+reset_db();$wpdb->delete('wp_postmeta',['post_id'=>1,'meta_key'=>'shop_hours']);$p=db_payload();$r=escomi_official_facts_apply(new DBRequest($p));$rollback=['batch_id'=>$p['batch_id'],'wp_id'=>1,'slug'=>'shop-one','receipt'=>$r->data['receipt']];$r=escomi_official_facts_rollback(new DBRequest($rollback));check_db(!is_wp_error($r)&&!escomi_official_facts_snapshot(1)['fields']['shop_hours']['exists'],'signed rollback restores absent field via real DELETE');
+reset_db();$p=db_payload();$r=escomi_official_facts_apply(new DBRequest($p));$rollback=['batch_id'=>$p['batch_id'],'wp_id'=>1,'slug'=>'shop-one','receipt'=>$r->data['receipt']];$bad=$rollback;$bad['receipt']['payload']['before']['fields']['shop_tel']['value']='tampered';$r=escomi_official_facts_rollback(new DBRequest($bad));check_db(is_wp_error($r)&&observed_hours()==='11:00～23:00','tampered signed receipt zero writes');$observer->query("UPDATE wp_postmeta SET meta_value='changed' WHERE meta_key='shop_tel'");$r=escomi_official_facts_rollback(new DBRequest($rollback));check_db(is_wp_error($r)&&$r->code==='rollback_snapshot_conflict'&&observed_hours()==='11:00～23:00','concurrent edit blocks rollback');
+reset_db();$p=db_payload();$p['canonical']['hours']='"wrong"';$p['provenance'][0]['publishedValueHash']=hash('sha256',$p['canonical']['hours']);$r=escomi_official_facts_apply(new DBRequest($p));check_db(is_wp_error($r)&&observed_hours()==='10:00～22:00','server canonical mismatch zero writes');
+reset_db();$p=db_payload();$observer->query('START TRANSACTION');$observer->query('SELECT term_taxonomy_id FROM wp_term_taxonomy WHERE term_taxonomy_id=13 FOR UPDATE');$r=escomi_official_facts_apply(new DBRequest($p));$observer->query('ROLLBACK');check_db(is_wp_error($r)&&observed_hours()==='10:00～22:00','taxonomy row lock conflict fails closed');
+reset_db();$p=db_payload();$observer->query('UPDATE wp_term_taxonomy SET term_id=17 WHERE term_taxonomy_id=13');$r=escomi_official_facts_apply(new DBRequest($p));check_db(is_wp_error($r)&&$r->code==='snapshot_conflict','real SQL changed area identity rejected');
+reset_db();$wpdb->query('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');$p=db_payload();$insert_result=null;$insert_errno=null;$wpdb->after_mutation=function($sql)use(&$insert_result,&$insert_errno,$observer,$wpdb){$wpdb->after_mutation=null;$insert_result=$observer->query("INSERT INTO wp_postmeta(post_id,meta_key,meta_value) VALUES(1,'price_60','9000')");$insert_errno=$observer->errno;};$r=escomi_official_facts_apply(new DBRequest($p));$wpdb->after_mutation=null;check_db($insert_result===false&&$insert_errno===1205,'READ COMMITTED session missing contributor insert blocked by transaction range lock');check_db(!is_wp_error($r)&&$r->data['state']==='APPLIED'&&!escomi_official_facts_snapshot(1)['fields']['price_60']['exists'],'SERIALIZABLE override preserves exact final contributor snapshot');
+reset_db();$p=db_payload();$wpdb->query('START TRANSACTION');$wpdb->query("UPDATE wp_postmeta SET meta_value='outer-pending' WHERE meta_key='shop_tel'");$r=escomi_official_facts_apply(new DBRequest($p));check_db(is_wp_error($r)&&$wpdb->in_tx,'active outer transaction rejects route without implicit commit');$seen=$observer->query("SELECT meta_value FROM wp_postmeta WHERE meta_key='shop_tel'")->fetch_row()[0];check_db($seen==='080-1234-5678','outer transaction pending data remains uncommitted');$wpdb->query('ROLLBACK');
+echo "PASS real InnoDB integration: $passed; WordPress API shims, not full WordPress runtime\n";

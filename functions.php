@@ -1,6 +1,8 @@
 <?php
 // v2026-05-16
 require_once __DIR__ . '/shop-public-meta.php';
+require_once __DIR__ . '/official-facts-rest.php';
+require_once __DIR__ . '/shop-price-booking-public.php';
 /**
  * =====================================================
  * CSS分割読み込み（安全版）

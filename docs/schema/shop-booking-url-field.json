@@ -1,0 +1,14 @@
+{
+  "key": "field_escomi_shop_booking_url_v1",
+  "label": "Web予約URL",
+  "name": "shop_booking_url",
+  "type": "url",
+  "instructions": "公式確認済みのWeb予約URL。予約目的の証拠は公式データ補完フローで確認する。電話・LINE・予約方法の文章とは別項目。",
+  "required": 0,
+  "conditional_logic": 0,
+  "wrapper": {"width": "", "class": "", "id": ""},
+  "default_value": "",
+  "placeholder": "https://",
+  "parent": "group_6961cc89d86dc",
+  "menu_order": 99
+}

@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {buildWriterPayload,productionNormalizeShop} from './provenance.mjs';
+const runner=fileURLToPath(new URL('./foundation-integration.runner.php',import.meta.url));
+const php=(mode,input)=>{const r=spawnSync('php',[runner,mode],{input:input?JSON.stringify(input):undefined,encoding:'utf8'});assert.equal(r.status,0,r.stderr);return JSON.parse(r.stdout);};
+const evidence=value=>({value,sourceUrl:'https://official.example/menu',sourceType:'official-site',observedAt:'2026-09-13',reviewedAt:'2026-09-13',reviewStatus:'reviewed'});
+test('real public reader payload crosses PHP writer with hidden physical price archived',()=>{
+ const snapshot=php('snapshot');
+ const acf={price_90:'14000',shop_line:'https://line.me/R/ti/p/shop',shop_tel:'080-1234-5678',shop_fact_provenance:[]};
+ const shop=productionNormalizeShop({id:1,slug:'shop-one',title:{rendered:'Fixture'},acf,area:[13]});
+ const updates={price_90:'15000',shop_booking_url:'https://booking.example/reserve?shop=one&course=90'};
+ const proof={price_90:{...evidence(updates.price_90),duration_minutes:90,price_type:'EXACT_STANDARD'},shop_booking_url:{...evidence(updates.shop_booking_url),booking_purpose:'reservation',linked_from_url:'https://official.example/menu'},shop_tel:evidence(acf.shop_tel),shop_line:evidence(acf.shop_line)};
+ const p=buildWriterPayload({shop,snapshot,updates,evidence:proof,batchId:'11111111-1111-4111-8111-111111111111',asOf:'2026-09-13'});
+ assert.equal(p.canonical.price,'[{"durationMinutes":90,"priceYen":15000}]');
+ const result=php('apply',p);assert.equal(result.state,'APPLIED',JSON.stringify(result));
+ assert.equal(result.snapshot.fields.price_60.value,'9000');
+ assert.equal(result.snapshot.fields.shop_booking_url.value,updates.shop_booking_url);
+ assert.deepEqual(result.snapshot.fields.shop_fact_provenance.value,p.provenance);
+ const stale=structuredClone(p);stale.expected.fields.price_90.value='13000';
+ assert.equal(php('apply',stale).error,'snapshot_conflict');
+ const wrong=structuredClone(p);wrong.canonical.price='[]';
+ assert.equal(php('apply',wrong).error,'provenance_hash_or_date');
+});
