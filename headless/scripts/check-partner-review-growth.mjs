@@ -17,6 +17,10 @@ function verifySourceContract() {
   const localContract = read("supabase/tests/verify_partner_review_growth.sql");
   const provisioning = read("headless/lib/partner/provisioning-service.ts");
   const repository = read("headless/lib/supabase/partner-workspace.ts");
+  const reviewRoute = read("headless/app/api/dashboard/partners/review/route.ts");
+  const qrRoute = read("headless/app/api/dashboard/partners/qr/route.ts");
+  const dashboardPage = read("headless/app/dashboard/partners/page.tsx");
+  const dashboardWorkspace = read("headless/components/dashboard/DashboardPartnerWorkspace.tsx");
 
   for (const functionName of [
     "review_partner_registration",
@@ -62,6 +66,37 @@ function verifySourceContract() {
   assert.match(localContract, /PII event payload/i);
   assert.match(localContract, /null decision must reject without changes/i);
   assert.match(localContract, /non-shop_confirmed workspace must reject without changes/i);
+
+  assert.match(reviewRoute, /authorizeDashboardRequest/);
+  assert.match(reviewRoute, /request\.headers\.get\("authorization"\)/);
+  assert.match(reviewRoute, /reviewPartnerRegistration/);
+  assert.match(reviewRoute, /partnerReviewGrowthRepository/);
+  assert.match(reviewRoute, /Cache-Control[\s\S]*no-store/);
+  assert.match(reviewRoute, /X-Robots-Tag[\s\S]*noindex, nofollow/);
+
+  assert.match(qrRoute, /authorizeDashboardRequest/);
+  assert.match(qrRoute, /request\.headers\.get\("authorization"\)/);
+  assert.match(qrRoute, /openPartnerReviewCampaign/);
+  assert.match(qrRoute, /partnerReviewGrowthRepository/);
+  assert.match(qrRoute, /image\/svg\+xml/);
+  assert.match(qrRoute, /Cache-Control[\s\S]*private, no-store/);
+  assert.match(qrRoute, /X-Robots-Tag[\s\S]*noindex, nofollow/);
+  assert.match(qrRoute, /\/r\/\$\{token\}\//);
+
+  assert.match(dashboardPage, /listPartnerRegistrationReviews/);
+  assert.match(dashboardPage, /partnerReviewGrowthRepository/);
+  assert.match(dashboardPage, /reviews\.map/);
+  assert.doesNotMatch(dashboardPage, /contactName|contactEmail|confirmationDetails/);
+  assert.match(dashboardWorkspace, /pendingReviews/);
+  assert.match(dashboardWorkspace, /review\.status === "received"/);
+  assert.match(dashboardWorkspace, /Free Official Partnerとして承認/);
+  assert.match(dashboardWorkspace, /却下/);
+  assert.match(dashboardWorkspace, /率直な口コミにご協力ください/);
+  assert.match(dashboardWorkspace, /counter_qr/);
+  assert.match(dashboardWorkspace, /line_after_visit/);
+  assert.match(dashboardWorkspace, /shop_website/);
+  assert.match(dashboardWorkspace, /eskomi_shop_page/);
+  assert.doesNotMatch(dashboardWorkspace, /SUPABASE_SERVICE_ROLE_KEY|process\.env|contactName|contactEmail|confirmationDetails/);
 }
 
 function verifyLocalSupabaseContract() {

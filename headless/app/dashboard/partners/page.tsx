@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { DashboardPartnerWorkspace } from "@/components/dashboard/DashboardPartnerWorkspace";
+import { listPartnerRegistrationReviews } from "@/lib/partner/provisioning-service";
 import { pageMetadata } from "@/lib/seo";
+import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
 import { getAllShopsForListing } from "@/lib/wp/shops";
 
 export const metadata: Metadata = pageMetadata({
@@ -11,6 +13,21 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function DashboardPartnersPage() {
-  const shops = await getAllShopsForListing();
-  return <DashboardPartnerWorkspace shops={shops.map((shop) => ({ id: shop.id, slug: shop.slug, title: shop.title }))} />;
+  const [shops, reviews] = await Promise.all([
+    getAllShopsForListing(),
+    listPartnerRegistrationReviews(partnerReviewGrowthRepository),
+  ]);
+  return (
+    <DashboardPartnerWorkspace
+      shops={shops.map((shop) => ({ id: shop.id, slug: shop.slug, title: shop.title }))}
+      reviews={reviews.map((review) => ({
+        submissionId: review.submissionId,
+        status: review.status,
+        createdAt: review.createdAt,
+        workspaceState: review.workspaceState,
+        shop: review.shop,
+        campaigns: review.campaigns,
+      }))}
+    />
+  );
 }
