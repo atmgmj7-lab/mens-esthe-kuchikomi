@@ -1,5 +1,12 @@
 # 進行ログ
 
+### 2026-09-20 Partner review-growth Task 3 — local implementation complete, production NOT performed
+
+- Public `/r/{opaque-token}/` resolves only an active campaign through the existing server-only service/repository and returns no-store/noindex 404 or a 307 to the existing canonical `/reviews/submit/?shop={slug}&campaign={token}` form. The review page repeats server-side campaign/canonical-Shop ID+slug matching; a valid campaign/shop mismatch denies the form and cannot submit to WordPress. Invalid tokens retain the ordinary unattributed review path.
+- The submit route preserves existing validation and WordPress `pending` moderation. It records a private conversion only after a successful WordPress response has a positive ID, using token/shop ID/WordPress review ID only; Partner analytics receives no review body, nickname/contact, source URL, or raw request payload.
+- Exact local migration order is Foundation `20260919000000_free_partner_foundation.sql` then growth `20260920000000_partner_review_growth.sql` via `supabase db reset`; run source and local-Supabase contracts before typecheck/lint/build/headless changed-flow QA. Task 3 introduces no migration. **Production migration, remote Supabase verification, WordPress test submission, push, deployment, and production QA are NOT performed.**
+- Future production order, read-only verification SQL, and failure/rollback boundary (no down migration, private deletion, WordPress deletion, or replay) are in `docs/superpowers/specs/2026-09-19-eskomi-free-official-partner-foundation-design.md` under `PARTNER-03`.
+
 ### 2026-09-19 Free Official Partner foundation
 
 - 設計とローカル実装の現在地は `docs/superpowers/specs/2026-09-19-eskomi-free-official-partner-foundation-design.md` を参照。Partner workflowは private schema に閉じ、WordPress公開正本・既存canonical店舗URL・SEO契約を変更しない。

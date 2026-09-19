@@ -43,6 +43,7 @@
     "test:free-partner-local-supabase": "node scripts/check-free-partner-local-supabase.mjs",
     "test:partner-review-growth": "node scripts/check-partner-review-growth.mjs",
     "test:partner-review-growth-local-supabase": "node scripts/check-partner-review-growth.mjs --local-supabase",
+    "qa:partner-review-growth": "node scripts/check-partner-review-growth-browser.mjs",
     "test:shop-route-param": "node scripts/check-shop-route-param.mjs",
     "test:shop-detail-view-model": "node scripts/check-shop-detail-view-model.mjs",
     "test:shop-detail-seo-asset": "node scripts/check-shop-detail-seo-asset-contract.mjs",

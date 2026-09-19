@@ -19,6 +19,11 @@ function verifySourceContract() {
   const repository = read("headless/lib/supabase/partner-workspace.ts");
   const reviewRoute = read("headless/app/api/dashboard/partners/review/route.ts");
   const qrRoute = read("headless/app/api/dashboard/partners/qr/route.ts");
+  const publicCampaignRoute = read("headless/app/r/[token]/route.ts");
+  const reviewSubmitPage = read("headless/app/reviews/submit/page.tsx");
+  const reviewSubmitForm = read("headless/components/reviews/ReviewSubmitForm.tsx");
+  const reviewSubmitRoute = read("headless/app/api/reviews/submit/route.ts");
+  const packageJson = JSON.parse(read("headless/package.json"));
   const dashboardPage = read("headless/app/dashboard/partners/page.tsx");
   const dashboardWorkspace = read("headless/components/dashboard/DashboardPartnerWorkspace.tsx");
 
@@ -82,6 +87,30 @@ function verifySourceContract() {
   assert.match(qrRoute, /Cache-Control[\s\S]*private, no-store/);
   assert.match(qrRoute, /X-Robots-Tag[\s\S]*noindex, nofollow/);
   assert.match(qrRoute, /\/r\/\$\{token\}\//);
+
+  assert.match(publicCampaignRoute, /openPartnerReviewCampaign/);
+  assert.match(publicCampaignRoute, /partnerReviewGrowthRepository/);
+  assert.match(publicCampaignRoute, /NextResponse\.redirect\([^,]+,\s*307\)/);
+  assert.match(publicCampaignRoute, /\/reviews\/submit\//);
+  assert.match(publicCampaignRoute, /searchParams\.set\("shop"/);
+  assert.match(publicCampaignRoute, /searchParams\.set\("campaign"/);
+  assert.match(publicCampaignRoute, /Cache-Control[\s\S]*no-store/);
+  assert.match(publicCampaignRoute, /X-Robots-Tag[\s\S]*noindex, nofollow/);
+  assert.doesNotMatch(publicCampaignRoute, /SUPABASE_SERVICE_ROLE_KEY|rest\/v1\//);
+
+  assert.match(reviewSubmitPage, /openPartnerReviewCampaign/);
+  assert.match(reviewSubmitPage, /partnerReviewGrowthRepository/);
+  assert.match(reviewSubmitPage, /campaignShop\.id !== candidate\.id/);
+  assert.match(reviewSubmitPage, /キャンペーンの投稿先店舗を確認できません/);
+  assert.match(reviewSubmitForm, /campaignToken\?: string/);
+  assert.match(reviewSubmitForm, /campaignToken,/);
+  assert.match(reviewSubmitForm, /campaignToken,/);
+  assert.match(reviewSubmitRoute, /openPartnerReviewCampaign/);
+  assert.match(reviewSubmitRoute, /recordPartnerReviewCampaignSubmission/);
+  assert.match(reviewSubmitRoute, /partnerReviewGrowthRepository/);
+  assert.match(reviewSubmitRoute, /campaign\.id !== shop\.id/);
+  assert.match(reviewSubmitRoute, /result\.ok && typeof wordpressReviewId === "number" && Number\.isSafeInteger\(wordpressReviewId\) && wordpressReviewId > 0/);
+  assert.ok(packageJson.scripts["qa:partner-review-growth"].includes("check-partner-review-growth-browser.mjs"));
 
   assert.match(dashboardPage, /listPartnerRegistrationReviews/);
   assert.match(dashboardPage, /partnerReviewGrowthRepository/);

@@ -6,7 +6,10 @@ import {
   normalizeReviewSubmitPrefillIdentifier,
   resolveReviewSubmitPrefill,
 } from "@/lib/review-submit-prefill";
+import { normalizePublicShopSlug } from "@/lib/shop-slug";
+import { openPartnerReviewCampaign } from "@/lib/partner/provisioning-service";
 import { pageMetadata } from "@/lib/seo";
+import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
 import { getAllShopsForListing, getShopBySlug } from "@/lib/wp/shops";
 
 export const metadata: Metadata = pageMetadata({
@@ -23,7 +26,7 @@ export const metadata: Metadata = pageMetadata({
 export const instant = false;
 
 type Props = {
-  searchParams: Promise<{ shop?: string | string[]; area?: string | string[] }>;
+  searchParams: Promise<{ shop?: string | string[]; area?: string | string[]; campaign?: string | string[] }>;
 };
 
 export default async function ReviewSubmitPage({ searchParams }: Props) {
@@ -35,7 +38,29 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
   const areaContext = normalizeReviewHubQuery({ area: params.area }).area;
   const identifier = normalizeReviewSubmitPrefillIdentifier(params.shop);
   const candidate = identifier ? await getShopBySlug(identifier) : null;
+  const campaignToken = typeof params.campaign === "string" ? params.campaign.trim() : "";
+  const campaignShop = campaignToken
+    ? await openPartnerReviewCampaign(campaignToken, partnerReviewGrowthRepository)
+    : null;
+  const campaignMismatch = campaignShop && (!candidate
+    || campaignShop.id !== candidate.id
+    || normalizePublicShopSlug(campaignShop.slug) !== normalizePublicShopSlug(candidate.slug));
+
+  if (campaignMismatch) {
+    return (
+      <main id="main_content" className="l-mainContent l-article">
+        <div className="l-mainContent__inner hl-page-inner">
+          <section className="hl-contact-section">
+            <h1 className="hl-contact-heading">口コミを投稿する</h1>
+            <p className="hl-contact-error" role="alert">キャンペーンの投稿先店舗を確認できません。</p>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
   const shop = resolveReviewSubmitPrefill(params.shop, candidate ? [candidate] : []);
+  const validCampaignToken = campaignShop && shop ? campaignToken : undefined;
 
   if (!shop) {
     const allShops = await getAllShopsForListing();
@@ -81,7 +106,7 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
           <p className="hl-review-form__lead">
             実際に利用した方の口コミを募集しています。投稿内容は運営側で確認後、掲載されます。
           </p>
-          <ReviewSubmitForm shopSlug={shop.slug} shopTitle={shop.title} />
+          <ReviewSubmitForm shopSlug={shop.slug} shopTitle={shop.title} campaignToken={validCampaignToken} />
         </section>
       </div>
     </main>

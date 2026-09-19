@@ -13,10 +13,12 @@ const OPTIONAL_RATINGS = [
 
 export function ReviewSubmitForm({
   shopSlug,
-  shopTitle
+  shopTitle,
+  campaignToken,
 }: {
   shopSlug: string;
   shopTitle: string;
+  campaignToken?: string;
 }) {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -47,6 +49,7 @@ export function ReviewSubmitForm({
       revisitIntent: String(formData.get("revisitIntent") || ""),
       reviewBody: String(formData.get("reviewBody") || ""),
       website: String(formData.get("website") || ""),
+      campaignToken,
       sourceUrl: typeof window !== "undefined" ? window.location.href : ""
     };
 

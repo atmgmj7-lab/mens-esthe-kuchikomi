@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkReviewRateLimit } from "@/lib/review-rate-limit";
 import { validateReviewPayload } from "@/lib/review-validation";
+import {
+  openPartnerReviewCampaign,
+  recordPartnerReviewCampaignSubmission,
+} from "@/lib/partner/provisioning-service";
+import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
 import { submitReviewToWordPress } from "@/lib/wp/review-submit";
 import { getShopBySlug } from "@/lib/wp/shops";
 
@@ -10,6 +15,12 @@ function getClientIp(request: NextRequest): string {
     return forwarded.split(",")[0]?.trim() || "unknown";
   }
   return request.headers.get("x-real-ip") || "unknown";
+}
+
+function campaignTokenFrom(body: unknown): string {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return "";
+  const token = (body as Record<string, unknown>).campaignToken;
+  return typeof token === "string" && token.length <= 200 ? token.trim() : "";
 }
 
 export async function POST(request: NextRequest) {
@@ -49,6 +60,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const campaignToken = campaignTokenFrom(body);
+  const campaign = campaignToken
+    ? await openPartnerReviewCampaign(campaignToken, partnerReviewGrowthRepository)
+    : null;
+  if (campaign && campaign.id !== shop.id) {
+    return NextResponse.json(
+      { ok: false, message: "キャンペーンの投稿先店舗を確認できません。" },
+      { status: 400 },
+    );
+  }
+
   const result = await submitReviewToWordPress({
     ...validation.data,
     shopId: shop.id,
@@ -57,6 +79,14 @@ export async function POST(request: NextRequest) {
 
   if (!result.ok) {
     return NextResponse.json({ ok: false, message: result.error }, { status: 503 });
+  }
+
+  const wordpressReviewId = result.id;
+  if (campaign && result.ok && typeof wordpressReviewId === "number" && Number.isSafeInteger(wordpressReviewId) && wordpressReviewId > 0) {
+    await recordPartnerReviewCampaignSubmission(
+      { token: campaignToken, shopId: shop.id, wordpressReviewId },
+      partnerReviewGrowthRepository,
+    );
   }
 
   return NextResponse.json({
