@@ -59,7 +59,7 @@ declare
   v_workspace private.partner_workspaces%rowtype;
   v_next_state private.partner_workspace_state;
 begin
-  if p_decision not in ('approved', 'rejected') then
+  if p_decision is null or p_decision not in ('approved', 'rejected') then
     raise exception 'invalid partner registration decision';
   end if;
   if p_actor_label is null or char_length(btrim(p_actor_label)) not between 1 and 120
@@ -90,6 +90,9 @@ begin
   if v_submission.status not in ('received', 'under_review') then
     raise exception 'partner registration submission has already been reviewed';
   end if;
+  if v_workspace.state <> 'shop_confirmed' then
+    raise exception 'partner registration decision requires a shop_confirmed workspace';
+  end if;
 
   if p_decision = 'rejected' then
     update private.partner_registration_submissions
@@ -102,9 +105,6 @@ begin
     return;
   end if;
 
-  if v_workspace.state <> 'shop_confirmed' then
-    raise exception 'approved partner registration requires a shop_confirmed workspace';
-  end if;
   v_next_state := 'free_official_partner';
 
   update private.partner_registration_submissions

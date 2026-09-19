@@ -55,6 +55,22 @@ begin
     'review transaction contract', 'https://mens-esthe-kuchikomi.com/partner/register/', true
   );
   select id into v_submission_id from private.partner_registration_submissions where workspace_id = v_workspace_id;
+  select count(*) into v_history from private.partner_state_history where workspace_id = v_workspace_id;
+
+  begin
+    perform api.review_partner_registration(v_submission_id, null, 'contract operator', 'null decision');
+    raise exception 'null decision unexpectedly succeeded';
+  exception when others then
+    if sqlerrm <> 'invalid partner registration decision' then
+      raise;
+    end if;
+  end;
+  if (select state::text from private.partner_workspaces where id = v_workspace_id) <> 'shop_confirmed'
+    or (select status from private.partner_registration_submissions where id = v_submission_id) <> 'received'
+    or (select count(*) from private.partner_state_history where workspace_id = v_workspace_id) <> v_history
+    or exists (select 1 from private.partner_review_campaigns where workspace_id = v_workspace_id) then
+    raise exception 'null decision must reject without changes';
+  end if;
 
   select state, status into v_state, v_status
   from api.review_partner_registration(v_submission_id, 'approved', 'contract operator', 'approved for contract');
@@ -73,6 +89,27 @@ begin
   if (select count(*) from private.partner_state_history where workspace_id = v_workspace_id) <> v_history
     or (select count(*) from private.partner_review_campaigns where workspace_id = v_workspace_id) <> 4 then
     raise exception 'same-decision retry must not add state history or campaigns';
+  end if;
+
+  insert into private.partner_registration_submissions (
+    workspace_id, contact_name, contact_role, contact_email, confirmation_details, source_url, consent_terms
+  ) values (
+    v_workspace_id, 'Late Tester', 'staff', 'late@example.invalid',
+    'must remain undecided after workspace activation', 'https://mens-esthe-kuchikomi.com/partner/register/', true
+  ) returning id into v_submission_id;
+  begin
+    perform api.review_partner_registration(v_submission_id, 'rejected', 'contract operator', 'late rejection');
+    raise exception 'non-shop_confirmed workspace decision unexpectedly succeeded';
+  exception when others then
+    if sqlerrm <> 'partner registration decision requires a shop_confirmed workspace' then
+      raise;
+    end if;
+  end;
+  if (select state::text from private.partner_workspaces where id = v_workspace_id) <> 'free_official_partner'
+    or (select status from private.partner_registration_submissions where id = v_submission_id) <> 'received'
+    or (select reviewed_at from private.partner_registration_submissions where id = v_submission_id) is not null
+    or (select count(*) from private.partner_review_campaigns where workspace_id = v_workspace_id) <> 4 then
+    raise exception 'non-shop_confirmed workspace must reject without changes';
   end if;
 
   select token into v_token from private.partner_review_campaigns where workspace_id = v_workspace_id order by channel limit 1;

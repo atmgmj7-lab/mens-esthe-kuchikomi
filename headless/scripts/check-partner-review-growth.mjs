@@ -33,6 +33,8 @@ function verifySourceContract() {
   assert.match(migration, /create table private\.partner_review_campaign_submissions/i);
   assert.match(migration, /unique \(workspace_id, channel\)/i);
   assert.match(migration, /unique \(wp_review_id\)/i);
+  assert.match(migration, /p_decision is null or p_decision not in \('approved', 'rejected'\)/i);
+  assert.match(migration, /partner registration decision requires a shop_confirmed workspace/i);
   assert.match(migration, /security invoker/i);
   assert.doesNotMatch(migration, /security definer/i);
   assert.doesNotMatch(migration, /grant\s+(?:all(?:\s+privileges)?|select|insert|update|delete)[^;]*\bprivate\.[^;]*\b(?:public|anon|authenticated)\b/i);
@@ -58,6 +60,8 @@ function verifySourceContract() {
   assert.match(localContract, /inactive campaign resolution/i);
   assert.match(localContract, /duplicate conversion/i);
   assert.match(localContract, /PII event payload/i);
+  assert.match(localContract, /null decision must reject without changes/i);
+  assert.match(localContract, /non-shop_confirmed workspace must reject without changes/i);
 }
 
 function verifyLocalSupabaseContract() {

@@ -40,3 +40,11 @@ git diff --check
 ## Remaining verification boundary
 
 Local migration application and local Supabase behavior are verified. Installed production Supabase migration state, remote privileges, WordPress review creation/identity, public campaign routing, dashboard authorization/UI, QR rendering, deployment, and production behavior are **NOT_VERIFIED** and remain outside Task 1.
+
+## Review fix round: I1 and I2
+
+- I1 fixed: `private.review_partner_registration` now explicitly evaluates `p_decision is null` before the allowed-decision membership test. PostgreSQL three-valued NULL no longer falls through to the approval branch.
+- I2 fixed with the smallest plan-consistent guard: after preserving an already-decided same-decision retry, every pending decision requires the workspace to still be `shop_confirmed`. Thus a later pending submission on an already activated workspace cannot be approved or rejected through this transaction. Same-decision retries on an already approved/rejected submission remain idempotent.
+- RED: after extending the focused source contract, `npm run test:partner-review-growth` exited 1 because the migration lacked the explicit NULL-decision guard.
+- GREEN: after the migration guard, the source contract passed. A fresh local-only `supabase start` / `supabase db reset` followed by `npm run test:partner-review-growth-local-supabase` passed the two new rollback assertions: NULL decision rejects without state/submission/history/campaign changes, and a rejection attempt for a pending submission on a `free_official_partner` workspace rejects without changing that submission, workspace, or campaign count.
+- Covering regression commands also passed: growth source/local contracts, Foundation source/local contracts, `npm run typecheck`, `npm run lint -- --quiet`, `supabase db lint --local`, and `git diff --check`.
