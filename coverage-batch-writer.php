@@ -33,7 +33,7 @@ function escomi_coverage_canonicalize($value)
         return $value;
     }
 
-    if (array_is_list($value)) {
+    if (escomi_array_is_list_compat($value)) {
         return array_map('escomi_coverage_canonicalize', $value);
     }
 

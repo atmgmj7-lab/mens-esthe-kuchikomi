@@ -6,6 +6,22 @@ mkdir($root, 0700);
 function check(bool $condition): void { if (!$condition) throw new RuntimeException('Check failed'); }
 function expect_fail(callable $fn): void { try { $fn(); } catch (RuntimeException $e) { return; } throw new RuntimeException('Expected rejection'); }
 function fixture(string $root, string $bytes): string { $p=$root.'/fixture.json'; file_put_contents($p,$bytes); chmod($p,0600); clearstatcache(); return $p; }
+$listVectors = [
+ [[], true],
+ [[0 => 'a'], true],
+ [[0 => 'a', 1 => 'b'], true],
+ [[1 => 'a'], false],
+ [[0 => 'a', 2 => 'b'], false],
+ [[-1 => 'a'], false],
+ [['name' => 'a'], false],
+ [[0 => 'a', 'name' => 'b'], false],
+ [['0' => 'a', 1 => 'b'], true],
+];
+foreach ($listVectors as [$value, $expected]) {
+ check(escomi_array_is_list_fallback($value) === $expected);
+ check(escomi_array_is_list_compat($value) === $expected);
+ if (function_exists('array_is_list')) { check(array_is_list($value) === escomi_array_is_list_fallback($value)); }
+}
 try {
  expect_fail(fn()=>escomi_coverage_private_contracts($root));
  $bytes='{"batch_id":"synthetic","schema_version":1,"items":[]}';

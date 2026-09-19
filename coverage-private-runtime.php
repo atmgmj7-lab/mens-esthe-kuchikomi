@@ -17,6 +17,23 @@ function escomi_coverage_private_reject(): void
     throw new RuntimeException('coverage_private_invalid');
 }
 
+/** PHP 8.0 fallback with the same key-order contract as array_is_list(). */
+function escomi_array_is_list_fallback(array $value): bool
+{
+    $expected = 0;
+    foreach ($value as $key => $_) {
+        if ($key !== $expected++) { return false; }
+    }
+    return true;
+}
+
+function escomi_array_is_list_compat(array $value): bool
+{
+    return function_exists('array_is_list')
+        ? array_is_list($value)
+        : escomi_array_is_list_fallback($value);
+}
+
 /** Reject duplicate object keys, including escaped equivalents, at every depth. */
 function escomi_coverage_private_unique_keys(string $json): void
 {
@@ -122,7 +139,7 @@ function escomi_coverage_private_contracts(?string $root = null): array
 {
     $data = escomi_coverage_private_read_json($root ?? escomi_coverage_private_root(), 'recovery-contracts.json');
     escomi_coverage_private_exact_keys($data, ['version', 'recoveryContracts']);
-    if ($data['version'] !== 1 || !is_array($data['recoveryContracts']) || !array_is_list($data['recoveryContracts']) || count($data['recoveryContracts']) !== 3) { escomi_coverage_private_reject(); }
+    if ($data['version'] !== 1 || !is_array($data['recoveryContracts']) || !escomi_array_is_list_compat($data['recoveryContracts']) || count($data['recoveryContracts']) !== 3) { escomi_coverage_private_reject(); }
     $schemas = [
         'retry_ready' => ['update', ['failure_audit_id', 'area_terms', 'provenance_exists']],
         'applied_create_relation' => ['create', ['applied_audit_id', 'required_area_terms', 'allowed_derived_area_terms']],
@@ -146,7 +163,7 @@ function escomi_coverage_private_contracts(?string $root = null): array
             elseif ($key === 'failure_audit_post_id') { if ($value !== null && (!is_int($value) || $value <= 0)) { escomi_coverage_private_reject(); } }
             elseif (str_ends_with($key, '_id')) { if (!is_int($value) || $value <= 0) { escomi_coverage_private_reject(); } }
             elseif (str_ends_with($key, '_terms')) {
-                if (!is_array($value) || !array_is_list($value) || !$value || count(array_unique($value, SORT_REGULAR)) !== count($value)) { escomi_coverage_private_reject(); }
+                if (!is_array($value) || !escomi_array_is_list_compat($value) || !$value || count(array_unique($value, SORT_REGULAR)) !== count($value)) { escomi_coverage_private_reject(); }
                 foreach ($value as $term) { if (!is_int($term) || $term <= 0) { escomi_coverage_private_reject(); } }
             } elseif ($key === 'provenance_value') { if (!is_array($value) || $value !== []) { escomi_coverage_private_reject(); } }
             elseif (!is_string($value) || $value === '') { escomi_coverage_private_reject(); }
