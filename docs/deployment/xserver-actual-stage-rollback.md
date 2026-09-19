@@ -14,10 +14,10 @@ This deployment binds rollback evidence to the exact `STAGE_DIR` produced by the
 
 ## Failure boundary
 
-Connectivity, preactivation, rollback capture, or rollback validation failure occurs before the first theme upload. Such failure may leave only a private diagnostic staging bundle; it cannot alter a public theme file. The exact deployment manifest is kept inside the completed private bundle. Coverage recovery configuration and operational manifests remain excluded from the public stage and from this code rollback bundle.
+Connectivity, preactivation, rollback capture, or rollback validation failure occurs before the first theme upload. Capture cleanup removes only the exact incomplete private staging directory and manifest for that deployment identity, so a failed preupload gate leaves the server filesystem as it was before the run. The exact deployment manifest is kept inside a successfully completed private bundle. Coverage recovery configuration and operational manifests remain excluded from the public stage and from this code rollback bundle. A static workflow concurrency group serializes Xserver production deployments without cancelling an active run.
 
 ## Separately authorized rollback
 
-`scripts/xserver-rollback-from-snapshot.sh` requires the explicit `--execute-approved-rollback` token, exact deployment identity, and exact private bundle path. Before changing any file, it validates the bundle and verifies that every current target still matches the deployed SHA-256 and size. It restores previously existing files, removes only files explicitly recorded `ABSENT`, preserves unlisted files, and restores `functions.php` last. It does not use `rsync --delete` or directory-wide deletion.
+`scripts/xserver-rollback-from-snapshot.sh` requires the explicit `--execute-approved-rollback` token, exact deployment identity, and exact private bundle path. Before changing any file, it validates the bundle and verifies that every current target matches either the deployed state or its captured original/absence state, allowing safe recovery from a partial deploy. It restores previously existing dependencies first, restores `functions.php`, then removes only files explicitly recorded `ABSENT`. It preserves unlisted files and does not use `rsync --delete` or directory-wide target deletion.
 
 This document authorizes no production rollback. A rollback remains a separate production operation requiring its own approval.

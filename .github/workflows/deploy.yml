@@ -4,6 +4,10 @@
 
 name: Deploy to Xserver
 
+concurrency:
+  group: xserver-production-deploy
+  cancel-in-progress: false
+
 on:
   push:
     branches:

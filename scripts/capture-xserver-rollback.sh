@@ -35,6 +35,9 @@ STAGING_DIR="$ROLLBACK_ROOT/.staging-$DEPLOYMENT_ID"
 
 cleanup() {
   rm -f "$MANIFEST"
+  if [[ -n "${STAGING_DIR:-}" && "$STAGING_DIR" == "$ROLLBACK_ROOT/.staging-$DEPLOYMENT_ID" && -d "$STAGING_DIR" && ! -L "$STAGING_DIR" ]]; then
+    find "$STAGING_DIR" -depth -delete
+  fi
 }
 trap cleanup EXIT
 

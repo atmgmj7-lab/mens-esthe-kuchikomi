@@ -168,34 +168,41 @@ for ((index=0; index<${#paths[@]}; index++)); do
   fi
 done
 
-restore_one() {
+restore_existing_one() {
   local index="$1"
   local relative="${paths[$index]}"
   local target="$THEME_ROOT/$relative"
   if [[ "${ROLLBACK_ACTION[$index]}" == "NOOP" ]]; then
     return
   fi
+  [[ "${ROLLBACK_ACTION[$index]}" == "RESTORE" ]] || return 0
   [[ -f "$target" && ! -L "$target" ]] || fail "target changed during rollback"
   [[ "$(sha256sum "$target" | awk '{print $1}')" == "${DEPLOY_SHA[$index]}" ]] || fail "target changed during rollback"
-  if [[ "${ROLLBACK_ACTION[$index]}" == "RESTORE" ]]; then
-    local temporary="$target.escomi-rollback-$DEPLOYMENT_ID"
-    [[ ! -e "$temporary" ]] || fail "rollback temporary path already exists"
-    cp "$BUNDLE_DIR/files/$relative" "$temporary"
-    chmod "${BEFORE_MODE[$index]}" "$temporary"
-    mv "$temporary" "$target"
-  elif [[ "${ROLLBACK_ACTION[$index]}" == "REMOVE" ]]; then
-    rm "$target"
-  else
-    fail "rollback action is invalid"
-  fi
+  local temporary="$target.escomi-rollback-$DEPLOYMENT_ID"
+  [[ ! -e "$temporary" ]] || fail "rollback temporary path already exists"
+  cp "$BUNDLE_DIR/files/$relative" "$temporary"
+  chmod "${BEFORE_MODE[$index]}" "$temporary"
+  mv "$temporary" "$target"
+}
+
+remove_created_one() {
+  local index="$1"
+  local relative="${paths[$index]}"
+  local target="$THEME_ROOT/$relative"
+  [[ "${ROLLBACK_ACTION[$index]}" == "REMOVE" ]] || return 0
+  [[ -f "$target" && ! -L "$target" ]] || fail "target changed during rollback"
+  [[ "$(sha256sum "$target" | awk '{print $1}')" == "${DEPLOY_SHA[$index]}" ]] || fail "target changed during rollback"
+  rm "$target"
 }
 
 functions_index=""
+# Restore old dependencies and other pre-existing files first.
 for ((index=0; index<${#paths[@]}; index++)); do
   relative="${paths[$index]}"
   [[ "$relative" == "functions.php" ]] && continue
-  restore_one "$index"
+  restore_existing_one "$index"
 done
+# Restore the previous functions.php only after its old dependencies are ready.
 for ((index=0; index<${#paths[@]}; index++)); do
   if [[ "${paths[$index]}" == "functions.php" ]]; then
     functions_index="$index"
@@ -203,8 +210,12 @@ for ((index=0; index<${#paths[@]}; index++)); do
   fi
 done
 if [[ -n "$functions_index" ]]; then
-  restore_one "$functions_index"
+  restore_existing_one "$functions_index"
 fi
+# Only the old functions.php is now active; remove files recorded ABSENT before.
+for ((index=0; index<${#paths[@]}; index++)); do
+  remove_created_one "$index"
+done
 
 for ((index=0; index<${#paths[@]}; index++)); do
   relative="${paths[$index]}"

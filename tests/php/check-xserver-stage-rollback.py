@@ -157,6 +157,25 @@ class StageRollback(unittest.TestCase):
                 covered.append(state_paths)
         self.assertNotEqual(covered[0], covered[1])
 
+    def test_failed_capture_removes_only_its_private_staging_state(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            _, _, theme, rollback_root, manifest = self.layout(root, "build-a")
+            original = {p.relative_to(theme): p.read_bytes() for p in theme.rglob("*") if p.is_file()}
+            rows = manifest.read_text().splitlines()
+            rows[1] = "invalid-hash\t1\tbroken.txt"
+            manifest.write_text("\n".join(rows) + "\n")
+            result = run(
+                "bash", str(CAPTURE), str(theme), str(rollback_root),
+                DEPLOYMENT_ID, str(manifest), check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(manifest.exists())
+            self.assertFalse((rollback_root / f".staging-{DEPLOYMENT_ID}").exists())
+            self.assertFalse((rollback_root / DEPLOYMENT_ID).exists())
+            current = {p.relative_to(theme): p.read_bytes() for p in theme.rglob("*") if p.is_file()}
+            self.assertEqual(current, original)
+
     def test_workflow_captures_after_preactivation_before_first_theme_upload(self):
         workflow = (ROOT / ".github/workflows/deploy.yml").read_text()
         deploy = workflow[workflow.index("      - name: Verify remote theme directory and deploy"):]
@@ -169,6 +188,19 @@ class StageRollback(unittest.TestCase):
         self.assertNotIn("generateBuildId", (ROOT / "dashboard/next.config.ts").read_text())
         self.assertNotIn("--delete", deploy)
         self.assertNotIn("rm -rf", (ROOT / "scripts/xserver-rollback-from-snapshot.sh").read_text())
+
+    def test_rollback_restores_functions_before_removing_created_dependencies(self):
+        script = (ROOT / "scripts/xserver-rollback-from-snapshot.sh").read_text()
+        restore_dependencies = script.index("# Restore old dependencies")
+        restore_functions = script.index("# Restore the previous functions.php")
+        remove_created = script.index("# Only the old functions.php is now active")
+        self.assertLess(restore_dependencies, restore_functions)
+        self.assertLess(restore_functions, remove_created)
+
+    def test_workflow_serializes_xserver_deployments(self):
+        workflow = (ROOT / ".github/workflows/deploy.yml").read_text()
+        self.assertIn("group: xserver-production-deploy", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
 
 
 if __name__ == "__main__":
