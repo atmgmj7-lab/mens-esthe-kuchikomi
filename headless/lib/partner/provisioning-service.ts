@@ -23,6 +23,43 @@ export type PartnerWorkspace = {
   initialized: boolean;
 };
 
+export const PARTNER_REVIEW_CAMPAIGN_CHANNELS = [
+  "counter_qr",
+  "line_after_visit",
+  "shop_website",
+  "eskomi_shop_page",
+] as const;
+
+export type PartnerReviewCampaignChannel = (typeof PARTNER_REVIEW_CAMPAIGN_CHANNELS)[number];
+
+export type PartnerReviewCampaign = {
+  id: string;
+  channel: PartnerReviewCampaignChannel;
+  token: string;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type PartnerRegistrationReviewStatus = "received" | "under_review" | "approved" | "rejected";
+
+export type PartnerRegistrationReview = {
+  submissionId: string;
+  workspaceId: string;
+  status: PartnerRegistrationReviewStatus;
+  contactName: string;
+  contactRole: "owner" | "manager" | "staff" | "authorized_agency";
+  contactEmail: string;
+  confirmationDetails: string;
+  sourceUrl: string;
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  reviewReason: string | null;
+  workspaceState: PartnerWorkspaceState;
+  shop: CanonicalPartnerShop & { canonicalUrl: string };
+  campaigns: PartnerReviewCampaign[];
+};
+
 export type PartnerWorkspaceRepository = {
   provision: (input: {
     shopId: number;
@@ -31,6 +68,22 @@ export type PartnerWorkspaceRepository = {
     canonicalUrl: string;
     source: "operator" | "self_registration";
   }) => Promise<PartnerWorkspace | null>;
+};
+
+export type PartnerReviewGrowthRepository = {
+  listRegistrationReviews: () => Promise<PartnerRegistrationReview[]>;
+  reviewRegistration: (input: {
+    submissionId: string;
+    decision: "approved" | "rejected";
+    actorLabel: string;
+    reason: string;
+  }) => Promise<{ state: PartnerWorkspaceState; status: "approved" | "rejected" } | null>;
+  openReviewCampaign: (token: string) => Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null>;
+  recordReviewCampaignSubmission: (input: {
+    token: string;
+    shopId: number;
+    wordpressReviewId: number;
+  }) => Promise<boolean>;
 };
 
 export function nextPartnerAction(state: PartnerWorkspaceState): string {
@@ -60,4 +113,62 @@ export async function provisionPartnerWorkspace(
     canonicalUrl: `https://mens-esthe-kuchikomi.com/shops/${shopSlug}/`,
     source,
   });
+}
+
+export async function listPartnerRegistrationReviews(
+  repository: PartnerReviewGrowthRepository,
+): Promise<PartnerRegistrationReview[]> {
+  try {
+    return await repository.listRegistrationReviews();
+  } catch {
+    return [];
+  }
+}
+
+export async function reviewPartnerRegistration(
+  input: {
+    submissionId: string;
+    decision: "approved" | "rejected";
+    actorLabel: string;
+    reason: string;
+  },
+  repository: PartnerReviewGrowthRepository,
+): Promise<{ state: PartnerWorkspaceState; status: "approved" | "rejected" } | null> {
+  if (!input.submissionId || !input.actorLabel.trim() || !input.reason.trim()) return null;
+  try {
+    return await repository.reviewRegistration({
+      ...input,
+      actorLabel: input.actorLabel.trim(),
+      reason: input.reason.trim(),
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function openPartnerReviewCampaign(
+  token: string,
+  repository: PartnerReviewGrowthRepository,
+): Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null> {
+  if (!token) return null;
+  try {
+    return await repository.openReviewCampaign(token);
+  } catch {
+    return null;
+  }
+}
+
+export async function recordPartnerReviewCampaignSubmission(
+  input: { token: string; shopId: number; wordpressReviewId: number },
+  repository: PartnerReviewGrowthRepository,
+): Promise<boolean> {
+  if (!input.token || !Number.isSafeInteger(input.shopId) || input.shopId <= 0
+    || !Number.isSafeInteger(input.wordpressReviewId) || input.wordpressReviewId <= 0) {
+    return false;
+  }
+  try {
+    return await repository.recordReviewCampaignSubmission(input);
+  } catch {
+    return false;
+  }
 }
