@@ -101,6 +101,12 @@ jobs:
             --exclude='.git*' \
             --exclude='.github/' \
             --exclude='.deploy/' \
+            --exclude='outputs/' \
+            --exclude='private/' \
+            --exclude='data/coverage-first/' \
+            --exclude='recovery-contracts.json' \
+            --exclude='coverage-batch-manifest-2026-08-25.json' \
+            --exclude='ESKOMI_COVERAGE_WAVE2_BATCH_MANIFEST_2026-08-28.json' \
             --exclude='.superpowers/' \
             --exclude='.vscode/' \
             --exclude='.cursor/' \
@@ -257,6 +263,17 @@ jobs:
             PREDEPLOY_PHP_DEPENDENCIES+=("$dependency")
           done < "$GITHUB_WORKSPACE/scripts/xserver-predeploy-php-dependencies.txt"
 
+          # The currently live functions.php already includes coverage: validate before
+          # replacing any runtime source, not only before functions.php activation.
+          PREFLIGHT_BUNDLE="$RUNNER_TEMP/coverage-private-preflight.php.txt"
+          python3 "$GITHUB_WORKSPACE/scripts/build-coverage-private-preflight.py" > "$PREFLIGHT_BUNDLE"
+          coverage_private_preflight() {
+            local wp_root="${XSERVER_SSH_PATH%wp-content/themes/swell_child/}"
+            ssh "${SSH_OPTIONS[@]}" "$XSERVER_SSH_USER@$XSERVER_SSH_HOST" \
+              "php -r 'eval(stream_get_contents(STDIN));' -- '$wp_root'" < "$PREFLIGHT_BUNDLE"
+          }
+          coverage_private_preflight
+
           for dependency in "${PREDEPLOY_PHP_DEPENDENCIES[@]}"; do
             rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
               -e "$RSYNC_SSH" \
@@ -266,9 +283,16 @@ jobs:
 
           rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
             --exclude='functions.php' \
+            --exclude='private/' \
+            --exclude='data/coverage-first/' \
+            --exclude='recovery-contracts.json' \
+            --exclude='coverage-batch-manifest-2026-08-25.json' \
+            --exclude='ESKOMI_COVERAGE_WAVE2_BATCH_MANIFEST_2026-08-28.json' \
             -e "$RSYNC_SSH" \
             "$STAGE_DIR/" \
             "$XSERVER_SSH_USER@$XSERVER_SSH_HOST:$XSERVER_SSH_PATH"
+
+          coverage_private_preflight
 
           rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
             -e "$RSYNC_SSH" \

@@ -1,0 +1,9 @@
+# Coverage private runtime contract — local implementation plan
+
+Task: WP-COVERAGE-PRIVATE-RUNTIME-CONTRACT-01. Original foundation commit remains immutable. No production provisioning, apply, reconcile, push or deploy is authorized.
+
+1. Freshly capture live PHP and two manifest inputs outside the repository with parent0700/files0600. Inspect existing runtime configuration by names and structure only. No comparable private operational JSON loader exists; wp-config constants/env and external backups are existing patterns.
+2. Define `dirname(ABSPATH)/private/escomi-coverage` with private parent/root0700 and JSON files0600. No account-home literal, web directory location, user-provided path, or new Secret/env is required. Versioned config stores exactly three `{operation_id, contract}` entries in `recovery-contracts.json`. Preserve all old fields and values; Git contains validation/schema and synthetic fixtures only.
+3. Fail-first loader, manifest, combined-runtime and deploy-contract tests. Sanitize fresh writer by replacing only manifest location/read, recovery record provider and pre-handler private prerequisite validation. Keep existing operations unchanged. Restore live conditional include and candidate public foundation.
+4. Require private prerequisites through a standalone read-only PHP preflight before any runtime upload and again before final functions.php transfer. Stream candidate validation code through SSH stdin; do not bootstrap WordPress, dispatch the REST writer, reconcile or apply. Never put private data in deployment stage.
+5. Prove local contract-object equality and both manifest digests without printing records. Run focused and final regressions, then independent spec/security reviews. Stage exact source paths and make one corrective local commit after acceptance. Stop before push/deploy/provisioning.

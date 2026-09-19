@@ -23,6 +23,13 @@ if [[ -e "$STAGE_DIR/scripts" ]]; then
   exit 1
 fi
 
+# Operational inputs must never enter the publicly served theme stage.
+if [[ -e "$STAGE_DIR/outputs" || -e "$STAGE_DIR/private" || -e "$STAGE_DIR/data/coverage-first" ]] ||
+   [[ -n "$(find "$STAGE_DIR" \( -name recovery-contracts.json -o -name coverage-batch-manifest-2026-08-25.json -o -name ESKOMI_COVERAGE_WAVE2_BATCH_MANIFEST_2026-08-28.json \) -print -quit)" ]]; then
+  echo "::error::Deployment stage contains private coverage artifacts." >&2
+  exit 1
+fi
+
 for required_path in functions.php style.css dashboard/index.html; do
   if [[ ! -f "$STAGE_DIR/$required_path" ]]; then
     echo "::error::Deployment stage is missing $required_path." >&2

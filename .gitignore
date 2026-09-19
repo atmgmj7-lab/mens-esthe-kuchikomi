@@ -32,3 +32,10 @@ supabase/imports/*.sql
 
 # Codex feature worktrees
 .worktrees/
+
+# Private coverage migration/runtime payloads never belong in source control.
+/private/
+/data/coverage-first/
+**/recovery-contracts.json
+**/coverage-batch-manifest-2026-08-25.json
+**/ESKOMI_COVERAGE_WAVE2_BATCH_MANIFEST_2026-08-28.json

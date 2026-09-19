@@ -4,6 +4,8 @@ reviews-cpt.php
 reviews-public-rest.php
 ai-update-security.php
 ai-update-log.php
-official-facts-rest.php
+coverage-private-runtime.php
+coverage-batch-writer.php
 official-facts-projection.php
+official-facts-rest.php
 shop-price-booking-public.php
