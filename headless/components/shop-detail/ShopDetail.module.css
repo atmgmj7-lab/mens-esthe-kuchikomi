@@ -93,7 +93,7 @@
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   border-top: 1px solid var(--ink);
   border-bottom: 1px solid var(--ink);
@@ -101,16 +101,12 @@
 
 .facts > div {
   min-width: 0;
-  padding: 16px 12px;
-  border-right: 1px solid var(--line);
-}
-
-.facts > div:first-child {
-  padding-left: 0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .facts > div:last-child {
-  border-right: 0;
+  border-bottom: 0;
 }
 
 .facts dt {
@@ -1035,17 +1031,14 @@
     padding-inline: 10px;
   }
 
-  .facts > div,
-  .facts > div:first-child {
+  .facts > div {
     min-width: 0;
-    padding: 14px 12px;
-    border-right: 1px solid var(--line);
+    padding: 14px 0;
     border-bottom: 1px solid var(--line);
   }
 
-  .facts > div:nth-child(2n),
   .facts > div:last-child {
-    border-right: 0;
+    border-bottom: 0;
   }
 
   .visual {
@@ -1143,15 +1136,8 @@
     --shop-title-size: 23px;
   }
 
-  .actions,
-  .facts {
+  .actions {
     grid-template-columns: 1fr !important;
-  }
-
-  .facts > div,
-  .facts > div:first-child,
-  .facts > div:nth-child(2n) {
-    border-right: 0;
   }
 }
 

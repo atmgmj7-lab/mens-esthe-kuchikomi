@@ -1010,18 +1010,19 @@ for (const selectorPattern of [/\.mainImage\s+img/]) {
 assertClassDeclarationIn(
   baseCss,
   "facts",
-  /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-  "desktop profile facts must use two columns"
+  /grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  "profile facts must use one label-above-value column at every viewport width"
 );
 for (const [label, region] of [
   ["900px", tabletCss],
-  ["760px", mobileCss]
+  ["760px", mobileCss],
+  ["360px", narrowCss]
 ]) {
   assertClassDoesNotDeclareIn(
     region,
     "facts",
     /grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/,
-    `the ${label} facts must inherit the base two-column contract`
+    `the ${label} facts must not restore a two-column layout`
   );
 }
 assertSelectorDeclaration(/\.facts\s*>\s*div/, /min-width:\s*0/, "fact columns must be shrinkable");
@@ -1200,22 +1201,16 @@ for (const [label, region] of [
   );
 }
 
-assertClassDeclarationIn(
-  narrowCss,
-  "facts",
-  /grid-template-columns:\s*1fr/,
-  "360px facts must use one column"
-);
 for (const [label, region] of [
-  ["base", baseCss],
   ["900px", tabletCss],
-  ["760px", mobileCss]
+  ["760px", mobileCss],
+  ["360px", narrowCss]
 ]) {
   assertClassDoesNotDeclareIn(
     region,
     "facts",
     /grid-template-columns:\s*1fr(?:\s*!important)?\s*;/,
-    `one-column facts must only be declared in the 360px block, not ${label}`
+    `the ${label} facts must inherit the base vertical layout`
   );
 }
 
