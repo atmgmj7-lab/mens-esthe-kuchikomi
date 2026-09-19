@@ -220,6 +220,16 @@ jobs:
             fi
           done
 
+      - name: Generate exact deployment manifest
+        env:
+          STAGE_DIR: ${{ runner.temp }}/xserver-theme-stage
+          ACTUAL_DEPLOY_MANIFEST: ${{ runner.temp }}/actual-deploy-manifest.tsv
+        run: |
+          set -euo pipefail
+          python3 "$GITHUB_WORKSPACE/scripts/generate-xserver-deploy-manifest.py" \
+            "$STAGE_DIR" "$ACTUAL_DEPLOY_MANIFEST"
+          test -s "$ACTUAL_DEPLOY_MANIFEST"
+
       - name: Configure SSH client
         env:
           XSERVER_SSH_PRIVATE_KEY: ${{ secrets.XSERVER_SSH_PRIVATE_KEY }}
@@ -236,6 +246,7 @@ jobs:
       - name: Verify remote theme directory and deploy
         env:
           STAGE_DIR: ${{ runner.temp }}/xserver-theme-stage
+          ACTUAL_DEPLOY_MANIFEST: ${{ runner.temp }}/actual-deploy-manifest.tsv
           XSERVER_SSH_HOST: ${{ vars.XSERVER_SSH_HOST }}
           XSERVER_SSH_PORT: ${{ vars.XSERVER_SSH_PORT }}
           XSERVER_SSH_USER: ${{ vars.XSERVER_SSH_USER }}
@@ -273,6 +284,33 @@ jobs:
               "php -r 'eval(stream_get_contents(STDIN));' -- '$wp_root'" < "$PREFLIGHT_BUNDLE"
           }
           coverage_private_preflight
+
+          THEME_ROOT="${XSERVER_SSH_PATH%/}"
+          EXPECTED_THEME_SUFFIX="/public_html/wp-content/themes/swell_child"
+          if [[ "$THEME_ROOT" != *"$EXPECTED_THEME_SUFFIX" ]]; then
+            echo "::error::Approved theme root suffix is missing."
+            exit 1
+          fi
+          SITE_ROOT="${THEME_ROOT%$EXPECTED_THEME_SUFFIX}"
+          ROLLBACK_ROOT="$SITE_ROOT/private/deploy-rollbacks"
+          DEPLOYMENT_ID="${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          REMOTE_MANIFEST="$ROLLBACK_ROOT/.actual-deploy-manifest-$DEPLOYMENT_ID.tsv"
+          SCP_OPTIONS=(
+            -P "$XSERVER_SSH_PORT"
+            -i "$HOME/.ssh/xserver_deploy"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=yes
+            -o UserKnownHostsFile="$HOME/.ssh/known_hosts"
+          )
+
+          ssh "${SSH_OPTIONS[@]}" "$XSERVER_SSH_USER@$XSERVER_SSH_HOST" \
+            "umask 077; test ! -L '$SITE_ROOT/private'; mkdir -p '$ROLLBACK_ROOT'; test ! -L '$ROLLBACK_ROOT'; chmod 700 '$SITE_ROOT/private' '$ROLLBACK_ROOT'; test ! -e '$ROLLBACK_ROOT/$DEPLOYMENT_ID'; test ! -e '$REMOTE_MANIFEST'"
+          scp "${SCP_OPTIONS[@]}" "$ACTUAL_DEPLOY_MANIFEST" \
+            "$XSERVER_SSH_USER@$XSERVER_SSH_HOST:$REMOTE_MANIFEST"
+          ssh "${SSH_OPTIONS[@]}" "$XSERVER_SSH_USER@$XSERVER_SSH_HOST" \
+            "chmod 600 '$REMOTE_MANIFEST' && bash -s -- '$THEME_ROOT' '$ROLLBACK_ROOT' '$DEPLOYMENT_ID' '$REMOTE_MANIFEST'" \
+            < "$GITHUB_WORKSPACE/scripts/capture-xserver-rollback.sh"
 
           for dependency in "${PREDEPLOY_PHP_DEPENDENCIES[@]}"; do
             rsync -rltz --omit-dir-times --no-perms --no-owner --no-group \
