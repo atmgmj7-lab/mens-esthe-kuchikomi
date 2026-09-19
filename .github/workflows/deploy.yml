@@ -267,7 +267,7 @@ jobs:
           )
 
           ssh "${SSH_OPTIONS[@]}" "$XSERVER_SSH_USER@$XSERVER_SSH_HOST" \
-            "test -d '$XSERVER_SSH_PATH' && test -f '${XSERVER_SSH_PATH}style.css'"
+            "test -d '$XSERVER_SSH_PATH' && test -f '${XSERVER_SSH_PATH}style.css' && test -f '${XSERVER_SSH_PATH}functions.php'"
 
           RSYNC_SSH="ssh -p $XSERVER_SSH_PORT -i $HOME/.ssh/xserver_deploy -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
           PREDEPLOY_PHP_DEPENDENCIES=()

@@ -176,6 +176,20 @@ class StageRollback(unittest.TestCase):
             current = {p.relative_to(theme): p.read_bytes() for p in theme.rglob("*") if p.is_file()}
             self.assertEqual(current, original)
 
+    def test_capture_requires_existing_live_functions_and_cleans_manifest(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            _, _, theme, rollback_root, manifest = self.layout(root, "build-a")
+            (theme / "functions.php").unlink()
+            result = run(
+                "bash", str(CAPTURE), str(theme), str(rollback_root),
+                DEPLOYMENT_ID, str(manifest), check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("theme root is unavailable", result.stderr)
+            self.assertFalse(manifest.exists())
+            self.assertFalse((rollback_root / f".staging-{DEPLOYMENT_ID}").exists())
+
     def test_workflow_captures_after_preactivation_before_first_theme_upload(self):
         workflow = (ROOT / ".github/workflows/deploy.yml").read_text()
         deploy = workflow[workflow.index("      - name: Verify remote theme directory and deploy"):]

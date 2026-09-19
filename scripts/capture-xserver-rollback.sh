@@ -22,16 +22,11 @@ EXPECTED_SUFFIX="/public_html/wp-content/themes/swell_child"
 [[ "$THEME_ROOT" == *"$EXPECTED_SUFFIX" ]] || fail "theme root is not the approved child theme path"
 SITE_ROOT="${THEME_ROOT%$EXPECTED_SUFFIX}"
 [[ -n "$SITE_ROOT" && "$ROLLBACK_ROOT" == "$SITE_ROOT/private/deploy-rollbacks" ]] || fail "rollback root is not the approved private path"
-[[ -d "$SITE_ROOT/private" && ! -L "$SITE_ROOT/private" ]] || fail "private root is unavailable"
 [[ "$DEPLOYMENT_ID" =~ ^[0-9a-f]{40}-[1-9][0-9]*-[1-9][0-9]*$ ]] || fail "deployment identity is invalid"
-[[ -d "$THEME_ROOT" && -f "$THEME_ROOT/style.css" ]] || fail "theme root is unavailable"
-[[ -d "$ROLLBACK_ROOT" && ! -L "$ROLLBACK_ROOT" ]] || fail "rollback root is unavailable"
-[[ -f "$MANIFEST" && ! -L "$MANIFEST" ]] || fail "actual deploy manifest is unavailable"
 [[ "$MANIFEST" == "$ROLLBACK_ROOT/.actual-deploy-manifest-$DEPLOYMENT_ID.tsv" ]] || fail "manifest input path is invalid"
 
 FINAL_DIR="$ROLLBACK_ROOT/$DEPLOYMENT_ID"
 STAGING_DIR="$ROLLBACK_ROOT/.staging-$DEPLOYMENT_ID"
-[[ ! -e "$FINAL_DIR" && ! -e "$STAGING_DIR" ]] || fail "deployment identity already exists"
 
 cleanup() {
   rm -f "$MANIFEST"
@@ -40,6 +35,13 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+[[ -d "$SITE_ROOT/private" && ! -L "$SITE_ROOT/private" ]] || fail "private root is unavailable"
+[[ -d "$THEME_ROOT" && -f "$THEME_ROOT/style.css" && -f "$THEME_ROOT/functions.php" ]] || fail "theme root is unavailable"
+[[ ! -L "$THEME_ROOT/style.css" && ! -L "$THEME_ROOT/functions.php" ]] || fail "required live theme file is a symlink"
+[[ -d "$ROLLBACK_ROOT" && ! -L "$ROLLBACK_ROOT" ]] || fail "rollback root is unavailable"
+[[ -f "$MANIFEST" && ! -L "$MANIFEST" ]] || fail "actual deploy manifest is unavailable"
+[[ ! -e "$FINAL_DIR" && ! -e "$STAGING_DIR" ]] || fail "deployment identity already exists"
 
 mkdir -m 700 "$STAGING_DIR"
 mkdir -m 700 "$STAGING_DIR/files"
