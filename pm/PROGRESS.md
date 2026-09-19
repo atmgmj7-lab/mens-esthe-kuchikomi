@@ -1,5 +1,9 @@
 # 進行ログ
 
+### 2026-09-19 Free Official Partner foundation
+
+- 設計とローカル実装の現在地は `docs/superpowers/specs/2026-09-19-eskomi-free-official-partner-foundation-design.md` を参照。Partner workflowは private schema に閉じ、WordPress公開正本・既存canonical店舗URL・SEO契約を変更しない。
+
 **運用・自動実行コマンド:** `pm/RUNBOOK.md`（Claude / Cursor は手動指示ではなく **ここに書いたコマンドを実行**する）
 
 ### 2026-08-22 Eskomi新UX Release Close 完了
