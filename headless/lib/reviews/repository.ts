@@ -122,6 +122,7 @@ export type PublishedReview = Readonly<{
 
 export type PublishedReviewRequest = Readonly<{
   shop: WordPressShopIdentity | null;
+  wpShopIds?: readonly number[] | null;
   limit: number;
   offset: number;
 }>;
@@ -138,10 +139,13 @@ export type PublishedReviewMetrics = Readonly<{
   price: ReviewMetric;
   service: ReviewMetric;
   cleanliness: ReviewMetric;
+  oldestSubmittedAt: string | null;
+  latestSubmittedAt: string | null;
 }>;
 
 export type PublishedReviewMetricsRequest = Readonly<{
   shop: WordPressShopIdentity | null;
+  wpShopIds?: readonly number[] | null;
 }>;
 
 export type CampaignReviewAttributionRequest = Readonly<{

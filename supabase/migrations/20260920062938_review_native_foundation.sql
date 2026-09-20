@@ -668,6 +668,7 @@ $$;
 
 create or replace function private.list_published_reviews(
   p_wp_shop_id bigint default null,
+  p_wp_shop_ids bigint[] default null,
   p_limit integer default 20,
   p_offset integer default 0
 )
@@ -693,6 +694,18 @@ begin
   if p_wp_shop_id is not null and p_wp_shop_id <= 0 then
     raise exception using errcode = '22023', message = 'canonical WordPress shop identifier must be positive';
   end if;
+  if p_wp_shop_id is not null and p_wp_shop_ids is not null then
+    raise exception using errcode = '22023', message = 'published Review scope is ambiguous';
+  end if;
+  if p_wp_shop_ids is not null and (
+    cardinality(p_wp_shop_ids) > 500
+    or exists (select 1 from unnest(p_wp_shop_ids) as scoped(shop_id) where scoped.shop_id <= 0)
+    or cardinality(p_wp_shop_ids) <> (
+      select count(distinct scoped.shop_id) from unnest(p_wp_shop_ids) as scoped(shop_id)
+    )
+  ) then
+    raise exception using errcode = '22023', message = 'canonical WordPress shop identifiers are invalid';
+  end if;
   if p_limit is null or p_limit not between 1 and 100 or p_offset is null or p_offset < 0 then
     raise exception using errcode = '22023', message = 'published Review pagination is invalid';
   end if;
@@ -713,6 +726,7 @@ begin
   from app.reviews r
   join app.shops s on s.id = r.shop_id
   where (p_wp_shop_id is null or s.wp_post_id = p_wp_shop_id)
+    and (p_wp_shop_ids is null or s.wp_post_id = any(p_wp_shop_ids))
     and r.is_public
     and r.source_type = 'user-review'
     and r.moderation_status = 'approved'
@@ -727,7 +741,10 @@ begin
 end;
 $$;
 
-create or replace function private.get_published_review_metrics(p_wp_shop_id bigint default null)
+create or replace function private.get_published_review_metrics(
+  p_wp_shop_id bigint default null,
+  p_wp_shop_ids bigint[] default null
+)
 returns table (
   public_approved_review_count bigint,
   valid_overall_rating_count bigint,
@@ -737,7 +754,9 @@ returns table (
   valid_service_rating_count bigint,
   average_service_rating numeric,
   valid_cleanliness_rating_count bigint,
-  average_cleanliness_rating numeric
+  average_cleanliness_rating numeric,
+  oldest_submitted_at timestamptz,
+  latest_submitted_at timestamptz
 )
 language plpgsql
 stable
@@ -747,6 +766,18 @@ as $$
 begin
   if p_wp_shop_id is not null and p_wp_shop_id <= 0 then
     raise exception using errcode = '22023', message = 'canonical WordPress shop identifier must be positive';
+  end if;
+  if p_wp_shop_id is not null and p_wp_shop_ids is not null then
+    raise exception using errcode = '22023', message = 'published Review scope is ambiguous';
+  end if;
+  if p_wp_shop_ids is not null and (
+    cardinality(p_wp_shop_ids) > 500
+    or exists (select 1 from unnest(p_wp_shop_ids) as scoped(shop_id) where scoped.shop_id <= 0)
+    or cardinality(p_wp_shop_ids) <> (
+      select count(distinct scoped.shop_id) from unnest(p_wp_shop_ids) as scoped(shop_id)
+    )
+  ) then
+    raise exception using errcode = '22023', message = 'canonical WordPress shop identifiers are invalid';
   end if;
 
   return query
@@ -759,10 +790,13 @@ begin
     count(r.rating_service),
     round(avg(r.rating_service)::numeric, 1),
     count(r.rating_cleanliness),
-    round(avg(r.rating_cleanliness)::numeric, 1)
+    round(avg(r.rating_cleanliness)::numeric, 1),
+    min(r.submitted_at),
+    max(r.submitted_at)
   from app.reviews r
   join app.shops s on s.id = r.shop_id
   where (p_wp_shop_id is null or s.wp_post_id = p_wp_shop_id)
+    and (p_wp_shop_ids is null or s.wp_post_id = any(p_wp_shop_ids))
     and r.is_public
     and r.source_type = 'user-review'
     and r.moderation_status = 'approved'
@@ -784,8 +818,8 @@ revoke all on function private.publish_review(uuid, text, text) from public, ano
 revoke all on function private.list_review_moderation_queue(integer, integer) from public, anon, authenticated;
 revoke all on function private.get_review_moderation_detail(uuid) from public, anon, authenticated;
 revoke all on function private.list_review_moderation_events(uuid) from public, anon, authenticated;
-revoke all on function private.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
-revoke all on function private.get_published_review_metrics(bigint) from public, anon, authenticated;
+revoke all on function private.list_published_reviews(bigint, bigint[], integer, integer) from public, anon, authenticated;
+revoke all on function private.get_published_review_metrics(bigint, bigint[]) from public, anon, authenticated;
 grant execute on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function private.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
 grant execute on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
@@ -795,8 +829,8 @@ grant execute on function private.publish_review(uuid, text, text) to service_ro
 grant execute on function private.list_review_moderation_queue(integer, integer) to service_role;
 grant execute on function private.get_review_moderation_detail(uuid) to service_role;
 grant execute on function private.list_review_moderation_events(uuid) to service_role;
-grant execute on function private.list_published_reviews(bigint, integer, integer) to service_role;
-grant execute on function private.get_published_review_metrics(bigint) to service_role;
+grant execute on function private.list_published_reviews(bigint, bigint[], integer, integer) to service_role;
+grant execute on function private.get_published_review_metrics(bigint, bigint[]) to service_role;
 
 -- Keep the deployed WordPress conversion adapter while routing its mutation
 -- through the hardened definer implementation above.
@@ -1004,6 +1038,7 @@ $$;
 
 create or replace function api.list_published_reviews(
   p_wp_shop_id bigint default null,
+  p_wp_shop_ids bigint[] default null,
   p_limit integer default 20,
   p_offset integer default 0
 )
@@ -1025,10 +1060,13 @@ stable
 security invoker
 set search_path = pg_catalog
 as $$
-  select * from private.list_published_reviews(p_wp_shop_id, p_limit, p_offset)
+  select * from private.list_published_reviews(p_wp_shop_id, p_wp_shop_ids, p_limit, p_offset)
 $$;
 
-create or replace function api.get_published_review_metrics(p_wp_shop_id bigint default null)
+create or replace function api.get_published_review_metrics(
+  p_wp_shop_id bigint default null,
+  p_wp_shop_ids bigint[] default null
+)
 returns table (
   public_approved_review_count bigint,
   valid_overall_rating_count bigint,
@@ -1038,14 +1076,16 @@ returns table (
   valid_service_rating_count bigint,
   average_service_rating numeric,
   valid_cleanliness_rating_count bigint,
-  average_cleanliness_rating numeric
+  average_cleanliness_rating numeric,
+  oldest_submitted_at timestamptz,
+  latest_submitted_at timestamptz
 )
 language sql
 stable
 security invoker
 set search_path = pg_catalog
 as $$
-  select * from private.get_published_review_metrics(p_wp_shop_id)
+  select * from private.get_published_review_metrics(p_wp_shop_id, p_wp_shop_ids)
 $$;
 
 revoke all on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
@@ -1057,8 +1097,8 @@ revoke all on function api.publish_review(uuid, text, text) from public, anon, a
 revoke all on function api.list_review_moderation_queue(integer, integer) from public, anon, authenticated;
 revoke all on function api.get_review_moderation_detail(uuid) from public, anon, authenticated;
 revoke all on function api.list_review_moderation_events(uuid) from public, anon, authenticated;
-revoke all on function api.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
-revoke all on function api.get_published_review_metrics(bigint) from public, anon, authenticated;
+revoke all on function api.list_published_reviews(bigint, bigint[], integer, integer) from public, anon, authenticated;
+revoke all on function api.get_published_review_metrics(bigint, bigint[]) from public, anon, authenticated;
 grant execute on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function api.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
 grant execute on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
@@ -1068,5 +1108,5 @@ grant execute on function api.publish_review(uuid, text, text) to service_role;
 grant execute on function api.list_review_moderation_queue(integer, integer) to service_role;
 grant execute on function api.get_review_moderation_detail(uuid) to service_role;
 grant execute on function api.list_review_moderation_events(uuid) to service_role;
-grant execute on function api.list_published_reviews(bigint, integer, integer) to service_role;
-grant execute on function api.get_published_review_metrics(bigint) to service_role;
+grant execute on function api.list_published_reviews(bigint, bigint[], integer, integer) to service_role;
+grant execute on function api.get_published_review_metrics(bigint, bigint[]) to service_role;

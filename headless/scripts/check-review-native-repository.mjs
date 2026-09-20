@@ -233,6 +233,37 @@ const published = await repository.listPublished({ shop: { wpShopId: 712 }, limi
 assert.equal(published.status, "ok");
 assert.equal(published.data[0].reviewId, reviewId);
 assert.equal(published.data[0].shop.wpShopId, 712);
+assert.equal(JSON.parse(calls.at(-1)[1].body).p_wp_shop_ids, null);
+
+nextResponse = response([{
+  review_id: reviewId,
+  wp_shop_id: 712,
+  body: baseRequest.body,
+  submitted_at: "2026-09-20T00:00:00Z",
+  published_at: "2026-09-20T01:00:00Z",
+  rating_total: 4,
+  rating_price: 3,
+  rating_service: 5,
+  rating_cleanliness: 4,
+  visit_period: null,
+  revisit_intent: null,
+}]);
+const scopedPublished = await repository.listPublished({
+  shop: null,
+  wpShopIds: [712],
+  limit: 20,
+  offset: 0,
+});
+assert.equal(scopedPublished.status, "ok");
+assert.deepEqual(JSON.parse(calls.at(-1)[1].body).p_wp_shop_ids, [712]);
+const callsBeforeInvalidScope = calls.length;
+assert.equal((await repository.listPublished({
+  shop: null,
+  wpShopIds: [712, 712],
+  limit: 20,
+  offset: 0,
+})).status, "error");
+assert.equal(calls.length, callsBeforeInvalidScope, "invalid Shop scope must fail before transport");
 
 nextResponse = response([{
   public_approved_review_count: 3,
@@ -244,11 +275,14 @@ nextResponse = response([{
   average_service_rating: 4.7,
   valid_cleanliness_rating_count: 1,
   average_cleanliness_rating: 5,
+  oldest_submitted_at: "2026-09-20T00:00:00Z",
+  latest_submitted_at: "2026-09-20T02:00:00Z",
 }]);
 const metrics = await repository.getPublishedMetrics({ shop: { wpShopId: 712 } });
 assert.deepEqual(JSON.parse(JSON.stringify(metrics.data.shop)), { wpShopId: 712 });
 assert.equal(metrics.data.reviewCount, 3);
 assert.equal(metrics.data.overall.responseCount, 3);
+assert.equal(metrics.data.oldestSubmittedAt, "2026-09-20T00:00:00Z");
 
 nextResponse = response(true);
 const attribution = await repository.recordCampaignAttribution({

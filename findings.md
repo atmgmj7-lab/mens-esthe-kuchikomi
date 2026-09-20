@@ -531,3 +531,5 @@
 - DB-backed rate claimは単なるcount増分だとIdempotency-Key再送まで二重countする。未適用M1のprivate rate rowへclaim済みidempotency hash集合を持たせ、`api.claim_review_submission_rate_limit`で同じkeyの再送をcountせず、別keyだけを10分窓3件まで許可する。submit RPCは有効claimを確認し、campaign attributionを含む既存transactionを維持する。
 - T4要件の`no auto-publish`と現M1の`approved => published/public`は一致しない。未適用M1を、承認は`approved + draft + is_public=false`、別の明示publish RPCだけが`published/public`へ遷移する二段階contractへ修正し、両操作をappend-only eventへ残す。
 - service_roleはReview/private tableを直接読めないため、operator queue/detail/auditもservice-only fixed-path RPCが必要。Basic Auth APIがactorをserver-derived定数に固定し、browserへはprivate schema grantやSupabase credentialを渡さない。
+- T5 public adapterは既定を`wordpress`へ固定し、`REVIEW_READ_SOURCE=supabase`の明示時だけNative RPCを使う。SupabaseのShop複製値は公開identityに使わず、現在publishのWordPress Shop一覧からID scopeとShop/Area表示値を作る。
+- global/Area paginationを正確に保つため、公開RPCは最大500件の重複なしWordPress Shop ID scopeを受ける。本文・評価・UUID以外のprivate/campaign/actor情報はadapter DTOへ出さず、metrics/date rangeも同じ公開predicateとscopeで集計する。

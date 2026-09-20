@@ -645,7 +645,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] T2: server-only typed Review repository / RPC型、Critical/Important 0
 - [x] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
 - [x] T4: operator moderation UI/API、Critical/Important 0
-- [ ] T5: feature-gated Supabase public Review adapter、Critical/Important 0
+- [x] T5: feature-gated Supabase public Review adapter、Critical/Important 0
 - [ ] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
 - [ ] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
 - [ ] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
@@ -687,6 +687,15 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - 自動公開mutationはsource contractでRED、cross-site mutationはCSRF/Origin/Fetch Metadata境界で拒否、private dashboard routeは明示request-time boundaryによりbuild出力`ƒ`を確認した。
 - fresh local reset/reapply、Review Native DB、Foundation/Growth、公開口コミ、admin boundary、typecheck、lint、DB lint、857-page buildをPASS。
 - T4 SPEC: Critical 0 / Important 0。T4 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T5 Result
+
+- server-only `publicReviewAdapter`を追加し、`REVIEW_READ_SOURCE`未設定/不正値/`wordpress`は既存WordPress reader、明示`supabase`だけがNative UUID readerを使う。Production既定切替は0。
+- Supabase公開readは現在publishのWordPress Shop集合でscopeし、Shop slug/name、Primary Area、Area relationはWordPress正本だけから返す。draft/未知/重複Shop identityはfail closed。
+- 公開DTOはUUID、本文、投稿日、4評価、WordPress Shop/Area identityだけ。nickname/email、abuse/idempotency、moderation actor/reason、campaign/workspaceは0。
+- 公開list/metricsはuser-review + approved + published + public + non-AI + non-promotion + approved/published timestampを同じpredicateで使い、Shop ID scope、pagination、count、date rangeを実DB契約で確認した。
+- fresh local reset/reapply、Review repository/public adapter/DB、Foundation/Growth、既存WordPress公開口コミ、rating/schema、typecheck、lint、DB lintをPASS。
+- T5 SPEC: Critical 0 / Important 0。T5 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 

@@ -54,8 +54,8 @@ begin
     or to_regprocedure('api.list_review_moderation_queue(integer,integer)') is null
     or to_regprocedure('api.get_review_moderation_detail(uuid)') is null
     or to_regprocedure('api.list_review_moderation_events(uuid)') is null
-    or to_regprocedure('api.list_published_reviews(bigint,integer,integer)') is null
-    or to_regprocedure('api.get_published_review_metrics(bigint)') is null
+    or to_regprocedure('api.list_published_reviews(bigint,bigint[],integer,integer)') is null
+    or to_regprocedure('api.get_published_review_metrics(bigint,bigint[])') is null
     or to_regprocedure('api.record_partner_review_campaign_review(uuid,bigint,uuid)') is null then
     raise exception 'Review Native M1 migration is not applied';
   end if;
@@ -138,10 +138,10 @@ begin
     or has_function_privilege('authenticated', 'api.submit_review(bigint,text,smallint,text,text,text,text,timestamp with time zone,timestamp with time zone,smallint,smallint,smallint,text,text,text,uuid)', 'execute')
     or has_function_privilege('anon', 'api.moderate_review(uuid,text,text,text)', 'execute')
     or has_function_privilege('authenticated', 'api.moderate_review(uuid,text,text,text)', 'execute')
-    or has_function_privilege('anon', 'api.list_published_reviews(bigint,integer,integer)', 'execute')
-    or has_function_privilege('authenticated', 'api.list_published_reviews(bigint,integer,integer)', 'execute')
-    or has_function_privilege('anon', 'api.get_published_review_metrics(bigint)', 'execute')
-    or has_function_privilege('authenticated', 'api.get_published_review_metrics(bigint)', 'execute')
+    or has_function_privilege('anon', 'api.list_published_reviews(bigint,bigint[],integer,integer)', 'execute')
+    or has_function_privilege('authenticated', 'api.list_published_reviews(bigint,bigint[],integer,integer)', 'execute')
+    or has_function_privilege('anon', 'api.get_published_review_metrics(bigint,bigint[])', 'execute')
+    or has_function_privilege('authenticated', 'api.get_published_review_metrics(bigint,bigint[])', 'execute')
     or has_function_privilege('anon', 'api.record_partner_review_campaign_review(uuid,bigint,uuid)', 'execute')
     or has_function_privilege('authenticated', 'api.record_partner_review_campaign_review(uuid,bigint,uuid)', 'execute')
     or has_function_privilege('anon', 'api.record_partner_review_campaign_submission(uuid,bigint,bigint)', 'execute')
@@ -168,8 +168,8 @@ begin
     or not has_function_privilege('service_role', 'api.get_review_moderation_detail(uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.list_review_moderation_events(uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.moderate_review(uuid,text,text,text)', 'execute')
-    or not has_function_privilege('service_role', 'api.list_published_reviews(bigint,integer,integer)', 'execute')
-    or not has_function_privilege('service_role', 'api.get_published_review_metrics(bigint)', 'execute')
+    or not has_function_privilege('service_role', 'api.list_published_reviews(bigint,bigint[],integer,integer)', 'execute')
+    or not has_function_privilege('service_role', 'api.get_published_review_metrics(bigint,bigint[])', 'execute')
     or not has_function_privilege('service_role', 'api.record_partner_review_campaign_review(uuid,bigint,uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.record_partner_review_campaign_submission(uuid,bigint,bigint)', 'execute')
     or has_table_privilege('service_role', 'app.reviews', 'select,insert,update,delete,truncate,references,trigger')
@@ -627,7 +627,7 @@ begin
   end if;
 
   if exists (
-    select 1 from api.list_published_reviews(v_wp_shop_id, 20, 0)
+    select 1 from api.list_published_reviews(v_wp_shop_id, null, 20, 0)
     where review_id = v_review_id
   ) then
     raise exception 'approved Review must not auto-publish';
@@ -646,7 +646,7 @@ begin
   end if;
 
   select to_jsonb(r) into v_payload
-  from api.list_published_reviews(v_wp_shop_id, 20, 0) as r
+  from api.list_published_reviews(v_wp_shop_id, null, 20, 0) as r
   where r.review_id = v_review_id;
   if v_payload is null
     or v_payload ?| array[
@@ -655,6 +655,27 @@ begin
     ] then
     raise exception 'published Review RPC must return a sanitized candidate';
   end if;
+  if not exists (
+    select 1 from api.list_published_reviews(null, array[v_wp_shop_id], 20, 0)
+    where review_id = v_review_id
+  ) or exists (
+    select 1 from api.list_published_reviews(null, array[v_other_wp_shop_id], 20, 0)
+    where review_id = v_review_id
+  ) then
+    raise exception 'WordPress Shop-scoped public reader must include only the approved current Shop set';
+  end if;
+  begin
+    perform api.list_published_reviews(v_wp_shop_id, array[v_wp_shop_id], 20, 0);
+    raise exception 'ambiguous published Review scope unexpectedly succeeded';
+  exception when invalid_parameter_value then
+    null;
+  end;
+  begin
+    perform api.get_published_review_metrics(null, array[v_wp_shop_id, v_wp_shop_id]);
+    raise exception 'duplicate WordPress Shop scope unexpectedly succeeded';
+  exception when invalid_parameter_value then
+    null;
+  end;
 
   select
     public_approved_review_count,
@@ -676,13 +697,28 @@ begin
     v_service_average,
     v_cleanliness_count,
     v_cleanliness_average
-  from api.get_published_review_metrics(v_wp_shop_id);
+  from api.get_published_review_metrics(v_wp_shop_id, null);
   if v_public_count <> 1
     or v_rating_count <> 1 or v_average <> 5.0
     or v_price_count <> 1 or v_price_average <> 4.0
     or v_service_count <> 0 or v_service_average is not null
     or v_cleanliness_count <> 1 or v_cleanliness_average <> 5.0 then
     raise exception 'published Review metrics must derive from the same safe candidate set';
+  end if;
+  if not exists (
+    select 1
+    from api.get_published_review_metrics(null, array[v_wp_shop_id])
+    where public_approved_review_count = 1
+      and oldest_submitted_at is not null
+      and latest_submitted_at is not null
+  ) or exists (
+    select 1
+    from api.get_published_review_metrics(null, array[v_other_wp_shop_id])
+    where public_approved_review_count <> 0
+      or oldest_submitted_at is not null
+      or latest_submitted_at is not null
+  ) then
+    raise exception 'WordPress Shop-scoped public metrics must match the same safe candidate set';
   end if;
 
   select count(*) into v_forbidden_columns

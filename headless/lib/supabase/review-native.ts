@@ -100,6 +100,22 @@ function isShopIdentity(value: WordPressShopIdentity | null): boolean {
   return value === null || (Number.isSafeInteger(value.wpShopId) && value.wpShopId > 0);
 }
 
+function isShopIdScope(value: readonly number[] | null | undefined): boolean {
+  if (value === null || value === undefined) return true;
+  return value.length <= 500
+    && value.every((id) => Number.isSafeInteger(id) && id > 0)
+    && new Set(value).size === value.length;
+}
+
+function isPublishedScope(
+  shop: WordPressShopIdentity | null,
+  wpShopIds: readonly number[] | null | undefined,
+): boolean {
+  return isShopIdentity(shop)
+    && isShopIdScope(wpShopIds)
+    && !(shop !== null && wpShopIds !== null && wpShopIds !== undefined);
+}
+
 function normalizeBaseUrl(value: string | null | undefined): string | null {
   if (!value) return null;
   try {
@@ -303,6 +319,8 @@ function parseMetricsRow(
     "average_service_rating",
     "valid_cleanliness_rating_count",
     "average_cleanliness_rating",
+    "oldest_submitted_at",
+    "latest_submitted_at",
   ]) || !isNonNegativeInteger(value.public_approved_review_count)) return null;
   const overall = metric(value.valid_overall_rating_count, value.average_overall_rating);
   const price = metric(value.valid_price_rating_count, value.average_price_rating);
@@ -312,7 +330,14 @@ function parseMetricsRow(
     || overall.responseCount > value.public_approved_review_count
     || price.responseCount > value.public_approved_review_count
     || service.responseCount > value.public_approved_review_count
-    || cleanliness.responseCount > value.public_approved_review_count) return null;
+    || cleanliness.responseCount > value.public_approved_review_count
+    || !isNullableTimestamp(value.oldest_submitted_at)
+    || !isNullableTimestamp(value.latest_submitted_at)
+    || (value.public_approved_review_count === 0
+      ? value.oldest_submitted_at !== null || value.latest_submitted_at !== null
+      : value.oldest_submitted_at === null || value.latest_submitted_at === null)
+    || (value.oldest_submitted_at !== null && value.latest_submitted_at !== null
+      && Date.parse(value.oldest_submitted_at) > Date.parse(value.latest_submitted_at))) return null;
   return {
     shop,
     reviewCount: value.public_approved_review_count,
@@ -320,6 +345,8 @@ function parseMetricsRow(
     price,
     service,
     cleanliness,
+    oldestSubmittedAt: value.oldest_submitted_at,
+    latestSubmittedAt: value.latest_submitted_at,
   };
 }
 
@@ -484,11 +511,12 @@ export function createSupabaseReviewRepository(
     },
 
     async listPublished(request, signal) {
-      if (!isShopIdentity(request.shop)
+      if (!isPublishedScope(request.shop, request.wpShopIds)
         || !Number.isSafeInteger(request.limit) || request.limit < 1 || request.limit > 100
         || !Number.isSafeInteger(request.offset) || request.offset < 0) return error("invalid_request");
       return rpc("list_published_reviews", {
         p_wp_shop_id: request.shop?.wpShopId ?? null,
+        p_wp_shop_ids: request.wpShopIds ?? null,
         p_limit: request.limit,
         p_offset: request.offset,
       }, (raw) => {
@@ -499,9 +527,10 @@ export function createSupabaseReviewRepository(
     },
 
     async getPublishedMetrics(request, signal) {
-      if (!isShopIdentity(request.shop)) return error("invalid_request");
+      if (!isPublishedScope(request.shop, request.wpShopIds)) return error("invalid_request");
       return rpc("get_published_review_metrics", {
         p_wp_shop_id: request.shop?.wpShopId ?? null,
+        p_wp_shop_ids: request.wpShopIds ?? null,
       }, (raw) => parseSingleRow(raw, (row) => parseMetricsRow(row, request.shop)), signal);
     },
 

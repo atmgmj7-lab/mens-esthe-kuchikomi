@@ -907,3 +907,7 @@
 - auto-publish mutationとrequest-time boundary未実装をそれぞれREDで捕捉。CSRF/Origin/Fetch Metadata、server-derived actor、private no-store、browser private grant 0を確認した。
 - fresh local reset/reapply、Review Native DB、Foundation/Growth、公開口コミ、admin境界、typecheck、lint、DB lint、857-page buildをPASS。`/dashboard/partners`はStaticからDynamicへ固定。
 - T4 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT5 public Review adapter。
+- T5完了。server-only public adapterは`REVIEW_READ_SOURCE`既定WordPressを維持し、明示Supabase時だけUUID Reviewを読む。公開Shop/Area identityとpublish gateはWordPress正本。
+- current public WordPress Shop ID scopeを公開list/metrics RPCへ渡し、global/Area pagination/count/date rangeを同じsafe predicateへ固定。private PII、actor/reason、campaign、abuse/idempotencyの公開DTO露出0。
+- adapter不存在RED後、focused repository/public adapter/DB、fresh reset/reapply、Foundation/Growth、既存公開口コミ、rating/schema、typecheck、lint、DB lintをPASS。
+- T5 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT6 campaign/count/backend contract。
