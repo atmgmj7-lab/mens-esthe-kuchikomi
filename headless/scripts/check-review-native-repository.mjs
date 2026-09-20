@@ -88,6 +88,20 @@ const repository = implementation.createSupabaseReviewRepository({
   },
 });
 
+nextResponse = response([{ allowed: true, retry_after_seconds: 0 }]);
+const rateClaim = await repository.claimRateLimit({
+  idempotencyKeyHash: "a".repeat(64),
+  abuseKeyHash: "b".repeat(64),
+  windowStartedAt: "2026-09-20T00:00:00.000Z",
+  windowExpiresAt: "2026-09-20T00:10:00.000Z",
+  limit: 3,
+});
+assert.deepEqual(JSON.parse(JSON.stringify(rateClaim)), {
+  status: "ok",
+  data: { allowed: true, retryAfterSeconds: 0 },
+});
+assert.equal(calls.at(-1)[0], "https://project.supabase.co/rest/v1/rpc/claim_review_submission_rate_limit");
+
 nextResponse = response([{ review_id: reviewId, created: true }]);
 assert.deepEqual(
   JSON.parse(JSON.stringify(await repository.submit(baseRequest))),

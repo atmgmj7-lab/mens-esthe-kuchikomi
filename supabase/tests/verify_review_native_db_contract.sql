@@ -37,6 +37,8 @@ declare
   v_forbidden_columns integer;
   v_request_fingerprint text;
   v_abuse_count integer;
+  v_rate_allowed boolean;
+  v_retry_after integer;
   v_mismatch record;
 begin
   v_other_wp_shop_id := v_wp_shop_id + 1;
@@ -44,6 +46,7 @@ begin
     or to_regclass('private.review_idempotency_keys') is null
     or to_regclass('private.review_abuse_rate_limits') is null
     or to_regclass('private.review_moderation_events') is null
+    or to_regprocedure('api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)') is null
     or to_regprocedure('api.submit_review(bigint,text,smallint,text,text,text,text,timestamp with time zone,timestamp with time zone,smallint,smallint,smallint,text,text,text,uuid)') is null
     or to_regprocedure('api.moderate_review(uuid,text,text,text)') is null
     or to_regprocedure('api.list_published_reviews(bigint,integer,integer)') is null
@@ -91,6 +94,15 @@ begin
     raise exception 'idempotency keys must store a permanent request fingerprint without expiry state';
   end if;
 
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'private' and table_name = 'review_abuse_rate_limits'
+      and column_name = 'claimed_idempotency_key_hashes'
+      and data_type = 'ARRAY' and is_nullable = 'NO'
+  ) then
+    raise exception 'Review rate-limit claims must deduplicate idempotent retries';
+  end if;
+
   select count(*) into v_rls_count
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
@@ -131,8 +143,13 @@ begin
     or has_function_privilege('authenticated', 'api.record_partner_review_campaign_submission(uuid,bigint,bigint)', 'execute') then
     raise exception 'browser roles must not execute native Review RPCs';
   end if;
+  if has_function_privilege('anon', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute')
+    or has_function_privilege('authenticated', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute') then
+    raise exception 'browser roles must not execute Review rate-limit claims';
+  end if;
 
   if not has_function_privilege('service_role', 'api.submit_review(bigint,text,smallint,text,text,text,text,timestamp with time zone,timestamp with time zone,smallint,smallint,smallint,text,text,text,uuid)', 'execute')
+    or not has_function_privilege('service_role', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute')
     or not has_function_privilege('service_role', 'api.moderate_review(uuid,text,text,text)', 'execute')
     or not has_function_privilege('service_role', 'api.list_published_reviews(bigint,integer,integer)', 'execute')
     or not has_function_privilege('service_role', 'api.get_published_review_metrics(bigint)', 'execute')
@@ -155,7 +172,7 @@ begin
       and p.proname in (
         'submit_review', 'moderate_review', 'list_published_reviews',
         'get_published_review_metrics', 'record_partner_review_campaign_review',
-        'record_partner_review_campaign_submission'
+        'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit'
       )
       and (
         not p.prosecdef
@@ -174,7 +191,7 @@ begin
       and p.proname in (
         'submit_review', 'moderate_review', 'list_published_reviews',
         'get_published_review_metrics', 'record_partner_review_campaign_review',
-        'record_partner_review_campaign_submission'
+        'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit'
       )
       and (
         p.prosecdef
@@ -227,6 +244,41 @@ begin
     raise exception 'Growth review_id must reference app.reviews';
   end if;
 
+  select allowed, retry_after_seconds into v_rate_allowed, v_retry_after
+  from api.claim_review_submission_rate_limit(
+    repeat('9', 64), repeat('8', 64), date_trunc('minute', now()),
+    date_trunc('minute', now()) + interval '10 minutes', 3
+  );
+  if not v_rate_allowed or v_retry_after <= 0 then
+    raise exception 'first distributed Review rate-limit claim must be allowed';
+  end if;
+  select allowed into v_rate_allowed from api.claim_review_submission_rate_limit(
+    repeat('9', 64), repeat('8', 64), date_trunc('minute', now()),
+    date_trunc('minute', now()) + interval '10 minutes', 3
+  );
+  if not v_rate_allowed then
+    raise exception 'same idempotency key retry must not consume another rate-limit slot';
+  end if;
+  perform api.claim_review_submission_rate_limit(
+    repeat('7', 64), repeat('8', 64), date_trunc('minute', now()),
+    date_trunc('minute', now()) + interval '10 minutes', 3
+  );
+  perform api.claim_review_submission_rate_limit(
+    repeat('6', 64), repeat('8', 64), date_trunc('minute', now()),
+    date_trunc('minute', now()) + interval '10 minutes', 3
+  );
+  select allowed into v_rate_allowed from api.claim_review_submission_rate_limit(
+    repeat('5', 64), repeat('8', 64), date_trunc('minute', now()),
+    date_trunc('minute', now()) + interval '10 minutes', 3
+  );
+  if v_rate_allowed
+    or (select request_count from private.review_abuse_rate_limits
+        where key_hash = repeat('8', 64) and window_started_at = date_trunc('minute', now())) <> 4
+    or (select cardinality(claimed_idempotency_key_hashes) from private.review_abuse_rate_limits
+        where key_hash = repeat('8', 64) and window_started_at = date_trunc('minute', now())) <> 3 then
+    raise exception 'distributed Review rate limit must reject the fourth distinct key';
+  end if;
+
   insert into app.shops (wp_post_id, slug, canonical_path, name)
   values (
     v_wp_shop_id,
@@ -234,6 +286,11 @@ begin
     '/shops/review-native-' || v_wp_shop_id::text || '/',
     'Review Native Contract Shop'
   ) returning id into v_shop_id;
+
+  perform api.claim_review_submission_rate_limit(
+    repeat('a', 64), repeat('b', 64), date_trunc('minute', now()),
+    date_trunc('minute', now()) + interval '1 minute', 3
+  );
 
   select review_id, created into v_review_id, v_created
   from api.submit_review(

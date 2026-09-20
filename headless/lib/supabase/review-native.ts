@@ -11,6 +11,8 @@ import type {
   PublishedReviewRequest,
   ReviewId,
   ReviewMetric,
+  ReviewRateLimitClaim,
+  ReviewRateLimitClaimRequest,
   ReviewRepository,
   ReviewRepositoryErrorCode,
   ReviewRepositoryResult,
@@ -30,6 +32,7 @@ type ReviewRepositoryConfiguration = Readonly<{
 }>;
 
 type RpcName =
+  | "claim_review_submission_rate_limit"
   | "submit_review"
   | "moderate_review"
   | "list_published_reviews"
@@ -231,6 +234,22 @@ function validSubmitRequest(request: SubmitReviewRequest): boolean {
     && (request.campaignToken === null || isReviewId(request.campaignToken));
 }
 
+function parseRateLimitRow(value: unknown): ReviewRateLimitClaim | null {
+  if (!isRecord(value) || !hasExactKeys(value, ["allowed", "retry_after_seconds"])
+    || typeof value.allowed !== "boolean" || !isNonNegativeInteger(value.retry_after_seconds)) return null;
+  return { allowed: value.allowed, retryAfterSeconds: value.retry_after_seconds };
+}
+
+function validRateLimitRequest(request: ReviewRateLimitClaimRequest): boolean {
+  return SHA256_RE.test(request.idempotencyKeyHash)
+    && SHA256_RE.test(request.abuseKeyHash)
+    && isIsoTimestamp(request.windowStartedAt)
+    && isIsoTimestamp(request.windowExpiresAt)
+    && Number.isSafeInteger(request.limit)
+    && request.limit >= 1
+    && request.limit <= 20;
+}
+
 export function createSupabaseReviewRepository(
   configuration: ReviewRepositoryConfiguration,
 ): ReviewRepository {
@@ -278,6 +297,17 @@ export function createSupabaseReviewRepository(
   }
 
   return {
+    async claimRateLimit(request, signal) {
+      if (!validRateLimitRequest(request)) return error("invalid_request");
+      return rpc("claim_review_submission_rate_limit", {
+        p_idempotency_key_hash: request.idempotencyKeyHash,
+        p_abuse_key_hash: request.abuseKeyHash,
+        p_window_started_at: request.windowStartedAt,
+        p_window_expires_at: request.windowExpiresAt,
+        p_limit: request.limit,
+      }, (raw) => parseSingleRow(raw, parseRateLimitRow), signal);
+    },
+
     async submit(request, signal) {
       if (!validSubmitRequest(request)) return error("invalid_request");
       return rpc("submit_review", {

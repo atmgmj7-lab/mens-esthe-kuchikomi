@@ -116,7 +116,24 @@ export type CampaignReviewAttribution = Readonly<{
   recorded: boolean;
 }>;
 
+export type ReviewRateLimitClaimRequest = Readonly<{
+  idempotencyKeyHash: string;
+  abuseKeyHash: string;
+  windowStartedAt: string;
+  windowExpiresAt: string;
+  limit: number;
+}>;
+
+export type ReviewRateLimitClaim = Readonly<{
+  allowed: boolean;
+  retryAfterSeconds: number;
+}>;
+
 export interface ReviewRepository {
+  claimRateLimit(
+    request: ReviewRateLimitClaimRequest,
+    signal?: AbortSignal,
+  ): Promise<ReviewRepositoryResult<ReviewRateLimitClaim>>;
   submit(request: SubmitReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<SubmitReviewResult>>;
   moderate(request: ModerateReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<ModerateReviewResult>>;
   listPublished(request: PublishedReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<readonly PublishedReview[]>>;

@@ -643,7 +643,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 
 - [x] T1: cross-shop regressionとcampaign FK indexをRED/GREENで閉じ、Critical/Important 0
 - [x] T2: server-only typed Review repository / RPC型、Critical/Important 0
-- [ ] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
+- [x] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
 - [ ] T4: operator moderation UI/API、Critical/Important 0
 - [ ] T5: feature-gated Supabase public Review adapter、Critical/Important 0
 - [ ] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
@@ -671,6 +671,14 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - repository resultは`ok / no_data / error`を分離し、errorは`not_configured / invalid_request / request_failed / invalid_response`だけを返す。raw response/error/credentialは返さない。
 - UUID validationを故意に除去したmutationでcontractが`not-a-uuid`を検出してRED、復元後GREEN。Review Native DB、Foundation、Growth、typecheck、lint、diff checkもPASS。
 - T2 SPEC: Critical 0 / Important 0。T2 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T3 Result
+
+- 投稿routeをJSON only、Origin/Host、`Sec-Fetch-Site`、custom CSRF、16KiB、strict payload、honeypot、UUID `Idempotency-Key`でfail closedにし、WordPressはpublish Shop readだけへ限定した。
+- server-derived digestと10分窓を使うservice-only DB claimを未適用M1へ追加。同一idempotency key再送は枠を二重消費せず、別keyの4件目を拒否し、上限後のrow/array成長を固定した。
+- submitはSupabase atomic RPCだけを呼び、UUID Review・private details・idempotency・optional campaign attributionを既存transactionで確定する。WordPress POSTとcredential参照はrouteから除外し、legacy file自体はdormantで維持した。
+- host consistency削除mutationでcross-origin requestが200になるREDを確認し、復元後GREEN。fresh local reset/reapply、並列DB contract、Foundation/Growth、856-page build、実ブラウザのcampaign/normal投稿、WordPress write 0をPASS。
+- T3 SPEC: Critical 0 / Important 0。T3 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 

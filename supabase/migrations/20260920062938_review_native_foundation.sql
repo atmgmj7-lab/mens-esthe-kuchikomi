@@ -65,6 +65,7 @@ create table private.review_abuse_rate_limits (
   window_started_at timestamptz not null,
   window_expires_at timestamptz not null,
   request_count integer not null default 1 check (request_count > 0),
+  claimed_idempotency_key_hashes text[] not null default '{}'::text[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (key_hash, window_started_at),
@@ -207,6 +208,79 @@ begin
 end;
 $$;
 
+create or replace function private.claim_review_submission_rate_limit(
+  p_idempotency_key_hash text,
+  p_abuse_key_hash text,
+  p_window_started_at timestamptz,
+  p_window_expires_at timestamptz,
+  p_limit integer default 3
+)
+returns table (allowed boolean, retry_after_seconds integer)
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+declare
+  v_count integer;
+begin
+  if p_idempotency_key_hash is null or p_idempotency_key_hash !~ '^[0-9a-f]{64}$'
+    or p_abuse_key_hash is null or p_abuse_key_hash !~ '^[0-9a-f]{64}$' then
+    raise exception using errcode = '22023', message = 'Review rate-limit digests must be lowercase SHA-256 hex';
+  end if;
+  if p_window_started_at is null or p_window_expires_at is null
+    or p_window_expires_at <= p_window_started_at
+    or p_window_expires_at <= now()
+    or p_window_expires_at - p_window_started_at > interval '10 minutes'
+    or p_limit is null or p_limit not between 1 and 20 then
+    raise exception using errcode = '22023', message = 'Review rate-limit window is invalid';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(
+    p_abuse_key_hash || '|' || p_window_started_at::text,
+    0
+  ));
+
+  insert into private.review_abuse_rate_limits (
+    key_hash,
+    window_started_at,
+    window_expires_at,
+    request_count,
+    claimed_idempotency_key_hashes
+  ) values (
+    p_abuse_key_hash,
+    p_window_started_at,
+    p_window_expires_at,
+    1,
+    array[p_idempotency_key_hash]
+  )
+  on conflict (key_hash, window_started_at) do update
+  set request_count = case
+        when p_idempotency_key_hash = any(private.review_abuse_rate_limits.claimed_idempotency_key_hashes)
+          then private.review_abuse_rate_limits.request_count
+        when private.review_abuse_rate_limits.request_count > p_limit
+          then private.review_abuse_rate_limits.request_count
+        else private.review_abuse_rate_limits.request_count + 1
+      end,
+      claimed_idempotency_key_hashes = case
+        when p_idempotency_key_hash = any(private.review_abuse_rate_limits.claimed_idempotency_key_hashes)
+          then private.review_abuse_rate_limits.claimed_idempotency_key_hashes
+        when private.review_abuse_rate_limits.request_count >= p_limit
+          then private.review_abuse_rate_limits.claimed_idempotency_key_hashes
+        else array_append(private.review_abuse_rate_limits.claimed_idempotency_key_hashes, p_idempotency_key_hash)
+      end,
+      window_expires_at = greatest(
+        private.review_abuse_rate_limits.window_expires_at,
+        excluded.window_expires_at
+      ),
+      updated_at = now()
+  returning request_count into v_count;
+
+  return query select
+    v_count <= p_limit,
+    greatest(0, ceil(extract(epoch from (p_window_expires_at - now())))::integer);
+end;
+$$;
+
 create or replace function private.submit_review(
   p_wp_shop_id bigint,
   p_body text,
@@ -327,16 +401,6 @@ begin
 
   insert into private.review_idempotency_keys (key_hash, request_fingerprint, review_id)
   values (p_idempotency_key_hash, v_request_fingerprint, v_review_id);
-
-  insert into private.review_abuse_rate_limits (
-    key_hash, window_started_at, window_expires_at
-  ) values (
-    p_abuse_key_hash, p_abuse_window_started_at, p_abuse_window_expires_at
-  )
-  on conflict (key_hash, window_started_at) do update
-  set request_count = private.review_abuse_rate_limits.request_count + 1,
-      window_expires_at = excluded.window_expires_at,
-      updated_at = now();
 
   if p_campaign_token is not null then
     select private.record_partner_review_campaign_review(
@@ -541,12 +605,14 @@ $$;
 
 revoke all on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
 revoke all on function private.record_partner_review_campaign_review(uuid, bigint, uuid) from public, anon, authenticated;
+revoke all on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) from public, anon, authenticated;
 revoke all on function private.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) from public, anon, authenticated;
 revoke all on function private.moderate_review(uuid, text, text, text) from public, anon, authenticated;
 revoke all on function private.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
 revoke all on function private.get_published_review_metrics(bigint) from public, anon, authenticated;
 grant execute on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function private.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
+grant execute on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
 grant execute on function private.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) to service_role;
 grant execute on function private.moderate_review(uuid, text, text, text) to service_role;
 grant execute on function private.list_published_reviews(bigint, integer, integer) to service_role;
@@ -578,6 +644,27 @@ security invoker
 set search_path = pg_catalog
 as $$
   select private.record_partner_review_campaign_review(p_token, p_wp_shop_id, p_review_id)
+$$;
+
+create or replace function api.claim_review_submission_rate_limit(
+  p_idempotency_key_hash text,
+  p_abuse_key_hash text,
+  p_window_started_at timestamptz,
+  p_window_expires_at timestamptz,
+  p_limit integer default 3
+)
+returns table (allowed boolean, retry_after_seconds integer)
+language sql
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.claim_review_submission_rate_limit(
+    p_idempotency_key_hash,
+    p_abuse_key_hash,
+    p_window_started_at,
+    p_window_expires_at,
+    p_limit
+  )
 $$;
 
 create or replace function api.submit_review(
@@ -682,12 +769,14 @@ $$;
 
 revoke all on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
 revoke all on function api.record_partner_review_campaign_review(uuid, bigint, uuid) from public, anon, authenticated;
+revoke all on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) from public, anon, authenticated;
 revoke all on function api.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) from public, anon, authenticated;
 revoke all on function api.moderate_review(uuid, text, text, text) from public, anon, authenticated;
 revoke all on function api.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
 revoke all on function api.get_published_review_metrics(bigint) from public, anon, authenticated;
 grant execute on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function api.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
+grant execute on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
 grant execute on function api.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) to service_role;
 grant execute on function api.moderate_review(uuid, text, text, text) to service_role;
 grant execute on function api.list_published_reviews(bigint, integer, integer) to service_role;

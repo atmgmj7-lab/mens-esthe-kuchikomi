@@ -899,3 +899,7 @@
 - T2完了。5つのReview RPCをserver-only typed repositoryへ集約し、UUID/WordPress Shop identity、submit/moderation/public/metrics/campaign DTO、`ok/no_data/error`境界を追加した。
 - contractは未実装RED、UUID検証除去mutation RED、復元後GREEN。DB migration変更0、raw Supabase error/Secret露出0。関連contract、typecheck、lint、diff checkはPASS。
 - T2 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT3 Review Submission API。
+- T3完了。Review submitはSupabase Native atomic RPCへ切替え、same-origin/CSRF/body/strict/idempotency/distributed DB rate limit/WordPress publish Shop gateを追加した。
+- rate-limitは同一key retryをdedupeし、異なる4件目を拒否、上限後のprivate row growthも固定。host consistency削除mutationはRED、復元後API/DB/並列/関連回帰がGREEN。
+- fresh local reset/reapply、DB lint、Foundation/Growth、typecheck、lint、856-page build、Playwright changed-flowがPASS。WordPress write 0、Production write 0。
+- T3 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT4 operator moderation。

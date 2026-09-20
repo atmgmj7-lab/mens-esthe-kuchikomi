@@ -30,71 +30,7 @@ function loadTypeScript(relativePath, modules) {
   return loaded.exports;
 }
 
-const validation = loadTypeScript("lib/review-validation.ts", {});
-const shopSlug = loadTypeScript("lib/shop-slug.ts", {});
-const provisioning = loadTypeScript("lib/partner/provisioning-service.ts", { "server-only": {}, "@/lib/shop-slug": shopSlug });
-let directWordPressResult = { ok: true, id: 9981 };
-let directWordPressCalls = 0;
-const directConversionCalls = [];
-const reviewApi = loadTypeScript("app/api/reviews/submit/route.ts", {
-  "next/server": { NextResponse: TestNextResponse },
-  "@/lib/review-rate-limit": { checkReviewRateLimit: () => ({ allowed: true, retryAfterSec: 0 }) },
-  "@/lib/review-validation": validation,
-  "@/lib/partner/provisioning-service": {
-    openPartnerReviewCampaign: async (token) => token === fixtureToken ? fixtureShop : null,
-    recordPartnerReviewCampaignSubmission: async (input) => { directConversionCalls.push(input); return true; },
-  },
-  "@/lib/supabase/partner-workspace": { partnerReviewGrowthRepository: {} },
-  "@/lib/wp/review-submit": { submitReviewToWordPress: async () => { directWordPressCalls += 1; return directWordPressResult; } },
-  "@/lib/wp/shops": { getShopBySlug: async (slug) => slug === fixtureShop.slug
-    ? { ...fixtureShop, publicationStatus: "publish" }
-    : slug === "other-shop" ? { ...fixtureShop, id: 702, slug, publicationStatus: "publish" } : null },
-});
-
 const reviewPayload = { shopSlug: fixtureShop.slug, nickname: "投稿者", usedPeriod: "今月", ratingTotal: 5, reviewBody: "これは30文字以上ある口コミ本文です。キャンペーン送信の検証に使用します。", website: "" };
-async function submitDirect(payload) {
-  return reviewApi.POST({ headers: new Headers({ "x-forwarded-for": "198.51.100.10" }), json: async () => payload });
-}
-
-directWordPressCalls = 0;
-directConversionCalls.length = 0;
-directWordPressResult = { ok: true, id: 9981 };
-let response = await submitDirect({ ...reviewPayload, campaignToken: fixtureToken });
-assert.equal(response.status, 200);
-assert.equal(directWordPressCalls, 1);
-assert.deepEqual(directConversionCalls, [{ token: fixtureToken, shopId: fixtureShop.id, wordpressReviewId: 9981 }]);
-directWordPressCalls = 0;
-directConversionCalls.length = 0;
-directWordPressResult = { ok: false, error: "WordPress unavailable" };
-response = await submitDirect({ ...reviewPayload, campaignToken: fixtureToken });
-assert.equal(response.status, 503);
-assert.equal(directWordPressCalls, 1);
-assert.equal(directConversionCalls.length, 0, "failed WordPress submission has no conversion");
-
-const neverResolvingConversionInputs = [];
-const neverResolvingRepository = {
-  openReviewCampaign: async (token) => token === fixtureToken ? fixtureShop : null,
-  recordReviewCampaignSubmission: (input) => {
-    neverResolvingConversionInputs.push(input);
-    return new Promise(() => {}); // never-resolving conversion repository
-  },
-};
-const boundedReviewApi = loadTypeScript("app/api/reviews/submit/route.ts", {
-  "next/server": { NextResponse: TestNextResponse },
-  "@/lib/review-rate-limit": { checkReviewRateLimit: () => ({ allowed: true, retryAfterSec: 0 }) },
-  "@/lib/review-validation": validation,
-  "@/lib/partner/provisioning-service": provisioning,
-  "@/lib/supabase/partner-workspace": { partnerReviewGrowthRepository: neverResolvingRepository },
-  "@/lib/wp/review-submit": { submitReviewToWordPress: async () => { directWordPressCalls += 1; return { ok: true, id: 9983 }; } },
-  "@/lib/wp/shops": { getShopBySlug: async () => ({ ...fixtureShop, publicationStatus: "publish" }) },
-});
-directWordPressCalls = 0;
-const boundedStartedAt = performance.now();
-response = await boundedReviewApi.POST({ headers: new Headers({ "x-forwarded-for": "198.51.100.11" }), json: async () => ({ ...reviewPayload, campaignToken: fixtureToken }) });
-assert.equal(response.status, 200);
-assert.equal(directWordPressCalls, 1, "one WordPress call is retained when conversion stalls");
-assert.ok(performance.now() - boundedStartedAt < 2_000, "stalled conversion has a bounded successful response");
-assert.deepEqual(neverResolvingConversionInputs, [{ token: fixtureToken, shopId: fixtureShop.id, wordpressReviewId: 9983 }], "stalled conversion receives no review body or contact data");
 
 const dashboardReviewApi = loadTypeScript("app/api/dashboard/partners/review/route.ts", {
   "next/server": { NextResponse: TestNextResponse },
@@ -142,7 +78,8 @@ async function stopNext(child) {
 }
 
 const privateEvents = [];
-const wordpressPosts = [];
+const submitAttempts = [];
+let wordpressWrites = 0;
 const supabase = createServer(async (request, reply) => {
   const body = await readJson(request);
   if (request.url === "/rest/v1/rpc/open_partner_review_campaign") {
@@ -151,10 +88,22 @@ const supabase = createServer(async (request, reply) => {
     reply.end(JSON.stringify(active ? [{ wp_shop_id: fixtureShop.id, shop_slug: fixtureShop.slug, shop_name: fixtureShop.title, canonical_url: fixtureShop.canonicalUrl }] : []));
     return;
   }
-  if (request.url === "/rest/v1/rpc/record_partner_review_campaign_submission") {
-    privateEvents.push(body);
+  if (request.url === "/rest/v1/rpc/claim_review_submission_rate_limit") {
+    privateEvents.push({ kind: "rate", body });
     reply.writeHead(200, { "Content-Type": "application/json" });
-    reply.end("true");
+    reply.end(JSON.stringify([{ allowed: true, retry_after_seconds: 0 }]));
+    return;
+  }
+  if (request.url === "/rest/v1/rpc/submit_review") {
+    submitAttempts.push(body);
+    if (body.p_campaign_token === fixtureToken && body.p_wp_shop_id !== fixtureShop.id) {
+      reply.writeHead(400, { "Content-Type": "application/json" });
+      reply.end(JSON.stringify({ code: "22023", message: "campaign mismatch" }));
+      return;
+    }
+    privateEvents.push({ kind: "submit", body });
+    reply.writeHead(200, { "Content-Type": "application/json" });
+    reply.end(JSON.stringify([{ review_id: `${String(privateEvents.length).padStart(8, "0")}-1111-4111-8111-111111111111`, created: true }]));
     return;
   }
   reply.writeHead(404).end();
@@ -174,9 +123,9 @@ const wordpress = createHttpsServer({ key: readFileSync(keyPath), cert: readFile
     return;
   }
   if (request.method === "POST" && url.pathname === "/wp-json/wp/v2/reviews") {
-    wordpressPosts.push(await readJson(request));
-    reply.writeHead(201, { "Content-Type": "application/json" });
-    reply.end(JSON.stringify({ id: 9100 + wordpressPosts.length }));
+    wordpressWrites += 1;
+    reply.writeHead(500, { "Content-Type": "application/json" });
+    reply.end(JSON.stringify({ message: "WordPress Review writes are forbidden" }));
     return;
   }
   reply.writeHead(404).end();
@@ -194,7 +143,7 @@ const next = spawn("npm", ["run", "start", "--", "--hostname", "127.0.0.1", "--p
   cwd: root,
   detached: true,
   stdio: ["ignore", "pipe", "pipe"],
-  env: { ...process.env, SUPABASE_URL: `http://127.0.0.1:${supabasePort}`, SUPABASE_SERVICE_ROLE_KEY: "partner-review-growth-local-test", WP_API_BASE_URL: `https://localhost:${wordpressPort}/wp-json`, WP_REVIEW_SUBMIT_USER: "local-test", WP_REVIEW_SUBMIT_APP_PASSWORD: "local-test", REVIEW_SUBMIT_DRY_RUN: "false", NODE_EXTRA_CA_CERTS: certPath },
+  env: { ...process.env, SUPABASE_URL: `http://127.0.0.1:${supabasePort}`, SUPABASE_SERVICE_ROLE_KEY: "partner-review-growth-local-test", WP_API_BASE_URL: `https://localhost:${wordpressPort}/wp-json`, NODE_EXTRA_CA_CERTS: certPath },
 });
 let nextLog = "";
 next.stdout.on("data", (chunk) => { nextLog = `${nextLog}${chunk}`.slice(-4000); });
@@ -227,10 +176,12 @@ try {
   await page.locator("#review-body").fill(reviewPayload.reviewBody);
   await page.locator(".hl-contact-submit").click();
   await page.locator(".hl-contact-success").waitFor({ state: "visible" });
-  assert.equal(wordpressPosts.length, 1);
-  assert.equal(wordpressPosts[0].status, "pending");
-  assert.equal(wordpressPosts[0].meta.review_shop_id, fixtureShop.id);
-  assert.deepEqual(privateEvents, [{ p_token: fixtureToken, p_wp_shop_id: fixtureShop.id, p_wp_review_id: 9101 }], "the real client form carries only the campaign token to attribution");
+  assert.equal(wordpressWrites, 0);
+  assert.equal(privateEvents.length, 2);
+  assert.equal(privateEvents[0].kind, "rate");
+  assert.equal(privateEvents[1].kind, "submit");
+  assert.equal(privateEvents[1].body.p_wp_shop_id, fixtureShop.id);
+  assert.equal(privateEvents[1].body.p_campaign_token, fixtureToken);
 
   await page.goto(`${baseUrl}/reviews/submit/?shop=${fixtureShop.slug}`, { waitUntil: "domcontentloaded" });
   await page.locator("form.hl-review-form").waitFor({ state: "visible" });
@@ -240,18 +191,20 @@ try {
   await page.locator("#review-body").fill(reviewPayload.reviewBody);
   await page.locator(".hl-contact-submit").click();
   await page.locator(".hl-contact-success").waitFor({ state: "visible" });
-  assert.equal(wordpressPosts.length, 2, "normal form path still submits");
-  assert.equal(privateEvents.length, 1, "normal form path has no attribution");
+  assert.equal(wordpressWrites, 0, "normal form path never writes WordPress");
+  assert.equal(privateEvents.length, 4, "normal form path claims and submits natively");
+  assert.equal(privateEvents[3].body.p_campaign_token, null);
 
   await page.goto(`${baseUrl}/reviews/submit/?shop=other-shop&campaign=${fixtureToken}`, { waitUntil: "domcontentloaded" });
   await page.getByText("キャンペーンの投稿先店舗を確認できません。", { exact: true }).waitFor({ state: "visible" });
   assert.equal(await page.locator("form.hl-review-form").count(), 0, "mismatched campaign/shop does not render a form");
   const mismatch = await page.evaluate(async ({ token, payload }) => {
-    const response = await fetch("/api/reviews/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, shopSlug: "other-shop", campaignToken: token }) });
+    const response = await fetch("/api/reviews/submit", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-submit-v1", "Idempotency-Key": crypto.randomUUID() }, body: JSON.stringify({ ...payload, shopSlug: "other-shop", campaignToken: token }) });
     return response.status;
   }, { token: fixtureToken, payload: reviewPayload });
-  assert.equal(mismatch, 400);
-  assert.equal(wordpressPosts.length, 2, "mismatched API request never reaches mocked WordPress");
+  assert.equal(mismatch, 503);
+  assert.equal(wordpressWrites, 0, "mismatched API request never writes WordPress");
+  assert.equal(submitAttempts.length, 3, "mismatched campaign reaches the atomic native rejection once");
   await page.close();
   console.log("partner review growth changed-flow headless browser QA passed");
 } finally {

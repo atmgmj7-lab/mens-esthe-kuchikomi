@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { USED_PERIODS } from "@/lib/review-validation";
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
@@ -23,6 +23,7 @@ export function ReviewSubmitForm({
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,13 +51,18 @@ export function ReviewSubmitForm({
       reviewBody: String(formData.get("reviewBody") || ""),
       website: String(formData.get("website") || ""),
       campaignToken,
-      sourceUrl: typeof window !== "undefined" ? window.location.href : ""
     };
+
+    idempotencyKeyRef.current ??= crypto.randomUUID();
 
     try {
       const response = await fetch("/api/reviews/submit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-ESKOMI-CSRF": "review-submit-v1",
+          "Idempotency-Key": idempotencyKeyRef.current,
+        },
         body: JSON.stringify(payload)
       });
       const data = (await response.json()) as { ok?: boolean; message?: string };
@@ -72,6 +78,7 @@ export function ReviewSubmitForm({
           "口コミ投稿ありがとうございます。内容を確認後、掲載いたします。掲載まで数日かかる場合があります。"
       );
       setStatus("success");
+      idempotencyKeyRef.current = null;
       form.reset();
     } catch {
       setStatus("error");
@@ -161,7 +168,7 @@ export function ReviewSubmitForm({
 
       <div className="hl-contact-field">
         <label htmlFor="review-revisit">再訪意向（任意）</label>
-        <input id="review-revisit" name="revisitIntent" type="text" maxLength={200} />
+        <input id="review-revisit" name="revisitIntent" type="text" maxLength={80} />
       </div>
 
       <div className="hl-contact-field">

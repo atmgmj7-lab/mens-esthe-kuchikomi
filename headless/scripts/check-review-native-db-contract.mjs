@@ -53,6 +53,14 @@ function runSql(input) {
 function submitSql({ wpShopId, body, rating, idempotencyHash, abuseHash }) {
   return `
 set role service_role;
+select allowed
+from api.claim_review_submission_rate_limit(
+  '${idempotencyHash}',
+  '${abuseHash}',
+  date_trunc('minute', now()),
+  date_trunc('minute', now()) + interval '1 minute',
+  3
+);
 select review_id::text || '|' || created::text
 from api.submit_review(
   ${wpShopId},
