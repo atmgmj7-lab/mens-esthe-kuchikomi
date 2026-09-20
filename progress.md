@@ -896,3 +896,6 @@
 - T1 close完了。index不足RED→M1へleading index追加→GREEN。shop consistency join除去mutationでcross-shop contractのREDを確認し、reset後に通常contractと真の並列sessionをGREENへ戻した。
 - Foundation/Growth local DB、Review公開関連、typecheck、lint、DB lint、security/performance advisor、planner index利用がPASS。T1 SPEC / QUALITY_SECURITYはCritical 0 / Important 0。
 - 現在地はT2。server-only typed Review repositoryのfail-first contractから開始する。
+- T2完了。5つのReview RPCをserver-only typed repositoryへ集約し、UUID/WordPress Shop identity、submit/moderation/public/metrics/campaign DTO、`ok/no_data/error`境界を追加した。
+- contractは未実装RED、UUID検証除去mutation RED、復元後GREEN。DB migration変更0、raw Supabase error/Secret露出0。関連contract、typecheck、lint、diff checkはPASS。
+- T2 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT3 Review Submission API。

@@ -642,7 +642,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 ### Gates
 
 - [x] T1: cross-shop regressionとcampaign FK indexをRED/GREENで閉じ、Critical/Important 0
-- [ ] T2: server-only typed Review repository / RPC型、Critical/Important 0
+- [x] T2: server-only typed Review repository / RPC型、Critical/Important 0
 - [ ] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
 - [ ] T4: operator moderation UI/API、Critical/Important 0
 - [ ] T5: feature-gated Supabase public Review adapter、Critical/Important 0
@@ -664,6 +664,13 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - shop consistency joinをlocal DBだけで故意に除去し、cross-shop testが`cross-shop Review UUID attribution must be rejected without partial state`でREDになることを確認。reset後GREEN。
 - same/mismatch並列session、Foundation/Growth/Review回帰、typecheck、lint、DB lint、security/performance advisorはPASS。
 - T1 SPEC: Critical 0 / Important 0。T1 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T2 Result
+
+- `ReviewRepository`とSupabase実装をserver-only境界へ追加し、5 RPCのrequest/response、UUID Review ID、WordPress Shop ID、submit/moderation/public/metrics/campaign DTOを型固定した。
+- repository resultは`ok / no_data / error`を分離し、errorは`not_configured / invalid_request / request_failed / invalid_response`だけを返す。raw response/error/credentialは返さない。
+- UUID validationを故意に除去したmutationでcontractが`not-a-uuid`を検出してRED、復元後GREEN。Review Native DB、Foundation、Growth、typecheck、lint、diff checkもPASS。
+- T2 SPEC: Critical 0 / Important 0。T2 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 

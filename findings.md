@@ -522,3 +522,8 @@
 - 公式Markdown URLは取得toolのcontent-type制約で失敗したため、公式domain限定のHTML検索結果へ切り替えた。取得結果は実装指示ではなく境界確認だけに使用する。
 - T1 cross-shop testはShop A ReviewへShop B campaign/tokenを渡し、戻り値false、attribution 0、Review本文/評価不変、campaign row完全不変を同一transactionで検査する。join除去mutationで確実にREDとなった。
 - `partner_review_campaign_submissions_campaign_id_idx`はFK列単独index。`enable_seqscan=off`のEXPLAINでBitmap Index Scan利用を確認した。
+- Repository現状: `partner-workspace.ts`はserver-only REST/RPC adapterだが、失敗・未設定・0件を`null`/`[]`/`false`へまとめており、Review Native UUID submit/moderation/public DTOは未実装。T2では既存service header境界を再利用し、明示`ok/no_data/unavailable/error`へ分離する。
+- 投稿route現状: memory内rate limit後にWordPress RESTへpending投稿し、成功後だけlegacy `wp_review_id` attributionを記録する。same-origin/CSRF/Idempotency-Key/DB-backed abuseは未実装で、T3でSupabase atomic RPCへ切替対象。旧`submitReviewToWordPress`は削除せずdormant化する。
+- Phase 3 Partner Dashboard専用設計fileはrepository内検索では見つからない。今回task packetがPhase 3 interface正本を具体的に列挙しているため、その範囲だけをbackend DTO/count/campaign contractへ反映し、Partner auth/UI/AI Assistは実装しない。
+- T2はDB/RPC shapeを変更せず、`api.submit_review`、`api.moderate_review`、`api.list_published_reviews`、`api.get_published_review_metrics`、`api.record_partner_review_campaign_review`の5境界をserver-only repositoryへ集約する。成功0件を`no_data`、未設定/通信失敗/不正responseをclient-safeな`error` codeへ分離し、生response bodyとcredentialを返さない。
+- Review DTOはSupabase UUIDをReview identityとして採用しつつ、Shop identityは既存WordPress `wp_post_id`を`wpShopId`として保持する。公開Review/metricsのnullable評価・日時はDB contractのまま保持し、T2で公開可否やUI閾値を再実装しない。
