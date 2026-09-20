@@ -101,9 +101,37 @@ revoke all on table private.review_abuse_rate_limits from public, anon, authenti
 revoke all on table private.review_moderation_events from public, anon, authenticated;
 revoke all on sequence private.review_moderation_events_id_seq from public, anon, authenticated;
 
+-- The baseline granted service_role ALL on existing app tables. Replace that
+-- inherited app.reviews ACL with only the columns required by the invoker RPCs.
+revoke all on table app.reviews from service_role;
+grant select on table app.reviews to service_role;
+grant insert (
+  shop_id,
+  body,
+  rating,
+  rating_price,
+  rating_service,
+  rating_cleanliness,
+  visit_period,
+  revisit_intent
+) on table app.reviews to service_role;
+grant update (
+  moderation_status,
+  publication_status,
+  is_public,
+  reviewed_at,
+  approved_at,
+  published_at,
+  updated_at
+) on table app.reviews to service_role;
+
+revoke all on table private.review_submission_details from service_role;
+revoke all on table private.review_idempotency_keys from service_role;
+revoke all on table private.review_abuse_rate_limits from service_role;
+revoke all on table private.review_moderation_events from service_role;
 grant select, insert on table private.review_submission_details to service_role;
-grant select, insert, delete on table private.review_idempotency_keys to service_role;
-grant select, insert, update, delete on table private.review_abuse_rate_limits to service_role;
+grant select, insert on table private.review_idempotency_keys to service_role;
+grant select, insert, update on table private.review_abuse_rate_limits to service_role;
 grant select, insert on table private.review_moderation_events to service_role;
 grant usage, select on sequence private.review_moderation_events_id_seq to service_role;
 

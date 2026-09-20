@@ -868,3 +868,11 @@
 - normal/duplicate/invalid rating/private detail failure/no campaign/valid campaign/campaign rollback/moderation invalid transition/append-only/public candidate/metrics/legacy attributionをlocal transactionで検証した。
 - local reset/reapply、Foundation/Growth SQL contract、Review関連回帰、typecheck、lint、DB lintが成功した。Production Supabase、WordPress、Vercel、main、Secret、URL/canonical/sitemapは変更していない。
 - T2以降、M2、push、Production migrationへ進まず、独立review前で停止する。
+
+## 2026-09-20 Review Native T1 Revision 01 — service-role ACL
+
+- SPEC reviewのImportant 1件だけを修正した。旧ACLを対象に新しい実効権限検査を先行追加し、`service-role Review privilege contract failed`でREDを確認した。
+- 未適用M1で`app.reviews`のbaseline ALLを撤回した。service roleはtable SELECT、投稿8列のcolumn INSERT、moderation/publication 7列のcolumn UPDATEだけを持ち、DELETE/TRUNCATE/REFERENCES/TRIGGER、table-wide INSERT/UPDATE、本文・評価UPDATEは拒否する。
+- private Review workflowはdetails/idempotency/auditをSELECT+INSERT、abuseをSELECT+INSERT+UPDATEへ限定し、全4表の不要DELETEとaudit UPDATEを拒否した。
+- initial applyと2回目のreset/reapply、Review Native契約、Foundation/Growth source+local DB契約、既存Review公開/schema回帰、typecheck、lint、DB lintが成功した。DB lintは5 schema error 0。
+- anon/authenticatedの`app.reviews` direct accessとReview RPC executeはDENIEDのまま。Production Supabase、WordPress、Vercel、main、Secret、T2への変更は0。

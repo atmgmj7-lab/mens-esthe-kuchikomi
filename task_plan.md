@@ -610,3 +610,14 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [ ] 独立reviewを実施する（次の別タスク）
 - [ ] T2 application repositoryへ進む（別承認）
 - **Status:** T1 local implementation complete; commit/push/Production migration未実施
+
+## 2026-09-20 Review Native T1 Revision 01 — service-role ACL
+
+- [x] 実効ACL検査を先に追加し、旧M1で`service-role Review privilege contract failed`のREDを確認する
+- [x] 未適用M1内で`app.reviews`のbaseline ALLを撤回し、列単位INSERT/UPDATEへ限定する
+- [x] idempotency / abuse tableからT1不要のDELETEを除去する
+- [x] initial apply、reset/reapply、Review Native・Foundation・Growth回帰、DB lintを検証する
+- [x] 実効ACL一覧とbrowser denialを記録する
+- [x] typecheck、lint、diff/secret/PII検査を実行する
+- [x] 修正commitを1件作成し、T1 SPEC再review前で停止する
+- **Status:** Revision 01 complete; awaiting T1 SPEC re-review; Production/T2/main変更なし

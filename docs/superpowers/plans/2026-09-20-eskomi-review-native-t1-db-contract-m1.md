@@ -54,3 +54,27 @@ Review the following independently before any T2 work:
 4. Growth legacy compatibility and partial unique indexes.
 5. Forward-only migration safety over the five applied Production migrations.
 6. No accidental application, WordPress, SEO, or Production changes.
+
+## Revision 01 — service-role effective ACL
+
+The independent SPEC review found that the baseline `ALL` grant on existing
+`app` tables still applied to `app.reviews`, and that M1 granted unnecessary
+`DELETE` on the idempotency and abuse tables. Revision 01 keeps M1 as the only
+unapplied forward migration and narrows the effective ACL as follows:
+
+- `app.reviews`: table `SELECT`; column `INSERT` only for Shop, body, overall
+  and metric ratings, visit period, and revisit intent; column `UPDATE` only
+  for moderation/publication state and their timestamps.
+- `app.reviews`: no table `INSERT`/`UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`,
+  or `TRIGGER`; submitted body, ratings, and visit fields have no `UPDATE`.
+- `review_submission_details`: `SELECT`, `INSERT`.
+- `review_idempotency_keys`: `SELECT`, `INSERT`; expiry cleanup remains outside T1.
+- `review_abuse_rate_limits`: `SELECT`, `INSERT`, `UPDATE`.
+- `review_moderation_events`: `SELECT`, `INSERT`; audit `UPDATE`/`DELETE` remain denied.
+
+The ACL assertions were added before the migration change and failed with
+`service-role Review privilege contract failed`. After the migration change,
+initial apply, a second reset/reapply, the complete Review Native contract,
+Foundation/Growth local DB contracts, related Review regressions, TypeScript,
+ESLint, and DB lint all passed. The final DB lint reported no schema errors in
+`api`, `app`, `extensions`, `private`, or `public`.

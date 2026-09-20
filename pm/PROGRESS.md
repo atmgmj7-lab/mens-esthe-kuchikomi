@@ -3328,3 +3328,10 @@ pm/PROGRESS.md
 - Partner Growthはnullable Review UUIDを追加し、legacy `wp_review_id`と旧RPCを保持した。Review作成・private details・idempotency・optional Campaign attributionのpartial failureはlocal fixtureで0を確認した。
 - fail-first、constraint mutation、initial apply、複数reset/reapply、DB lint、Foundation/Growth/Review関連回帰、typecheck、lintは成功。Production Supabase/WordPress/Vercel/main/Secret/SEO変更は0。
 - 次はこのT1差分の独立review。T2 application実装、push、Production migrationへは進まない。
+
+## 2026-09-20 Review Native Cutover T1 — Revision 01 service-role ACL
+
+- SPEC reviewのImportant 1件を修正した。実効ACL testを先に追加し、旧M1で意図したACL REDを確認した。
+- 未適用M1内で`app.reviews`の継承済みALLを撤回し、SELECT、投稿列限定INSERT、moderation/publication列限定UPDATEへ縮小した。DELETE/TRUNCATE/REFERENCES/TRIGGERとsubmitted内容UPDATEはDENIED。
+- private Review 4表の不要DELETEを除去し、moderation auditのUPDATE/DELETE拒否を維持した。service-only RPC、SECURITY INVOKER、fixed search path、browser denialは維持。
+- initial apply、reset/reapply、Review Native・Foundation・Growth契約、既存Review/schema回帰、typecheck、lint、DB lintは全PASS。Production/WordPress/Vercel/main/T2変更は0。次はT1 SPEC再review。
