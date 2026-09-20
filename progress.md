@@ -922,3 +922,11 @@
 - T8 isolated E2E完了。local Supabaseだけでcampaign URL/open/start、5 submit、duplicate、parallel、UUID attribution、cross-shop拒否、pending/moderation/publish、public adapter、negative review、reject/spam、counts/metricsをPASS。
 - 2件時graph/schemaなし、3件時AggregateRating `3.3 / ratingCount 3 / reviewCount 3`。React SSRとChromium 390/1280pxでhorizontal overflow 0、console/page error 0。
 - 終了後local reset/reapplyを実施し、synthetic Shop/Review/workspaceは`0|0|0`。T8 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はfull regression / final cross-cutting review。
+- Full regression完了。`npm test`、lint、typecheck、857/857 production build、DB lint、security/performance advisor、fresh local reset/reapply、Foundation/Growth/Review Native/public/schema回帰、dependency audit 0 vulnerabilityをPASSした。
+- Browser QAはPartner Review Growth、priority Area 110 scenarios/2,687 assertions、Shop 33 scenarios/1,072 assertionsをPASS。Areaの既存期待差はPR Shopをmain listから除外する現行契約へfixtureを合わせ、Partner fixtureは実経路の`open`/`start`両eventと現在公開中WordPress Shop readを明示mockした。
+- isolated E2E後のsynthetic Shop/Review/workspaceは`0|0|0`、local全6 migration再適用済み。horizontal overflow 0、console/page error 0、WordPress Review write 0。
+- 最終横断reviewはauth/service-role/CSRF/PII/rate limit/idempotency/race/moderation/campaign/public payload/schema/UI/WordPress Shop gateを再照合し、Critical 0 / Important 0 / Minor 0。
+- 最新fetch後も`origin/main=4c60b665...`、main側進行0。Vercel production aliasのread-only inspectは`dpl_EvzCCy4yE3LJGoYR6RoAu4B85NVU` READY。旧staged `dpl_2GfYVLYxA216A8pX9kmWXE3HfbzS`はSUPERSEDED / DO NOT PROMOTE。
+- Production Supabase migration、WordPress write、Vercel deploy/promotion、main push、Secret変更は実施していない。次はlocal exact candidateに対するmain pushを独立承認するgate。
+- Area browserの最終fresh runでは、同一origin/portでfixture serverからproduction serverへ切替えた後、live routeを幅ごとに55回SSRする旧harnessが外部WordPress応答timeoutを再現した。製品route単独は200/markerありを確認し、server切替時にChromiumを再起動、live取得はAreaごと1回＋11幅resizeへ修正して110 scenarios/2,687 assertions/failures 0へ戻した。
+- isolated E2Eのfresh run後はlocal fixtureが残るため、明示`supabase db reset --local --no-seed`を再実行した。最終readbackはShop/Review/workspace `0|0|0`、migration ledger 6件順序一致。

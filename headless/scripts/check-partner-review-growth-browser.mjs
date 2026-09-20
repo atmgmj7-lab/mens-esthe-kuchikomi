@@ -79,11 +79,19 @@ async function stopNext(child) {
 
 const privateEvents = [];
 const submitAttempts = [];
+const campaignEvents = [];
 let wordpressWrites = 0;
 const supabase = createServer(async (request, reply) => {
   const body = await readJson(request);
   if (request.url === "/rest/v1/rpc/open_partner_review_campaign") {
     const active = body.p_token === fixtureToken;
+    reply.writeHead(200, { "Content-Type": "application/json" });
+    reply.end(JSON.stringify(active ? [{ wp_shop_id: fixtureShop.id, shop_slug: fixtureShop.slug, shop_name: fixtureShop.title, canonical_url: fixtureShop.canonicalUrl }] : []));
+    return;
+  }
+  if (request.url === "/rest/v1/rpc/record_partner_review_campaign_event") {
+    const active = body.p_token === fixtureToken && ["open", "start"].includes(body.p_event);
+    if (active) campaignEvents.push(body);
     reply.writeHead(200, { "Content-Type": "application/json" });
     reply.end(JSON.stringify(active ? [{ wp_shop_id: fixtureShop.id, shop_slug: fixtureShop.slug, shop_name: fixtureShop.title, canonical_url: fixtureShop.canonicalUrl }] : []));
     return;
@@ -115,6 +123,11 @@ const certPath = join(certDir, "localhost-cert.pem");
 execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", keyPath, "-out", certPath, "-subj", "/CN=localhost", "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1", "-days", "1"], { stdio: "ignore" });
 const wordpress = createHttpsServer({ key: readFileSync(keyPath), cert: readFileSync(certPath) }, async (request, reply) => {
   const url = new URL(request.url ?? "/", `https://${request.headers.host}`);
+  if (request.method === "GET" && url.pathname === `/wp-json/wp/v2/shop/${fixtureShop.id}`) {
+    reply.writeHead(200, { "Content-Type": "application/json" });
+    reply.end(JSON.stringify(wpShop(fixtureShop.id, fixtureShop.slug)));
+    return;
+  }
   if (request.method === "GET" && url.pathname === "/wp-json/wp/v2/shop") {
     const slug = url.searchParams.get("slug");
     const shop = slug === fixtureShop.slug ? wpShop(fixtureShop.id, slug) : slug === "other-shop" ? wpShop(702, slug) : null;
@@ -167,6 +180,10 @@ try {
   await page.goto(`${baseUrl}/r/${fixtureToken}/`, { waitUntil: "domcontentloaded" });
   assert.equal(new URL(page.url()).pathname, "/reviews/submit/");
   assert.equal(new URL(page.url()).search, `?shop=${fixtureShop.slug}&campaign=${fixtureToken}`);
+  assert.deepEqual(campaignEvents, [
+    { p_token: fixtureToken, p_event: "open" },
+    { p_token: fixtureToken, p_event: "start" },
+  ]);
   const campaignForm = page.locator("form.hl-review-form");
   await campaignForm.waitFor({ state: "visible" });
   assert.match(await campaignForm.innerText(), new RegExp(fixtureShop.title));

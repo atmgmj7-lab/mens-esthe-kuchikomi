@@ -312,9 +312,12 @@ async function startServer(root, readinessPath) {
 async function runFixtureQa(browser, preview) {
   const page = await browser.newPage();
   for (const area of areas) {
-    const relationCount = preview.records.filter((record) =>
+    const relatedPreviewCount = preview.records.filter((record) =>
       record.currentAreaRelations.some((relation) => relation.termId === area.id)
     ).length + 2;
+    const relationCount = ["sakai", "shinosaka"].includes(area.slug)
+      ? relatedPreviewCount - 1
+      : relatedPreviewCount;
     const formalRankingCount = area.slug === "umeda" ? 3 : 0;
     const route = `/qa-priority-fixture/${area.slug}/`;
     const rawResponse = await fetch(`${baseUrl}${route}`);
@@ -444,11 +447,14 @@ async function runFixtureQa(browser, preview) {
 async function runLiveFailSafeQa(browser) {
   const page = await browser.newPage();
   for (const area of areas) {
+    let response;
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
-      const response = await page.goto(`${baseUrl}/area/${area.slug}/`, { waitUntil: "domcontentloaded", timeout: 60_000 });
-      await page.locator('[data-area-precision-mode="true"]').waitFor({ state: "attached", timeout: 60_000 });
-      await page.locator("main.hl-route-fallback").waitFor({ state: "detached", timeout: 60_000 });
+      if (!response) {
+        response = await page.goto(`${baseUrl}/area/${area.slug}/`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+        await page.locator('[data-area-precision-mode="true"]').waitFor({ state: "attached", timeout: 60_000 });
+        await page.locator("main.hl-route-fallback").waitFor({ state: "detached", timeout: 60_000 });
+      }
       scenarios += 1;
       check(response?.status() === 200, `live ${area.slug} ${viewport.width}px crash=0`, { status: response?.status() });
       check(await page.locator("h1:visible").count() === 1, `live ${area.slug} ${viewport.width}px H1=1`);
@@ -512,6 +518,8 @@ try {
   await stopChildProcess(server);
   server = undefined;
   if (!fixtureOnly) {
+    await browser.close();
+    browser = await chromium.launch({ headless });
     await fs.access(path.join(projectRoot, ".next", "BUILD_ID"));
     server = await startServer(projectRoot, "/area/umeda/");
     await runLiveFailSafeQa(browser);

@@ -649,14 +649,14 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
 - [x] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
 - [x] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
-- [ ] Full regression / final cross-cutting review / exact candidate commit
-- [ ] Production変更0、push/deploy/migration/promotion未実施でrelease approval packetを返す
+- [x] Full regression / final cross-cutting review / exact candidate commit
+- [x] Production変更0、push/deploy/migration/promotion未実施でrelease approval packetを返す
 
 ### Current State
 
-- `origin/main=4c60b66509af4fbec7589f517c4b27f872ac2eeb`、candidateは3 commit先、main側進行0、対象file衝突0。
-- 現在worktreeは専用branch上でclean。追加worktree不要。
-- T1 implementation自体のcross-shop拒否は実DBPASSだが、committed regressionが不足。`campaign_id` FK leading indexも未実装。
+- `origin/main=4c60b66509af4fbec7589f517c4b27f872ac2eeb`、Phase 2 candidateはT1開始点から8 task commitと最終QA commitを積み、main側進行0、対象file衝突0。
+- 現在worktreeは専用branch上。T1〜T8、full regression、final cross-cutting reviewを完了し、最終QA記録commit後にclean readbackする。
+- T1のcross-shop UUID attribution committed regressionと`campaign_id` FK leading indexは実装済み。T2〜T8も各SPEC / QUALITY_SECURITY Critical 0 / Important 0で完了した。
 
 ### T1 Result
 

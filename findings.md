@@ -541,3 +541,10 @@
 - Review submit APIの成功payloadは意図的に`ok/message`だけで、browserへNative Review UUIDやcreated flagを返さない。isolated E2EのUUID/idempotency確認はlocal private ledger readbackで行い、公開API契約を広げない。
 - campaign未指定の実フォームpayloadは`campaignToken`キー自体を省略する。`null`を送るfixtureはstrict validatorに拒否されるため、E2Eは実browser shapeと一致させる。
 - 公開metrics RPCは平均を小数1桁へ丸める。5/4/1の3件は3.3で、UIとAggregateRatingも同値を使用する。
+- Full regressionで`npm audit`が既存transitiveの`browserslist`/`js-yaml`等を検出した。`npm audit fix --dry-run`でdirect dependency/API変更なしのpatch/minor 7 packageだけと確認し、lockfileを更新後にaudit 0、`npm ci`、全test/lint/typecheck/build/browserを再実行した。
+- priority Area browserのSakai/Shin-Osaka各1件差はReview adapterの製品回帰ではなく、`buildAreaShopOrdering`がinfo-order対象のPR Shopをmain listから外す既存契約とfixtureのraw relation count期待差。製品コードを変えず、fixture期待を公開main list契約へ一致させて110 scenarios/2,687 assertionsをPASSした。
+- Partner Review Growth browserはT6以降の実経路が短縮URLで`open`、投稿画面で`start`を記録し、WP IDで現在publish Shopを再取得する。旧fixtureに後者2境界がなくフォームをfail closedにしたため、両eventとWP single-Shop readをmockし、event順序まで検査した。
+- final cross-cutting reviewではbrowserがservice-roleをimportしないこと、operator actorがserver-derivedであること、APIがsame-origin/CSRF/Fetch Metadata/16KiB/strict/idempotency/DB rate limitを持つこと、公開DTOにPII/private/campaign情報がないこと、UIとJSON-LDが単一adapter結果であることを再確認した。
+- current Production deploymentはread-only Vercel inspectで`dpl_EvzCCy4yE3LJGoYR6RoAu4B85NVU` / READY。旧staged `dpl_2GfYVLYxA216A8pX9kmWXE3HfbzS`はpromotion対象外。今回の実行によるProduction変更は0。
+- Area browser timeoutは製品DOM不在ではなく、同じ`127.0.0.1:3113`をfixture/production serverへ差し替えつつChromiumを保持し、さらに5 Area×11幅で外部依存SSRを反復するharness条件に限定された。単独minimal-env production serverはSakai 200、precision marker 1、fallback 0。browser再起動とAreaごと1回のnavigationへ縮めても全11幅のlayout/canonical/overflow assertionは維持され、最終110/2,687 PASS。
+- isolated E2E runnerはfixtureを自動削除しないため、phase close手順側で直後にlocal resetする必要がある。今回もreset後`0|0|0`と全6 migrationをreadbackし、Production synthetic data 0を維持した。
