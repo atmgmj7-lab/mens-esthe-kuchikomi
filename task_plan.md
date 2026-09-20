@@ -596,3 +596,17 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - 店舗責任者申請はlocal Supabaseの非公開審査キューで検証済み。
 - WordPress公開情報とSupabase公開viewは変更していない。
 - 本番migration、Secret登録、本番申請保存、push、deployは未実施。
+
+## 2026-09-20 ESKOMI-SUPABASE-REVIEW-NATIVE-CUTOVER-02 T1
+
+- [x] 最新`origin/main`とclean isolated worktreeを固定する
+- [x] executable DB contractを先に追加し、M1未適用のREDを確認する
+- [x] forward migration `20260920062938_review_native_foundation.sql`を1件だけ作成する
+- [x] `app.reviews`拡張、private PII/idempotency/abuse/audit、service-only RPCを実装する
+- [x] GrowthへReview UUIDを追加し、legacy `wp_review_id`経路を維持する
+- [x] submit atomicity、moderation append-only、公開candidate/metrics、browser denialをlocal DBで検証する
+- [x] reset/reapply、DB lint、Foundation/Growth/Review関連回帰を検証する
+- [x] 実装計画・独立review packetを保存する
+- [ ] 独立reviewを実施する（次の別タスク）
+- [ ] T2 application repositoryへ進む（別承認）
+- **Status:** T1 local implementation complete; commit/push/Production migration未実施

@@ -3320,3 +3320,11 @@ pm/PROGRESS.md
 - 日次更新はcanonical `/wp-json/escomi/v1/update/`へ統一し、指定店舗・保存0件failの検証モードを追加。run `29663074388`で1221を1件更新し、成功1・失敗0を確認した。
 - 本番10条件（5route×PC/SP）はHTTP 200・横はみ出し0。店舗詳細の可視電話予約は各幅1つ、対象外2店舗404、GA PHP origin 404、dashboard未認証401を確認した。
 - 全test、lint、typecheck、日次8 unit、workflow契約、YAML、差分検査が成功。独立レビュー0件。旧FTP GitHub secretsは全削除し、WordPressを公開データ元として維持した。
+
+## 2026-09-20 Review Native Cutover T1 — local DB contract complete
+
+- Supabase-native ReviewのT1 DB contractとM1 forward migrationをローカル実装した。既存Production適用済み5 migrationは変更していない。
+- Review UUID/coreは`app`、PII/idempotency/abuse/auditは`private`、RPC transportは`api`に分離した。anon/authenticated direct accessとRPC実行は拒否し、service-role-onlyのsecurity-invoker RPCでatomic submit/moderation/read/metricsを提供する。
+- Partner Growthはnullable Review UUIDを追加し、legacy `wp_review_id`と旧RPCを保持した。Review作成・private details・idempotency・optional Campaign attributionのpartial failureはlocal fixtureで0を確認した。
+- fail-first、constraint mutation、initial apply、複数reset/reapply、DB lint、Foundation/Growth/Review関連回帰、typecheck、lintは成功。Production Supabase/WordPress/Vercel/main/Secret/SEO変更は0。
+- 次はこのT1差分の独立review。T2 application実装、push、Production migrationへは進まない。

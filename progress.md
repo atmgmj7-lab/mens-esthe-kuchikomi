@@ -856,3 +856,15 @@
 - focused、T2、provenance、PR、public reviews、Area/Shop/SEO関連、全`npm test`、lint、typecheck、821/821 build、audit high、差分検査をすべてexit 0で完了した。修正後browser QAはTop/Reviewsの1440/390/320pxとArea/Shop smokeを含む8 scenarios・66 assertions・failures 0。
 - 独立最終reviewはSPEC `Critical 0 / Important 0 / Minor 0`、CODE_QUALITY_SECURITY `0 / 0 / 1`、VISIBLE `0 / 0 / 0`、全てReady Yes。Minorは現在存在しない100件callerだけの将来上限で、現行6件/24件には影響しない。
 - dependencyと`package-lock.json`、WordPress/Supabase本番data、push、deploy、production writeは変更・実施していない。指定pathのhotfix commitだけを次のローカル操作とし、その後もdeploy前で停止する。
+
+# 2026-09-20 Supabase Review Native Cutover T1 DB Contract / M1
+
+- base `4c60b66509af4fbec7589f517c4b27f872ac2eeb`からT1専用branchを作成した。既存worktreeは最新`origin/main`と一致しcleanだったため、入れ子worktreeは作成していない。
+- executable DB contractを先に追加し、migration作成前に`Review Native M1 migration is not applied`のREDを確認した。
+- forward migration `20260920062938_review_native_foundation.sql`を追加した。既存5 migrationは未変更。
+- `app.reviews`へ3評価、visit/revisit、reviewed/published timestampを追加し、source defaultをSupabaseへ変更した。PII、idempotency、HMAC abuse-window、moderation auditはRLS付きprivate tableへ分離した。
+- browser roleの`app.reviews`/legacy review view/RPC accessを撤回し、新RPCはservice-role-only、`SECURITY INVOKER`、fixed search pathとした。公開candidateとmetricsにPII/内部情報を含めない。
+- Growthへnullable `review_id` FKとpartial unique indexを追加し、`wp_review_id`をnullable legacy化した。旧RPCはpartial index対応のまま維持した。
+- normal/duplicate/invalid rating/private detail failure/no campaign/valid campaign/campaign rollback/moderation invalid transition/append-only/public candidate/metrics/legacy attributionをlocal transactionで検証した。
+- local reset/reapply、Foundation/Growth SQL contract、Review関連回帰、typecheck、lint、DB lintが成功した。Production Supabase、WordPress、Vercel、main、Secret、URL/canonical/sitemapは変更していない。
+- T2以降、M2、push、Production migrationへ進まず、独立review前で停止する。
