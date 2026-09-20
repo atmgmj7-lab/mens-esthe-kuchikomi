@@ -34,6 +34,10 @@ declare
   v_service_average numeric;
   v_cleanliness_count bigint;
   v_cleanliness_average numeric;
+  v_growth_submitted bigint;
+  v_growth_pending bigint;
+  v_growth_public bigint;
+  v_growth_campaigns jsonb;
   v_rls_count integer;
   v_forbidden_columns integer;
   v_request_fingerprint text;
@@ -56,6 +60,8 @@ begin
     or to_regprocedure('api.list_review_moderation_events(uuid)') is null
     or to_regprocedure('api.list_published_reviews(bigint,bigint[],integer,integer)') is null
     or to_regprocedure('api.get_published_review_metrics(bigint,bigint[])') is null
+    or to_regprocedure('api.record_partner_review_campaign_event(uuid,text)') is null
+    or to_regprocedure('api.get_partner_review_growth_metrics(uuid)') is null
     or to_regprocedure('api.record_partner_review_campaign_review(uuid,bigint,uuid)') is null then
     raise exception 'Review Native M1 migration is not applied';
   end if;
@@ -160,6 +166,12 @@ begin
     or has_function_privilege('authenticated', 'api.list_review_moderation_events(uuid)', 'execute') then
     raise exception 'browser roles must not execute Review rate-limit claims';
   end if;
+  if has_function_privilege('anon', 'api.record_partner_review_campaign_event(uuid,text)', 'execute')
+    or has_function_privilege('authenticated', 'api.record_partner_review_campaign_event(uuid,text)', 'execute')
+    or has_function_privilege('anon', 'api.get_partner_review_growth_metrics(uuid)', 'execute')
+    or has_function_privilege('authenticated', 'api.get_partner_review_growth_metrics(uuid)', 'execute') then
+    raise exception 'browser roles must not execute Review Growth metric RPCs';
+  end if;
 
   if not has_function_privilege('service_role', 'api.submit_review(bigint,text,smallint,text,text,text,text,timestamp with time zone,timestamp with time zone,smallint,smallint,smallint,text,text,text,uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute')
@@ -167,6 +179,8 @@ begin
     or not has_function_privilege('service_role', 'api.list_review_moderation_queue(integer,integer)', 'execute')
     or not has_function_privilege('service_role', 'api.get_review_moderation_detail(uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.list_review_moderation_events(uuid)', 'execute')
+    or not has_function_privilege('service_role', 'api.record_partner_review_campaign_event(uuid,text)', 'execute')
+    or not has_function_privilege('service_role', 'api.get_partner_review_growth_metrics(uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.moderate_review(uuid,text,text,text)', 'execute')
     or not has_function_privilege('service_role', 'api.list_published_reviews(bigint,bigint[],integer,integer)', 'execute')
     or not has_function_privilege('service_role', 'api.get_published_review_metrics(bigint,bigint[])', 'execute')
@@ -191,7 +205,8 @@ begin
         'get_published_review_metrics', 'record_partner_review_campaign_review',
         'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit',
         'publish_review', 'list_review_moderation_queue',
-        'get_review_moderation_detail', 'list_review_moderation_events'
+        'get_review_moderation_detail', 'list_review_moderation_events',
+        'record_partner_review_campaign_event', 'get_partner_review_growth_metrics'
       )
       and (
         not p.prosecdef
@@ -212,7 +227,8 @@ begin
         'get_published_review_metrics', 'record_partner_review_campaign_review',
         'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit',
         'publish_review', 'list_review_moderation_queue',
-        'get_review_moderation_detail', 'list_review_moderation_events'
+        'get_review_moderation_detail', 'list_review_moderation_events',
+        'record_partner_review_campaign_event', 'get_partner_review_growth_metrics'
       )
       and (
         p.prosecdef
@@ -471,6 +487,19 @@ begin
   insert into private.partner_review_campaigns (workspace_id, channel)
   values (v_workspace_id, 'counter_qr')
   returning id, token into v_campaign_id, v_campaign_token;
+  perform api.record_partner_review_campaign_event(v_campaign_token, 'open');
+  perform api.record_partner_review_campaign_event(v_campaign_token, 'open');
+  perform api.record_partner_review_campaign_event(v_campaign_token, 'start');
+  if (select open_count from private.partner_review_campaigns where id = v_campaign_id) <> 2
+    or (select start_count from private.partner_review_campaigns where id = v_campaign_id) <> 1 then
+    raise exception 'campaign open/start counters must update atomically';
+  end if;
+  begin
+    perform api.record_partner_review_campaign_event(v_campaign_token, 'unsupported');
+    raise exception 'unsupported campaign event unexpectedly succeeded';
+  exception when invalid_parameter_value then
+    null;
+  end;
 
   insert into app.shops (wp_post_id, slug, canonical_path, name)
   values (
@@ -531,6 +560,15 @@ begin
     where campaign_id = v_campaign_id and review_id = v_duplicate_id and wp_review_id is null
   ) then
     raise exception 'native campaign attribution must store Review UUID only';
+  end if;
+  select api.record_partner_review_campaign_review(
+    v_campaign_token, v_wp_shop_id, v_duplicate_id
+  ) into v_recorded;
+  if v_recorded or (
+    select count(*) from private.partner_review_campaign_submissions
+    where campaign_id = v_campaign_id and review_id = v_duplicate_id
+  ) <> 1 then
+    raise exception 'duplicate UUID conversion must not create another attribution';
   end if;
 
   perform api.moderate_review(
@@ -719,6 +757,22 @@ begin
       or latest_submitted_at is not null
   ) then
     raise exception 'WordPress Shop-scoped public metrics must match the same safe candidate set';
+  end if;
+
+  select submitted_reviews, pending_reviews, public_reviews, campaigns
+  into v_growth_submitted, v_growth_pending, v_growth_public, v_growth_campaigns
+  from api.get_partner_review_growth_metrics(v_workspace_id);
+  if v_growth_submitted <> 3 or v_growth_pending <> 0 or v_growth_public <> 1
+    or jsonb_array_length(v_growth_campaigns) <> 1
+    or not exists (
+      select 1
+      from jsonb_array_elements(v_growth_campaigns) as campaign
+      where campaign->>'channel' = 'counter_qr'
+        and (campaign->>'openCount')::bigint = 2
+        and (campaign->>'startCount')::bigint = 1
+        and (campaign->>'conversionCount')::bigint = 1
+    ) then
+    raise exception 'Phase 3 Review growth metrics must expose submitted, pending, public, open, start, and conversion counts';
   end if;
 
   select count(*) into v_forbidden_columns

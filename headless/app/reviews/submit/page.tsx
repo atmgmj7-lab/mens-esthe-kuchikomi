@@ -7,10 +7,13 @@ import {
   resolveReviewSubmitPrefill,
 } from "@/lib/review-submit-prefill";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
-import { openPartnerReviewCampaign } from "@/lib/partner/provisioning-service";
+import {
+  openPartnerReviewCampaign,
+  recordPartnerReviewCampaignVisit,
+} from "@/lib/partner/provisioning-service";
 import { pageMetadata } from "@/lib/seo";
 import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
-import { getAllShopsForListing, getShopBySlug } from "@/lib/wp/shops";
+import { getAllShopsForListing, getShopById, getShopBySlug } from "@/lib/wp/shops";
 
 export const metadata: Metadata = pageMetadata({
   title: "口コミを投稿する",
@@ -39,10 +42,12 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
   const identifier = normalizeReviewSubmitPrefillIdentifier(params.shop);
   const candidate = identifier ? await getShopBySlug(identifier) : null;
   const campaignToken = typeof params.campaign === "string" ? params.campaign.trim() : "";
-  const campaignShop = campaignToken
+  const campaignReference = campaignToken
     ? await openPartnerReviewCampaign(campaignToken, partnerReviewGrowthRepository)
     : null;
-  const campaignMismatch = campaignShop && (!candidate
+  const campaignShop = campaignReference ? await getShopById(campaignReference.id) : null;
+  const campaignMismatch = Boolean(campaignToken) && (!campaignReference || !campaignShop
+    || campaignShop.publicationStatus !== "publish" || !candidate
     || campaignShop.id !== candidate.id
     || normalizePublicShopSlug(campaignShop.slug) !== normalizePublicShopSlug(candidate.slug));
 
@@ -57,6 +62,25 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
         </div>
       </main>
     );
+  }
+
+  if (campaignToken && campaignShop) {
+    const recorded = await recordPartnerReviewCampaignVisit(
+      { token: campaignToken, event: "start" },
+      partnerReviewGrowthRepository,
+    );
+    if (!recorded || recorded.id !== campaignShop.id) {
+      return (
+        <main id="main_content" className="l-mainContent l-article">
+          <div className="l-mainContent__inner hl-page-inner">
+            <section className="hl-contact-section">
+              <h1 className="hl-contact-heading">口コミを投稿する</h1>
+              <p className="hl-contact-error" role="alert">キャンペーンの投稿先店舗を確認できません。</p>
+            </section>
+          </div>
+        </main>
+      );
+    }
   }
 
   const shop = resolveReviewSubmitPrefill(params.shop, candidate ? [candidate] : []);

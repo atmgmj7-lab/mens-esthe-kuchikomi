@@ -4,14 +4,18 @@ import type { PartnerRegistrationData } from "@/lib/partner/registration-validat
 import {
   PARTNER_REVIEW_CAMPAIGN_CHANNELS,
   PARTNER_WORKSPACE_STATES,
+  buildPartnerReviewCampaignUrl,
   type PartnerRegistrationReview,
   type PartnerReviewCampaign,
+  type PartnerReviewGrowthCampaignMetrics,
+  type PartnerReviewGrowthMetrics,
   type PartnerReviewGrowthRepository,
   type PartnerWorkspace,
   type PartnerWorkspaceRepository,
 } from "@/lib/partner/provisioning-service";
 
 const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function serviceHeaders(): Record<string, string> | null {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,6 +69,75 @@ function isWorkspaceState(value: unknown): value is PartnerWorkspace["state"] {
 
 function isCampaignChannel(value: unknown): value is PartnerReviewCampaign["channel"] {
   return typeof value === "string" && PARTNER_REVIEW_CAMPAIGN_CHANNELS.includes(value as PartnerReviewCampaign["channel"]);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return actual.length === sortedExpected.length
+    && actual.every((key, index) => key === sortedExpected[index]);
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function parseCanonicalShop(value: unknown) {
+  if (!isRecord(value) || !hasExactKeys(value, ["wp_shop_id", "shop_slug", "shop_name", "canonical_url"])
+    || typeof value.wp_shop_id !== "number" || !Number.isSafeInteger(value.wp_shop_id) || value.wp_shop_id <= 0
+    || typeof value.shop_slug !== "string" || !value.shop_slug
+    || typeof value.shop_name !== "string" || !value.shop_name
+    || typeof value.canonical_url !== "string" || !value.canonical_url) return null;
+  return {
+    id: value.wp_shop_id,
+    slug: value.shop_slug,
+    title: value.shop_name,
+    canonicalUrl: value.canonical_url,
+  };
+}
+
+function parseGrowthCampaign(value: unknown): PartnerReviewGrowthCampaignMetrics | null {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "id", "channel", "token", "isActive", "openCount", "startCount", "conversionCount",
+  ]) || typeof value.id !== "string" || !UUID_RE.test(value.id)
+    || !isCampaignChannel(value.channel) || typeof value.token !== "string" || !UUID_RE.test(value.token)
+    || typeof value.isActive !== "boolean" || !isNonNegativeInteger(value.openCount)
+    || !isNonNegativeInteger(value.startCount) || !isNonNegativeInteger(value.conversionCount)) return null;
+  const reviewUrl = buildPartnerReviewCampaignUrl(value.token);
+  return reviewUrl ? {
+    id: value.id,
+    channel: value.channel,
+    token: value.token,
+    reviewUrl,
+    isActive: value.isActive,
+    openCount: value.openCount,
+    startCount: value.startCount,
+    conversionCount: value.conversionCount,
+  } : null;
+}
+
+function parseGrowthMetrics(value: unknown): PartnerReviewGrowthMetrics | null {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "workspace_id", "wp_shop_id", "submitted_reviews", "pending_reviews", "public_reviews", "campaigns",
+  ]) || typeof value.workspace_id !== "string" || !UUID_RE.test(value.workspace_id)
+    || typeof value.wp_shop_id !== "number" || !Number.isSafeInteger(value.wp_shop_id) || value.wp_shop_id <= 0
+    || !isNonNegativeInteger(value.submitted_reviews) || !isNonNegativeInteger(value.pending_reviews)
+    || !isNonNegativeInteger(value.public_reviews) || value.pending_reviews > value.submitted_reviews
+    || value.public_reviews > value.submitted_reviews || !Array.isArray(value.campaigns)) return null;
+  const campaigns = value.campaigns.map(parseGrowthCampaign);
+  if (campaigns.some((campaign) => campaign === null)) return null;
+  return {
+    workspaceId: value.workspace_id,
+    shopId: value.wp_shop_id,
+    submittedReviews: value.submitted_reviews,
+    pendingReviews: value.pending_reviews,
+    publicReviews: value.public_reviews,
+    campaigns: campaigns as PartnerReviewGrowthCampaignMetrics[],
+  };
 }
 
 function parseCampaign(value: unknown): PartnerReviewCampaign | null {
@@ -172,6 +245,44 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
       return row && typeof row.wp_shop_id === "number" && typeof row.shop_slug === "string"
         && typeof row.shop_name === "string" && typeof row.canonical_url === "string"
         ? { id: row.wp_shop_id, slug: row.shop_slug, title: row.shop_name, canonicalUrl: row.canonical_url }
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  async recordReviewCampaignVisit(input) {
+    const baseUrl = supabaseUrl();
+    const headers = serviceHeaders();
+    if (!baseUrl || !headers) return null;
+    try {
+      const response = await fetch(`${baseUrl}/rest/v1/rpc/record_partner_review_campaign_event`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ p_token: input.token, p_event: input.event }),
+        cache: "no-store",
+      });
+      const rows = await response.json() as unknown;
+      return response.ok && Array.isArray(rows) && rows.length === 1
+        ? parseCanonicalShop(rows[0])
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  async getReviewGrowthMetrics(workspaceId) {
+    const baseUrl = supabaseUrl();
+    const headers = serviceHeaders();
+    if (!baseUrl || !headers) return null;
+    try {
+      const response = await fetch(`${baseUrl}/rest/v1/rpc/get_partner_review_growth_metrics`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ p_workspace_id: workspaceId }),
+        cache: "no-store",
+      });
+      const rows = await response.json() as unknown;
+      return response.ok && Array.isArray(rows) && rows.length === 1
+        ? parseGrowthMetrics(rows[0])
         : null;
     } catch {
       return null;

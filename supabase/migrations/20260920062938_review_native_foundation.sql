@@ -135,6 +135,10 @@ create unique index partner_review_campaign_submissions_wp_review_id_uidx
 create index partner_review_campaign_submissions_campaign_id_idx
   on private.partner_review_campaign_submissions (campaign_id);
 
+alter table private.partner_review_campaigns
+  add column open_count bigint not null default 0 check (open_count >= 0),
+  add column start_count bigint not null default 0 check (start_count >= 0);
+
 -- Preserve the legacy WordPress attribution RPC against the new partial index.
 create or replace function private.record_partner_review_campaign_submission(
   p_token uuid,
@@ -206,6 +210,37 @@ begin
   on conflict (review_id) where review_id is not null do nothing
   returning id into v_submission_id;
   return v_submission_id is not null;
+end;
+$$;
+
+create or replace function private.record_partner_review_campaign_event(
+  p_token uuid,
+  p_event text
+)
+returns table (
+  wp_shop_id bigint,
+  shop_slug text,
+  shop_name text,
+  canonical_url text
+)
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+begin
+  if p_token is null or p_event is null or p_event not in ('open', 'start') then
+    raise exception using errcode = '22023', message = 'campaign token and supported event are required';
+  end if;
+
+  return query
+  update private.partner_review_campaigns c
+  set open_count = c.open_count + case when p_event = 'open' then 1 else 0 end,
+      start_count = c.start_count + case when p_event = 'start' then 1 else 0 end
+  from private.partner_workspaces w
+  where c.token = p_token
+    and c.is_active
+    and w.id = c.workspace_id
+  returning w.wp_shop_id, w.shop_slug, w.shop_name, w.canonical_url;
 end;
 $$;
 
@@ -809,6 +844,76 @@ begin
 end;
 $$;
 
+create or replace function private.get_partner_review_growth_metrics(p_workspace_id uuid)
+returns table (
+  workspace_id uuid,
+  wp_shop_id bigint,
+  submitted_reviews bigint,
+  pending_reviews bigint,
+  public_reviews bigint,
+  campaigns jsonb
+)
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog
+as $$
+begin
+  if p_workspace_id is null then
+    raise exception using errcode = '22023', message = 'Partner workspace identifier is required';
+  end if;
+
+  return query
+  select
+    w.id,
+    w.wp_shop_id,
+    count(distinct r.id) filter (where r.source_type = 'user-review'),
+    count(distinct r.id) filter (
+      where r.source_type = 'user-review'
+        and r.moderation_status = 'pending'
+    ),
+    count(distinct r.id) filter (
+      where r.source_type = 'user-review'
+        and r.is_public
+        and r.moderation_status = 'approved'
+        and r.publication_status = 'published'
+        and not r.is_ai_generated
+        and not r.is_promotion
+        and r.reviewed_at is not null
+        and r.approved_at is not null
+        and r.published_at is not null
+    ),
+    coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            'id', c.id,
+            'channel', c.channel::text,
+            'token', c.token,
+            'isActive', c.is_active,
+            'openCount', c.open_count,
+            'startCount', c.start_count,
+            'conversionCount', coalesce(attribution.conversion_count, 0)
+          ) order by c.channel
+        )
+        from private.partner_review_campaigns c
+        left join lateral (
+          select count(distinct s.review_id) as conversion_count
+          from private.partner_review_campaign_submissions s
+          where s.campaign_id = c.id and s.review_id is not null
+        ) attribution on true
+        where c.workspace_id = w.id
+      ),
+      '[]'::jsonb
+    )
+  from private.partner_workspaces w
+  left join app.shops shop on shop.wp_post_id = w.wp_shop_id
+  left join app.reviews r on r.shop_id = shop.id
+  where w.id = p_workspace_id
+  group by w.id;
+end;
+$$;
+
 revoke all on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
 revoke all on function private.record_partner_review_campaign_review(uuid, bigint, uuid) from public, anon, authenticated;
 revoke all on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) from public, anon, authenticated;
@@ -820,6 +925,8 @@ revoke all on function private.get_review_moderation_detail(uuid) from public, a
 revoke all on function private.list_review_moderation_events(uuid) from public, anon, authenticated;
 revoke all on function private.list_published_reviews(bigint, bigint[], integer, integer) from public, anon, authenticated;
 revoke all on function private.get_published_review_metrics(bigint, bigint[]) from public, anon, authenticated;
+revoke all on function private.record_partner_review_campaign_event(uuid, text) from public, anon, authenticated;
+revoke all on function private.get_partner_review_growth_metrics(uuid) from public, anon, authenticated;
 grant execute on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function private.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
 grant execute on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
@@ -831,6 +938,8 @@ grant execute on function private.get_review_moderation_detail(uuid) to service_
 grant execute on function private.list_review_moderation_events(uuid) to service_role;
 grant execute on function private.list_published_reviews(bigint, bigint[], integer, integer) to service_role;
 grant execute on function private.get_published_review_metrics(bigint, bigint[]) to service_role;
+grant execute on function private.record_partner_review_campaign_event(uuid, text) to service_role;
+grant execute on function private.get_partner_review_growth_metrics(uuid) to service_role;
 
 -- Keep the deployed WordPress conversion adapter while routing its mutation
 -- through the hardened definer implementation above.
@@ -1088,6 +1197,40 @@ as $$
   select * from private.get_published_review_metrics(p_wp_shop_id, p_wp_shop_ids)
 $$;
 
+create or replace function api.record_partner_review_campaign_event(
+  p_token uuid,
+  p_event text
+)
+returns table (
+  wp_shop_id bigint,
+  shop_slug text,
+  shop_name text,
+  canonical_url text
+)
+language sql
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.record_partner_review_campaign_event(p_token, p_event)
+$$;
+
+create or replace function api.get_partner_review_growth_metrics(p_workspace_id uuid)
+returns table (
+  workspace_id uuid,
+  wp_shop_id bigint,
+  submitted_reviews bigint,
+  pending_reviews bigint,
+  public_reviews bigint,
+  campaigns jsonb
+)
+language sql
+stable
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.get_partner_review_growth_metrics(p_workspace_id)
+$$;
+
 revoke all on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
 revoke all on function api.record_partner_review_campaign_review(uuid, bigint, uuid) from public, anon, authenticated;
 revoke all on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) from public, anon, authenticated;
@@ -1099,6 +1242,8 @@ revoke all on function api.get_review_moderation_detail(uuid) from public, anon,
 revoke all on function api.list_review_moderation_events(uuid) from public, anon, authenticated;
 revoke all on function api.list_published_reviews(bigint, bigint[], integer, integer) from public, anon, authenticated;
 revoke all on function api.get_published_review_metrics(bigint, bigint[]) from public, anon, authenticated;
+revoke all on function api.record_partner_review_campaign_event(uuid, text) from public, anon, authenticated;
+revoke all on function api.get_partner_review_growth_metrics(uuid) from public, anon, authenticated;
 grant execute on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function api.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
 grant execute on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
@@ -1110,3 +1255,5 @@ grant execute on function api.get_review_moderation_detail(uuid) to service_role
 grant execute on function api.list_review_moderation_events(uuid) to service_role;
 grant execute on function api.list_published_reviews(bigint, bigint[], integer, integer) to service_role;
 grant execute on function api.get_published_review_metrics(bigint, bigint[]) to service_role;
+grant execute on function api.record_partner_review_campaign_event(uuid, text) to service_role;
+grant execute on function api.get_partner_review_growth_metrics(uuid) to service_role;

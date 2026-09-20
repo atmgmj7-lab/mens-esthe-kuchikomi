@@ -40,6 +40,28 @@ export type PartnerReviewCampaign = {
   createdAt: string;
 };
 
+export type PartnerReviewCampaignEvent = "open" | "start";
+
+export type PartnerReviewGrowthCampaignMetrics = {
+  id: string;
+  channel: PartnerReviewCampaignChannel;
+  token: string;
+  reviewUrl: string;
+  isActive: boolean;
+  openCount: number;
+  startCount: number;
+  conversionCount: number;
+};
+
+export type PartnerReviewGrowthMetrics = {
+  workspaceId: string;
+  shopId: number;
+  submittedReviews: number;
+  pendingReviews: number;
+  publicReviews: number;
+  campaigns: PartnerReviewGrowthCampaignMetrics[];
+};
+
 export type PartnerRegistrationReviewStatus = "received" | "under_review" | "approved" | "rejected";
 
 export type PartnerRegistrationReview = {
@@ -79,12 +101,25 @@ export type PartnerReviewGrowthRepository = {
     reason: string;
   }) => Promise<{ state: PartnerWorkspaceState; status: "approved" | "rejected" } | null>;
   openReviewCampaign: (token: string) => Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null>;
+  recordReviewCampaignVisit: (input: {
+    token: string;
+    event: PartnerReviewCampaignEvent;
+  }) => Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null>;
+  getReviewGrowthMetrics: (workspaceId: string) => Promise<PartnerReviewGrowthMetrics | null>;
   recordReviewCampaignSubmission: (input: {
     token: string;
     shopId: number;
     wordpressReviewId: number;
   }, signal?: AbortSignal) => Promise<boolean>;
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function buildPartnerReviewCampaignUrl(token: string): string | null {
+  return UUID_RE.test(token)
+    ? `https://mens-esthe-kuchikomi.com/r/${token.toLowerCase()}/`
+    : null;
+}
 
 export function nextPartnerAction(state: PartnerWorkspaceState): string {
   switch (state) {
@@ -153,6 +188,34 @@ export async function openPartnerReviewCampaign(
   if (!token) return null;
   try {
     return await repository.openReviewCampaign(token);
+  } catch {
+    return null;
+  }
+}
+
+export async function recordPartnerReviewCampaignVisit(
+  input: { token: string; event: PartnerReviewCampaignEvent },
+  repository: PartnerReviewGrowthRepository,
+): Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null> {
+  if (!buildPartnerReviewCampaignUrl(input.token)
+    || (input.event !== "open" && input.event !== "start")) return null;
+  try {
+    return await repository.recordReviewCampaignVisit({
+      token: input.token.toLowerCase(),
+      event: input.event,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function getPartnerReviewGrowthMetrics(
+  workspaceId: string,
+  repository: PartnerReviewGrowthRepository,
+): Promise<PartnerReviewGrowthMetrics | null> {
+  if (!UUID_RE.test(workspaceId)) return null;
+  try {
+    return await repository.getReviewGrowthMetrics(workspaceId.toLowerCase());
   } catch {
     return null;
   }

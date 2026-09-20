@@ -911,3 +911,7 @@
 - current public WordPress Shop ID scopeを公開list/metrics RPCへ渡し、global/Area pagination/count/date rangeを同じsafe predicateへ固定。private PII、actor/reason、campaign、abuse/idempotencyの公開DTO露出0。
 - adapter不存在RED後、focused repository/public adapter/DB、fresh reset/reapply、Foundation/Growth、既存公開口コミ、rating/schema、typecheck、lint、DB lintをPASS。
 - T5 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT6 campaign/count/backend contract。
+- T6完了。4 campaign source、stable `/r/{uuid}/`、open/start counter、atomic Native UUID conversion、same-shop/duplicate境界、submitted/pending/public/campaign集計をPhase 3用strict backend DTOへ固定した。
+- token routeは保存時slugでなくWP IDから現在publishのWordPress Shopを再取得しcurrent slugへredirectする。無効/非公開/不一致は計測前にfail closed。PII event payload 0。
+- source/DB contract、fresh reset/reapply、Foundation/Growth、submission/public adapter、typecheck、lint、DB lint、857-page buildをPASS。
+- T6 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT7 public Review UI/rating/schema。

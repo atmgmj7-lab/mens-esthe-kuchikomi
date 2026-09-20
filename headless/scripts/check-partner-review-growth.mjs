@@ -92,7 +92,7 @@ function verifySourceContract() {
   assert.match(qrRoute, /X-Robots-Tag[\s\S]*noindex, nofollow/);
   assert.match(qrRoute, /\/r\/\$\{token\}\//);
 
-  assert.match(publicCampaignRoute, /openPartnerReviewCampaign/);
+  assert.match(publicCampaignRoute, /recordPartnerReviewCampaignVisit/);
   assert.match(publicCampaignRoute, /partnerReviewGrowthRepository/);
   assert.match(publicCampaignRoute, /NextResponse\.redirect\([^,]+,\s*307\)/);
   assert.match(publicCampaignRoute, /\/reviews\/submit\//);
@@ -102,7 +102,7 @@ function verifySourceContract() {
   assert.match(publicCampaignRoute, /X-Robots-Tag[\s\S]*noindex, nofollow/);
   assert.doesNotMatch(publicCampaignRoute, /SUPABASE_SERVICE_ROLE_KEY|rest\/v1\//);
 
-  assert.match(reviewSubmitPage, /openPartnerReviewCampaign/);
+  assert.match(reviewSubmitPage, /recordPartnerReviewCampaignVisit/);
   assert.match(reviewSubmitPage, /partnerReviewGrowthRepository/);
   assert.match(reviewSubmitPage, /campaignShop\.id !== candidate\.id/);
   assert.match(reviewSubmitPage, /キャンペーンの投稿先店舗を確認できません/);

@@ -23,6 +23,10 @@ function shopSlugCacheTag(slug: string): string {
   return `shop:h:${hash}`;
 }
 
+function shopIdCacheTag(id: number): string {
+  return `shop:id:${id}`;
+}
+
 function getSlugQueryVariants(slug: string): string[] {
   const variants: string[] = [];
   const seen = new Set<string>();
@@ -120,6 +124,21 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
     return normalizeShop(match);
   } catch (error) {
     logWpBuildFallback(`shop ${slug}`, error);
+    return null;
+  }
+}
+
+export async function getShopById(id: number): Promise<ShopView | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("wp", "shops", shopIdCacheTag(id));
+
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  try {
+    const shop = await wpFetch<WpShop>(`/wp/v2/shop/${id}?_embed=1`);
+    return shop.id === id ? normalizeShop(shop) : null;
+  } catch (error) {
+    logWpBuildFallback(`shop id ${id}`, error);
     return null;
   }
 }

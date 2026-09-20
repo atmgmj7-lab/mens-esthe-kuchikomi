@@ -533,3 +533,5 @@
 - service_roleはReview/private tableを直接読めないため、operator queue/detail/auditもservice-only fixed-path RPCが必要。Basic Auth APIがactorをserver-derived定数に固定し、browserへはprivate schema grantやSupabase credentialを渡さない。
 - T5 public adapterは既定を`wordpress`へ固定し、`REVIEW_READ_SOURCE=supabase`の明示時だけNative RPCを使う。SupabaseのShop複製値は公開identityに使わず、現在publishのWordPress Shop一覧からID scopeとShop/Area表示値を作る。
 - global/Area paginationを正確に保つため、公開RPCは最大500件の重複なしWordPress Shop ID scopeを受ける。本文・評価・UUID以外のprivate/campaign/actor情報はadapter DTOへ出さず、metrics/date rangeも同じ公開predicateとscopeで集計する。
+- T6のstable campaign URLは`/r/{uuid}/`を固定し、workspace保存時slugではなくtokenから得たWP IDを現在のWordPress公開Shopへ再解決してcurrent slugへredirectする。無効・非公開・不一致は計測前にfail closed。
+- campaign open/startはprivate campaign rowの原子的counterで記録し、PII/event payloadを保存しない。conversionは同一ShopのNative Review UUID attributionだけをdistinct countし、legacy `wp_review_id`経路は互換維持するがPhase 3 native countへ混ぜない。

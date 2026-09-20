@@ -646,7 +646,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
 - [x] T4: operator moderation UI/API、Critical/Important 0
 - [x] T5: feature-gated Supabase public Review adapter、Critical/Important 0
-- [ ] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
+- [x] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
 - [ ] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
 - [ ] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
 - [ ] Full regression / final cross-cutting review / exact candidate commit
@@ -696,6 +696,15 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - 公開list/metricsはuser-review + approved + published + public + non-AI + non-promotion + approved/published timestampを同じpredicateで使い、Shop ID scope、pagination、count、date rangeを実DB契約で確認した。
 - fresh local reset/reapply、Review repository/public adapter/DB、Foundation/Growth、既存WordPress公開口コミ、rating/schema、typecheck、lint、DB lintをPASS。
 - T5 SPEC: Critical 0 / Important 0。T5 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T6 Result
+
+- campaign sourceは`counter_qr / line_after_visit / shop_website / eskomi_shop_page`の4種を維持し、`therapist_qr`は未実装。stable URL helperはcanonical `/r/{uuid}/`だけを生成する。
+- `/r/{token}/` openとcampaign付き投稿画面startをservice-only RPCで原子的counterへ記録する。PII、raw client identifier、任意event payloadは保存しない。
+- tokenはworkspace snapshot slugを表示正本にせず、WP IDから現在publishのWordPress Shopを再取得しcurrent slugへredirectする。無効/非公開/不一致campaignは計測・投稿前にfail closed。
+- Phase 3 metrics RPCはworkspace単位のsubmitted/pending/public Review件数と、campaign別open/start/native UUID conversion件数、review URLをstrict DTOで返す。
+- atomic submit attribution、same-shop、cross-shop拒否、duplicate UUID、legacy compatibility、browser role denialをfresh実DBでPASS。Growth/Foundation、submit/public adapter、typecheck、lint、DB lint、857-page buildもPASS。
+- T6 SPEC: Critical 0 / Important 0。T6 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 
