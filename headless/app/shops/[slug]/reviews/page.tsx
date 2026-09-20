@@ -5,10 +5,10 @@ import { Suspense } from "react";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
 import styles from "@/components/shop-detail/ShopDetail.module.css";
 import { buildReviewSubmitUrl } from "@/lib/review-links";
+import { publicReviewAdapter, publicShopReviewRobots } from "@/lib/reviews/public-adapter";
 import { canonicalUrl, pageMetadata } from "@/lib/seo";
 import { toShopRouteParam } from "@/lib/shop-route-param";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
-import { approvedShopReviewRobots, getApprovedShopReviews } from "@/lib/wp/reviews";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 
 type Props = {
@@ -56,8 +56,8 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   );
   if (!shop) return {};
   const path = reviewPagePath(shop.slug, page);
-  const reviewResult = await getApprovedShopReviews(shop.id, page, 20);
-  const robots = approvedShopReviewRobots(reviewResult, page);
+  const reviewResult = await publicReviewAdapter.getShopReviews(shop, page, 20);
+  const robots = publicShopReviewRobots(reviewResult, page);
 
   const metadata = pageMetadata({
     title: `${shop.title}の承認済み口コミ${page > 1 ? `（${page}ページ目）` : ""}`,
@@ -89,7 +89,7 @@ async function ShopReviewsPageContent({ params, searchParams }: Props) {
   );
   if (!shop) notFound();
 
-  const reviewResult = await getApprovedShopReviews(shop.id, page, 20);
+  const reviewResult = await publicReviewAdapter.getShopReviews(shop, page, 20);
   if (
     reviewResult.status === "available" &&
     page > Math.max(1, reviewResult.page.totalPages)

@@ -647,7 +647,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] T4: operator moderation UI/API、Critical/Important 0
 - [x] T5: feature-gated Supabase public Review adapter、Critical/Important 0
 - [x] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
-- [ ] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
+- [x] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
 - [ ] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
 - [ ] Full regression / final cross-cutting review / exact candidate commit
 - [ ] Production変更0、push/deploy/migration/promotion未実施でrelease approval packetを返す
@@ -705,6 +705,15 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - Phase 3 metrics RPCはworkspace単位のsubmitted/pending/public Review件数と、campaign別open/start/native UUID conversion件数、review URLをstrict DTOで返す。
 - atomic submit attribution、same-shop、cross-shop拒否、duplicate UUID、legacy compatibility、browser role denialをfresh実DBでPASS。Growth/Foundation、submit/public adapter、typecheck、lint、DB lint、857-page buildもPASS。
 - T6 SPEC: Critical 0 / Important 0。T6 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T7 Result
+
+- Shop詳細、Shop口コミ一覧、Reviews Hub、Top、priority Areaの全公開Review consumerを`publicReviewAdapter`へ統一した。既定はWordPress、明示`REVIEW_READ_SOURCE=supabase`だけNative UUID Reviewを使う。
+- Shop表示model、評価graph、Review summary、LocalBusiness `AggregateRating`は同じadapter resultだけから生成する。公開承認Review総数を`reviewCount`、有効overall回答数を`ratingCount`とし、overall/各metricは3件未満で非表示を維持した。
+- WordPressの`review_star`/`review_count`を実口コミ証明として使わず、Shop/Area identityは引き続きWordPress正本。URL、canonical、sitemap変更0、public DTOへのPII/private moderation/campaign情報追加0。
+- fail-first consumer contract、public adapter/WordPress reader回帰、Shop/Area/Reviews/Home、rating/schema、typecheck、lint、production build、Shop実component browser 33 scenarios/1,072 assertionsをPASS。
+- priority Area full browserはT7挙動と無関係な既存shop-card relation count期待差（Sakai/Shin-Osakaで各1件）を検出。T7によるproduction component挙動差はtype-onlyで、既存fixture期待の独立調査をT8/full regressionで継続する。
+- T7 SPEC: Critical 0 / Important 0。T7 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 

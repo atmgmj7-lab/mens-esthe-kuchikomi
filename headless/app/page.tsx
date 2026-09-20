@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { HomePageContent } from "@/components/HomePageContent";
+import { publicReviewAdapter, type PublicGlobalReviewResult } from "@/lib/reviews/public-adapter";
 import { organizationJsonLd, pageMetadata, websiteJsonLd } from "@/lib/seo";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
 import { getAreas } from "@/lib/wp/areas";
 import { getHomeFeaturedAreas } from "@/lib/wp/home-featured-areas";
 import { getLatestPosts } from "@/lib/wp/posts";
-import { getApprovedReviewsPage } from "@/lib/wp/reviews";
 import { getLatestShops, getShopCount } from "@/lib/wp/shops";
-import type { ApprovedGlobalReviewResult } from "@/lib/wp/types";
 
 export const metadata: Metadata = pageMetadata({
   title: "Eskomi | 関西メンズエステ口コミナビ",
@@ -27,15 +26,16 @@ export default async function HomePage() {
     getAreas(),
     getLatestPosts(6),
     getHomeFeaturedAreas(),
-    getApprovedReviewsPage(1, 12),
+    publicReviewAdapter.getGlobalReviews(1, 12),
   ]);
   const shopCount = settledValue(shopCountResult, 0);
   const shops = settledValue(shopsResult, []);
   const areas = settledValue(areasResult, []);
   const posts = settledValue(postsResult, []);
   const areaFeatures = settledValue(areaFeaturesResult, []);
-  const reviews = settledValue<ApprovedGlobalReviewResult>(reviewsResult, {
+  const reviews = settledValue<PublicGlobalReviewResult>(reviewsResult, {
     status: "unavailable",
+    source: publicReviewAdapter.source,
     reason: "request-failed",
   });
   const dataState = {

@@ -6,7 +6,7 @@ import {
   filterReviewsForHub,
   type ReviewHubQuery,
 } from "@/lib/review-hub";
-import type { ApprovedGlobalReview } from "@/lib/wp/types";
+import type { PublicGlobalReview } from "@/lib/reviews/public-adapter";
 import styles from "./ReviewsHub.module.css";
 
 type EditorialLink = Readonly<{
@@ -25,7 +25,7 @@ export function ReviewsHub({
   posts,
   availability = "available",
 }: {
-  reviews: readonly ApprovedGlobalReview[];
+  reviews: readonly PublicGlobalReview[];
   total: number;
   totalPages: number;
   filters: ReviewHubQuery;

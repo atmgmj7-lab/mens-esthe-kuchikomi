@@ -9,9 +9,9 @@ import { PriorityAreaLinks } from "@/components/reviews/PriorityAreaLinks";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
 import type { AreaFeatureItem } from "@/lib/design-constants";
 import { buildHomeUpdates } from "@/lib/home-updates";
+import type { PublicGlobalReviewResult } from "@/lib/reviews/public-adapter";
 import type { StrictRankingAvailability } from "@/lib/ux-production-data-boundary";
 import type {
-  ApprovedGlobalReviewResult,
   AreaView,
   BlogPostView,
   ShopView,
@@ -140,7 +140,7 @@ export function HomePageContent({
   areas: AreaView[];
   areaFeatures: AreaFeatureItem[];
   posts: BlogPostView[];
-  reviewResult: ApprovedGlobalReviewResult;
+  reviewResult: PublicGlobalReviewResult;
   strictRanking: StrictRankingAvailability;
   dataState?: HomePageDataState;
 }) {

@@ -20,8 +20,9 @@ import {
   type ShopDetailModuleContext
 } from "@/lib/shop-detail-modules";
 import { buildShopReviewViewModel } from "@/lib/shop-review-view-model";
+import type { PublicShopReviewResult } from "@/lib/reviews/public-adapter";
 import { buildShopDetailViewModel } from "@/lib/shop-detail-view-model";
-import type { ApprovedShopReviewResult, AreaView, ShopView } from "@/lib/wp/types";
+import type { AreaView, ShopView } from "@/lib/wp/types";
 
 export function ShopDetail({
   shop,
@@ -30,7 +31,7 @@ export function ShopDetail({
 }: {
   shop: ShopView;
   parentArea?: AreaView | null;
-  reviewResult: ApprovedShopReviewResult;
+  reviewResult: PublicShopReviewResult;
 }) {
   const primaryArea = shop.primaryArea;
   const areaName = primaryArea?.name ?? "";

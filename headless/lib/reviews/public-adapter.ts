@@ -101,6 +101,18 @@ export type PublicReviewAdapter = Readonly<{
   ): Promise<PublicGlobalReviewResult>;
 }>;
 
+export function publicShopReviewRobots(
+  result: PublicShopReviewResult,
+  requestedPage: number,
+): { index: boolean; follow: true } {
+  const index = result.status === "available"
+    && result.page.total > 0
+    && requestedPage >= 1
+    && requestedPage <= result.page.totalPages
+    && result.page.reviews.length > 0;
+  return { index, follow: true };
+}
+
 const MAX_PAGE = 1000;
 const MAX_PER_PAGE = 20;
 const CANONICAL_AREA_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

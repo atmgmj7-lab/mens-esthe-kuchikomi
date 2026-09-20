@@ -915,3 +915,7 @@
 - token routeは保存時slugでなくWP IDから現在publishのWordPress Shopを再取得しcurrent slugへredirectする。無効/非公開/不一致は計測前にfail closed。PII event payload 0。
 - source/DB contract、fresh reset/reapply、Foundation/Growth、submission/public adapter、typecheck、lint、DB lint、857-page buildをPASS。
 - T6 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT7 public Review UI/rating/schema。
+- T7完了。Shop/Shop Reviews/Reviews Hub/Top/priority Areaの公開Review consumerを単一`publicReviewAdapter`へ接続し、既定WordPressと明示Supabase切替の双方で同じpublic DTOを使用する。
+- rating graph、summary、LocalBusiness schemaは同じadapter result由来。reviewCount=公開承認総数、ratingCount=有効overall回答数、各metric 3件閾値を維持し、UUID Review IDもUIへ保持した。
+- focused/関連contract、typecheck、lint、production build、Shop実component browser 33 scenarios/1,072 assertionsはPASS。T7 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。
+- priority Area full browserでT7外の既存fixture shop-card件数期待差を確認したため、T8/full regressionでbaseline性を分離して扱う。Production/WordPress/Vercel/main変更0。現在地はT8 isolated E2E。

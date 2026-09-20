@@ -41,19 +41,20 @@ function compileModule(file, requireMap = {}) {
   return loaded.exports;
 }
 
-const unavailable = Object.freeze({ status: "unavailable", reason: "request-failed" });
+const unavailable = Object.freeze({ status: "unavailable", source: "wordpress", reason: "request-failed" });
 const loader = compileModule("lib/priority-area-hub.ts", {
   "@/lib/priority-area-precision": {
     isPriorityAreaPrecisionTarget: (area) => [17, 13, 7, 46, 4].includes(area.id),
   },
-  "@/lib/wp/reviews": {
-    getApprovedReviewsPage: async () => unavailable,
+  "@/lib/reviews/public-adapter": {
+    publicReviewAdapter: { getGlobalReviews: async () => unavailable },
   },
 });
 
 const calls = [];
 const reviewResult = Object.freeze({
   status: "available",
+  source: "wordpress",
   page: Object.freeze({ reviews: Object.freeze([]), total: 0, totalPages: 0, page: 1 }),
 });
 const result = await loader.loadPriorityAreaApprovedReviews(
@@ -331,7 +332,7 @@ assert.ok(
 
 const templateSource = read("components/area/AreaHubPageTemplate.tsx");
 for (const contract of [
-  "reviewResult?: ApprovedGlobalReviewResult | null",
+  "reviewResult?: PublicGlobalReviewResult | null",
   "<AreaLatestReviews",
   "<AreaHubPriorityLinks",
 ]) {

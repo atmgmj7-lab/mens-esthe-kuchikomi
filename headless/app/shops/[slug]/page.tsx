@@ -4,9 +4,9 @@ import { ShopDetail } from "@/components/ShopDetail";
 import { getAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
 import { resolveShopDetailAreaContext } from "@/lib/shop-detail-area";
+import { publicReviewAdapter } from "@/lib/reviews/public-adapter";
 import { toShopRouteParam } from "@/lib/shop-route-param";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
-import { getApprovedShopReviews } from "@/lib/wp/reviews";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 
 type Props = {
@@ -51,7 +51,7 @@ export default async function ShopPage({ params }: Props) {
 
   const [allAreas, reviewResult] = await Promise.all([
     withWpBuildFallback(`shop area list ${shop.slug}`, getAreas, []),
-    getApprovedShopReviews(shop.id, 1, 3)
+    publicReviewAdapter.getShopReviews(shop, 1, 3)
   ]);
   const { parent: parentArea } = resolveShopDetailAreaContext(shop, allAreas);
 

@@ -46,7 +46,8 @@ import {
   resolveAreaDepthEditorial,
 } from "@/lib/area-depth-editorial";
 import { isValidElement, type CSSProperties, type ReactElement } from "react";
-import type { ApprovedGlobalReviewResult, AreaView, ShopView } from "@/lib/wp/types";
+import type { PublicGlobalReviewResult } from "@/lib/reviews/public-adapter";
+import type { AreaView, ShopView } from "@/lib/wp/types";
 
 function areaHubBreadcrumbJsonLd(
   hubContext: ReturnType<typeof resolveAreaHubContext>,
@@ -105,7 +106,7 @@ export function AreaHubPageTemplate({
   rankingEntries?: AreaShopRankingEntry[];
   formalRankingEntries?: readonly FormalAreaRankingEntry[];
   areaFeatures?: readonly AreaFeatureItem[];
-  reviewResult?: ApprovedGlobalReviewResult | null;
+  reviewResult?: PublicGlobalReviewResult | null;
   slots?: AreaHubSlots;
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);

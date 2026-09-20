@@ -1,4 +1,5 @@
-import type { ApprovedGlobalReview, BlogPostView } from "@/lib/wp/types";
+import type { PublicGlobalReview } from "@/lib/reviews/public-adapter";
+import type { BlogPostView } from "@/lib/wp/types";
 
 export type HomeUpdateItem = Readonly<{
   id: string;
@@ -26,7 +27,7 @@ export function buildHomeUpdates({
   posts,
   limit = 10,
 }: {
-  reviews: readonly ApprovedGlobalReview[];
+  reviews: readonly PublicGlobalReview[];
   posts: readonly BlogPostView[];
   limit?: number;
 }): readonly HomeUpdateItem[] {

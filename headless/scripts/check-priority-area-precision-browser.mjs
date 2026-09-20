@@ -157,7 +157,8 @@ function harnessPageSource(fixtureData) {
 import { AreaHubPageTemplate } from "@/components/area/AreaHubPageTemplate";
 import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
-import type { ApprovedGlobalReviewResult, AreaView, ShopView, WpTerm } from "@/lib/wp/types";
+import type { PublicGlobalReviewResult } from "@/lib/reviews/public-adapter";
+import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 const fixtures = ${JSON.stringify(fixtureData)} as const;
 export const instant = false;
@@ -213,8 +214,9 @@ export default async function PriorityFixturePage({ params }: { params: Promise<
     acf: {},
   };
   const reviewShop = fixture.records.find((record) => record.primaryArea?.id === fixture.area.id);
-  const reviewResult: ApprovedGlobalReviewResult = {
+  const reviewResult: PublicGlobalReviewResult = {
     status: "available",
+    source: "wordpress",
     page: {
       reviews: reviewShop ? [
         {

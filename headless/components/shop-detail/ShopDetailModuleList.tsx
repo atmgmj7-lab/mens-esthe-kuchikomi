@@ -5,7 +5,7 @@ import type {
   VisibleShopDetailModule
 } from "@/lib/shop-detail-modules";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
-import type { ApprovedShopReviewResult } from "@/lib/wp/types";
+import type { PublicShopReviewResult } from "@/lib/reviews/public-adapter";
 import styles from "./ShopDetail.module.css";
 import { ShopAccessSection } from "./ShopAccessSection";
 import { ShopBasicInformationSection } from "./ShopBasicInformationSection";
@@ -18,7 +18,7 @@ type ModuleRendererProps = {
   context: ShopDetailModuleContext;
   nearbyContent: ReactNode;
   rel: string;
-  reviewResult: ApprovedShopReviewResult;
+  reviewResult: PublicShopReviewResult;
   reviewSubmitUrl: string;
 };
 

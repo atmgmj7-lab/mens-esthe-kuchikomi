@@ -535,3 +535,6 @@
 - global/Area paginationを正確に保つため、公開RPCは最大500件の重複なしWordPress Shop ID scopeを受ける。本文・評価・UUID以外のprivate/campaign/actor情報はadapter DTOへ出さず、metrics/date rangeも同じ公開predicateとscopeで集計する。
 - T6のstable campaign URLは`/r/{uuid}/`を固定し、workspace保存時slugではなくtokenから得たWP IDを現在のWordPress公開Shopへ再解決してcurrent slugへredirectする。無効・非公開・不一致は計測前にfail closed。
 - campaign open/startはprivate campaign rowの原子的counterで記録し、PII/event payloadを保存しない。conversionは同一ShopのNative Review UUID attributionだけをdistinct countし、legacy `wp_review_id`経路は互換維持するがPhase 3 native countへ混ぜない。
+- T7公開切替はconsumerごとのreader分岐を持たせず、`publicReviewAdapter`の1境界でWordPress/Supabaseを選ぶ。これにより一覧、件数、rating graph、summary、JSON-LDが同じsnapshot契約を共有する。
+- Supabase Review IDはUUID stringのままReact key/Home update IDへ流せる。Shop/Area表示identityはadapter内で現在publishのWordPress Shopへ再結合し、Supabase側snapshotを公開表示正本にしない。
+- 0件Shopは既存のcompact empty stateを出すため、Shop browser fixtureの全variantへ件数/provenanceを一律要求するのは誤り。0件は明示empty copy、1件以上は件数/provenanceを検査する。

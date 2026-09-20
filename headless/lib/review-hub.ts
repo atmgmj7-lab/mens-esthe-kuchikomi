@@ -1,4 +1,5 @@
-import type { ApprovedGlobalReview, ShopView } from "@/lib/wp/types";
+import type { PublicGlobalReview } from "@/lib/reviews/public-adapter";
+import type { ShopView } from "@/lib/wp/types";
 
 type RawSearchValue = string | string[] | undefined;
 
@@ -35,7 +36,7 @@ export function normalizeReviewHubQuery(
   return Object.freeze({ page, q, area, hasQuery });
 }
 
-function searchableReviewText(review: ApprovedGlobalReview): string {
+function searchableReviewText(review: PublicGlobalReview): string {
   return normalizeText([
     review.body,
     review.shop.name,
@@ -44,9 +45,9 @@ function searchableReviewText(review: ApprovedGlobalReview): string {
 }
 
 export function filterReviewsForHub(
-  reviews: readonly ApprovedGlobalReview[],
+  reviews: readonly PublicGlobalReview[],
   filters: Pick<ReviewHubQuery, "q" | "area">,
-): readonly ApprovedGlobalReview[] {
+): readonly PublicGlobalReview[] {
   const query = normalizeText(filters.q).toLocaleLowerCase("ja-JP");
   const queryTerms = query.split(" ").filter(Boolean);
   return reviews.filter((review) => {

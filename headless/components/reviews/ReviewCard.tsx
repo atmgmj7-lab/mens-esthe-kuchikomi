@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ApprovedGlobalReview } from "@/lib/wp/types";
+import type { PublicGlobalReview } from "@/lib/reviews/public-adapter";
 import styles from "./ReviewsHub.module.css";
 
 function reviewExcerpt(body: string, maxLength = 180): string {
@@ -18,7 +18,7 @@ function formatDate(value: string | null): string | null {
 }
 
 export function ReviewCard({ review, compact = false }: {
-  review: ApprovedGlobalReview;
+  review: PublicGlobalReview;
   compact?: boolean;
 }) {
   const areas = [...new Map(review.areas.map((area) => [area.slug, area])).values()];

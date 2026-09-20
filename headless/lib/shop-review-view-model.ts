@@ -1,10 +1,10 @@
 import "server-only";
 
 import type {
-  ApprovedShopReview,
-  ApprovedShopReviewMetric,
-  ApprovedShopReviewResult,
-} from "@/lib/wp/types";
+  PublicReview,
+  PublicReviewMetric,
+  PublicShopReviewResult,
+} from "@/lib/reviews/public-adapter";
 import type {
   ReviewRelationContext,
   ReviewRelationView,
@@ -27,7 +27,7 @@ export type ShopReviewViewModel =
       aggregateRating: number | null;
       aggregateRatingCount: number;
       metrics: ShopReviewMetric[];
-      latest: ApprovedShopReview[];
+      latest: PublicReview[];
       dateRange: {
         oldestSubmittedAt: string | null;
         latestSubmittedAt: string | null;
@@ -74,7 +74,7 @@ function roundRating(value: number): number {
 }
 
 function normalizeMetric(
-  metric: ApprovedShopReviewMetric,
+  metric: PublicReviewMetric,
   totalApproved: number,
 ): { value: number; count: number } | null {
   const count = metric.responseCount;
@@ -94,7 +94,7 @@ function normalizeMetric(
   return { value: roundRating(average), count };
 }
 
-function latestReviews(reviews: ApprovedShopReview[]): ApprovedShopReview[] {
+function latestReviews(reviews: readonly PublicReview[]): PublicReview[] {
   return reviews
     .map((review, index) => ({
       review,
@@ -167,7 +167,7 @@ export async function buildApprovedShopReviewRelations(
 }
 
 export function buildShopReviewViewModel(
-  result: ApprovedShopReviewResult,
+  result: PublicShopReviewResult,
 ): ShopReviewViewModel {
   if (result.status === "unavailable") return result;
 

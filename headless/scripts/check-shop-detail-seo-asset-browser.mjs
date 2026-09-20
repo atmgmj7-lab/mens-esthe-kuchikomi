@@ -104,7 +104,8 @@ function fixturePageSource() {
 import { ShopDetail } from "@/components/ShopDetail";
 import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
-import type { ApprovedShopReviewResult, AreaView, ShopView } from "@/lib/wp/types";
+import type { PublicShopReviewResult } from "@/lib/reviews/public-adapter";
+import type { AreaView, ShopView } from "@/lib/wp/types";
 
 const fixtures = ${JSON.stringify(variants)} as const;
 export const instant = false;
@@ -121,7 +122,7 @@ function areaFor(fixture: Fixture): AreaView | null {
   };
 }
 
-function reviewsFor(fixture: Fixture): ApprovedShopReviewResult {
+function reviewsFor(fixture: Fixture): PublicShopReviewResult {
   const reviews = Array.from({ length: fixture.reviewCount }, (_, index) => ({
     id: 7000 + index,
     body: \`承認済みユーザー口コミ\${index + 1}。料金や接客の体験を具体的に確認するための本文です。\`,
@@ -137,6 +138,7 @@ function reviewsFor(fixture: Fixture): ApprovedShopReviewResult {
   const average = responseCount > 0 ? 4.5 : null;
   return {
     status: "available",
+    source: "wordpress",
     page: {
       reviews,
       total: fixture.reviewCount,
@@ -267,9 +269,11 @@ async function runFixtureQa(browser) {
     check(rawHtml.includes('data-shop-detail-root="true"') || rawHtml.includes("data-shop-detail-root"), `${variant.slug} SSR root`);
     check(rawHtml.includes('data-detail-banner="absent"'), `${variant.slug} SSR banner absent`);
     check(rawHtml.includes("口コミ・体験"), `${variant.slug} SSR review section`);
-    check(rawHtml.includes("承認済みユーザー口コミ"), `${variant.slug} SSR approved provenance copy`);
     if (variant.reviewCount > 0) {
+      check(rawHtml.includes("承認済みユーザー口コミ"), `${variant.slug} SSR approved provenance copy`);
       check(rawHtml.includes("承認済みユーザー口コミ1"), `${variant.slug} SSR approved review body`);
+    } else {
+      check(rawHtml.includes("この店舗の承認済み口コミはまだありません"), `${variant.slug} SSR empty approved-review state`);
     }
     if (variant.primaryArea) {
       check(rawHtml.includes(`href="/area/${variant.primaryArea.slug}/"`), `${variant.slug} SSR explicit Primary Area link`);
@@ -291,7 +295,11 @@ async function runFixtureQa(browser) {
       const imageBox = await page.locator('[data-shop-card-square="true"] img').boundingBox();
       check(Boolean(imageBox) && Math.abs((imageBox?.width ?? 0) - (imageBox?.height ?? 1)) <= 2, `${variant.slug} ${viewport.width}px square image`, imageBox ?? {});
       check(await page.locator('[data-detail-banner="absent"]').count() === 1, `${variant.slug} ${viewport.width}px detail banner absent`);
-      check(await page.getByText(`承認済み口コミ ${variant.reviewCount}件`, { exact: false }).count() >= 1, `${variant.slug} ${viewport.width}px approved count`);
+      if (variant.reviewCount > 0) {
+        check(await page.getByText(`承認済み口コミ ${variant.reviewCount}件`, { exact: false }).count() >= 1, `${variant.slug} ${viewport.width}px approved count`);
+      } else {
+        check(await page.getByText("この店舗の承認済み口コミはまだありません。", { exact: true }).count() === 1, `${variant.slug} ${viewport.width}px empty approved-review state`);
+      }
       check(await page.locator('[aria-label="承認済み口コミの評価グラフ"]').count() === Number(variant.graph), `${variant.slug} ${viewport.width}px graph threshold`);
       check(await page.locator("#reviews article").count() === Math.min(3, variant.reviewCount), `${variant.slug} ${viewport.width}px latest approved review cards`);
       check(await page.locator("#prices").count() === Number(variant.price), `${variant.slug} ${viewport.width}px confirmed price visibility`);

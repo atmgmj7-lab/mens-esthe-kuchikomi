@@ -7,14 +7,15 @@ import { AreaHubSectionHeader } from "@/components/area/hub/AreaHubSectionHeader
 import { isLayeredBannerSectionEnabled } from "@/lib/area-hub-banner-config";
 import { AreaHubSectionShell } from "@/components/area/hub/AreaHubSectionShell";
 import { shopReviewCount, type AreaHubContext } from "@/lib/area-shop-utils";
-import type { ApprovedGlobalReviewResult, ShopView } from "@/lib/wp/types";
+import type { PublicGlobalReviewResult } from "@/lib/reviews/public-adapter";
+import type { ShopView } from "@/lib/wp/types";
 
 export function AreaLatestReviews({
   reviewResult,
   shops,
   hubContext
 }: {
-  reviewResult?: ApprovedGlobalReviewResult;
+  reviewResult?: PublicGlobalReviewResult;
   shops?: ShopView[];
   hubContext: AreaHubContext;
 }) {

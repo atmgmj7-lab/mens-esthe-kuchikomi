@@ -50,17 +50,17 @@ assert.match(nextSource, /status:\s*["']available["']/);
 assert.match(nextSource, /status:\s*["']unavailable["']/);
 
 assert.match(shopPageSource, /Promise\.all\s*\(/);
-assert.match(shopPageSource, /getApprovedShopReviews\(\s*shop\.id\s*,\s*1\s*,\s*3\s*\)/);
+assert.match(shopPageSource, /publicReviewAdapter\.getShopReviews\(\s*shop\s*,\s*1\s*,\s*3\s*\)/);
 assert.doesNotMatch(shopPageSource, /getAreaById|getParentArea/);
-assert.match(shopDetailSource, /reviewResult:\s*ApprovedShopReviewResult/);
+assert.match(shopDetailSource, /reviewResult:\s*PublicShopReviewResult/);
 assert.doesNotMatch(shopDetailSource, /extractShopUserReviewItems/);
-assert.match(sectionsSource, /reviewResult:\s*ApprovedShopReviewResult/);
-assert.match(reviewPageSource, /getApprovedShopReviews\(\s*shop\.id\s*,\s*page\s*,\s*20\s*\)/);
+assert.match(sectionsSource, /reviewResult:\s*PublicShopReviewResult/);
+assert.match(reviewPageSource, /publicReviewAdapter\.getShopReviews\(\s*shop\s*,\s*page\s*,\s*20\s*\)/);
 assert.ok(
-  (reviewPageSource.match(/getApprovedShopReviews\(\s*shop\.id\s*,\s*page\s*,\s*20\s*\)/g) ?? []).length >= 2,
+  (reviewPageSource.match(/publicReviewAdapter\.getShopReviews\(\s*shop\s*,\s*page\s*,\s*20\s*\)/g) ?? []).length >= 2,
   "metadata and page content must share the same cached review request",
 );
-assert.match(reviewPageSource, /approvedShopReviewRobots\(\s*reviewResult\s*,\s*page\s*\)/);
+assert.match(reviewPageSource, /publicShopReviewRobots\(\s*reviewResult\s*,\s*page\s*\)/);
 assert.match(reviewPageSource, /pageMetadata\([\s\S]{0,600}\brobots\b/);
 assert.match(reviewPageSource, /口コミ情報を現在取得できません/);
 assert.match(reviewPageSource, /この店舗の承認済みユーザー口コミはまだありません/);

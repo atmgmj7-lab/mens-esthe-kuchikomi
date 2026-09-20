@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RoutePageFallback } from "@/components/RoutePageFallback";
 import { ReviewsHub } from "@/components/reviews/ReviewsHub";
+import { publicReviewAdapter } from "@/lib/reviews/public-adapter";
 import {
   normalizeReviewHubQuery,
   reviewsHubBreadcrumbJsonLd,
@@ -9,7 +10,6 @@ import {
 } from "@/lib/review-hub";
 import { canonicalUrl, pageMetadata } from "@/lib/seo";
 import { getLatestPosts } from "@/lib/wp/posts";
-import { getApprovedReviewsPage } from "@/lib/wp/reviews";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 type Props = { searchParams: Promise<SearchParams> };
@@ -36,11 +36,12 @@ export default function ReviewsPage({ searchParams }: Props) {
 async function ReviewsPageContent({ searchParams }: Props) {
   const filters = normalizeReviewHubQuery(await searchParams);
   const [reviewResult, postsResult] = await Promise.allSettled([
-    getApprovedReviewsPage(filters.page, 20),
+    publicReviewAdapter.getGlobalReviews(filters.page, 20),
     getLatestPosts(6),
   ]);
   const reviews = reviewResult.status === "fulfilled" ? reviewResult.value : {
     status: "unavailable" as const,
+    source: publicReviewAdapter.source,
     reason: "request-failed" as const,
   };
   const posts = postsResult.status === "fulfilled" ? postsResult.value : [];

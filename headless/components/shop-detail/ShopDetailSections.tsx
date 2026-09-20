@@ -4,7 +4,7 @@ import type {
   ShopDetailModuleContext,
   VisibleShopDetailModule
 } from "@/lib/shop-detail-modules";
-import type { ApprovedShopReviewResult } from "@/lib/wp/types";
+import type { PublicShopReviewResult } from "@/lib/reviews/public-adapter";
 
 export function ShopDetailSections({
   context,
@@ -18,7 +18,7 @@ export function ShopDetailSections({
   modules: readonly VisibleShopDetailModule[];
   nearbyContent: ReactNode;
   rel: string;
-  reviewResult: ApprovedShopReviewResult;
+  reviewResult: PublicShopReviewResult;
   reviewSubmitUrl: string;
 }) {
   return (
