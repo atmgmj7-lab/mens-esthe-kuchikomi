@@ -23,6 +23,31 @@ function campaignTokenFrom(body: unknown): string {
   return typeof token === "string" && token.length <= 200 ? token.trim() : "";
 }
 
+const PARTNER_REVIEW_CONVERSION_TIMEOUT_MS = 750;
+
+async function recordPartnerReviewCampaignSubmissionWithinDeadline(input: {
+  token: string;
+  shopId: number;
+  wordpressReviewId: number;
+}): Promise<void> {
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<void>((resolve) => {
+    timeout = setTimeout(() => {
+      controller.abort();
+      resolve();
+    }, PARTNER_REVIEW_CONVERSION_TIMEOUT_MS);
+  });
+  try {
+    await Promise.race([
+      recordPartnerReviewCampaignSubmission(input, partnerReviewGrowthRepository, controller.signal).then(() => undefined, () => undefined),
+      deadline,
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
   const rate = checkReviewRateLimit(ip);
@@ -83,10 +108,7 @@ export async function POST(request: NextRequest) {
 
   const wordpressReviewId = result.id;
   if (campaign && result.ok && typeof wordpressReviewId === "number" && Number.isSafeInteger(wordpressReviewId) && wordpressReviewId > 0) {
-    await recordPartnerReviewCampaignSubmission(
-      { token: campaignToken, shopId: shop.id, wordpressReviewId },
-      partnerReviewGrowthRepository,
-    );
+    await recordPartnerReviewCampaignSubmissionWithinDeadline({ token: campaignToken, shopId: shop.id, wordpressReviewId });
   }
 
   return NextResponse.json({

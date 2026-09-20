@@ -24,6 +24,7 @@ function verifySourceContract() {
   const reviewSubmitForm = read("headless/components/reviews/ReviewSubmitForm.tsx");
   const reviewSubmitRoute = read("headless/app/api/reviews/submit/route.ts");
   const changedFlowQa = read("headless/scripts/check-partner-review-growth-browser.mjs");
+  const foundationSpec = read("docs/superpowers/specs/2026-09-19-eskomi-free-official-partner-foundation-design.md");
   const packageJson = JSON.parse(read("headless/package.json"));
   const dashboardPage = read("headless/app/dashboard/partners/page.tsx");
   const dashboardWorkspace = read("headless/components/dashboard/DashboardPartnerWorkspace.tsx");
@@ -111,11 +112,20 @@ function verifySourceContract() {
   assert.match(reviewSubmitRoute, /partnerReviewGrowthRepository/);
   assert.match(reviewSubmitRoute, /campaign\.id !== shop\.id/);
   assert.match(reviewSubmitRoute, /result\.ok && typeof wordpressReviewId === "number" && Number\.isSafeInteger\(wordpressReviewId\) && wordpressReviewId > 0/);
+  assert.match(reviewSubmitRoute, /AbortController/);
+  assert.match(reviewSubmitRoute, /recordPartnerReviewCampaignSubmissionWithinDeadline/);
+  assert.match(provisioning, /signal\?: AbortSignal/);
+  assert.match(repository, /recordReviewCampaignSubmission\(input, signal\?: AbortSignal\)/);
+  assert.match(reviewRoute, /!body \|\| typeof body !== "object" \|\| Array\.isArray\(body\)/);
   assert.ok(packageJson.scripts["qa:partner-review-growth"].includes("check-partner-review-growth-browser.mjs"));
   assert.match(changedFlowQa, /\["run", "start", "--", "--hostname", "127\.0\.0\.1", "--port"/);
   assert.match(changedFlowQa, /form\.hl-review-form/);
   assert.match(changedFlowQa, /キャンペーンの投稿先店舗を確認できません/);
   assert.match(changedFlowQa, /campaignToken: fixtureToken/);
+  assert.match(changedFlowQa, /never-resolving conversion/);
+  assert.match(changedFlowQa, /body: null/);
+  assert.match(foundationSpec, /expected unapplied migration/i);
+  assert.match(foundationSpec, /npm run build[\s\S]*npm run qa:partner-review-growth/);
 
   assert.match(dashboardPage, /listPartnerRegistrationReviews/);
   assert.match(dashboardPage, /partnerReviewGrowthRepository/);

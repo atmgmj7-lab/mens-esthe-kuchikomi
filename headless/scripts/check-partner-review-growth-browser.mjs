@@ -31,6 +31,8 @@ function loadTypeScript(relativePath, modules) {
 }
 
 const validation = loadTypeScript("lib/review-validation.ts", {});
+const shopSlug = loadTypeScript("lib/shop-slug.ts", {});
+const provisioning = loadTypeScript("lib/partner/provisioning-service.ts", { "server-only": {}, "@/lib/shop-slug": shopSlug });
 let directWordPressResult = { ok: true, id: 9981 };
 let directWordPressCalls = 0;
 const directConversionCalls = [];
@@ -68,6 +70,40 @@ response = await submitDirect({ ...reviewPayload, campaignToken: fixtureToken })
 assert.equal(response.status, 503);
 assert.equal(directWordPressCalls, 1);
 assert.equal(directConversionCalls.length, 0, "failed WordPress submission has no conversion");
+
+const neverResolvingConversionInputs = [];
+const neverResolvingRepository = {
+  openReviewCampaign: async (token) => token === fixtureToken ? fixtureShop : null,
+  recordReviewCampaignSubmission: (input) => {
+    neverResolvingConversionInputs.push(input);
+    return new Promise(() => {}); // never-resolving conversion repository
+  },
+};
+const boundedReviewApi = loadTypeScript("app/api/reviews/submit/route.ts", {
+  "next/server": { NextResponse: TestNextResponse },
+  "@/lib/review-rate-limit": { checkReviewRateLimit: () => ({ allowed: true, retryAfterSec: 0 }) },
+  "@/lib/review-validation": validation,
+  "@/lib/partner/provisioning-service": provisioning,
+  "@/lib/supabase/partner-workspace": { partnerReviewGrowthRepository: neverResolvingRepository },
+  "@/lib/wp/review-submit": { submitReviewToWordPress: async () => { directWordPressCalls += 1; return { ok: true, id: 9983 }; } },
+  "@/lib/wp/shops": { getShopBySlug: async () => ({ ...fixtureShop, publicationStatus: "publish" }) },
+});
+directWordPressCalls = 0;
+const boundedStartedAt = performance.now();
+response = await boundedReviewApi.POST({ headers: new Headers({ "x-forwarded-for": "198.51.100.11" }), json: async () => ({ ...reviewPayload, campaignToken: fixtureToken }) });
+assert.equal(response.status, 200);
+assert.equal(directWordPressCalls, 1, "one WordPress call is retained when conversion stalls");
+assert.ok(performance.now() - boundedStartedAt < 2_000, "stalled conversion has a bounded successful response");
+assert.deepEqual(neverResolvingConversionInputs, [{ token: fixtureToken, shopId: fixtureShop.id, wordpressReviewId: 9983 }], "stalled conversion receives no review body or contact data");
+
+const dashboardReviewApi = loadTypeScript("app/api/dashboard/partners/review/route.ts", {
+  "next/server": { NextResponse: TestNextResponse },
+  "@/lib/dashboard/content-admin-auth": { authorizeDashboardRequest: () => ({ ok: true }) },
+  "@/lib/partner/provisioning-service": { reviewPartnerRegistration: async () => { throw new Error("must not be called"); } },
+  "@/lib/supabase/partner-workspace": { partnerReviewGrowthRepository: {} },
+});
+const nullDashboardBody = await dashboardReviewApi.POST({ headers: new Headers(), json: async () => ({ body: null }).body });
+assert.equal(nullDashboardBody.status, 400, "dashboard route rejects a null parsed body");
 
 async function listen(server) {
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

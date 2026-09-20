@@ -83,7 +83,7 @@ export type PartnerReviewGrowthRepository = {
     token: string;
     shopId: number;
     wordpressReviewId: number;
-  }) => Promise<boolean>;
+  }, signal?: AbortSignal) => Promise<boolean>;
 };
 
 export function nextPartnerAction(state: PartnerWorkspaceState): string {
@@ -161,13 +161,14 @@ export async function openPartnerReviewCampaign(
 export async function recordPartnerReviewCampaignSubmission(
   input: { token: string; shopId: number; wordpressReviewId: number },
   repository: PartnerReviewGrowthRepository,
+  signal?: AbortSignal,
 ): Promise<boolean> {
   if (!input.token || !Number.isSafeInteger(input.shopId) || input.shopId <= 0
     || !Number.isSafeInteger(input.wordpressReviewId) || input.wordpressReviewId <= 0) {
     return false;
   }
   try {
-    return await repository.recordReviewCampaignSubmission(input);
+    return await repository.recordReviewCampaignSubmission(input, signal);
   } catch {
     return false;
   }

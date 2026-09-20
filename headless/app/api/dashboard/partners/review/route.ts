@@ -29,24 +29,30 @@ export async function POST(request: NextRequest) {
   const authorization = authorizeDashboardRequest(request.headers.get("authorization"), process.env);
   if (!authorization.ok) return authorizationFailure(authorization.status);
 
-  let body: { submissionId?: unknown; decision?: unknown; reason?: unknown };
+  let body: unknown;
   try {
-    body = await request.json() as { submissionId?: unknown; decision?: unknown; reason?: unknown };
+    body = await request.json();
   } catch {
     return invalidRequest("判断内容を確認してください。", 400);
   }
 
-  if (typeof body.submissionId !== "string" || !body.submissionId
-    || (body.decision !== "approved" && body.decision !== "rejected")
-    || typeof body.reason !== "string" || !body.reason.trim()) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return invalidRequest("判断内容を確認してください。", 400);
+  }
+
+  const decisionBody = body as { submissionId?: unknown; decision?: unknown; reason?: unknown };
+
+  if (typeof decisionBody.submissionId !== "string" || !decisionBody.submissionId
+    || (decisionBody.decision !== "approved" && decisionBody.decision !== "rejected")
+    || typeof decisionBody.reason !== "string" || !decisionBody.reason.trim()) {
     return invalidRequest("判断内容を確認してください。", 400);
   }
 
   const result = await reviewPartnerRegistration({
-    submissionId: body.submissionId,
-    decision: body.decision,
+    submissionId: decisionBody.submissionId,
+    decision: decisionBody.decision,
     actorLabel: "dashboard_operator",
-    reason: body.reason,
+    reason: decisionBody.reason,
   }, partnerReviewGrowthRepository);
   if (!result) {
     return invalidRequest("判断を保存できませんでした。状態を確認して再度お試しください。", 409);

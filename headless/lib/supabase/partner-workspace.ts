@@ -177,7 +177,7 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
       return null;
     }
   },
-  async recordReviewCampaignSubmission(input) {
+  async recordReviewCampaignSubmission(input, signal?: AbortSignal) {
     const baseUrl = supabaseUrl();
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return false;
@@ -191,6 +191,7 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
           p_wp_review_id: input.wordpressReviewId,
         }),
         cache: "no-store",
+        signal,
       });
       const recorded = await response.json() as unknown;
       return response.ok && recorded === true;

@@ -64,13 +64,13 @@ Local order, against this repository's isolated local Supabase only:
 
 1. `supabase start`.
 2. `supabase db reset` so `20260919000000_free_partner_foundation.sql` applies before `20260920000000_partner_review_growth.sql`.
-3. From `headless`, run `npm run test:free-partner-local-supabase`, `npm run test:partner-review-growth-local-supabase`, `npm run test:partner-review-growth`, and `npm run qa:partner-review-growth`.
-4. Run typecheck, lint, build, the changed-flow headless QA, and diff/secret/PII scans before accepting a local candidate.
+3. From `headless`, run `npm run test:free-partner-local-supabase`, `npm run test:partner-review-growth-local-supabase`, and `npm run test:partner-review-growth`.
+4. Run typecheck, lint, `npm run build`, then `npm run qa:partner-review-growth`, followed by diff/secret/PII scans before accepting a local candidate.
 
 Future production order, only after explicit approval for the exact commit and deployment:
 
-1. Capture the applied migration ledger and the counts below; stop if either required migration is absent or unexpectedly different.
-2. Apply `20260919000000_free_partner_foundation.sql` if and only if it is absent, then apply `20260920000000_partner_review_growth.sql` once. Verify the latter before releasing any Task 2/3 application code.
+1. Capture the applied migration ledger and inspect the Foundation/Growth objects and grants below. An **expected unapplied migration** has no ledger row and no corresponding migration-owned objects; it is eligible to be applied in order. An absent ledger row with existing objects, a present ledger row with missing/different objects or grants, or an unexpected version is **unexpected existing-object drift**: stop, retain evidence, and do not apply or repair a migration.
+2. Only for expected unapplied migrations, apply `20260919000000_free_partner_foundation.sql` first and then `20260920000000_partner_review_growth.sql` once. Re-read the ledger and object/grant checks after each application; verify Growth before releasing any Task 2/3 application code.
 3. Verify service-role RPC behavior and browser-role denial, then release the approved application SHA. The public entry route must be checked with an active test campaign and an inactive token before distributing a kit URL.
 4. Perform one controlled WordPress pending-review submission only under a separately approved test plan; use its resulting WordPress review ID to check a single conversion record. Do not use review text or contact data in verification SQL or reports.
 
