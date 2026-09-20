@@ -23,6 +23,7 @@ function verifySourceContract() {
   const reviewSubmitPage = read("headless/app/reviews/submit/page.tsx");
   const reviewSubmitForm = read("headless/components/reviews/ReviewSubmitForm.tsx");
   const reviewSubmitRoute = read("headless/app/api/reviews/submit/route.ts");
+  const changedFlowQa = read("headless/scripts/check-partner-review-growth-browser.mjs");
   const packageJson = JSON.parse(read("headless/package.json"));
   const dashboardPage = read("headless/app/dashboard/partners/page.tsx");
   const dashboardWorkspace = read("headless/components/dashboard/DashboardPartnerWorkspace.tsx");
@@ -111,6 +112,10 @@ function verifySourceContract() {
   assert.match(reviewSubmitRoute, /campaign\.id !== shop\.id/);
   assert.match(reviewSubmitRoute, /result\.ok && typeof wordpressReviewId === "number" && Number\.isSafeInteger\(wordpressReviewId\) && wordpressReviewId > 0/);
   assert.ok(packageJson.scripts["qa:partner-review-growth"].includes("check-partner-review-growth-browser.mjs"));
+  assert.match(changedFlowQa, /\["run", "start", "--", "--hostname", "127\.0\.0\.1", "--port"/);
+  assert.match(changedFlowQa, /form\.hl-review-form/);
+  assert.match(changedFlowQa, /キャンペーンの投稿先店舗を確認できません/);
+  assert.match(changedFlowQa, /campaignToken: fixtureToken/);
 
   assert.match(dashboardPage, /listPartnerRegistrationReviews/);
   assert.match(dashboardPage, /partnerReviewGrowthRepository/);
