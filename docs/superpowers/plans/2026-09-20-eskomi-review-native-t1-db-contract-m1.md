@@ -9,7 +9,7 @@ Task T1 only. The application submission, moderation UI, public adapter, Vercel 
 1. Extend `app.reviews` with the optional rating dimensions, visit/revisit fields, and distinct reviewed/published timestamps while retaining the existing UUID and Shop FK.
 2. Move submission PII, idempotency, HMAC abuse-window state, and append-only moderation history into RLS-enabled `private` tables.
 3. Revoke browser-role access to `app.reviews` and the legacy `api.published_reviews` view.
-4. Add service-role-only, security-invoker RPC contracts for atomic submit, moderation, sanitized published candidates, and shared metrics.
+4. Add service-role-only API adapters over fixed-path privileged implementations for atomic submit, moderation, sanitized published candidates, and shared metrics.
 5. Extend Growth attribution with a nullable Supabase Review UUID while retaining the nullable legacy WordPress Review ID and old RPC.
 6. Keep WordPress as the Shop/Area publication authority. The DB list RPC returns only Review-safe candidates; the future T5 adapter must perform the final WordPress Shop publication check.
 
@@ -28,9 +28,10 @@ Invalid ratings, private-detail constraint failures, and invalid Campaign attrib
 ## Security contract
 
 - `anon` / `authenticated`: no direct Review table/view access and no Review RPC execution.
-- `service_role`: intended RPC execution and minimum private-table privileges.
+- `service_role`: intended RPC execution only for Review Native data; no direct Review Native table access or attribution mutation.
 - All new private tables: RLS enabled and no browser policies.
-- All new RPCs: `SECURITY INVOKER`, fixed `search_path`, fully qualified data objects, explicit PUBLIC/anon/authenticated revocation.
+- Exposed `api` adapters: `SECURITY INVOKER`, fixed `search_path`, and explicit PUBLIC/anon/authenticated revocation.
+- Private Review implementations: narrowly scoped `SECURITY DEFINER`, `search_path = pg_catalog`, schema-qualified data objects, no dynamic SQL, and non-browser ownership.
 - No raw IP or secret is stored. Abuse storage accepts only a server-derived lowercase SHA-256/HMAC digest shape.
 - Published candidate/metrics RPCs exclude nickname, email, moderation reason/actor, Campaign token, workspace, and abuse state.
 
@@ -78,3 +79,20 @@ initial apply, a second reset/reapply, the complete Review Native contract,
 Foundation/Growth local DB contracts, related Review regressions, TypeScript,
 ESLint, and DB lint all passed. The final DB lint reported no schema errors in
 `api`, `app`, `extensions`, `private`, or `public`.
+
+Revision 02 supersedes the temporary direct table privileges listed above; the
+history remains here to preserve the review trail.
+
+## Revision 02 — RPC invariants and permanent idempotency
+
+1. Extend the executable Review Native DB contract before changing M1.
+   - Bind one permanent idempotency key to a deterministic canonical request fingerprint.
+   - Reject sequential and truly parallel same-key/different-payload retries without partial state.
+   - Require service-role direct Review, audit, and campaign-attribution mutation to be denied.
+2. Complete the still-unapplied M1 in place.
+   - Replace `expires_at` with a private SHA-256 `request_fingerprint`; no retention or cleanup is introduced.
+   - Move privileged Review mutation/read implementations to fixed-path `SECURITY DEFINER` functions with explicit schema qualification.
+   - Keep `api` adapters `SECURITY INVOKER`, revoke browser execution, and grant execution only to `service_role`.
+   - Revoke direct service-role access to Review Native tables and direct mutation on the shared Growth attribution table.
+   - Preserve the legacy WordPress attribution RPC through a hardened definer implementation.
+3. Rebuild a fresh local database and verify reset/reapply, real service-role RPC execution, sequential and parallel idempotency, direct-DML denial, atomic rollback, Foundation/Growth compatibility, DB lint, focused application regressions, and a clean exact-scope commit.

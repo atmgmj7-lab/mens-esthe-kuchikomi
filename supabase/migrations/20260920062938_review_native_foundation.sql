@@ -55,10 +55,9 @@ create table private.review_submission_details (
 
 create table private.review_idempotency_keys (
   key_hash text primary key check (key_hash ~ '^[0-9a-f]{64}$'),
+  request_fingerprint text not null check (request_fingerprint ~ '^[0-9a-f]{64}$'),
   review_id uuid not null unique references app.reviews(id) on delete restrict,
-  expires_at timestamptz not null,
-  created_at timestamptz not null default now(),
-  check (expires_at > created_at)
+  created_at timestamptz not null default now()
 );
 
 create table private.review_abuse_rate_limits (
@@ -87,8 +86,6 @@ create index review_moderation_events_review_created_idx
   on private.review_moderation_events (review_id, created_at, id);
 create index review_abuse_rate_limits_expiry_idx
   on private.review_abuse_rate_limits (window_expires_at);
-create index review_idempotency_keys_expiry_idx
-  on private.review_idempotency_keys (expires_at);
 
 alter table private.review_submission_details enable row level security;
 alter table private.review_idempotency_keys enable row level security;
@@ -101,39 +98,21 @@ revoke all on table private.review_abuse_rate_limits from public, anon, authenti
 revoke all on table private.review_moderation_events from public, anon, authenticated;
 revoke all on sequence private.review_moderation_events_id_seq from public, anon, authenticated;
 
--- The baseline granted service_role ALL on existing app tables. Replace that
--- inherited app.reviews ACL with only the columns required by the invoker RPCs.
+-- The baseline granted service_role ALL on existing app tables. Review Native
+-- mutations and reads are RPC-only, so the service role keeps no direct Review
+-- table access. The hardened definer implementations below own the invariants.
 revoke all on table app.reviews from service_role;
-grant select on table app.reviews to service_role;
-grant insert (
-  shop_id,
-  body,
-  rating,
-  rating_price,
-  rating_service,
-  rating_cleanliness,
-  visit_period,
-  revisit_intent
-) on table app.reviews to service_role;
-grant update (
-  moderation_status,
-  publication_status,
-  is_public,
-  reviewed_at,
-  approved_at,
-  published_at,
-  updated_at
-) on table app.reviews to service_role;
 
 revoke all on table private.review_submission_details from service_role;
 revoke all on table private.review_idempotency_keys from service_role;
 revoke all on table private.review_abuse_rate_limits from service_role;
 revoke all on table private.review_moderation_events from service_role;
-grant select, insert on table private.review_submission_details to service_role;
-grant select, insert on table private.review_idempotency_keys to service_role;
-grant select, insert, update on table private.review_abuse_rate_limits to service_role;
-grant select, insert on table private.review_moderation_events to service_role;
-grant usage, select on sequence private.review_moderation_events_id_seq to service_role;
+revoke all on sequence private.review_moderation_events_id_seq from service_role;
+
+-- Growth's shared attribution table remains readable for existing operator
+-- diagnostics, but both WordPress and UUID conversions must mutate it by RPC.
+revoke insert, update, delete, truncate, references, trigger
+  on table private.partner_review_campaign_submissions from service_role;
 
 -- Extend the already-deployed Growth attribution table without deleting its
 -- WordPress identifier. During the transition a row may contain either or both.
@@ -160,8 +139,8 @@ create or replace function private.record_partner_review_campaign_submission(
 )
 returns boolean
 language plpgsql
-security invoker
-set search_path = private, pg_temp
+security definer
+set search_path = pg_catalog
 as $$
 declare
   v_campaign_id uuid;
@@ -193,8 +172,8 @@ create or replace function private.record_partner_review_campaign_review(
 )
 returns boolean
 language plpgsql
-security invoker
-set search_path = private, app, pg_temp
+security definer
+set search_path = pg_catalog
 as $$
 declare
   v_campaign_id uuid;
@@ -246,13 +225,14 @@ create or replace function private.submit_review(
 )
 returns table (review_id uuid, created boolean)
 language plpgsql
-security invoker
-set search_path = private, app, pg_temp
+security definer
+set search_path = pg_catalog
 as $$
 declare
   v_shop_id uuid;
   v_review_id uuid;
-  v_existing_shop_id uuid;
+  v_request_fingerprint text;
+  v_existing_fingerprint text;
   v_recorded boolean;
 begin
   if p_wp_shop_id is null or p_wp_shop_id <= 0 then
@@ -264,8 +244,24 @@ begin
   if p_nickname is null or char_length(btrim(p_nickname)) not between 1 and 80 then
     raise exception using errcode = '22023', message = 'Review nickname length is invalid';
   end if;
-  if p_source_url is null or btrim(p_source_url) = '' then
-    raise exception using errcode = '22023', message = 'server-derived Review source URL is required';
+  if p_source_url is null or char_length(btrim(p_source_url)) not between 1 and 2048 then
+    raise exception using errcode = '22023', message = 'server-derived Review source URL is invalid';
+  end if;
+  if p_email is not null and nullif(btrim(p_email), '') is not null
+    and char_length(btrim(p_email)) not between 3 and 254 then
+    raise exception using errcode = '22023', message = 'Review email length is invalid';
+  end if;
+  if (p_rating is not null and p_rating not between 1 and 5)
+    or (p_rating_price is not null and p_rating_price not between 1 and 5)
+    or (p_rating_service is not null and p_rating_service not between 1 and 5)
+    or (p_rating_cleanliness is not null and p_rating_cleanliness not between 1 and 5) then
+    raise exception using errcode = '22023', message = 'Review rating is invalid';
+  end if;
+  if (p_visit_period is not null and nullif(btrim(p_visit_period), '') is not null
+      and char_length(btrim(p_visit_period)) not between 1 and 80)
+    or (p_revisit_intent is not null and nullif(btrim(p_revisit_intent), '') is not null
+      and char_length(btrim(p_revisit_intent)) not between 1 and 80) then
+    raise exception using errcode = '22023', message = 'Review visit metadata is invalid';
   end if;
   if p_idempotency_key_hash is null or p_idempotency_key_hash !~ '^[0-9a-f]{64}$'
     or p_abuse_key_hash is null or p_abuse_key_hash !~ '^[0-9a-f]{64}$' then
@@ -284,14 +280,32 @@ begin
     raise exception using errcode = '22023', message = 'canonical WordPress shop is not mirrored in app.shops';
   end if;
 
+  v_request_fingerprint := encode(
+    sha256(convert_to(jsonb_build_array(
+      'review-submit-v1',
+      p_wp_shop_id,
+      btrim(p_body),
+      p_rating,
+      p_rating_price,
+      p_rating_service,
+      p_rating_cleanliness,
+      nullif(btrim(p_visit_period), ''),
+      nullif(btrim(p_revisit_intent), ''),
+      btrim(p_nickname),
+      lower(nullif(btrim(p_email), '')),
+      btrim(p_source_url),
+      p_campaign_token
+    )::text, 'UTF8')),
+    'hex'
+  );
+
   perform pg_advisory_xact_lock(hashtextextended(p_idempotency_key_hash, 0));
-  select k.review_id, r.shop_id into v_review_id, v_existing_shop_id
+  select k.review_id, k.request_fingerprint into v_review_id, v_existing_fingerprint
   from private.review_idempotency_keys k
-  join app.reviews r on r.id = k.review_id
   where k.key_hash = p_idempotency_key_hash;
   if v_review_id is not null then
-    if v_existing_shop_id <> v_shop_id then
-      raise exception using errcode = '22023', message = 'idempotency key is already bound to another shop';
+    if v_existing_fingerprint <> v_request_fingerprint then
+      raise exception using errcode = '23505', message = 'idempotency key payload mismatch';
     end if;
     return query select v_review_id, false;
     return;
@@ -309,8 +323,8 @@ begin
   insert into private.review_submission_details (review_id, nickname, email, source_url)
   values (v_review_id, btrim(p_nickname), nullif(btrim(p_email), ''), btrim(p_source_url));
 
-  insert into private.review_idempotency_keys (key_hash, review_id, expires_at)
-  values (p_idempotency_key_hash, v_review_id, p_abuse_window_expires_at);
+  insert into private.review_idempotency_keys (key_hash, request_fingerprint, review_id)
+  values (p_idempotency_key_hash, v_request_fingerprint, v_review_id);
 
   insert into private.review_abuse_rate_limits (
     key_hash, window_started_at, window_expires_at
@@ -351,8 +365,8 @@ returns table (
   published_at timestamptz
 )
 language plpgsql
-security invoker
-set search_path = private, app, pg_temp
+security definer
+set search_path = pg_catalog
 as $$
 declare
   v_review app.reviews%rowtype;
@@ -434,8 +448,8 @@ returns table (
 )
 language plpgsql
 stable
-security invoker
-set search_path = private, app, pg_temp
+security definer
+set search_path = pg_catalog
 as $$
 begin
   if p_wp_shop_id is not null and p_wp_shop_id <= 0 then
@@ -489,8 +503,8 @@ returns table (
 )
 language plpgsql
 stable
-security invoker
-set search_path = private, app, pg_temp
+security definer
+set search_path = pg_catalog
 as $$
 begin
   if p_wp_shop_id is not null and p_wp_shop_id <= 0 then
@@ -523,16 +537,33 @@ begin
 end;
 $$;
 
+revoke all on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
 revoke all on function private.record_partner_review_campaign_review(uuid, bigint, uuid) from public, anon, authenticated;
 revoke all on function private.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) from public, anon, authenticated;
 revoke all on function private.moderate_review(uuid, text, text, text) from public, anon, authenticated;
 revoke all on function private.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
 revoke all on function private.get_published_review_metrics(bigint) from public, anon, authenticated;
+grant execute on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function private.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
 grant execute on function private.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) to service_role;
 grant execute on function private.moderate_review(uuid, text, text, text) to service_role;
 grant execute on function private.list_published_reviews(bigint, integer, integer) to service_role;
 grant execute on function private.get_published_review_metrics(bigint) to service_role;
+
+-- Keep the deployed WordPress conversion adapter while routing its mutation
+-- through the hardened definer implementation above.
+create or replace function api.record_partner_review_campaign_submission(
+  p_token uuid,
+  p_wp_shop_id bigint,
+  p_wp_review_id bigint
+)
+returns boolean
+language sql
+security invoker
+set search_path = pg_catalog
+as $$
+  select private.record_partner_review_campaign_submission(p_token, p_wp_shop_id, p_wp_review_id)
+$$;
 
 create or replace function api.record_partner_review_campaign_review(
   p_token uuid,
@@ -542,7 +573,7 @@ create or replace function api.record_partner_review_campaign_review(
 returns boolean
 language sql
 security invoker
-set search_path = private, api, pg_temp
+set search_path = pg_catalog
 as $$
   select private.record_partner_review_campaign_review(p_token, p_wp_shop_id, p_review_id)
 $$;
@@ -568,7 +599,7 @@ create or replace function api.submit_review(
 returns table (review_id uuid, created boolean)
 language sql
 security invoker
-set search_path = private, api, pg_temp
+set search_path = pg_catalog
 as $$
   select * from private.submit_review(
     p_wp_shop_id, p_body, p_rating, p_nickname, p_source_url,
@@ -596,7 +627,7 @@ returns table (
 )
 language sql
 security invoker
-set search_path = private, api, pg_temp
+set search_path = pg_catalog
 as $$
   select * from private.moderate_review(p_review_id, p_decision, p_actor_label, p_reason)
 $$;
@@ -622,7 +653,7 @@ returns table (
 language sql
 stable
 security invoker
-set search_path = private, api, pg_temp
+set search_path = pg_catalog
 as $$
   select * from private.list_published_reviews(p_wp_shop_id, p_limit, p_offset)
 $$;
@@ -642,16 +673,18 @@ returns table (
 language sql
 stable
 security invoker
-set search_path = private, api, pg_temp
+set search_path = pg_catalog
 as $$
   select * from private.get_published_review_metrics(p_wp_shop_id)
 $$;
 
+revoke all on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) from public, anon, authenticated;
 revoke all on function api.record_partner_review_campaign_review(uuid, bigint, uuid) from public, anon, authenticated;
 revoke all on function api.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) from public, anon, authenticated;
 revoke all on function api.moderate_review(uuid, text, text, text) from public, anon, authenticated;
 revoke all on function api.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
 revoke all on function api.get_published_review_metrics(bigint) from public, anon, authenticated;
+grant execute on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
 grant execute on function api.record_partner_review_campaign_review(uuid, bigint, uuid) to service_role;
 grant execute on function api.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) to service_role;
 grant execute on function api.moderate_review(uuid, text, text, text) to service_role;

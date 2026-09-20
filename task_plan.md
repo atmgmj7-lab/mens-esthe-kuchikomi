@@ -621,3 +621,14 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] typecheck、lint、diff/secret/PII検査を実行する
 - [x] 修正commitを1件作成し、T1 SPEC再review前で停止する
 - **Status:** Revision 01 complete; awaiting T1 SPEC re-review; Production/T2/main変更なし
+
+## 2026-09-20 Review Native T1 Revision 02 — RPC invariants
+
+- [x] Fail-firstでpayload mismatchのsilent acceptance、direct moderation、fake audit、cross-shop attributionを再現
+- [x] permanent idempotency fingerprintとsame-key mismatch拒否を未適用M1へ実装
+- [x] private mutation/read実体を固定pathの`SECURITY DEFINER`へ変更し、api adapterは`SECURITY INVOKER`を維持
+- [x] service_roleのReview/audit direct accessとcampaign attribution direct mutationを撤回
+- [x] sequential/parallel same payload、parallel mismatch、RPC lifecycle、atomic rollback、legacy WP経路を実DB検証
+- [x] fresh reset/reapply、Foundation/Growth、Review公開関連、typecheck、lint、advisor、DB lintを検証
+- [ ] T1 SPEC再レビュー（次task）
+- **Status:** Revision 02 local implementation complete; T2/M2/Production/WordPress/Vercel/main変更なし

@@ -3335,3 +3335,11 @@ pm/PROGRESS.md
 - 未適用M1内で`app.reviews`の継承済みALLを撤回し、SELECT、投稿列限定INSERT、moderation/publication列限定UPDATEへ縮小した。DELETE/TRUNCATE/REFERENCES/TRIGGERとsubmitted内容UPDATEはDENIED。
 - private Review 4表の不要DELETEを除去し、moderation auditのUPDATE/DELETE拒否を維持した。service-only RPC、SECURITY INVOKER、fixed search path、browser denialは維持。
 - initial apply、reset/reapply、Review Native・Foundation・Growth契約、既存Review/schema回帰、typecheck、lint、DB lintは全PASS。Production/WordPress/Vercel/main/T2変更は0。次はT1 SPEC再review。
+
+## 2026-09-20 Review Native Cutover T1 — Revision 02 RPC invariants
+
+- Quality/Security reviewのImportant 2件を修正した。permanent idempotency keyへcanonical request SHA-256 fingerprintを保存し、同一key/異payloadを明示conflictで拒否する。expiry列/indexとcleanup意味はT1から除外した。
+- private Review submit/moderation/read/metrics、UUID attribution、legacy WP attributionを固定`pg_catalog` pathの`SECURITY DEFINER`実体へ閉じ、api transportは`SECURITY INVOKER`、browser denied、service-role execute onlyを維持した。
+- service_roleのReview/audit direct table accessとcampaign submission direct mutationを撤回した。direct moderation、fake audit actor/timestamp、cross-shop direct attributionは実DBでDENIED。
+- sequential 9 mismatch、parallel same/mismatch、service-role RPC正常系、atomic state、Foundation/Growth legacy回帰、reset/reapply、advisor、DB lint、Review公開関連、typecheck、lintを確認した。
+- T2、M2、Production Supabase、WordPress、Vercel、main push、Secret変更は0。次はT1 SPEC再レビュー。

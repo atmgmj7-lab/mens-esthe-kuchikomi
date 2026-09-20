@@ -876,3 +876,13 @@
 - private Review workflowはdetails/idempotency/auditをSELECT+INSERT、abuseをSELECT+INSERT+UPDATEへ限定し、全4表の不要DELETEとaudit UPDATEを拒否した。
 - initial applyと2回目のreset/reapply、Review Native契約、Foundation/Growth source+local DB契約、既存Review公開/schema回帰、typecheck、lint、DB lintが成功した。DB lintは5 schema error 0。
 - anon/authenticatedの`app.reviews` direct accessとReview RPC executeはDENIEDのまま。Production Supabase、WordPress、Vercel、main、Secret、T2への変更は0。
+
+## 2026-09-20 Review Native T1 Revision 02 — RPC invariants
+
+- CODE_QUALITY_SECURITYのImportant 2件をfail-firstで再現した。同一key/異payloadは同じUUIDへ黙って吸収され、service_role direct DMLはeventなし審査変更、任意actor/timestamp監査INSERT、cross-shop attributionを許していた。
+- 未適用M1のidempotencyをpermanent/non-reusableへ固定し、expiry列/indexを削除した。意味入力を正規化したSHA-256 fingerprintだけをprivate tableへ保存し、同一key/異fingerprintは`23505 idempotency key payload mismatch`で拒否する。
+- private Review mutation/read実体とlegacy WP/UUID attributionを`SECURITY DEFINER`、`search_path=pg_catalog`、schema-qualified objectへ変更した。api adapterはfixed-path `SECURITY INVOKER`、browser EXECUTE denied、service_role EXECUTE onlyを維持した。
+- service_roleの`app.reviews`とprivate Review 4表の直接access、audit sequence権限、Growth attribution tableの直接mutationを撤回した。既存Growth診断用SELECTとcampaign/workspace contractは維持した。
+- 実DBcontractはsame canonical retry、9種類のsequential mismatch、parallel same payload、parallel mismatch、direct DML denial、normal submit/moderation/read/metrics/campaign、cross-shop rejection、atomic state各1件を確認した。
+- fresh local resetを2回実行し、ACL mutation testのRED後に再applyした。Foundation/Growth source+local、Review rating/public/dashboard/boundary/schema、typecheck、lint、security/performance advisor、DB lintはPASS。
+- Production Supabase、WordPress、Vercel、main、Secret、T2、M2変更は0。次はT1 SPEC再レビュー。
