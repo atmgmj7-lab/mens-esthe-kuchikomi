@@ -886,3 +886,13 @@
 - 実DBcontractはsame canonical retry、9種類のsequential mismatch、parallel same payload、parallel mismatch、direct DML denial、normal submit/moderation/read/metrics/campaign、cross-shop rejection、atomic state各1件を確認した。
 - fresh local resetを2回実行し、ACL mutation testのRED後に再applyした。Foundation/Growth source+local、Review rating/public/dashboard/boundary/schema、typecheck、lint、security/performance advisor、DB lintはPASS。
 - Production Supabase、WordPress、Vercel、main、Secret、T2、M2変更は0。次はT1 SPEC再レビュー。
+
+## 2026-09-20 Phase 2 Review Growth Kit Close — start
+
+- ユーザー承認済みprogramに従いT1〜T8の連続ローカル実装を開始した。Production操作、push、deploy、migration適用は禁止。
+- `git fetch --prune origin`後もorigin/mainは`4c60b665...`、candidate HEADは`d8f1034...`、main側進行0、candidate 3 commit、重複変更file 0、worktree clean。
+- planning-with-files、executing-plans、TDD、Supabase/Postgres、verification-before-completionを適用。公式Markdown直読失敗は公式domain限定HTML検索へ切り替えた。
+- 現在地はT1 RED。cross-shop regressionがshop consistency join削除時に確実に失敗することを先に証明し、次に最小GREENとcampaign FK indexを実装する。
+- T1 close完了。index不足RED→M1へleading index追加→GREEN。shop consistency join除去mutationでcross-shop contractのREDを確認し、reset後に通常contractと真の並列sessionをGREENへ戻した。
+- Foundation/Growth local DB、Review公開関連、typecheck、lint、DB lint、security/performance advisor、planner index利用がPASS。T1 SPEC / QUALITY_SECURITYはCritical 0 / Important 0。
+- 現在地はT2。server-only typed Review repositoryのfail-first contractから開始する。

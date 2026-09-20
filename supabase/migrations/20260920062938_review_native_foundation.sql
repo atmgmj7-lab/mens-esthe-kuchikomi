@@ -130,6 +130,8 @@ create unique index partner_review_campaign_submissions_review_id_uidx
 create unique index partner_review_campaign_submissions_wp_review_id_uidx
   on private.partner_review_campaign_submissions (wp_review_id)
   where wp_review_id is not null;
+create index partner_review_campaign_submissions_campaign_id_idx
+  on private.partner_review_campaign_submissions (campaign_id);
 
 -- Preserve the legacy WordPress attribution RPC against the new partial index.
 create or replace function private.record_partner_review_campaign_submission(

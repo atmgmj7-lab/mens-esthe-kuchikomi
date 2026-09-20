@@ -632,3 +632,48 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] fresh reset/reapply、Foundation/Growth、Review公開関連、typecheck、lint、advisor、DB lintを検証
 - [ ] T1 SPEC再レビュー（次task）
 - **Status:** Revision 02 local implementation complete; T2/M2/Production/WordPress/Vercel/main変更なし
+
+## 2026-09-20 Phase 2 Review Growth Kit Close Program
+
+### Goal
+
+`d8f1034f9433271d30cc71e1645c93575cf9fccc`を継続し、Productionへ一切書き込まず、Review正本をSupabaseへ切替可能なT1〜T8のローカルrelease candidateを完成する。Shop / Area正本、URL、canonical、sitemapはWordPressのまま維持する。
+
+### Gates
+
+- [x] T1: cross-shop regressionとcampaign FK indexをRED/GREENで閉じ、Critical/Important 0
+- [ ] T2: server-only typed Review repository / RPC型、Critical/Important 0
+- [ ] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
+- [ ] T4: operator moderation UI/API、Critical/Important 0
+- [ ] T5: feature-gated Supabase public Review adapter、Critical/Important 0
+- [ ] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
+- [ ] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
+- [ ] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
+- [ ] Full regression / final cross-cutting review / exact candidate commit
+- [ ] Production変更0、push/deploy/migration/promotion未実施でrelease approval packetを返す
+
+### Current State
+
+- `origin/main=4c60b66509af4fbec7589f517c4b27f872ac2eeb`、candidateは3 commit先、main側進行0、対象file衝突0。
+- 現在worktreeは専用branch上でclean。追加worktree不要。
+- T1 implementation自体のcross-shop拒否は実DBPASSだが、committed regressionが不足。`campaign_id` FK leading indexも未実装。
+
+### T1 Result
+
+- index contractは`Growth attribution indexes are missing`でRED、M1への最小index追加後GREEN。
+- shop consistency joinをlocal DBだけで故意に除去し、cross-shop testが`cross-shop Review UUID attribution must be rejected without partial state`でREDになることを確認。reset後GREEN。
+- same/mismatch並列session、Foundation/Growth/Review回帰、typecheck、lint、DB lint、security/performance advisorはPASS。
+- T1 SPEC: Critical 0 / Important 0。T1 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### Stop Conditions
+
+- Production操作、Secret値、URL/canonical/sitemap変更、WordPress公開正本変更が必要
+- Phase 3事業仕様との根本矛盾、origin/main競合、Critical解消不能、同一原因3回failure
+
+### Errors Encountered
+
+| Error | Attempt | Resolution |
+|---|---:|---|
+| planning session catchupがCodex session非対応 | 1 | Git、既存planning files、current task packetを直接照合した |
+| Supabase公式Markdown直読がunsupported content-type | 1 | 同じ取得を繰り返さず、公式domain限定HTML検索へ切り替えた |
+| T1 commitの`git add`を`headless/`からroot相対pathで実行 | 1 | stage 0を確認し、repository rootから同じ明示pathだけをstageする |

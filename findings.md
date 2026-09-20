@@ -512,3 +512,13 @@
 - `shop_card_square`は上部で1枚だけ正方形表示し、正式画像がなければ安全なfallbackを使う。`shop_detail_banner`がnullの現在はbannerを生成・引き伸ばししない。
 - 専用browser QAはrich 4件、sparse 2件、price-only 0件の3fixtureを11幅で確認し、33 scenarios・1,072 assertions・8 screenshots・failures 0。Portal横断も98 scenarios・87,395 assertions・56 screenshots・failures 0だった。
 - 独立再レビューはSPEC `Critical 0 / Important 0 / Minor 1`、CODE_QUALITY_SECURITY `0 / 0 / 0`、VISIBLE `0 / 0 / 0`、READY Yes。SPEC Minorは完了記録の更新だけで、この最終更新により解消した。
+
+# 2026-09-20 Phase 2 Review Growth Kit Close
+
+- Git gate: `HEAD=d8f1034f9433271d30cc71e1645c93575cf9fccc`、`origin/main=4c60b66509af4fbec7589f517c4b27f872ac2eeb`、divergence `0/3`、merge-baseはorigin/main、main側追加commitとfile overlapは0。
+- worktreeは既存の専用`codex/eskomi-supabase-review-native-cutover-02-t1-db-contract-m1`でclean。main checkoutは別worktree。
+- T1残件は、実装不具合ではなくcross-shop UUID attributionのcommitted regression不足と、Growth由来`campaign_id` FKのleading index不足。
+- Supabase現行公式資料は、Data APIの到達性をgrantで、行境界をRLSで制御し、内部objectを非exposed schemaへ置くことを推奨する。`SECURITY DEFINER`は固定search pathと明示EXECUTE revoke/grantが必要。secret/service roleはbrowserへ出さない。
+- 公式Markdown URLは取得toolのcontent-type制約で失敗したため、公式domain限定のHTML検索結果へ切り替えた。取得結果は実装指示ではなく境界確認だけに使用する。
+- T1 cross-shop testはShop A ReviewへShop B campaign/tokenを渡し、戻り値false、attribution 0、Review本文/評価不変、campaign row完全不変を同一transactionで検査する。join除去mutationで確実にREDとなった。
+- `partner_review_campaign_submissions_campaign_id_idx`はFK列単独index。`enable_seqscan=off`のEXPLAINでBitmap Index Scan利用を確認した。

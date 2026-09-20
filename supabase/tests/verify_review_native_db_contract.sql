@@ -5,7 +5,9 @@ begin;
 do $$
 declare
   v_wp_shop_id bigint := 8200000000000000000 + floor(random() * 1000000000)::bigint;
+  v_other_wp_shop_id bigint;
   v_shop_id uuid;
+  v_other_shop_id uuid;
   v_review_id uuid;
   v_duplicate_id uuid;
   v_created boolean;
@@ -14,6 +16,10 @@ declare
   v_campaign_id uuid;
   v_campaign_token uuid;
   v_workspace_id uuid;
+  v_other_workspace_id uuid;
+  v_other_campaign_id uuid;
+  v_other_campaign_token uuid;
+  v_other_campaign_before jsonb;
   v_recorded boolean;
   v_payload jsonb;
   v_body text;
@@ -33,6 +39,7 @@ declare
   v_abuse_count integer;
   v_mismatch record;
 begin
+  v_other_wp_shop_id := v_wp_shop_id + 1;
   if to_regclass('private.review_submission_details') is null
     or to_regclass('private.review_idempotency_keys') is null
     or to_regclass('private.review_abuse_rate_limits') is null
@@ -199,8 +206,13 @@ begin
     where schemaname = 'private' and tablename = 'partner_review_campaign_submissions'
       and indexname = 'partner_review_campaign_submissions_wp_review_id_uidx'
       and indexdef ilike '%where (wp_review_id is not null)%'
+  ) or not exists (
+    select 1 from pg_indexes
+    where schemaname = 'private' and tablename = 'partner_review_campaign_submissions'
+      and indexname = 'partner_review_campaign_submissions_campaign_id_idx'
+      and indexdef ilike '%(campaign_id)%'
   ) then
-    raise exception 'Growth partial unique indexes are missing';
+    raise exception 'Growth attribution indexes are missing';
   end if;
   if not exists (
     select 1
@@ -381,6 +393,45 @@ begin
   insert into private.partner_review_campaigns (workspace_id, channel)
   values (v_workspace_id, 'counter_qr')
   returning id, token into v_campaign_id, v_campaign_token;
+
+  insert into app.shops (wp_post_id, slug, canonical_path, name)
+  values (
+    v_other_wp_shop_id,
+    'review-native-' || v_other_wp_shop_id::text,
+    '/shops/review-native-' || v_other_wp_shop_id::text || '/',
+    'Review Native Cross-shop Contract Shop'
+  ) returning id into v_other_shop_id;
+  insert into private.partner_workspaces (
+    wp_shop_id, shop_slug, shop_name, canonical_url, state
+  ) values (
+    v_other_wp_shop_id,
+    'review-native-' || v_other_wp_shop_id::text,
+    'Review Native Cross-shop Contract Shop',
+    'https://mens-esthe-kuchikomi.com/shops/review-native-' || v_other_wp_shop_id::text || '/',
+    'free_official_partner'
+  ) returning id into v_other_workspace_id;
+  insert into private.partner_review_campaigns (workspace_id, channel)
+  values (v_other_workspace_id, 'counter_qr')
+  returning id, token into v_other_campaign_id, v_other_campaign_token;
+
+  select to_jsonb(c) into v_other_campaign_before
+  from private.partner_review_campaigns c
+  where c.id = v_other_campaign_id;
+  select api.record_partner_review_campaign_review(
+    v_other_campaign_token, v_other_wp_shop_id, v_review_id
+  ) into v_recorded;
+  if v_recorded
+    or exists (
+      select 1 from private.partner_review_campaign_submissions
+      where campaign_id = v_other_campaign_id or review_id = v_review_id
+    )
+    or (select body from app.reviews where id = v_review_id)
+       <> 'This is a valid native Review contract submission body.'
+    or (select rating from app.reviews where id = v_review_id) <> 5
+    or (select to_jsonb(c) from private.partner_review_campaigns c where c.id = v_other_campaign_id)
+       is distinct from v_other_campaign_before then
+    raise exception 'cross-shop Review UUID attribution must be rejected without partial state';
+  end if;
 
   begin
     insert into private.partner_review_campaign_submissions (campaign_id)
