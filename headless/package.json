@@ -50,6 +50,7 @@
     "test:review-public-adapter": "node scripts/check-review-public-adapter.mjs",
     "test:review-growth-backend": "node scripts/check-review-growth-backend.mjs",
     "test:review-public-ui": "node scripts/check-review-public-ui.mjs",
+    "test:review-native-isolated-e2e": "node scripts/check-review-native-isolated-e2e.mjs",
     "qa:partner-review-growth": "node scripts/check-partner-review-growth-browser.mjs",
     "test:shop-route-param": "node scripts/check-shop-route-param.mjs",
     "test:shop-detail-view-model": "node scripts/check-shop-detail-view-model.mjs",

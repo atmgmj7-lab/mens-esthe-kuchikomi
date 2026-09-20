@@ -648,7 +648,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] T5: feature-gated Supabase public Review adapter、Critical/Important 0
 - [x] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
 - [x] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
-- [ ] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
+- [x] T8: isolated E2E、fixture cleanup、PC/SP、Critical/Important 0
 - [ ] Full regression / final cross-cutting review / exact candidate commit
 - [ ] Production変更0、push/deploy/migration/promotion未実施でrelease approval packetを返す
 
@@ -714,6 +714,15 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - fail-first consumer contract、public adapter/WordPress reader回帰、Shop/Area/Reviews/Home、rating/schema、typecheck、lint、production build、Shop実component browser 33 scenarios/1,072 assertionsをPASS。
 - priority Area full browserはT7挙動と無関係な既存shop-card relation count期待差（Sakai/Shin-Osakaで各1件）を検出。T7によるproduction component挙動差はtype-onlyで、既存fixture期待の独立調査をT8/full regressionで継続する。
 - T7 SPEC: Critical 0 / Important 0。T7 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T8 Result
+
+- local SupabaseへShop A/B、workspace/campaign、synthetic Review 5件を作り、stable campaign URL、open/start、API submit、idempotent retry、同一payload並列retryを実経路で確認した。
+- Shop A ReviewをShop B campaignへUUID帰属するcross-shop操作は`recorded=false`、attribution row 0。reject 1件、spam 1件は非公開、負評価1件を含む3件だけをapprove→explicit publishした。
+- 公開adapterはSupabase source、UUID Review ID、published 3、overall rating count 3、average 3.3を返した。2件時はgraph/JSON-LDなし、3件時はgraphとAggregateRating（ratingCount 3 / reviewCount 3）を同じ結果から生成した。
+- Shop review dashboardを実React SSRし、Chromium 390/1280pxでgraph/count/body、horizontal overflow 0、console/page error 0を確認した。Production synthetic Review 0。
+- E2E後に`supabase db reset --local --no-seed`を実施し、fixture Shop/Review/workspace readback `0|0|0`。全6 migrationのfresh reapplyもPASS。
+- T8 SPEC: Critical 0 / Important 0。T8 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 

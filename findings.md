@@ -538,3 +538,6 @@
 - T7公開切替はconsumerごとのreader分岐を持たせず、`publicReviewAdapter`の1境界でWordPress/Supabaseを選ぶ。これにより一覧、件数、rating graph、summary、JSON-LDが同じsnapshot契約を共有する。
 - Supabase Review IDはUUID stringのままReact key/Home update IDへ流せる。Shop/Area表示identityはadapter内で現在publishのWordPress Shopへ再結合し、Supabase側snapshotを公開表示正本にしない。
 - 0件Shopは既存のcompact empty stateを出すため、Shop browser fixtureの全variantへ件数/provenanceを一律要求するのは誤り。0件は明示empty copy、1件以上は件数/provenanceを検査する。
+- Review submit APIの成功payloadは意図的に`ok/message`だけで、browserへNative Review UUIDやcreated flagを返さない。isolated E2EのUUID/idempotency確認はlocal private ledger readbackで行い、公開API契約を広げない。
+- campaign未指定の実フォームpayloadは`campaignToken`キー自体を省略する。`null`を送るfixtureはstrict validatorに拒否されるため、E2Eは実browser shapeと一致させる。
+- 公開metrics RPCは平均を小数1桁へ丸める。5/4/1の3件は3.3で、UIとAggregateRatingも同値を使用する。

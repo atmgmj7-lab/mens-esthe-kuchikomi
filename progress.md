@@ -919,3 +919,6 @@
 - rating graph、summary、LocalBusiness schemaは同じadapter result由来。reviewCount=公開承認総数、ratingCount=有効overall回答数、各metric 3件閾値を維持し、UUID Review IDもUIへ保持した。
 - focused/関連contract、typecheck、lint、production build、Shop実component browser 33 scenarios/1,072 assertionsはPASS。T7 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。
 - priority Area full browserでT7外の既存fixture shop-card件数期待差を確認したため、T8/full regressionでbaseline性を分離して扱う。Production/WordPress/Vercel/main変更0。現在地はT8 isolated E2E。
+- T8 isolated E2E完了。local Supabaseだけでcampaign URL/open/start、5 submit、duplicate、parallel、UUID attribution、cross-shop拒否、pending/moderation/publish、public adapter、negative review、reject/spam、counts/metricsをPASS。
+- 2件時graph/schemaなし、3件時AggregateRating `3.3 / ratingCount 3 / reviewCount 3`。React SSRとChromium 390/1280pxでhorizontal overflow 0、console/page error 0。
+- 終了後local reset/reapplyを実施し、synthetic Shop/Review/workspaceは`0|0|0`。T8 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はfull regression / final cross-cutting review。
