@@ -75,8 +75,9 @@ create table private.review_abuse_rate_limits (
 create table private.review_moderation_events (
   id bigint generated always as identity primary key,
   review_id uuid not null references app.reviews(id) on delete restrict,
-  from_state text not null check (from_state in ('pending', 'approved', 'rejected', 'spam')),
-  to_state text not null check (to_state in ('approved', 'rejected', 'spam')),
+  event_type text not null check (event_type in ('approved', 'rejected', 'spam', 'published')),
+  from_state text not null check (from_state in ('pending', 'approved', 'rejected', 'spam', 'draft', 'published', 'archived')),
+  to_state text not null check (to_state in ('approved', 'rejected', 'spam', 'draft', 'published', 'archived')),
   actor_label text not null check (char_length(btrim(actor_label)) between 1 and 120),
   reason text not null check (char_length(btrim(reason)) between 1 and 1000),
   created_at timestamptz not null default now(),
@@ -460,11 +461,11 @@ begin
   if p_decision = 'approved' then
     update app.reviews
     set moderation_status = 'approved',
-        publication_status = 'published',
-        is_public = true,
+        publication_status = 'draft',
+        is_public = false,
         reviewed_at = v_now,
         approved_at = v_now,
-        published_at = v_now,
+        published_at = null,
         updated_at = v_now
     where id = p_review_id;
   else
@@ -480,9 +481,9 @@ begin
   end if;
 
   insert into private.review_moderation_events (
-    review_id, from_state, to_state, actor_label, reason
+    review_id, event_type, from_state, to_state, actor_label, reason
   ) values (
-    p_review_id, v_review.moderation_status, p_decision,
+    p_review_id, p_decision, v_review.moderation_status, p_decision,
     btrim(p_actor_label), btrim(p_reason)
   );
 
@@ -492,6 +493,177 @@ begin
   from app.reviews r
   where r.id = p_review_id;
 end;
+$$;
+
+create or replace function private.publish_review(
+  p_review_id uuid,
+  p_actor_label text,
+  p_reason text
+)
+returns table (
+  review_id uuid,
+  moderation_status text,
+  publication_status text,
+  is_public boolean,
+  reviewed_at timestamptz,
+  approved_at timestamptz,
+  published_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = pg_catalog
+as $$
+declare
+  v_review app.reviews%rowtype;
+  v_now timestamptz := now();
+begin
+  if p_actor_label is null or char_length(btrim(p_actor_label)) not between 1 and 120
+    or p_reason is null or char_length(btrim(p_reason)) not between 1 and 1000 then
+    raise exception using errcode = '22023', message = 'Review publication actor and reason are required';
+  end if;
+
+  select * into v_review
+  from app.reviews r
+  where r.id = p_review_id
+  for update;
+  if v_review.id is null then
+    raise exception using errcode = '22023', message = 'Review not found';
+  end if;
+  if v_review.moderation_status <> 'approved'
+    or v_review.publication_status <> 'draft'
+    or v_review.is_public
+    or v_review.approved_at is null then
+    raise exception using errcode = '22023', message = 'invalid Review publication state transition';
+  end if;
+
+  update app.reviews
+  set publication_status = 'published',
+      is_public = true,
+      published_at = v_now,
+      updated_at = v_now
+  where id = p_review_id;
+
+  insert into private.review_moderation_events (
+    review_id, event_type, from_state, to_state, actor_label, reason
+  ) values (
+    p_review_id, 'published', v_review.publication_status, 'published',
+    btrim(p_actor_label), btrim(p_reason)
+  );
+
+  return query
+  select r.id, r.moderation_status, r.publication_status, r.is_public,
+         r.reviewed_at, r.approved_at, r.published_at
+  from app.reviews r
+  where r.id = p_review_id;
+end;
+$$;
+
+create or replace function private.list_review_moderation_queue(
+  p_limit integer default 50,
+  p_offset integer default 0
+)
+returns table (
+  review_id uuid,
+  wp_shop_id bigint,
+  shop_slug text,
+  shop_name text,
+  body text,
+  submitted_at timestamptz,
+  rating_total smallint,
+  rating_price smallint,
+  rating_service smallint,
+  rating_cleanliness smallint,
+  visit_period text,
+  revisit_intent text,
+  moderation_status text,
+  publication_status text,
+  is_public boolean,
+  nickname text
+)
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog
+as $$
+begin
+  if p_limit is null or p_limit not between 1 and 100 or p_offset is null or p_offset < 0 then
+    raise exception using errcode = '22023', message = 'Review moderation pagination is invalid';
+  end if;
+  return query
+  select r.id, s.wp_post_id, s.slug, s.name, r.body, r.submitted_at,
+         r.rating, r.rating_price, r.rating_service, r.rating_cleanliness,
+         r.visit_period, r.revisit_intent, r.moderation_status,
+         r.publication_status, r.is_public, d.nickname
+  from app.reviews r
+  join app.shops s on s.id = r.shop_id
+  join private.review_submission_details d on d.review_id = r.id
+  where r.moderation_status = 'pending'
+    or (r.moderation_status = 'approved' and r.publication_status = 'draft' and not r.is_public)
+  order by r.submitted_at asc, r.id asc
+  limit p_limit offset p_offset;
+end;
+$$;
+
+create or replace function private.get_review_moderation_detail(p_review_id uuid)
+returns table (
+  review_id uuid,
+  wp_shop_id bigint,
+  shop_slug text,
+  shop_name text,
+  body text,
+  submitted_at timestamptz,
+  rating_total smallint,
+  rating_price smallint,
+  rating_service smallint,
+  rating_cleanliness smallint,
+  visit_period text,
+  revisit_intent text,
+  moderation_status text,
+  publication_status text,
+  is_public boolean,
+  reviewed_at timestamptz,
+  approved_at timestamptz,
+  published_at timestamptz,
+  nickname text,
+  email text,
+  source_url text
+)
+language sql
+stable
+security definer
+set search_path = pg_catalog
+as $$
+  select r.id, s.wp_post_id, s.slug, s.name, r.body, r.submitted_at,
+         r.rating, r.rating_price, r.rating_service, r.rating_cleanliness,
+         r.visit_period, r.revisit_intent, r.moderation_status,
+         r.publication_status, r.is_public, r.reviewed_at, r.approved_at,
+         r.published_at, d.nickname, d.email, d.source_url
+  from app.reviews r
+  join app.shops s on s.id = r.shop_id
+  join private.review_submission_details d on d.review_id = r.id
+  where r.id = p_review_id
+$$;
+
+create or replace function private.list_review_moderation_events(p_review_id uuid)
+returns table (
+  event_id bigint,
+  event_type text,
+  from_state text,
+  to_state text,
+  actor_label text,
+  reason text,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = pg_catalog
+as $$
+  select e.id, e.event_type, e.from_state, e.to_state,
+         e.actor_label, e.reason, e.created_at
+  from private.review_moderation_events e
+  where e.review_id = p_review_id
+  order by e.created_at asc, e.id asc
 $$;
 
 create or replace function private.list_published_reviews(
@@ -608,6 +780,10 @@ revoke all on function private.record_partner_review_campaign_review(uuid, bigin
 revoke all on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) from public, anon, authenticated;
 revoke all on function private.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) from public, anon, authenticated;
 revoke all on function private.moderate_review(uuid, text, text, text) from public, anon, authenticated;
+revoke all on function private.publish_review(uuid, text, text) from public, anon, authenticated;
+revoke all on function private.list_review_moderation_queue(integer, integer) from public, anon, authenticated;
+revoke all on function private.get_review_moderation_detail(uuid) from public, anon, authenticated;
+revoke all on function private.list_review_moderation_events(uuid) from public, anon, authenticated;
 revoke all on function private.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
 revoke all on function private.get_published_review_metrics(bigint) from public, anon, authenticated;
 grant execute on function private.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
@@ -615,6 +791,10 @@ grant execute on function private.record_partner_review_campaign_review(uuid, bi
 grant execute on function private.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
 grant execute on function private.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) to service_role;
 grant execute on function private.moderate_review(uuid, text, text, text) to service_role;
+grant execute on function private.publish_review(uuid, text, text) to service_role;
+grant execute on function private.list_review_moderation_queue(integer, integer) to service_role;
+grant execute on function private.get_review_moderation_detail(uuid) to service_role;
+grant execute on function private.list_review_moderation_events(uuid) to service_role;
 grant execute on function private.list_published_reviews(bigint, integer, integer) to service_role;
 grant execute on function private.get_published_review_metrics(bigint) to service_role;
 
@@ -721,6 +901,107 @@ as $$
   select * from private.moderate_review(p_review_id, p_decision, p_actor_label, p_reason)
 $$;
 
+create or replace function api.publish_review(
+  p_review_id uuid,
+  p_actor_label text,
+  p_reason text
+)
+returns table (
+  review_id uuid,
+  moderation_status text,
+  publication_status text,
+  is_public boolean,
+  reviewed_at timestamptz,
+  approved_at timestamptz,
+  published_at timestamptz
+)
+language sql
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.publish_review(p_review_id, p_actor_label, p_reason)
+$$;
+
+create or replace function api.list_review_moderation_queue(
+  p_limit integer default 50,
+  p_offset integer default 0
+)
+returns table (
+  review_id uuid,
+  wp_shop_id bigint,
+  shop_slug text,
+  shop_name text,
+  body text,
+  submitted_at timestamptz,
+  rating_total smallint,
+  rating_price smallint,
+  rating_service smallint,
+  rating_cleanliness smallint,
+  visit_period text,
+  revisit_intent text,
+  moderation_status text,
+  publication_status text,
+  is_public boolean,
+  nickname text
+)
+language sql
+stable
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.list_review_moderation_queue(p_limit, p_offset)
+$$;
+
+create or replace function api.get_review_moderation_detail(p_review_id uuid)
+returns table (
+  review_id uuid,
+  wp_shop_id bigint,
+  shop_slug text,
+  shop_name text,
+  body text,
+  submitted_at timestamptz,
+  rating_total smallint,
+  rating_price smallint,
+  rating_service smallint,
+  rating_cleanliness smallint,
+  visit_period text,
+  revisit_intent text,
+  moderation_status text,
+  publication_status text,
+  is_public boolean,
+  reviewed_at timestamptz,
+  approved_at timestamptz,
+  published_at timestamptz,
+  nickname text,
+  email text,
+  source_url text
+)
+language sql
+stable
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.get_review_moderation_detail(p_review_id)
+$$;
+
+create or replace function api.list_review_moderation_events(p_review_id uuid)
+returns table (
+  event_id bigint,
+  event_type text,
+  from_state text,
+  to_state text,
+  actor_label text,
+  reason text,
+  created_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = pg_catalog
+as $$
+  select * from private.list_review_moderation_events(p_review_id)
+$$;
+
 create or replace function api.list_published_reviews(
   p_wp_shop_id bigint default null,
   p_limit integer default 20,
@@ -772,6 +1053,10 @@ revoke all on function api.record_partner_review_campaign_review(uuid, bigint, u
 revoke all on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) from public, anon, authenticated;
 revoke all on function api.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) from public, anon, authenticated;
 revoke all on function api.moderate_review(uuid, text, text, text) from public, anon, authenticated;
+revoke all on function api.publish_review(uuid, text, text) from public, anon, authenticated;
+revoke all on function api.list_review_moderation_queue(integer, integer) from public, anon, authenticated;
+revoke all on function api.get_review_moderation_detail(uuid) from public, anon, authenticated;
+revoke all on function api.list_review_moderation_events(uuid) from public, anon, authenticated;
 revoke all on function api.list_published_reviews(bigint, integer, integer) from public, anon, authenticated;
 revoke all on function api.get_published_review_metrics(bigint) from public, anon, authenticated;
 grant execute on function api.record_partner_review_campaign_submission(uuid, bigint, bigint) to service_role;
@@ -779,5 +1064,9 @@ grant execute on function api.record_partner_review_campaign_review(uuid, bigint
 grant execute on function api.claim_review_submission_rate_limit(text, text, timestamptz, timestamptz, integer) to service_role;
 grant execute on function api.submit_review(bigint, text, smallint, text, text, text, text, timestamptz, timestamptz, smallint, smallint, smallint, text, text, text, uuid) to service_role;
 grant execute on function api.moderate_review(uuid, text, text, text) to service_role;
+grant execute on function api.publish_review(uuid, text, text) to service_role;
+grant execute on function api.list_review_moderation_queue(integer, integer) to service_role;
+grant execute on function api.get_review_moderation_detail(uuid) to service_role;
+grant execute on function api.list_review_moderation_events(uuid) to service_role;
 grant execute on function api.list_published_reviews(bigint, integer, integer) to service_role;
 grant execute on function api.get_published_review_metrics(bigint) to service_role;

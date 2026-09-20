@@ -644,7 +644,7 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - [x] T1: cross-shop regressionとcampaign FK indexをRED/GREENで閉じ、Critical/Important 0
 - [x] T2: server-only typed Review repository / RPC型、Critical/Important 0
 - [x] T3: `/api/reviews/submit`をSupabase Nativeへ接続、Critical/Important 0
-- [ ] T4: operator moderation UI/API、Critical/Important 0
+- [x] T4: operator moderation UI/API、Critical/Important 0
 - [ ] T5: feature-gated Supabase public Review adapter、Critical/Important 0
 - [ ] T6: Phase 3用campaign/count/backend contract、Critical/Important 0
 - [ ] T7: public Review UI/rating/schemaを単一adapterへ接続、Critical/Important 0
@@ -679,6 +679,14 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 - submitはSupabase atomic RPCだけを呼び、UUID Review・private details・idempotency・optional campaign attributionを既存transactionで確定する。WordPress POSTとcredential参照はrouteから除外し、legacy file自体はdormantで維持した。
 - host consistency削除mutationでcross-origin requestが200になるREDを確認し、復元後GREEN。fresh local reset/reapply、並列DB contract、Foundation/Growth、856-page build、実ブラウザのcampaign/normal投稿、WordPress write 0をPASS。
 - T3 SPEC: Critical 0 / Important 0。T3 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
+
+### T4 Result
+
+- operator Basic Auth配下へpending/publish-ready一覧、private detail、approve/reject/spam、明示publish、private reason、append-only auditを追加した。actorはserver固定で、browserへprivate schema grantやservice credentialを渡さない。
+- M1のapproveを`approved + draft + non-public`へ変更し、別の明示publishだけが`published + public`へ遷移する。本文・各ratingは両操作で不変、reject/spamは非公開archiveとなる。
+- 自動公開mutationはsource contractでRED、cross-site mutationはCSRF/Origin/Fetch Metadata境界で拒否、private dashboard routeは明示request-time boundaryによりbuild出力`ƒ`を確認した。
+- fresh local reset/reapply、Review Native DB、Foundation/Growth、公開口コミ、admin boundary、typecheck、lint、DB lint、857-page buildをPASS。
+- T4 SPEC: Critical 0 / Important 0。T4 QUALITY_SECURITY: Critical 0 / Important 0 / Minor 0。
 
 ### Stop Conditions
 

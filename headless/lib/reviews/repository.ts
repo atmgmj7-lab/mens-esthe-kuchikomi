@@ -65,6 +65,47 @@ export type ModerateReviewResult = Readonly<{
   publishedAt: string | null;
 }>;
 
+export type ReviewModerationQueueItem = Readonly<{
+  reviewId: ReviewId;
+  shop: Readonly<{ wpShopId: number; slug: string; name: string }>;
+  body: string;
+  submittedAt: string;
+  rating: number | null;
+  ratingPrice: number | null;
+  ratingService: number | null;
+  ratingCleanliness: number | null;
+  visitPeriod: string | null;
+  revisitIntent: string | null;
+  moderationStatus: ReviewModerationStatus;
+  publicationStatus: ReviewPublicationStatus;
+  isPublic: boolean;
+  nickname: string;
+}>;
+
+export type ReviewModerationDetail = ReviewModerationQueueItem & Readonly<{
+  reviewedAt: string | null;
+  approvedAt: string | null;
+  publishedAt: string | null;
+  email: string | null;
+  sourceUrl: string;
+}>;
+
+export type ReviewModerationAuditEvent = Readonly<{
+  eventId: number;
+  eventType: ReviewModerationDecision | "published";
+  fromState: string;
+  toState: string;
+  actorLabel: string;
+  reason: string;
+  createdAt: string;
+}>;
+
+export type PublishReviewRequest = Readonly<{
+  reviewId: ReviewId | string;
+  actorLabel: string;
+  reason: string;
+}>;
+
 export type PublishedReview = Readonly<{
   reviewId: ReviewId;
   shop: WordPressShopIdentity;
@@ -135,7 +176,20 @@ export interface ReviewRepository {
     signal?: AbortSignal,
   ): Promise<ReviewRepositoryResult<ReviewRateLimitClaim>>;
   submit(request: SubmitReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<SubmitReviewResult>>;
+  listModerationQueue(
+    request: Readonly<{ limit: number; offset: number }>,
+    signal?: AbortSignal,
+  ): Promise<ReviewRepositoryResult<readonly ReviewModerationQueueItem[]>>;
+  getModerationDetail(
+    reviewId: ReviewId | string,
+    signal?: AbortSignal,
+  ): Promise<ReviewRepositoryResult<ReviewModerationDetail>>;
+  listModerationAudit(
+    reviewId: ReviewId | string,
+    signal?: AbortSignal,
+  ): Promise<ReviewRepositoryResult<readonly ReviewModerationAuditEvent[]>>;
   moderate(request: ModerateReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<ModerateReviewResult>>;
+  publish(request: PublishReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<ModerateReviewResult>>;
   listPublished(request: PublishedReviewRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<readonly PublishedReview[]>>;
   getPublishedMetrics(request: PublishedReviewMetricsRequest, signal?: AbortSignal): Promise<ReviewRepositoryResult<PublishedReviewMetrics>>;
   recordCampaignAttribution(

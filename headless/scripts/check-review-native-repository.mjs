@@ -130,14 +130,63 @@ assert.deepEqual(JSON.parse(submitInit.body), {
   p_campaign_token: campaignToken,
 });
 
+const moderationQueueRow = {
+  review_id: reviewId,
+  wp_shop_id: 712,
+  shop_slug: "fixture-shop",
+  shop_name: "検証店舗",
+  body: baseRequest.body,
+  submitted_at: "2026-09-20T00:00:00Z",
+  rating_total: 4,
+  rating_price: 3,
+  rating_service: 5,
+  rating_cleanliness: 4,
+  visit_period: "2026年9月",
+  revisit_intent: "また利用したい",
+  moderation_status: "pending",
+  publication_status: "draft",
+  is_public: false,
+  nickname: "テスト利用者",
+};
+nextResponse = response([moderationQueueRow]);
+const queue = await repository.listModerationQueue({ limit: 50, offset: 0 });
+assert.equal(queue.status, "ok");
+assert.equal(queue.data[0].shop.wpShopId, 712);
+assert.equal("email" in queue.data[0], false, "queue must omit private contact detail");
+
+nextResponse = response([{
+  ...moderationQueueRow,
+  reviewed_at: null,
+  approved_at: null,
+  published_at: null,
+  email: "test@example.invalid",
+  source_url: "https://mens-esthe-kuchikomi.com/reviews/submit/",
+}]);
+const detail = await repository.getModerationDetail(reviewId);
+assert.equal(detail.status, "ok");
+assert.equal(detail.data.email, "test@example.invalid");
+
+nextResponse = response([{
+  event_id: 1,
+  event_type: "approved",
+  from_state: "pending",
+  to_state: "approved",
+  actor_label: "dashboard_review_operator",
+  reason: "公開基準を満たすため",
+  created_at: "2026-09-20T01:00:00Z",
+}]);
+const audit = await repository.listModerationAudit(reviewId);
+assert.equal(audit.status, "ok");
+assert.equal(audit.data[0].eventType, "approved");
+
 nextResponse = response([{
   review_id: reviewId,
   moderation_status: "approved",
-  publication_status: "published",
-  is_public: true,
+  publication_status: "draft",
+  is_public: false,
   reviewed_at: "2026-09-20T01:00:00Z",
   approved_at: "2026-09-20T01:00:00Z",
-  published_at: "2026-09-20T01:00:00Z",
+  published_at: null,
 }]);
 const moderation = await repository.moderate({
   reviewId,
@@ -148,6 +197,24 @@ const moderation = await repository.moderate({
 assert.equal(moderation.status, "ok");
 assert.equal(moderation.data.reviewId, reviewId);
 assert.equal(calls.at(-1)[0].endsWith("/moderate_review"), true);
+
+nextResponse = response([{
+  review_id: reviewId,
+  moderation_status: "approved",
+  publication_status: "published",
+  is_public: true,
+  reviewed_at: "2026-09-20T01:00:00Z",
+  approved_at: "2026-09-20T01:00:00Z",
+  published_at: "2026-09-20T02:00:00Z",
+}]);
+const publication = await repository.publish({
+  reviewId,
+  actorLabel: "operator:test",
+  reason: "明示公開",
+});
+assert.equal(publication.status, "ok");
+assert.equal(publication.data.publicationStatus, "published");
+assert.equal(calls.at(-1)[0].endsWith("/publish_review"), true);
 
 nextResponse = response([{
   review_id: reviewId,

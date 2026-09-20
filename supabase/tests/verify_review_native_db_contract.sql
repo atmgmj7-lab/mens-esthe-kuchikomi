@@ -10,6 +10,7 @@ declare
   v_other_shop_id uuid;
   v_review_id uuid;
   v_duplicate_id uuid;
+  v_spam_id uuid;
   v_created boolean;
   v_before integer;
   v_after integer;
@@ -49,6 +50,10 @@ begin
     or to_regprocedure('api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)') is null
     or to_regprocedure('api.submit_review(bigint,text,smallint,text,text,text,text,timestamp with time zone,timestamp with time zone,smallint,smallint,smallint,text,text,text,uuid)') is null
     or to_regprocedure('api.moderate_review(uuid,text,text,text)') is null
+    or to_regprocedure('api.publish_review(uuid,text,text)') is null
+    or to_regprocedure('api.list_review_moderation_queue(integer,integer)') is null
+    or to_regprocedure('api.get_review_moderation_detail(uuid)') is null
+    or to_regprocedure('api.list_review_moderation_events(uuid)') is null
     or to_regprocedure('api.list_published_reviews(bigint,integer,integer)') is null
     or to_regprocedure('api.get_published_review_metrics(bigint)') is null
     or to_regprocedure('api.record_partner_review_campaign_review(uuid,bigint,uuid)') is null then
@@ -144,12 +149,24 @@ begin
     raise exception 'browser roles must not execute native Review RPCs';
   end if;
   if has_function_privilege('anon', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute')
-    or has_function_privilege('authenticated', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute') then
+    or has_function_privilege('authenticated', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute')
+    or has_function_privilege('anon', 'api.publish_review(uuid,text,text)', 'execute')
+    or has_function_privilege('authenticated', 'api.publish_review(uuid,text,text)', 'execute')
+    or has_function_privilege('anon', 'api.list_review_moderation_queue(integer,integer)', 'execute')
+    or has_function_privilege('authenticated', 'api.list_review_moderation_queue(integer,integer)', 'execute')
+    or has_function_privilege('anon', 'api.get_review_moderation_detail(uuid)', 'execute')
+    or has_function_privilege('authenticated', 'api.get_review_moderation_detail(uuid)', 'execute')
+    or has_function_privilege('anon', 'api.list_review_moderation_events(uuid)', 'execute')
+    or has_function_privilege('authenticated', 'api.list_review_moderation_events(uuid)', 'execute') then
     raise exception 'browser roles must not execute Review rate-limit claims';
   end if;
 
   if not has_function_privilege('service_role', 'api.submit_review(bigint,text,smallint,text,text,text,text,timestamp with time zone,timestamp with time zone,smallint,smallint,smallint,text,text,text,uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.claim_review_submission_rate_limit(text,text,timestamp with time zone,timestamp with time zone,integer)', 'execute')
+    or not has_function_privilege('service_role', 'api.publish_review(uuid,text,text)', 'execute')
+    or not has_function_privilege('service_role', 'api.list_review_moderation_queue(integer,integer)', 'execute')
+    or not has_function_privilege('service_role', 'api.get_review_moderation_detail(uuid)', 'execute')
+    or not has_function_privilege('service_role', 'api.list_review_moderation_events(uuid)', 'execute')
     or not has_function_privilege('service_role', 'api.moderate_review(uuid,text,text,text)', 'execute')
     or not has_function_privilege('service_role', 'api.list_published_reviews(bigint,integer,integer)', 'execute')
     or not has_function_privilege('service_role', 'api.get_published_review_metrics(bigint)', 'execute')
@@ -172,7 +189,9 @@ begin
       and p.proname in (
         'submit_review', 'moderate_review', 'list_published_reviews',
         'get_published_review_metrics', 'record_partner_review_campaign_review',
-        'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit'
+        'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit',
+        'publish_review', 'list_review_moderation_queue',
+        'get_review_moderation_detail', 'list_review_moderation_events'
       )
       and (
         not p.prosecdef
@@ -191,7 +210,9 @@ begin
       and p.proname in (
         'submit_review', 'moderate_review', 'list_published_reviews',
         'get_published_review_metrics', 'record_partner_review_campaign_review',
-        'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit'
+        'record_partner_review_campaign_submission', 'claim_review_submission_rate_limit',
+        'publish_review', 'list_review_moderation_queue',
+        'get_review_moderation_detail', 'list_review_moderation_events'
       )
       and (
         p.prosecdef
@@ -512,6 +533,36 @@ begin
     raise exception 'native campaign attribution must store Review UUID only';
   end if;
 
+  perform api.moderate_review(
+    v_duplicate_id, 'rejected', 'contract-operator', 'rejected contract fixture'
+  );
+  if (select moderation_status from app.reviews where id = v_duplicate_id) <> 'rejected'
+    or (select publication_status from app.reviews where id = v_duplicate_id) <> 'archived'
+    or (select is_public from app.reviews where id = v_duplicate_id)
+    or not exists (
+      select 1 from api.list_review_moderation_events(v_duplicate_id)
+      where event_type = 'rejected' and from_state = 'pending' and to_state = 'rejected'
+    ) then
+    raise exception 'reject moderation must archive privately with an audit event';
+  end if;
+
+  select review_id into v_spam_id
+  from api.submit_review(
+    v_wp_shop_id, 'Spam moderation contract submission remains immutable.', 1::smallint,
+    'Spam Fixture', 'https://mens-esthe-kuchikomi.com/reviews/submit/',
+    repeat('0', 64), repeat('f', 64), now(), now() + interval '1 minute'
+  );
+  perform api.moderate_review(
+    v_spam_id, 'spam', 'contract-operator', 'spam contract fixture'
+  );
+  if (select moderation_status from app.reviews where id = v_spam_id) <> 'spam'
+    or (select publication_status from app.reviews where id = v_spam_id) <> 'archived'
+    or (select is_public from app.reviews where id = v_spam_id)
+    or (select body from app.reviews where id = v_spam_id)
+       <> 'Spam moderation contract submission remains immutable.' then
+    raise exception 'spam moderation must archive privately without mutating submitted content';
+  end if;
+
   select count(*) into v_before from app.reviews where shop_id = v_shop_id;
   begin
     perform api.submit_review(
@@ -543,14 +594,25 @@ begin
   end if;
 
   select body, rating into v_body, v_rating from app.reviews where id = v_review_id;
+  if not exists (
+    select 1 from api.list_review_moderation_queue(50, 0)
+    where review_id = v_review_id and moderation_status = 'pending'
+  ) or not exists (
+    select 1 from api.get_review_moderation_detail(v_review_id)
+    where review_id = v_review_id and nickname = 'Contract Reviewer'
+      and email = 'contract@example.invalid'
+  ) then
+    raise exception 'operator queue/detail must expose the pending Review only through service RPCs';
+  end if;
   perform api.moderate_review(v_review_id, 'approved', 'contract-operator', 'approved contract fixture');
   if (select moderation_status from app.reviews where id = v_review_id) <> 'approved'
-    or (select publication_status from app.reviews where id = v_review_id) <> 'published'
-    or not (select is_public from app.reviews where id = v_review_id)
+    or (select publication_status from app.reviews where id = v_review_id) <> 'draft'
+    or (select is_public from app.reviews where id = v_review_id)
     or (select count(*) from private.review_moderation_events where review_id = v_review_id) <> 1
+    or (select event_type from private.review_moderation_events where review_id = v_review_id) <> 'approved'
     or (select body from app.reviews where id = v_review_id) <> v_body
     or (select rating from app.reviews where id = v_review_id) <> v_rating then
-    raise exception 'approve moderation must publish without mutating submitted content';
+    raise exception 'approve moderation must remain non-public without mutating submitted content';
   end if;
 
   select count(*) into v_before from private.review_moderation_events where review_id = v_review_id;
@@ -562,6 +624,25 @@ begin
   end;
   if (select count(*) from private.review_moderation_events where review_id = v_review_id) <> v_before then
     raise exception 'invalid moderation transition must not append an audit event';
+  end if;
+
+  if exists (
+    select 1 from api.list_published_reviews(v_wp_shop_id, 20, 0)
+    where review_id = v_review_id
+  ) then
+    raise exception 'approved Review must not auto-publish';
+  end if;
+  perform api.publish_review(v_review_id, 'contract-operator', 'explicit publication fixture');
+  if (select publication_status from app.reviews where id = v_review_id) <> 'published'
+    or not (select is_public from app.reviews where id = v_review_id)
+    or (select count(*) from private.review_moderation_events where review_id = v_review_id) <> 2
+    or not exists (
+      select 1 from api.list_review_moderation_events(v_review_id)
+      where event_type = 'published' and from_state = 'draft' and to_state = 'published'
+    )
+    or (select body from app.reviews where id = v_review_id) <> v_body
+    or (select rating from app.reviews where id = v_review_id) <> v_rating then
+    raise exception 'explicit publish must preserve content and append a publication audit event';
   end if;
 
   select to_jsonb(r) into v_payload

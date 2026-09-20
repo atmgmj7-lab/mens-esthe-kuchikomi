@@ -529,3 +529,5 @@
 - Review DTOはSupabase UUIDをReview identityとして採用しつつ、Shop identityは既存WordPress `wp_post_id`を`wpShopId`として保持する。公開Review/metricsのnullable評価・日時はDB contractのまま保持し、T2で公開可否やUI閾値を再実装しない。
 - T3の現行routeはprocess-local `Map` rate limit後にWordPress Review POSTを行うため、serverless全体rate limit、Native UUID正本、同一transactionのcampaign attributionを満たさない。新経路はJSON/same-origin/custom CSRF/body limitをrouteで閉じ、WordPressはpublish Shop identity確認のreadだけ、writeは`api.submit_review`だけにする。
 - DB-backed rate claimは単なるcount増分だとIdempotency-Key再送まで二重countする。未適用M1のprivate rate rowへclaim済みidempotency hash集合を持たせ、`api.claim_review_submission_rate_limit`で同じkeyの再送をcountせず、別keyだけを10分窓3件まで許可する。submit RPCは有効claimを確認し、campaign attributionを含む既存transactionを維持する。
+- T4要件の`no auto-publish`と現M1の`approved => published/public`は一致しない。未適用M1を、承認は`approved + draft + is_public=false`、別の明示publish RPCだけが`published/public`へ遷移する二段階contractへ修正し、両操作をappend-only eventへ残す。
+- service_roleはReview/private tableを直接読めないため、operator queue/detail/auditもservice-only fixed-path RPCが必要。Basic Auth APIがactorをserver-derived定数に固定し、browserへはprivate schema grantやSupabase credentialを渡さない。

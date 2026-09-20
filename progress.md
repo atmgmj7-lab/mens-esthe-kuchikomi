@@ -903,3 +903,7 @@
 - rate-limitは同一key retryをdedupeし、異なる4件目を拒否、上限後のprivate row growthも固定。host consistency削除mutationはRED、復元後API/DB/並列/関連回帰がGREEN。
 - fresh local reset/reapply、DB lint、Foundation/Growth、typecheck、lint、856-page build、Playwright changed-flowがPASS。WordPress write 0、Production write 0。
 - T3 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT4 operator moderation。
+- T4完了。Basic Auth operatorだけがpending/publish-ready一覧、private detail、approve/reject/spam、明示publish、private reason、append-only auditを利用できる。承認はdraft非公開、公開は別操作で、本文・ratingは不変。
+- auto-publish mutationとrequest-time boundary未実装をそれぞれREDで捕捉。CSRF/Origin/Fetch Metadata、server-derived actor、private no-store、browser private grant 0を確認した。
+- fresh local reset/reapply、Review Native DB、Foundation/Growth、公開口コミ、admin境界、typecheck、lint、DB lint、857-page buildをPASS。`/dashboard/partners`はStaticからDynamicへ固定。
+- T4 SPEC / QUALITY_SECURITYはCritical 0 / Important 0 / Minor 0。現在地はT5 public Review adapter。
