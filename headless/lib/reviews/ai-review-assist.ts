@@ -138,12 +138,26 @@ export function createGeminiReviewProvider(
         console.info(JSON.stringify({ event: "review_ai_provider_response", model, status: response.status }));
         return null;
       }
-      const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-      const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (typeof text !== "string") return null;
+      let payload: { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> }; finishReason?: unknown }> };
       try {
-        return parseAiReviewOutput(JSON.parse(text));
+        payload = await response.json() as typeof payload;
       } catch {
+        console.info(JSON.stringify({ event: "review_ai_provider_response_parse_failure", model }));
+        return null;
+      }
+      const candidate = payload.candidates?.[0];
+      const text = candidate?.content?.parts?.[0]?.text;
+      if (typeof text !== "string") {
+        const finishReason = typeof candidate?.finishReason === "string" ? candidate.finishReason : "missing";
+        console.info(JSON.stringify({ event: "review_ai_provider_response_shape", model, candidateCount: payload.candidates?.length ?? 0, finishReason }));
+        return null;
+      }
+      try {
+        const output = parseAiReviewOutput(JSON.parse(text));
+        if (!output) console.info(JSON.stringify({ event: "review_ai_provider_structured_output_invalid", model }));
+        return output;
+      } catch {
+        console.info(JSON.stringify({ event: "review_ai_provider_response_json_invalid", model }));
         return null;
       }
     },

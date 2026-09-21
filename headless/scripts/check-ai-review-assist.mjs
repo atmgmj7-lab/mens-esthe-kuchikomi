@@ -41,6 +41,11 @@ const transportFailureProvider = assist.createGeminiReviewProvider(
   async () => { throw new DOMException("timed out", "AbortError"); },
 );
 assert.equal(await transportFailureProvider.generate({ ratingTotal: 3, tags: [], note: "安全なテスト本文です。" }, new AbortController().signal), null, "provider transport failures must fail closed without exposing the API key");
+const invalidJsonProvider = assist.createGeminiReviewProvider(
+  { GEMINI_API_KEY: "fixture-key" },
+  async () => ({ ok: true, json: async () => { throw new SyntaxError("invalid provider response"); } }),
+);
+assert.equal(await invalidJsonProvider.generate({ ratingTotal: 3, tags: [], note: "安全なテスト本文です。" }, new AbortController().signal), null, "provider response parsing failures must fail closed without exposing response content");
 assert.match(readFileSync(path, "utf8"), /review_ai_provider_response[\s\S]*response\.status/u, "provider failures must log only model/status metadata for production diagnosis");
 assert.match(routeSource, /review_ai_unavailable/u, "route failures must log a safe availability stage for production diagnosis");
 assert.match(routeSource, /result\.status === "error"[\s\S]*result\.error\.code/u, "rate-limit diagnostics must record only the repository error category");
