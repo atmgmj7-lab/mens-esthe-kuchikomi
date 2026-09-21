@@ -26,6 +26,17 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 - **Review:** product contract, A/B isolation, public SEO unaffected, accessibility/empty-state review.
 - **Commit:** one local commit after Critical 0 / Important 0.
 
+**Acceptance contract:**
+
+1. A correctly authenticated member sees only their canonical shop context and
+   one primary next action; an identity mismatch redirects or denies.
+2. Every KPI has its source, period, grain, and unavailable state defined in
+   the view-model; no unavailable value is rendered as a fabricated zero.
+3. The existing Growth Kit is reused; the task does not create campaigns,
+   change membership, or ask the shop to re-enter WordPress data.
+4. Keyboard, narrow-width, loading, error, and no-campaign states have a
+   focused browser assertion.
+
 ## GROWTH-02 — Review Growth Center readiness (P0_NOW)
 
 - **Dependency:** GROWTH-01; existing four campaign channels and canonical routes.
@@ -35,6 +46,17 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 - **Validation:** Growth Kit source/browser tests, local Supabase privilege contract, no-secret/PII scan.
 - **Review:** neutral-review policy, no incentives, no partner-private data in markup.
 - **Commit:** one local commit.
+
+**Acceptance contract:**
+
+1. QR, LINE, Website CTA, and Widget each derive from the intended one active
+   canonical campaign and never from a client-selected token.
+2. A missing, duplicate, inactive, or mismatched campaign yields a named
+   unavailable card with one safe prerequisite; it emits no stale URL.
+3. Copy/download actions operate only on already-projected content and do not
+   transmit customer data, campaign-management writes, or credentials.
+4. The result stays neutral-review and moderation-first: no rating steering,
+   reward, incentive, or publication promise is introduced.
 
 ## GROWTH-03 — Operator Review Inbox (P1_AFTER_P1)
 
@@ -46,6 +68,11 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 - **Review:** authorization, retention, moderation authority, mobile table strategy.
 - **Commit:** one local commit.
 
+**Acceptance contract:** Partner URLs cannot load a review body, moderation
+decision control, or operator queue even when identifiers are manipulated.
+Every moderation decision remains an existing audited human action; AI output
+is never a publication instruction.
+
 ## GROWTH-04 — Widget Studio (P1_AFTER_P1)
 
 - **Dependency:** existing Widget v1 and actual install feedback.
@@ -55,6 +82,11 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 - **Validation:** Widget source/local-Supabase/browser tests, public Shop SEO regression.
 - **Review:** public adapter reuse, token exposure, cache/revalidation, creative replacement point.
 - **Commit:** one local commit.
+
+**Acceptance contract:** The Studio only presents an existing public adapter.
+It neither crawls a merchant site nor reports installation success without a
+separately approved verification method. The public widget remains noindex and
+contains no private metric, credential, or reviewer identity.
 
 ## GROWTH-05 — Analytics Action Center (P1_AFTER_P1)
 
@@ -66,6 +98,10 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 - **Review:** KPI dictionary, no MEO data, N+1/lazy load, accessibility.
 - **Commit:** one local commit.
 
+**Acceptance contract:** Each action card names the condition, evidence,
+recommended action, and non-actionable state. A conversion rate is emitted only
+when its exact numerator, denominator, period, and campaign grain exist.
+
 ## GROWTH-06 — Guided Onboarding (P0_NOW)
 
 - **Dependency:** GROWTH-01 and existing identity/login/membership flow.
@@ -75,6 +111,11 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 - **Validation:** auth/membership/browser contract, copy/security review.
 - **Review:** identity clarity, no data leakage, keyboard/mobile.
 - **Commit:** one local commit.
+
+**Acceptance contract:** The first-run checklist verifies the existing shop
+identity, makes QR/LINE/CTA availability understandable, and has no hidden
+provisioning, invitation, state transition, WordPress write, or campaign
+creation side effect.
 
 ## GROWTH-07 — Partner Reports (P2_AFTER_PILOT)
 
@@ -103,3 +144,19 @@ GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
 ## Cross-cutting release gate
 
 Every implementation unit runs focused RED/GREEN, relevant regression, typecheck, lint, build, changed-flow browser QA, `git diff --check`, secret/PII scan, SPEC review, and QUALITY/SECURITY review. `Critical = 0` and `Important = 0` are required. Push, production DB write, deploy, promotion, outreach, invitation, membership change, state transition, campaign creation, and secret change remain separately approved.
+
+## Evidence and decision discipline
+
+- **Observed competitor UI is reference evidence, not a copied requirement.**
+  Each planned feature must retain its `REUSE / EXTEND / NEW / SKIP` decision,
+  Pilot evidence, and explicit out-of-scope MEO classification.
+- **Unknown is not a requirement.** Role-detail behavior, notification read
+  semantics, and mobile behavior that were not safely observable in the
+  authenticated audit remain `NOT_VERIFIED`; implementation must not infer
+  them.
+- **Real-Pilot evidence gates expansion.** GROWTH-03–05 do not start merely
+  because the competitor has analogous screens. P1 operational feedback and
+  sufficient metric volume are prerequisites.
+- **No authority is implied by this plan.** Each task needs a separate scoped
+  execution instruction; production gates remain independent even after local
+  acceptance.
