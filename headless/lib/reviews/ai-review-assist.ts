@@ -46,6 +46,16 @@ export function parseAiReviewOutput(value: unknown): AiReviewOutput | null {
     : { decision: row.decision as AiReviewDecision, draft };
 }
 
+const SHOP_REPLY_RE = /(?:ご来店|お待ち(?:して|しており)|安心いたしました|ありがとうございます|心より)/u;
+const SENTIMENT_PHRASES = ["安心", "おすすめ", "最高", "満足", "素晴ら", "よかっ", "嬉し", "残念", "最悪", "不満", "ひど"] as const;
+const CONTENT_CHAR_RE = /[\p{Script=Han}\p{Script=Katakana}\p{Number}A-Za-z]/u;
+
+export function isAiReviewDraftContractSafe(note: string, draft: string): boolean {
+  if (SHOP_REPLY_RE.test(draft)) return false;
+  if ([...draft].some((character) => CONTENT_CHAR_RE.test(character) && !note.includes(character))) return false;
+  return SENTIMENT_PHRASES.every((phrase) => !draft.includes(phrase) || note.includes(phrase));
+}
+
 function modelName(environment: Readonly<Record<string, string | undefined>>): string {
   const configured = environment.GEMINI_REVIEW_MODEL?.trim();
   return configured && /^[a-z0-9._-]{1,120}$/i.test(configured) ? configured : "gemini-3.1-flash-lite";
@@ -121,7 +131,7 @@ export function createGeminiReviewProvider(
           signal,
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: JSON.stringify({
-              task: "Return JSON only. Do not change rating or tags. Do not invent facts or reverse sentiment.",
+              task: "Edit a customer's Japanese review in the reviewer's first-person voice. Return JSON only. Do not change rating or tags. Do not invent, remove, or reverse facts or sentiment. Never write a business reply, greeting, thanks, invitation, or recommendation. If a safe minimal edit is uncertain, choose HUMAN_REVIEW and omit draft.",
               ratingTotal: input.ratingTotal,
               tags: input.tags,
               note: input.note,
@@ -167,6 +177,10 @@ export function createGeminiReviewProvider(
       try {
         const output = parseAiReviewOutput(JSON.parse(text));
         if (!output) console.info(JSON.stringify({ event: "review_ai_provider_structured_output_invalid", model }));
+        if (output?.draft && !isAiReviewDraftContractSafe(input.note, output.draft)) {
+          console.info(JSON.stringify({ event: "review_ai_provider_draft_contract_guard", model }));
+          return { decision: "HUMAN_REVIEW" };
+        }
         return output;
       } catch {
         console.info(JSON.stringify({ event: "review_ai_provider_response_json_invalid", model }));

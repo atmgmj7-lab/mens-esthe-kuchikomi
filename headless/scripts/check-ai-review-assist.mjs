@@ -67,6 +67,8 @@ assert.deepEqual(JSON.parse(JSON.stringify(assist.parseAiReviewOutput({ decision
 assert.deepEqual(JSON.parse(JSON.stringify(assist.parseAiReviewOutput({ decision: "SAFE", draft: "  " }))), {
   decision: "SAFE",
 }, "an empty optional draft must normalize to an absent draft without changing the AI decision");
+assert.equal(assist.isAiReviewDraftContractSafe("予約から案内まで落ち着いて利用できました。", "予約から案内まで、落ち着いて利用できました。"), true, "a punctuation-only review edit must preserve the review contract");
+assert.equal(assist.isAiReviewDraftContractSafe("予約から案内まで落ち着いて利用できました。", "ご予約からご案内まで、安心してご利用いただけました。またのご来店をお待ちしております。"), false, "shop-reply language or added facts must route to human review");
 assert.equal(assist.parseAiReviewOutput({ decision: "SAFE", ratingTotal: 5 }), null, "AI output must reject rating/tag mutation fields");
 assert.equal(assist.parseAiReviewOutput({ decision: "PROMOTE", draft: "最高" }), null, "unknown decisions must fail closed");
 assert.match(readFileSync(path, "utf8"), /responseJsonSchema/u, "Gemini requests must require the Review Assist structured-output schema");
