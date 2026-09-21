@@ -39,10 +39,11 @@ export function parseAiReviewOutput(value: unknown): AiReviewOutput | null {
   const keys = Object.keys(row).sort();
   if (!keys.every((key) => key === "decision" || key === "draft")
     || typeof row.decision !== "string" || !AI_REVIEW_DECISIONS.includes(row.decision as AiReviewDecision)
-    || (row.draft !== undefined && (typeof row.draft !== "string" || row.draft.trim().length === 0 || row.draft.length > 1000))) return null;
-  return row.draft === undefined
+    || (row.draft !== undefined && (typeof row.draft !== "string" || row.draft.length > 1000))) return null;
+  const draft = typeof row.draft === "string" ? row.draft.trim() : "";
+  return draft.length === 0
     ? { decision: row.decision as AiReviewDecision }
-    : { decision: row.decision as AiReviewDecision, draft: row.draft.trim() };
+    : { decision: row.decision as AiReviewDecision, draft };
 }
 
 function modelName(environment: Readonly<Record<string, string | undefined>>): string {
@@ -126,7 +127,18 @@ export function createGeminiReviewProvider(
               note: input.note,
               response: { decision: "SAFE|REWRITE_SAFE|HUMAN_REVIEW|REJECT", draft: "optional Japanese text up to 1000 chars" },
             }) }] }],
-            generationConfig: { responseMimeType: "application/json", maxOutputTokens: 200 },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseJsonSchema: {
+              type: "object",
+              properties: {
+                decision: { type: "string", enum: [...AI_REVIEW_DECISIONS] },
+                draft: { type: "string", maxLength: 1000 },
+              },
+              required: ["decision"],
+            },
+            maxOutputTokens: 200,
+          },
           }),
         });
       } catch (error) {

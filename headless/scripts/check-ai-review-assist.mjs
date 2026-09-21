@@ -64,6 +64,10 @@ assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
 assert.deepEqual(JSON.parse(JSON.stringify(assist.parseAiReviewOutput({ decision: "REWRITE_SAFE", draft: "読みやすく整えた文章です。" }))), {
   decision: "REWRITE_SAFE", draft: "読みやすく整えた文章です。",
 }, "a valid structured provider output may contain only the approved decision and bounded draft");
+assert.deepEqual(JSON.parse(JSON.stringify(assist.parseAiReviewOutput({ decision: "SAFE", draft: "  " }))), {
+  decision: "SAFE",
+}, "an empty optional draft must normalize to an absent draft without changing the AI decision");
 assert.equal(assist.parseAiReviewOutput({ decision: "SAFE", ratingTotal: 5 }), null, "AI output must reject rating/tag mutation fields");
 assert.equal(assist.parseAiReviewOutput({ decision: "PROMOTE", draft: "最高" }), null, "unknown decisions must fail closed");
+assert.match(readFileSync(path, "utf8"), /responseJsonSchema/u, "Gemini requests must require the Review Assist structured-output schema");
 console.log("AI Review Assist deterministic contract: PASS");
