@@ -400,6 +400,18 @@ img {
   gap: 8px;
 }
 
+.hl-partner-widget {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #d7dce4;
+  color: #173f76;
+  font: 16px/1.5 system-ui, sans-serif;
+}
+
+.hl-partner-widget__badge { margin: 0; font-weight: 700; }
+.hl-partner-widget__shop { margin: 8px 0; font-weight: 700; }
+
 @media (max-width: 767px) {
   .l-main_content__inner,
   .l-mainContent__inner,

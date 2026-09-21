@@ -94,6 +94,15 @@ export default async function PartnerDashboardPage() {
               <PartnerCopyButton label="Webサイト用CTA" value={growthKit.websiteCta.value} />
             </> : <p>利用できません。</p>}
           </section>
+
+          <section aria-labelledby="partner-widget-heading">
+            <h3 id="partner-widget-heading">Widget v1</h3>
+            {growthKit.widgetUrl.status === "available" ? <>
+              <p><a href={growthKit.widgetUrl.value} target="_blank" rel="noreferrer">Widgetを確認</a></p>
+              <p><code className="hl-partner-growth-kit__value">{`<iframe src="${growthKit.widgetUrl.value}" title="${identity.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`}</code></p>
+              <PartnerCopyButton label="Widgetコード" value={`<iframe src="${growthKit.widgetUrl.value}" title="${identity.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`} />
+            </> : <p>利用できません。</p>}
+          </section>
         </section>
 
         <section className="hl-contact-section" aria-labelledby="partner-review-metrics-heading">

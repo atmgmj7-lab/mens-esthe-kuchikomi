@@ -86,7 +86,9 @@ assert.deepEqual(JSON.parse(JSON.stringify(allowed.campaignMetrics)), {
     { channel: "eskomi_shop_page", open: 5, conversion: 1 },
   ],
 }, "campaign metrics must retain existing Phase 2 open and conversion definitions per channel");
-assert.equal(Object.keys(allowed).sort().join(","), "campaignMetrics,lineMessage,qr,reviewMetrics,reviewUrl,status,websiteCta", "the dashboard projection must omit reviewer and campaign-internal fields");
+assert.equal(allowed.widgetUrl.status, "available");
+assert.equal(allowed.widgetUrl.value, `https://mens-esthe-kuchikomi.com/partner/widget/${tokenWebsite}/`, "the widget URL must derive from the server-owned shop_website token");
+assert.equal(Object.keys(allowed).sort().join(","), "campaignMetrics,lineMessage,qr,reviewMetrics,reviewUrl,status,websiteCta,widgetUrl", "the dashboard projection must omit reviewer and campaign-internal fields");
 assert.doesNotMatch(JSON.stringify(allowed), /email|memo|reviewBody|contact|ipAddress/i, "the dashboard projection must not expose reviewer PII, raw reviews, or moderation notes");
 
 assert.deepEqual(
@@ -107,6 +109,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(unavailable)), {
   qr: { status: "unavailable" },
   lineMessage: { status: "unavailable" },
   websiteCta: { status: "unavailable" },
+  widgetUrl: { status: "unavailable" },
   reviewMetrics: { status: "unavailable" },
   campaignMetrics: { status: "unavailable" },
 }, "unavailable Phase 2 data must never be invented as zero-valued Partner metrics");

@@ -10,6 +10,7 @@ import {
   type PartnerReviewGrowthCampaignMetrics,
   type PartnerReviewGrowthMetrics,
   type PartnerReviewGrowthRepository,
+  type PublicPartnerReviewWidgetCampaign,
   type PartnerWorkspace,
   type PartnerWorkspaceRepository,
 } from "@/lib/partner/provisioning-service";
@@ -138,6 +139,25 @@ function parseGrowthMetrics(value: unknown): PartnerReviewGrowthMetrics | null {
     publicReviews: value.public_reviews,
     campaigns: campaigns as PartnerReviewGrowthCampaignMetrics[],
   };
+}
+
+function parsePublicReviewWidget(value: unknown): PublicPartnerReviewWidgetCampaign | null {
+  if (!isRecord(value) || !hasExactKeys(value, ["wp_shop_id", "shop_slug", "shop_name", "canonical_url", "review_url"])
+    || typeof value.wp_shop_id !== "number" || !Number.isSafeInteger(value.wp_shop_id) || value.wp_shop_id <= 0
+    || typeof value.shop_slug !== "string" || !value.shop_slug
+    || typeof value.shop_name !== "string" || !value.shop_name
+    || typeof value.canonical_url !== "string" || !value.canonical_url
+    || typeof value.review_url !== "string") return null;
+  const token = value.review_url.match(/^https:\/\/mens-esthe-kuchikomi\.com\/r\/([0-9a-f-]+)\/$/i)?.[1] ?? "";
+  return buildPartnerReviewCampaignUrl(token) === value.review_url
+    ? {
+        shopId: value.wp_shop_id,
+        shopSlug: value.shop_slug,
+        shopName: value.shop_name,
+        canonicalUrl: value.canonical_url,
+        reviewUrl: value.review_url,
+      }
+    : null;
 }
 
 function parseCampaign(value: unknown): PartnerReviewCampaign | null {
@@ -284,6 +304,23 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
       return response.ok && Array.isArray(rows) && rows.length === 1
         ? parseGrowthMetrics(rows[0])
         : null;
+    } catch {
+      return null;
+    }
+  },
+  async getPublicReviewWidget(token) {
+    const baseUrl = supabaseUrl();
+    const headers = serviceHeaders();
+    if (!baseUrl || !headers) return null;
+    try {
+      const response = await fetch(`${baseUrl}/rest/v1/rpc/get_partner_review_widget`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ p_token: token }),
+        cache: "no-store",
+      });
+      const rows = await response.json() as unknown;
+      return response.ok && Array.isArray(rows) && rows.length === 1 ? parsePublicReviewWidget(rows[0]) : null;
     } catch {
       return null;
     }

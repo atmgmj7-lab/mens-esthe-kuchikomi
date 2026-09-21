@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
+      {
+        source: "/partner/widget/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "default-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors *" },
+        ],
+      },
     ];
   },
   async rewrites() {

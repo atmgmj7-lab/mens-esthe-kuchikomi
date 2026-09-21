@@ -62,6 +62,14 @@ export type PartnerReviewGrowthMetrics = {
   campaigns: PartnerReviewGrowthCampaignMetrics[];
 };
 
+export type PublicPartnerReviewWidgetCampaign = Readonly<{
+  shopId: number;
+  shopSlug: string;
+  shopName: string;
+  canonicalUrl: string;
+  reviewUrl: string;
+}>;
+
 export type PartnerRegistrationReviewStatus = "received" | "under_review" | "approved" | "rejected";
 
 export type PartnerRegistrationReview = {
@@ -106,6 +114,7 @@ export type PartnerReviewGrowthRepository = {
     event: PartnerReviewCampaignEvent;
   }) => Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null>;
   getReviewGrowthMetrics: (workspaceId: string) => Promise<PartnerReviewGrowthMetrics | null>;
+  getPublicReviewWidget: (token: string) => Promise<PublicPartnerReviewWidgetCampaign | null>;
   recordReviewCampaignSubmission: (input: {
     token: string;
     shopId: number;
@@ -216,6 +225,18 @@ export async function getPartnerReviewGrowthMetrics(
   if (!UUID_RE.test(workspaceId)) return null;
   try {
     return await repository.getReviewGrowthMetrics(workspaceId.toLowerCase());
+  } catch {
+    return null;
+  }
+}
+
+export async function getPublicPartnerReviewWidget(
+  token: string,
+  repository: PartnerReviewGrowthRepository,
+): Promise<PublicPartnerReviewWidgetCampaign | null> {
+  if (!buildPartnerReviewCampaignUrl(token)) return null;
+  try {
+    return await repository.getPublicReviewWidget(token.toLowerCase());
   } catch {
     return null;
   }

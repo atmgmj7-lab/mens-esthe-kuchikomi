@@ -15,6 +15,7 @@ export type PartnerReviewGrowthKit = Readonly<{
   qr: GrowthKitValue<string>;
   lineMessage: GrowthKitValue<string>;
   websiteCta: GrowthKitValue<string>;
+  widgetUrl: GrowthKitValue<string>;
   reviewMetrics: Readonly<{ status: "available"; submitted: number; pending: number; published: number }> | Unavailable;
   campaignMetrics: Readonly<{ status: "available"; value: ReadonlyArray<Readonly<{ channel: PartnerReviewCampaignChannel; open: number; conversion: number }>> }> | Unavailable;
 }>;
@@ -68,6 +69,12 @@ function websiteCta(reviewUrl: string): string {
   return `<a href="${reviewUrl}">口コミをEskomiで投稿</a>`;
 }
 
+function widgetUrl(token: string): string | null {
+  return UUID_RE.test(token)
+    ? `https://mens-esthe-kuchikomi.com/partner/widget/${token.toLowerCase()}/`
+    : null;
+}
+
 export function resolvePartnerReviewGrowthKit(
   identity: PartnerWorkspaceIdentity,
   metrics: PartnerReviewGrowthMetrics | null,
@@ -79,6 +86,7 @@ export function resolvePartnerReviewGrowthKit(
       qr: unavailable(),
       lineMessage: unavailable(),
       websiteCta: unavailable(),
+      widgetUrl: unavailable(),
       reviewMetrics: unavailable(),
       campaignMetrics: unavailable(),
     };
@@ -102,6 +110,9 @@ export function resolvePartnerReviewGrowthKit(
     qr: qrCampaign ? { status: "available", value: qrCampaign.reviewUrl } : unavailable(),
     lineMessage: lineCampaign ? { status: "available", value: lineMessage(lineCampaign.reviewUrl) } : unavailable(),
     websiteCta: websiteCampaign ? { status: "available", value: websiteCta(websiteCampaign.reviewUrl) } : unavailable(),
+    widgetUrl: websiteCampaign && widgetUrl(websiteCampaign.token)
+      ? { status: "available", value: widgetUrl(websiteCampaign.token) as string }
+      : unavailable(),
     reviewMetrics: {
       status: "available",
       submitted: metrics.submittedReviews,
