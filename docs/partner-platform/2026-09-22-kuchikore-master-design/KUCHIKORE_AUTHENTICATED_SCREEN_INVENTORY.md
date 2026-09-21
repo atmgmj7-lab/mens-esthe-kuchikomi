@@ -24,6 +24,10 @@
 
 GBP、Google Maps順位、キーワード順位、Google投稿、MEO診断、クーポン、抽選、配信実行、課金、外部integrationはEskomi実装候補にしない。画面内に見えても、ここではIA上の分離方法だけを記録する。
 
+## Mobile evidence boundary
+
+認証済みChromeのdesktop viewportで、navigation、画面構造、空状態、操作ラベルを確認した。競合UIの実mobile viewportでの折返し、drawer、横スクロール、タップ領域は今回実測していない。Eskomiの各GROWTH実装では、390px程度のmobile browser QAと横overflow 0を必須にする。
+
 ## 安全な証跡
 
 - DOM / URL / 見出し・操作ラベルだけを記録した。
