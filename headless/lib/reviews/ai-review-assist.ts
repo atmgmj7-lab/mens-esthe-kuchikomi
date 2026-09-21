@@ -94,7 +94,10 @@ export function createGeminiReviewProvider(
           generationConfig: { responseMimeType: "application/json", maxOutputTokens: 200 },
         }),
       });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.info(JSON.stringify({ event: "review_ai_provider_response", model, status: response.status }));
+        return null;
+      }
       const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
       const text = payload.candidates?.[0]?.content?.parts?.[0]?.text;
       if (typeof text !== "string") return null;

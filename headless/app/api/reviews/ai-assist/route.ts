@@ -14,6 +14,10 @@ function json(body: Record<string, unknown>, status: number) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
 }
 
+function logAiUnavailable(stage: "provider_config" | "client_ip" | "server_secret" | "rate_limit" | "provider_response"): void {
+  console.info(JSON.stringify({ event: "review_ai_unavailable", stage, model: resolveAiReviewModel(process.env) }));
+}
+
 async function readBoundedBody(request: NextRequest): Promise<string | null> {
   if (!request.body) return "";
   const reader = request.body.getReader();
@@ -122,18 +126,28 @@ export async function POST(request: NextRequest) {
     return json({ ok: true, decision: "HUMAN_REVIEW", draft: prefilter.note, message: "連絡先等を伏せて、運営審査で内容を確認します。" }, 200);
   }
   const provider = createGeminiReviewProvider(process.env);
-  if (!provider) return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
+  if (!provider) {
+    logAiUnavailable("provider_config");
+    return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
+  }
   const ip = resolveTrustedReviewClientIp(request.headers);
   const serverSecret = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!ip || !serverSecret) return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
+  if (!ip || !serverSecret) {
+    logAiUnavailable(!ip ? "client_ip" : "server_secret");
+    return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
+  }
   const rateLimit = await claimAiAssistRateLimit(ip, serverSecret);
-  if (rateLimit === "unavailable") return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
+  if (rateLimit === "unavailable") {
+    logAiUnavailable("rate_limit");
+    return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
+  }
   if (rateLimit === "limited") return json({ ok: false, message: "AI補助は現在利用できません。" }, 429);
   const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8_000);
   const output = await provider.generate({ ...input, note: prefilter.note }, controller.signal).catch(() => null).finally(() => clearTimeout(timeout));
   if (!output) {
+    logAiUnavailable("provider_response");
     const event = { occurredAt: new Date().toISOString(), model: resolveAiReviewModel(process.env), inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, decision: "UNAVAILABLE" as const, latencyMs: Date.now() - startedAt, mode: "standard" as const };
     recordAiReviewTelemetry(event);
     await persistAiReviewTelemetry(event, serverSecret);

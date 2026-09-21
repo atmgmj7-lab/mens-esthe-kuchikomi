@@ -6,6 +6,7 @@ import vm from "node:vm";
 
 const root = process.cwd();
 const path = join(root, "lib/reviews/ai-review-assist.ts");
+const routePath = join(root, "app/api/reviews/ai-assist/route.ts");
 function load(source) {
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const module = { exports: {} };
@@ -13,6 +14,7 @@ function load(source) {
   return module.exports;
 }
 const assist = existsSync(path) ? load(readFileSync(path, "utf8")) : {};
+const routeSource = existsSync(routePath) ? readFileSync(routePath, "utf8") : "";
 assert.equal(typeof assist.prefilterAiReviewInput, "function", "03F must deterministically classify or redact unsafe Review input before any provider call");
 assert.equal(typeof assist.parseAiReviewOutput, "function", "03F must accept only structured AI decisions and a bounded draft");
 assert.equal(assist.resolveAiReviewModel({}), "gemini-2.5-flash-lite", "Review Assist must default to the selected stable low-cost Gemini model");
@@ -20,6 +22,8 @@ assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0), 0.1, "standard input 
 assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000), 0.4, "standard output telemetry must use Gemini 2.5 Flash-Lite pricing");
 assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0, "batch"), 0.05, "batch input telemetry must use Gemini 2.5 Flash-Lite pricing");
 assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000, "batch"), 0.2, "batch output telemetry must use Gemini 2.5 Flash-Lite pricing");
+assert.match(readFileSync(path, "utf8"), /review_ai_provider_response[\s\S]*response\.status/u, "provider failures must log only model/status metadata for production diagnosis");
+assert.match(routeSource, /review_ai_unavailable/u, "route failures must log a safe availability stage for production diagnosis");
 
 assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
   ratingTotal: 1, tags: ["wait_concern"], note: "連絡が遅く、待ち時間が長く感じました。",
