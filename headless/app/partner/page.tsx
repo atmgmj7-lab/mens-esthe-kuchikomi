@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import QRCode from "qrcode";
 
 import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
+import { resolvePartnerActionFirstHome } from "@/lib/partner/partner-dashboard";
 import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
 import { pageMetadata } from "@/lib/seo";
@@ -24,119 +25,97 @@ export default async function PartnerDashboardPage() {
   const dashboard = await authorizePartnerReviewGrowthSession({ accessToken });
   if (dashboard.status !== "allowed") redirect("/partner/login/");
   const { identity, growthKit } = dashboard;
-  const partnerStatus = identity.state === "free_official_partner" ? "Free Official Partner" : "Active Partner";
-  const qrDataUrl = growthKit.qr.status === "available"
-    ? await QRCode.toDataURL(growthKit.qr.value, { errorCorrectionLevel: "M", margin: 1, width: 512 })
+  const home = resolvePartnerActionFirstHome(identity, growthKit);
+  const asset = (key: (typeof home.collection)[number]["key"]) => home.collection.find((item) => item.key === key);
+  const qrAsset = asset("qr");
+  const qrDataUrl = qrAsset?.status === "available"
+    ? await QRCode.toDataURL(qrAsset.value, { errorCorrectionLevel: "M", margin: 1, width: 512 })
     : null;
-  const widgetEmbed = growthKit.widgetUrl.status === "available"
-    ? buildPartnerWidgetIframeSnippet({ shopName: identity.shopName, widgetUrl: growthKit.widgetUrl.value })
+  const widgetAsset = asset("widget");
+  const widgetEmbed = widgetAsset?.status === "available"
+    ? buildPartnerWidgetIframeSnippet({ shopName: home.context.shopName, widgetUrl: widgetAsset.value })
     : null;
+  const reviewUrlAsset = asset("review_url");
+  const lineAsset = asset("line");
+  const websiteCtaAsset = asset("website_cta");
+  const unavailableMessage = (candidate: (typeof home.collection)[number] | undefined) =>
+    candidate?.status === "unavailable" ? candidate.message : "利用できません。";
 
   return (
-    <main id="main_content" className="l-mainContent l-article" data-partner-dashboard-root>
-      <div className="l-mainContent__inner hl-page-inner">
-        <header className="hl-contact-section">
-          <p>Eskomi Partner Dashboard</p>
-          <h1 className="hl-contact-heading">{identity.shopName}</h1>
-          <p>現在のログイン先店舗を確認できます。</p>
-          <nav aria-label="パートナーナビゲーション">
-            <a href="/partner/" aria-current="page">ダッシュボード</a>
-            {" · "}
-            <a href={identity.canonicalUrl}>公開店舗ページ</a>
-          </nav>
+    <main id="main_content" className="l-mainContent l-article hl-partner-home" data-partner-dashboard-root>
+      <div className="l-mainContent__inner hl-page-inner hl-partner-home__inner">
+        <header className="hl-partner-home__context">
+          <p className="hl-partner-home__eyebrow">Eskomi Partner</p>
+          <div className="hl-partner-home__context-row">
+            <div>
+              <h1>{home.context.shopName}</h1>
+              <p className="hl-partner-home__status">{home.context.partnerStatus}</p>
+            </div>
+            <a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a>
+          </div>
         </header>
 
-        <section className="hl-contact-section" aria-labelledby="partner-shop-identity-heading">
-          <h2 id="partner-shop-identity-heading" className="hl-contact-heading">店舗 identity</h2>
-          <dl>
-            <dt>Eskomi 店舗</dt>
-            <dd>{identity.shopName}</dd>
-            <dt>店舗 ID</dt>
-            <dd>{identity.shopId}</dd>
-            <dt>Partner workspace</dt>
-            <dd>この店舗に紐づく workspace</dd>
-          </dl>
+        <section className="hl-partner-home__action" aria-labelledby="partner-action-heading">
+          <p className="hl-partner-home__eyebrow">Action Required</p>
+          <h2 id="partner-action-heading">今やること</h2>
+          <h3>{home.action.title}</h3>
+          <p>{home.action.description}</p>
+          <a className="hl-partner-home__primary-action" href={home.action.primaryAction.href}>{home.action.primaryAction.label}</a>
         </section>
 
-        <section className="hl-contact-section" aria-labelledby="partner-status-heading">
-          <h2 id="partner-status-heading" className="hl-contact-heading">Partner status</h2>
-          <p>{partnerStatus}</p>
-        </section>
-
-        <section className="hl-contact-section hl-partner-growth-kit" aria-labelledby="partner-growth-kit-heading">
-          <h2 id="partner-growth-kit-heading" className="hl-contact-heading">Review Growth Kit</h2>
-          <p>公開用の口コミ案内は、この店舗に紐づく既存Campaignだけを表示します。</p>
-
-          <section aria-labelledby="partner-review-url-heading">
-            <h3 id="partner-review-url-heading">口コミURL</h3>
-            {growthKit.reviewUrl.status === "available" ? <>
-              <p className="hl-partner-growth-kit__value">{growthKit.reviewUrl.value}</p>
-              <PartnerCopyButton label="口コミURL" value={growthKit.reviewUrl.value} />
-            </> : <p>利用できません。</p>}
-          </section>
-
-          <section aria-labelledby="partner-qr-heading">
-            <h3 id="partner-qr-heading">QR</h3>
-            {qrDataUrl && growthKit.qr.status === "available" ? <>
-              <img className="hl-partner-growth-kit__qr" src={qrDataUrl} alt="口コミURLのQRコード" width={256} height={256} />
-              <p><a href={qrDataUrl} download="eskomi-review-qr.png">QRをダウンロード</a></p>
-            </> : <p>利用できません。</p>}
-          </section>
-
-          <section aria-labelledby="partner-line-message-heading">
-            <h3 id="partner-line-message-heading">LINE案内文</h3>
-            {growthKit.lineMessage.status === "available" ? <>
-              <p className="hl-partner-growth-kit__message">{growthKit.lineMessage.value}</p>
-              <PartnerCopyButton label="LINE案内文" value={growthKit.lineMessage.value} />
-            </> : <p>利用できません。</p>}
-          </section>
-
-          <section aria-labelledby="partner-website-cta-heading">
-            <h3 id="partner-website-cta-heading">Webサイト用Review CTA</h3>
-            {growthKit.websiteCta.status === "available" ? <>
-              <p><code className="hl-partner-growth-kit__value">{growthKit.websiteCta.value}</code></p>
-              <PartnerCopyButton label="Webサイト用CTA" value={growthKit.websiteCta.value} />
-            </> : <p>利用できません。</p>}
-          </section>
-
-          <section aria-labelledby="partner-widget-heading">
-            <h3 id="partner-widget-heading">店舗サイトに口コミWidgetを設置</h3>
-            <p>設置は任意です。</p>
-            {growthKit.widgetUrl.status === "available" && widgetEmbed ? <>
-              <p><a href={growthKit.widgetUrl.value} target="_blank" rel="noreferrer">Widgetを確認</a></p>
-              <p><code className="hl-partner-growth-kit__value">{widgetEmbed}</code></p>
-              <PartnerCopyButton label="Widgetコード" value={widgetEmbed} />
-              <p><a href="#partner-widget-install-guide">設置方法を見る</a></p>
-            </> : <p>利用できません。</p>}
-          </section>
-
-          <section id="partner-widget-install-guide" aria-labelledby="partner-widget-install-guide-heading">
-            <h3 id="partner-widget-install-guide-heading">Widgetの設置方法</h3>
-            <p>店舗サイトの任意の表示位置に貼り付けます。</p>
-            <ol>
-              <li>「Widgetを確認」で対象店舗の表示を確認します。</li>
-              <li>「Widgetコードをコピー」でiframeコードをコピーします。</li>
-              <li>店舗サイトのHTML編集が可能な位置へ貼り付け、スマートフォンでも表示を確認します。</li>
-            </ol>
-          </section>
-        </section>
-
-        <section className="hl-contact-section" aria-labelledby="partner-review-metrics-heading">
-          <h2 id="partner-review-metrics-heading" className="hl-contact-heading">口コミ状況</h2>
-          {growthKit.reviewMetrics.status === "available" ? <dl className="hl-partner-growth-kit__metrics">
-            <dt>submitted</dt><dd>{growthKit.reviewMetrics.submitted}</dd>
-            <dt>pending</dt><dd>{growthKit.reviewMetrics.pending}</dd>
-            <dt>published</dt><dd>{growthKit.reviewMetrics.published}</dd>
-          </dl> : <p>利用できません。</p>}
-        </section>
-
-        <section className="hl-contact-section" aria-labelledby="partner-campaign-metrics-heading">
-          <h2 id="partner-campaign-metrics-heading" className="hl-contact-heading">Review campaign</h2>
-          {growthKit.campaignMetrics.status === "available" ? <dl className="hl-partner-growth-kit__metrics">
-            {growthKit.campaignMetrics.value.map((campaign) => <div key={campaign.channel}>
-              <dt>{campaign.channel}</dt><dd>open: {campaign.open} / conversion: {campaign.conversion}</dd>
+        <section className="hl-partner-home__section" aria-labelledby="partner-review-performance-heading">
+          <div className="hl-partner-home__section-heading">
+            <div>
+              <p className="hl-partner-home__eyebrow">Review Performance</p>
+              <h2 id="partner-review-performance-heading">口コミ状況</h2>
+            </div>
+            <p className="hl-partner-home__period">集計：累計・この店舗</p>
+          </div>
+          {home.performance.status === "available" ? <dl className="hl-partner-home__metrics">
+            {home.performance.metrics.map((metric) => <div key={metric.key} className="hl-partner-home__metric">
+              <dt>{metric.label}</dt>
+              <dd>{metric.value}</dd>
             </div>)}
-          </dl> : <p>利用できません。</p>}
+          </dl> : <p className="hl-partner-home__unavailable" role="status">{home.performance.message}</p>}
+        </section>
+
+        <section id="partner-collect-reviews" className="hl-partner-home__section" aria-labelledby="partner-collect-reviews-heading">
+          <div className="hl-partner-home__section-heading">
+            <div>
+              <p className="hl-partner-home__eyebrow">Collect Reviews</p>
+              <h2 id="partner-collect-reviews-heading">口コミを集める</h2>
+            </div>
+            <p className="hl-partner-home__section-note">この店舗に紐づく既存Campaignだけを表示します。</p>
+          </div>
+          <div className="hl-partner-home__collection">
+            <section className="hl-partner-home__asset" aria-labelledby="partner-review-url-heading">
+              <h3 id="partner-review-url-heading">口コミURL</h3>
+              {reviewUrlAsset?.status === "available" ? <><p className="hl-partner-growth-kit__value">{reviewUrlAsset.value}</p><PartnerCopyButton label="口コミURL" value={reviewUrlAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(reviewUrlAsset)}</p>}
+            </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-qr-heading">
+              <h3 id="partner-qr-heading">QR</h3>
+              {qrDataUrl && qrAsset?.status === "available" ? <><img className="hl-partner-growth-kit__qr" src={qrDataUrl} alt="口コミURLのQRコード" width={256} height={256} /><p><a className="hl-partner-home__text-link" href={qrDataUrl} download="eskomi-review-qr.png">QRをダウンロード</a></p></> : <p className="hl-partner-home__unavailable">{unavailableMessage(qrAsset)}</p>}
+            </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-line-message-heading">
+              <h3 id="partner-line-message-heading">LINE案内文</h3>
+              {lineAsset?.status === "available" ? <><p className="hl-partner-growth-kit__message">{lineAsset.value}</p><PartnerCopyButton label="LINE案内文" value={lineAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(lineAsset)}</p>}
+            </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-website-cta-heading">
+              <h3 id="partner-website-cta-heading">Webサイト用CTA</h3>
+              {websiteCtaAsset?.status === "available" ? <><p><code className="hl-partner-growth-kit__value">{websiteCtaAsset.value}</code></p><PartnerCopyButton label="Webサイト用CTA" value={websiteCtaAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(websiteCtaAsset)}</p>}
+            </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-widget-heading">
+              <h3 id="partner-widget-heading">口コミWidget</h3>
+              <p>設置は任意です。</p>
+              {widgetAsset?.status === "available" && widgetEmbed ? <><p><a className="hl-partner-home__text-link" href={widgetAsset.value} target="_blank" rel="noreferrer">Widgetを確認</a></p><p><code className="hl-partner-growth-kit__value">{widgetEmbed}</code></p><PartnerCopyButton label="Widgetコード" value={widgetEmbed} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(widgetAsset)}</p>}
+            </section>
+          </div>
+        </section>
+
+        <section className="hl-partner-home__section" aria-labelledby="partner-recent-activity-heading">
+          <p className="hl-partner-home__eyebrow">Recent Activity</p>
+          <h2 id="partner-recent-activity-heading">最近の動き</h2>
+          <p className="hl-partner-home__unavailable" role="status">{home.recentActivity.message}</p>
         </section>
       </div>
     </main>

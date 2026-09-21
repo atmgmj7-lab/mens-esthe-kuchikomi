@@ -8,6 +8,7 @@ const root = process.cwd();
 const workspaceA = "11111111-1111-4111-8111-111111111111";
 const workspaceB = "22222222-2222-4222-8222-222222222222";
 const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const userB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const tokenQr = "33333333-3333-4333-8333-333333333333";
 const tokenLine = "44444444-4444-4444-8444-444444444444";
 const tokenWebsite = "55555555-5555-4555-8555-555555555555";
@@ -39,31 +40,38 @@ const metricWorkspaceRequests = [];
 const mock = http.createServer(async (request, response) => {
   if (request.url === "/auth/v1/user" && request.method === "GET") {
     const token = request.headers.authorization?.replace(/^Bearer\s+/i, "");
-    return token === "partner-a-session-token"
-      ? json(response, 200, { id: userA, email: "a@example.invalid" })
-      : json(response, 401, { message: "invalid" });
+    if (token === "partner-a-session-token") return json(response, 200, { id: userA, email: "a@example.invalid" });
+    if (token === "partner-b-session-token") return json(response, 200, { id: userB, email: "b@example.invalid" });
+    return json(response, 401, { message: "invalid" });
   }
   if (request.url === "/rest/v1/rpc/get_partner_auth_membership" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
-    return json(response, 200, JSON.parse(body).p_auth_user_id === userA ? [{
-      workspace_id: workspaceA, wp_shop_id: 101, shop_slug: "shop-a", role: "owner",
-    }] : []);
+    const authUserId = JSON.parse(body).p_auth_user_id;
+    if (authUserId === userA) return json(response, 200, [{ workspace_id: workspaceA, wp_shop_id: 101, shop_slug: "shop-a", role: "owner" }]);
+    if (authUserId === userB) return json(response, 200, [{ workspace_id: workspaceB, wp_shop_id: 202, shop_slug: "shop-b", role: "owner" }]);
+    return json(response, 200, []);
   }
   if (request.url === "/rest/v1/rpc/get_partner_workspace_identity" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
-    return json(response, 200, JSON.parse(body).p_workspace_id === workspaceA ? [{
+    const workspaceId = JSON.parse(body).p_workspace_id;
+    if (workspaceId === workspaceA) return json(response, 200, [{
       workspace_id: workspaceA, wp_shop_id: 101, shop_slug: "shop-a", shop_name: "Partner Shop A",
       canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/", state: "free_official_partner",
-    }] : []);
+    }]);
+    if (workspaceId === workspaceB) return json(response, 200, [{
+      workspace_id: workspaceB, wp_shop_id: 202, shop_slug: "shop-b", shop_name: "Partner Shop B",
+      canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-b/", state: "active_partner",
+    }]);
+    return json(response, 200, []);
   }
   if (request.url === "/rest/v1/rpc/get_partner_review_growth_metrics" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const workspaceId = JSON.parse(body).p_workspace_id;
     metricWorkspaceRequests.push(workspaceId);
-    return json(response, 200, workspaceId === workspaceA ? [{
+    if (workspaceId === workspaceA) return json(response, 200, [{
       workspace_id: workspaceA,
       wp_shop_id: 101,
       submitted_reviews: 8,
@@ -75,7 +83,8 @@ const mock = http.createServer(async (request, response) => {
         { id: "99999999-9999-4999-8999-999999999999", channel: "shop_website", token: tokenWebsite, isActive: true, openCount: 6, startCount: 4, conversionCount: 2 },
         { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", channel: "eskomi_shop_page", token: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", isActive: true, openCount: 5, startCount: 3, conversionCount: 1 },
       ],
-    }] : []);
+    }]);
+    return json(response, 200, []);
   }
   return json(response, 404, { message: "not found" });
 });
@@ -115,7 +124,16 @@ try {
   await partnerA.context().addCookies([{ name: "eskomi_partner_access_token", value: "partner-a-session-token", domain: "127.0.0.1", path: "/partner" }]);
   const response = await partnerA.goto(`${baseUrl}/partner/`, { waitUntil: "domcontentloaded" });
   await partnerA.getByRole("heading", { name: "Partner Shop A" }).waitFor({ state: "visible" });
-  await partnerA.getByRole("heading", { name: "Review Growth Kit" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "今やること" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "口コミ状況" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "口コミを集める" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "最近の動き" }).waitFor({ state: "visible" });
+  const primaryAction = partnerA.getByRole("link", { name: "口コミURLを確認する" });
+  await primaryAction.waitFor({ state: "visible" });
+  assert.equal(await primaryAction.getAttribute("href"), "#partner-collect-reviews", "a ready Partner Home must show one safe primary action before operational assets");
+  await primaryAction.focus();
+  assert.equal(await primaryAction.evaluate((node) => document.activeElement === node), true, "the primary action must remain keyboard focusable");
+  assert.doesNotMatch(await partnerA.locator("body").innerText(), /店舗 ID|Partner workspace|11111111-1111-4111-8111-111111111111/, "Partner Home must not render private identity rows or workspace identifiers");
   assert.equal(response?.headers()["cache-control"], "private, no-store", "Partner Growth Kit must remain no-store");
   assert.equal(response?.headers()["x-robots-tag"], "noindex, nofollow", "Partner Growth Kit must remain noindex");
   await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`).waitFor({ state: "visible" });
@@ -126,7 +144,7 @@ try {
   await partnerA.getByText("LINE案内文をコピーしました。").waitFor({ state: "visible" });
   await partnerA.getByRole("button", { name: "Webサイト用CTAをコピー" }).click();
   await partnerA.getByText("Webサイト用CTAをコピーしました。").waitFor({ state: "visible" });
-  await partnerA.getByRole("heading", { name: "店舗サイトに口コミWidgetを設置" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "口コミWidget" }).waitFor({ state: "visible" });
   await partnerA.getByText("設置は任意です。").waitFor({ state: "visible" });
   await partnerA.getByRole("link", { name: "Widgetを確認" }).waitFor({ state: "visible" });
   const widgetCode = partnerA.locator("code").filter({ hasText: `/partner/widget/${tokenWebsite}/` });
@@ -138,16 +156,13 @@ try {
   });
   await partnerA.getByRole("button", { name: "Widgetコードをコピー" }).click();
   await partnerA.getByText("Widgetコードをコピーしました。").waitFor({ state: "visible" });
-  await partnerA.getByRole("link", { name: "設置方法を見る" }).click();
-  await partnerA.getByRole("heading", { name: "Widgetの設置方法" }).waitFor({ state: "visible" });
-  await partnerA.getByText("店舗サイトの任意の表示位置に貼り付けます。").waitFor({ state: "visible" });
-  await partnerA.getByText("submitted").waitFor({ state: "visible" });
+  await partnerA.getByText("投稿済み").waitFor({ state: "visible" });
   await partnerA.getByText("8").first().waitFor({ state: "visible" });
-  await partnerA.getByText("pending").waitFor({ state: "visible" });
-  await partnerA.getByText("published").waitFor({ state: "visible" });
-  await partnerA.getByText("counter_qr").waitFor({ state: "visible" });
-  await partnerA.getByText("12").first().waitFor({ state: "visible" });
+  await partnerA.getByText("審査中").waitFor({ state: "visible" });
+  await partnerA.getByText("公開済み").waitFor({ state: "visible" });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px Growth Kit must not overflow horizontally");
+  await partnerA.setViewportSize({ width: 1280, height: 900 });
+  assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "1280px Action-first Home must not overflow horizontally");
   await partnerA.setViewportSize({ width: 320, height: 844 });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "320px Growth Kit must not overflow horizontally");
 
@@ -156,11 +171,23 @@ try {
   assert.equal(metricWorkspaceRequests.includes(workspaceB), false, "a manipulated Partner B workspace must be denied before metrics are requested");
   assert.equal(metricWorkspaceRequests.every((workspaceId) => workspaceId === workspaceA), true, "the server must request only the authorized workspace metrics");
 
+  const partnerB = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  partnerB.setDefaultTimeout(5_000);
+  await partnerB.context().addCookies([{ name: "eskomi_partner_access_token", value: "partner-b-session-token", domain: "127.0.0.1", path: "/partner" }]);
+  await partnerB.goto(`${baseUrl}/partner/`, { waitUntil: "domcontentloaded" });
+  await partnerB.getByRole("heading", { name: "口コミ導線は準備中です" }).waitFor({ state: "visible" });
+  await partnerB.getByText("有効な口コミCampaignを確認できないため、口コミURLはまだ利用できません。").waitFor({ state: "visible" });
+  await partnerB.getByRole("link", { name: "公開店舗ページを確認する" }).waitFor({ state: "visible" });
+  await partnerB.getByText("口コミ件数を現在確認できません。").waitFor({ state: "visible" });
+  assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Home must not expose a working review URL");
+  assert.equal(await partnerB.getByRole("img", { name: "口コミURLのQRコード" }).count(), 0, "no-campaign Home must not emit a QR asset");
+  assert.equal(await partnerB.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px unavailable Home must not overflow horizontally");
+
   const publicCampaign = await browser.newPage();
   publicCampaign.setDefaultTimeout(5_000);
   const campaignResponse = await publicCampaign.goto(`${baseUrl}/r/not-a-token/`, { waitUntil: "domcontentloaded" });
   assert.equal(campaignResponse?.status(), 404, "public campaign routing must reject invalid campaign tokens without exposing Partner data");
-  await Promise.all([partnerA.close(), publicCampaign.close()]);
+  await Promise.all([partnerA.close(), partnerB.close(), publicCampaign.close()]);
   console.log("partner review Growth Kit browser QA passed");
 } finally {
   await browser.close();

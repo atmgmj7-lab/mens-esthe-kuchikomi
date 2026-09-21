@@ -412,6 +412,118 @@ img {
 .hl-partner-widget__badge { margin: 0; font-weight: 700; }
 .hl-partner-widget__shop { margin: 8px 0; font-weight: 700; }
 
+/* ESKOMI-PARTNER-GROWTH-01: action-first protected Partner Home. */
+.hl-partner-home { color: #17263c; }
+.hl-partner-home__inner { max-width: 1040px; }
+.hl-partner-home__context,
+.hl-partner-home__action,
+.hl-partner-home__section {
+  margin-top: 24px;
+  padding: clamp(20px, 3vw, 32px);
+  border: 1px solid #d9d6ce;
+  border-radius: 16px;
+  background: #fffdf8;
+}
+.hl-partner-home__context { margin-top: 32px; }
+.hl-partner-home__context-row,
+.hl-partner-home__section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hl-partner-home h1,
+.hl-partner-home h2,
+.hl-partner-home h3 { color: #17263c; }
+.hl-partner-home h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.45rem); }
+.hl-partner-home h2 { margin: 0; font-size: clamp(1.25rem, 2.5vw, 1.65rem); }
+.hl-partner-home h3 { margin: 8px 0; font-size: 1.15rem; }
+.hl-partner-home__eyebrow {
+  margin: 0 0 8px;
+  color: #7a5b1c;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.hl-partner-home__status {
+  display: inline-block;
+  margin: 10px 0 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f4ead4;
+  color: #5f4716;
+  font-size: .88rem;
+  font-weight: 700;
+}
+.hl-partner-home__action {
+  border-color: #c8ad70;
+  background: #fff8e9;
+}
+.hl-partner-home__primary-action,
+.hl-partner-home__text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+.hl-partner-home__primary-action {
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: #17263c;
+  color: #fff !important;
+  text-decoration: none;
+}
+.hl-partner-home__primary-action:focus-visible,
+.hl-partner-home__text-link:focus-visible,
+.hl-partner-home .hl-partner-copy button:focus-visible {
+  outline: 3px solid #b68528;
+  outline-offset: 3px;
+}
+.hl-partner-home__text-link { color: #173f76; }
+.hl-partner-home__period,
+.hl-partner-home__section-note,
+.hl-partner-home__unavailable { color: #5b6470; }
+.hl-partner-home__period,
+.hl-partner-home__section-note { margin: 4px 0 0; font-size: .9rem; }
+.hl-partner-home__metrics,
+.hl-partner-home__collection {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.hl-partner-home__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hl-partner-home__metric,
+.hl-partner-home__asset {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e3dfd6;
+  border-radius: 12px;
+  background: #fff;
+}
+.hl-partner-home__metric dt { color: #596675; font-size: .88rem; font-weight: 700; }
+.hl-partner-home__metric dd {
+  margin: 4px 0 0;
+  color: #17263c;
+  font-size: clamp(1.7rem, 4vw, 2.2rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.hl-partner-home__collection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hl-partner-home__asset h3 { margin-top: 0; }
+.hl-partner-home__asset p:last-child { margin-bottom: 0; }
+
+@media (max-width: 640px) {
+  .hl-partner-home__context,
+  .hl-partner-home__action,
+  .hl-partner-home__section { padding: 20px; }
+  .hl-partner-home__metrics,
+  .hl-partner-home__collection { grid-template-columns: minmax(0, 1fr); }
+  .hl-partner-home__text-link { min-height: 44px; }
+}
+
 .hl-review-form__tags {
   display: flex;
   flex-wrap: wrap;
