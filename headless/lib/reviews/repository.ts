@@ -14,10 +14,15 @@ export type ReviewRepositoryErrorCode =
   | "request_failed"
   | "invalid_response";
 
+export type ReviewRepositoryError = Readonly<{
+  code: ReviewRepositoryErrorCode;
+  httpStatus?: number;
+}>;
+
 export type ReviewRepositoryResult<T> =
   | Readonly<{ status: "ok"; data: T }>
   | Readonly<{ status: "no_data"; data: null }>
-  | Readonly<{ status: "error"; error: Readonly<{ code: ReviewRepositoryErrorCode }> }>;
+  | Readonly<{ status: "error"; error: ReviewRepositoryError }>;
 
 export type SubmitReviewRequest = Readonly<{
   shop: WordPressShopIdentity;

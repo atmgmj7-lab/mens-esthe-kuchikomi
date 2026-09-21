@@ -412,7 +412,7 @@ export function createSupabaseReviewRepository(
         cache: "no-store",
         signal,
       });
-      if (!response.ok) return error("request_failed");
+      if (!response.ok) return { status: "error", error: { code: "request_failed", httpStatus: response.status } };
       let raw: unknown;
       try {
         raw = await response.json();

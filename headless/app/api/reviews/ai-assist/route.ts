@@ -63,7 +63,7 @@ function sameOrigin(request: NextRequest): boolean {
 
 async function claimAiAssistRateLimit(ip: string, serverSecret: string): Promise<
   Readonly<{ status: "allowed" | "limited" }>
-  | Readonly<{ status: "unavailable"; reason: "not_configured" | "invalid_request" | "request_failed" | "invalid_response" | "no_data" }>
+  | Readonly<{ status: "unavailable"; reason: string }>
 > {
   const window = getReviewRateLimitWindow();
   const result = await reviewNativeRepository.claimRateLimit({
@@ -73,7 +73,12 @@ async function claimAiAssistRateLimit(ip: string, serverSecret: string): Promise
     windowExpiresAt: window.expiresAt,
     limit: MAX_REQUESTS,
   });
-  if (result.status === "error") return { status: "unavailable", reason: result.error.code };
+  if (result.status === "error") {
+    const reason = result.error.httpStatus
+      ? `${result.error.code}_http_${result.error.httpStatus}`
+      : result.error.code;
+    return { status: "unavailable", reason };
+  }
   if (result.status === "no_data") return { status: "unavailable", reason: "no_data" };
   return { status: result.data.allowed ? "allowed" : "limited" };
 }

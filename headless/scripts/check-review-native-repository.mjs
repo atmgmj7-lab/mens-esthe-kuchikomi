@@ -73,8 +73,8 @@ const baseRequest = {
   campaignToken,
 };
 
-function response(body, ok = true) {
-  return { ok, json: async () => body };
+function response(body, ok = true, status = ok ? 200 : 500) {
+  return { ok, status, json: async () => body };
 }
 
 const calls = [];
@@ -310,7 +310,7 @@ nextResponse = response({ message: "raw database detail must never escape", hint
 const rejected = await repository.submit(baseRequest);
 assert.deepEqual(JSON.parse(JSON.stringify(rejected)), {
   status: "error",
-  error: { code: "request_failed" },
+  error: { code: "request_failed", httpStatus: 500 },
 });
 assert.doesNotMatch(JSON.stringify(rejected), /raw database|secret hint|service-secret-value/);
 
