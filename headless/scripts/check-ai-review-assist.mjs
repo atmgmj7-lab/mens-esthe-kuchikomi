@@ -22,6 +22,8 @@ assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
 assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
   ratingTotal: 3, tags: [], note: "連絡先は test@example.com と 090-1234-5678 です。",
 }))), { status: "human_review", note: "連絡先は [連絡先を削除] と [連絡先を削除] です。" }, "obvious PII must be redacted deterministically and routed to human review");
+assert.equal(assist.prefilterAiReviewInput({ ratingTotal: 3, tags: [], note: "LINE ID: review_user_01" }).status, "human_review", "contact handles are never sent to Gemini");
+assert.equal(assist.prefilterAiReviewInput({ ratingTotal: 3, tags: [], note: "www.example.com を見てください" }).status, "human_review", "bare web addresses are never sent to Gemini");
 assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
   ratingTotal: 3, tags: [], note: "殺す。",
 }))), { status: "human_review", note: "殺す。" }, "threats must never be delegated to automatic rewriting");

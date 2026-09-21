@@ -18,6 +18,7 @@ export type ReviewSubmitPayload = {
   ratingCleanliness?: number;
   revisitIntent?: string;
   reviewBody: string;
+  tags: string[];
   website?: string;
   campaignToken?: string;
 };
@@ -41,6 +42,7 @@ export const ALLOWED_REVIEW_PAYLOAD_KEYS = [
   "ratingCleanliness",
   "revisitIntent",
   "reviewBody",
+  "tags",
   "website",
   "campaignToken",
 ] as const;
@@ -93,6 +95,7 @@ export function validateReviewPayload(body: unknown): ReviewValidationResult {
     || (raw.website !== undefined && typeof raw.website !== "string")
     || (raw.revisitIntent !== undefined && typeof raw.revisitIntent !== "string")
     || (raw.campaignToken !== undefined && typeof raw.campaignToken !== "string")
+    || (raw.tags !== undefined && (!Array.isArray(raw.tags) || !raw.tags.every((tag) => typeof tag === "string")))
     || (raw.ratingPrice !== undefined && typeof raw.ratingPrice !== "number")
     || (raw.ratingService !== undefined && typeof raw.ratingService !== "number")
     || (raw.ratingCleanliness !== undefined && typeof raw.ratingCleanliness !== "number")) {
@@ -113,6 +116,7 @@ export function validateReviewPayload(body: unknown): ReviewValidationResult {
   const campaignToken = typeof raw.campaignToken === "string"
     ? raw.campaignToken.trim().toLowerCase()
     : "";
+  const tags = Array.isArray(raw.tags) ? raw.tags.map((tag) => tag.trim()) : [];
 
   if (!shopSlug) {
     return { ok: false, error: "店舗が指定されていません。" };
@@ -174,6 +178,10 @@ export function validateReviewPayload(body: unknown): ReviewValidationResult {
   if (raw.campaignToken !== undefined && !UUID_RE.test(campaignToken)) {
     return { ok: false, error: "キャンペーン情報が正しくありません。" };
   }
+  if (tags.length > 6 || new Set(tags).size !== tags.length
+    || tags.some((tag) => !["skilled_staff", "clean_space", "relaxing", "good_value", "easy_booking", "repeat_visit", "wait_concern", "price_concern", "other"].includes(tag))) {
+    return { ok: false, error: "印象タグを確認してください。" };
+  }
 
   return {
     ok: true,
@@ -187,6 +195,7 @@ export function validateReviewPayload(body: unknown): ReviewValidationResult {
       ratingCleanliness: optionalRatings[2],
       revisitIntent: revisitIntent || undefined,
       reviewBody,
+      tags,
       campaignToken: campaignToken || undefined,
     }
   };

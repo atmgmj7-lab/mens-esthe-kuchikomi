@@ -38,6 +38,7 @@ type ReviewRepositoryConfiguration = Readonly<{
 type RpcName =
   | "claim_review_submission_rate_limit"
   | "submit_review"
+  | "submit_review_with_tags"
   | "moderate_review"
   | "publish_review"
   | "list_review_moderation_queue"
@@ -360,6 +361,7 @@ function validSubmitRequest(request: SubmitReviewRequest): boolean {
     && isNullableString(request.email)
     && SHA256_RE.test(request.idempotencyKeyHash) && SHA256_RE.test(request.abuseKeyHash)
     && isIsoTimestamp(request.abuseWindowStartedAt) && isIsoTimestamp(request.abuseWindowExpiresAt)
+    && (request.tags === undefined || (request.tags.length <= 6 && request.tags.every((tag) => typeof tag === "string")))
     && (request.campaignToken === null || isReviewId(request.campaignToken));
 }
 
@@ -439,7 +441,7 @@ export function createSupabaseReviewRepository(
 
     async submit(request, signal) {
       if (!validSubmitRequest(request)) return error("invalid_request");
-      return rpc("submit_review", {
+      return rpc("submit_review_with_tags", {
         p_wp_shop_id: request.shop.wpShopId,
         p_body: request.body,
         p_rating: request.rating,
@@ -456,6 +458,7 @@ export function createSupabaseReviewRepository(
         p_revisit_intent: request.revisitIntent,
         p_email: request.email,
         p_campaign_token: request.campaignToken,
+        p_tags: request.tags ?? [],
       }, (raw) => parseSingleRow(raw, (row) => parseSubmitRow(row, request.shop)), signal);
     },
 

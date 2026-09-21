@@ -102,7 +102,7 @@ const supabase = createServer(async (request, reply) => {
     reply.end(JSON.stringify([{ allowed: true, retry_after_seconds: 0 }]));
     return;
   }
-  if (request.url === "/rest/v1/rpc/submit_review") {
+  if (request.url === "/rest/v1/rpc/submit_review_with_tags") {
     submitAttempts.push(body);
     if (body.p_campaign_token === fixtureToken && body.p_wp_shop_id !== fixtureShop.id) {
       reply.writeHead(400, { "Content-Type": "application/json" });
@@ -191,7 +191,12 @@ try {
   await page.locator("#review-used-period").selectOption("今月");
   await page.locator("#review-rating-total").selectOption("5");
   await page.locator("#review-body").fill(reviewPayload.reviewBody);
-  await page.locator(".hl-contact-submit").click();
+  await page.getByRole("button", { name: "AIで読みやすくして確認" }).click();
+  await page.getByText("AIを使わず運営審査へ送れます。", { exact: false }).waitFor({ state: "visible" });
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "AI outage preserves the customer draft");
+  await page.getByRole("button", { name: "そのまま確認" }).click();
+  await page.getByText("内容を確認し、必要なら編集してから", { exact: false }).waitFor({ state: "visible" });
+  await page.getByRole("button", { name: "この内容で口コミを投稿" }).click();
   await page.locator(".hl-contact-success").waitFor({ state: "visible" });
   assert.equal(wordpressWrites, 0);
   assert.equal(privateEvents.length, 2);
@@ -206,7 +211,8 @@ try {
   await page.locator("#review-used-period").selectOption("今月");
   await page.locator("#review-rating-total").selectOption("5");
   await page.locator("#review-body").fill(reviewPayload.reviewBody);
-  await page.locator(".hl-contact-submit").click();
+  await page.getByRole("button", { name: "そのまま確認" }).click();
+  await page.getByRole("button", { name: "この内容で口コミを投稿" }).click();
   await page.locator(".hl-contact-success").waitFor({ state: "visible" });
   assert.equal(wordpressWrites, 0, "normal form path never writes WordPress");
   assert.equal(privateEvents.length, 4, "normal form path claims and submits natively");

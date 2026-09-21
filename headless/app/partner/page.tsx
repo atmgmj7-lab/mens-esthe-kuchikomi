@@ -27,6 +27,9 @@ export default async function PartnerDashboardPage() {
   const qrDataUrl = growthKit.qr.status === "available"
     ? await QRCode.toDataURL(growthKit.qr.value, { errorCorrectionLevel: "M", margin: 1, width: 512 })
     : null;
+  const widgetEmbed = growthKit.widgetUrl.status === "available"
+    ? `<iframe src="${growthKit.widgetUrl.value}" title="Eskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`
+    : null;
 
   return (
     <main id="main_content" className="l-mainContent l-article" data-partner-dashboard-root>
@@ -97,10 +100,10 @@ export default async function PartnerDashboardPage() {
 
           <section aria-labelledby="partner-widget-heading">
             <h3 id="partner-widget-heading">Widget v1</h3>
-            {growthKit.widgetUrl.status === "available" ? <>
+            {growthKit.widgetUrl.status === "available" && widgetEmbed ? <>
               <p><a href={growthKit.widgetUrl.value} target="_blank" rel="noreferrer">Widgetを確認</a></p>
-              <p><code className="hl-partner-growth-kit__value">{`<iframe src="${growthKit.widgetUrl.value}" title="${identity.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`}</code></p>
-              <PartnerCopyButton label="Widgetコード" value={`<iframe src="${growthKit.widgetUrl.value}" title="${identity.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`} />
+              <p><code className="hl-partner-growth-kit__value">{widgetEmbed}</code></p>
+              <PartnerCopyButton label="Widgetコード" value={widgetEmbed} />
             </> : <p>利用できません。</p>}
           </section>
         </section>

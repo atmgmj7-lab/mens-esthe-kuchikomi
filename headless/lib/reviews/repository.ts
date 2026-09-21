@@ -36,6 +36,7 @@ export type SubmitReviewRequest = Readonly<{
   abuseWindowStartedAt: string;
   abuseWindowExpiresAt: string;
   campaignToken: string | null;
+  tags?: readonly string[];
 }>;
 
 export type SubmitReviewResult = Readonly<{

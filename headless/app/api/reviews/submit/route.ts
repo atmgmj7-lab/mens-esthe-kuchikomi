@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
     abuseWindowStartedAt: rateWindow.startedAt,
     abuseWindowExpiresAt: rateWindow.expiresAt,
     campaignToken: validation.data.campaignToken ?? null,
+    tags: validation.data.tags,
   });
   if (result.status !== "ok") {
     return json({ ok: false, message: "現在口コミを受け付けできません。時間をおいて再度お試しください。" }, 503);

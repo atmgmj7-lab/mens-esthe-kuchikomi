@@ -55,6 +55,7 @@ export function ReviewSubmitForm({
         : undefined,
       revisitIntent: String(formData.get("revisitIntent") || ""),
       reviewBody,
+      tags,
       website: String(formData.get("website") || ""),
       campaignToken,
     };
