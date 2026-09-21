@@ -351,6 +351,55 @@ img {
   font-weight: 700;
 }
 
+/* ESKOMI-PHASE3-03C: private Partner Growth Kit only. */
+.hl-partner-growth-kit > section {
+  margin-top: 24px;
+}
+
+.hl-partner-growth-kit__value,
+.hl-partner-growth-kit__message,
+.hl-partner-growth-kit code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.hl-partner-growth-kit__qr {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 12px 0;
+  background: #fff;
+}
+
+.hl-partner-copy {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hl-partner-copy [role="status"] {
+  min-height: 1.5em;
+}
+
+.hl-partner-growth-kit__metrics {
+  display: grid;
+  gap: 8px;
+}
+
+.hl-partner-growth-kit__metrics > div,
+.hl-partner-growth-kit__metrics dt,
+.hl-partner-growth-kit__metrics dd {
+  margin: 0;
+}
+
+.hl-partner-growth-kit__metrics > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 767px) {
   .l-main_content__inner,
   .l-mainContent__inner,
