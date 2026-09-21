@@ -47,18 +47,23 @@ export function parseAiReviewOutput(value: unknown): AiReviewOutput | null {
 
 function modelName(environment: Readonly<Record<string, string | undefined>>): string {
   const configured = environment.GEMINI_REVIEW_MODEL?.trim();
-  return configured && /^[a-z0-9._-]{1,120}$/i.test(configured) ? configured : "gemini-3.1-flash-lite";
+  return configured && /^[a-z0-9._-]{1,120}$/i.test(configured) ? configured : "gemini-2.5-flash-lite";
 }
 
 const telemetry: AiReviewTelemetry[] = [];
+const AI_REVIEW_PRICING_USD_PER_MILLION = {
+  standard: { input: 0.1, output: 0.4 },
+  batch: { input: 0.05, output: 0.2 },
+} as const;
 
 export function recordAiReviewTelemetry(event: AiReviewTelemetry): void {
   telemetry.push(event);
   if (telemetry.length > 100) telemetry.splice(0, telemetry.length - 100);
 }
 
-export function estimateAiReviewCostUsd(inputTokens: number, outputTokens: number): number {
-  return Number(((inputTokens * 0.0000001) + (outputTokens * 0.0000004)).toFixed(8));
+export function estimateAiReviewCostUsd(inputTokens: number, outputTokens: number, mode: AiReviewTelemetry["mode"] = "standard"): number {
+  const pricing = AI_REVIEW_PRICING_USD_PER_MILLION[mode];
+  return Number(((inputTokens * pricing.input / 1_000_000) + (outputTokens * pricing.output / 1_000_000)).toFixed(8));
 }
 
 export function resolveAiReviewModel(environment: Readonly<Record<string, string | undefined>>): string {

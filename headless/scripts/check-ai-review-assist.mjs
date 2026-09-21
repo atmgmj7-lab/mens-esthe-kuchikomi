@@ -15,6 +15,11 @@ function load(source) {
 const assist = existsSync(path) ? load(readFileSync(path, "utf8")) : {};
 assert.equal(typeof assist.prefilterAiReviewInput, "function", "03F must deterministically classify or redact unsafe Review input before any provider call");
 assert.equal(typeof assist.parseAiReviewOutput, "function", "03F must accept only structured AI decisions and a bounded draft");
+assert.equal(assist.resolveAiReviewModel({}), "gemini-2.5-flash-lite", "Review Assist must default to the selected stable low-cost Gemini model");
+assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0), 0.1, "standard input telemetry must use Gemini 2.5 Flash-Lite pricing");
+assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000), 0.4, "standard output telemetry must use Gemini 2.5 Flash-Lite pricing");
+assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0, "batch"), 0.05, "batch input telemetry must use Gemini 2.5 Flash-Lite pricing");
+assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000, "batch"), 0.2, "batch output telemetry must use Gemini 2.5 Flash-Lite pricing");
 
 assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
   ratingTotal: 1, tags: ["wait_concern"], note: "連絡が遅く、待ち時間が長く感じました。",
