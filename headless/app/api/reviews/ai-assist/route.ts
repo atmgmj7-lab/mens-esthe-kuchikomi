@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { createGeminiReviewProvider, estimateAiReviewTokens, prefilterAiReviewInput, recordAiReviewTelemetry, resolveAiReviewModel } from "@/lib/reviews/ai-review-assist";
 import { REVIEW_TAGS } from "@/lib/reviews/low-friction-review";
-import { resolveTrustedReviewClientIp, utf8ByteLength } from "@/lib/reviews/submission-security";
+import { REVIEW_SUBMISSION_CSRF_VALUE, resolveTrustedReviewClientIp, utf8ByteLength } from "@/lib/reviews/submission-security";
 
 const MAX_BODY_BYTES = 8_192;
 const WINDOW_MS = 10 * 60 * 1_000;
@@ -55,6 +55,9 @@ export async function POST(request: NextRequest) {
     return json({ ok: false, message: "JSON形式で送信してください。" }, 415);
   }
   if (!sameOrigin(request)) return json({ ok: false, message: "送信元を確認できません。" }, 403);
+  if (request.headers.get("x-eskomi-csrf") !== REVIEW_SUBMISSION_CSRF_VALUE) {
+    return json({ ok: false, message: "送信元を確認できません。" }, 403);
+  }
   const ip = resolveTrustedReviewClientIp(request.headers);
   if (!ip || !claim(ip)) return json({ ok: false, message: "現在AI補助を利用できません。" }, 429);
   const raw = await request.text().catch(() => "");

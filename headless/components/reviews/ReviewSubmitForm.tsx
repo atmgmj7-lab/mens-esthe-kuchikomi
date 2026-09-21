@@ -131,7 +131,7 @@ export function ReviewSubmitForm({
     try {
       const response = await fetch("/api/reviews/ai-assist", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-submit-v1" },
         body: JSON.stringify({ ratingTotal, tags, note: reviewBody }),
       });
       const data = await response.json() as { ok?: boolean; decision?: string; draft?: string; message?: string };
