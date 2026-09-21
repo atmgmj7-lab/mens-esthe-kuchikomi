@@ -6,7 +6,7 @@ alter table app.reviews
 alter table app.reviews
   add constraint reviews_review_tags_valid check (
     cardinality(review_tags) <= 6
-    and review_tags <@ array['skilled_staff', 'clean_space', 'relaxing', 'good_value', 'easy_booking', 'repeat_visit', 'wait_concern', 'price_concern', 'other']::text[]
+    and review_tags <@ array['staff_polite', 'clean', 'booking_smooth', 'price_clear', 'beginner_friendly', 'want_revisit', 'wait_concern', 'price_unclear', 'guidance_unclear']::text[]
   );
 
 create or replace function private.submit_review_with_tags(
@@ -34,7 +34,7 @@ as $$
 declare v_result record;
 begin
   if p_tags is null or cardinality(p_tags) > 6
-    or p_tags <@ array['skilled_staff', 'clean_space', 'relaxing', 'good_value', 'easy_booking', 'repeat_visit', 'wait_concern', 'price_concern', 'other']::text[] is not true
+    or p_tags <@ array['staff_polite', 'clean', 'booking_smooth', 'price_clear', 'beginner_friendly', 'want_revisit', 'wait_concern', 'price_unclear', 'guidance_unclear']::text[] is not true
     or cardinality(p_tags) <> cardinality(array(select distinct tag from unnest(p_tags) as tag)) then
     raise exception using errcode = '22023', message = 'Review tags are invalid';
   end if;
@@ -43,7 +43,9 @@ begin
     p_abuse_key_hash, p_abuse_window_started_at, p_abuse_window_expires_at, p_rating_price,
     p_rating_service, p_rating_cleanliness, p_visit_period, p_revisit_intent, p_email, p_campaign_token
   );
-  update app.reviews set review_tags = p_tags where id = v_result.review_id;
+  if v_result.created then
+    update app.reviews set review_tags = p_tags where id = v_result.review_id;
+  end if;
   return query select v_result.review_id, v_result.created;
 end;
 $$;

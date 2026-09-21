@@ -94,7 +94,11 @@ class TestNextResponse extends Response {
 }
 
 const securityModule = loadTypeScript("lib/reviews/submission-security.ts");
-const validationModule = loadTypeScript("lib/review-validation.ts");
+const validationModule = loadTypeScript("lib/review-validation.ts", {
+  "@/lib/reviews/low-friction-review": {
+    REVIEW_TAGS: ["staff_polite", "clean", "booking_smooth", "price_clear", "beginner_friendly", "want_revisit", "wait_concern", "price_unclear", "guidance_unclear"],
+  },
+});
 const claimCalls = [];
 const submitCalls = [];
 let claimResult = { status: "ok", data: { allowed: true, retryAfterSeconds: 0 } };

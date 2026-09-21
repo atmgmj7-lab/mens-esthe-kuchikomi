@@ -107,7 +107,7 @@ assert.deepEqual(
   JSON.parse(JSON.stringify(await repository.submit(baseRequest))),
   { status: "ok", data: { reviewId, created: true, shop: { wpShopId: 712 } } },
 );
-assert.equal(calls.at(-1)[0], "https://project.supabase.co/rest/v1/rpc/submit_review");
+assert.equal(calls.at(-1)[0], "https://project.supabase.co/rest/v1/rpc/submit_review_with_tags");
 const submitInit = calls.at(-1)[1];
 assert.equal(submitInit.headers.apikey, "service-secret-value");
 assert.equal(submitInit.headers["Content-Profile"], "api");
@@ -128,6 +128,7 @@ assert.deepEqual(JSON.parse(submitInit.body), {
   p_revisit_intent: "また利用したい",
   p_email: null,
   p_campaign_token: campaignToken,
+  p_tags: [],
 });
 
 const moderationQueueRow = {

@@ -1,3 +1,5 @@
+import { REVIEW_TAGS } from "@/lib/reviews/low-friction-review";
+
 export const USED_PERIODS = [
   "今月",
   "1〜3ヶ月以内",
@@ -178,8 +180,7 @@ export function validateReviewPayload(body: unknown): ReviewValidationResult {
   if (raw.campaignToken !== undefined && !UUID_RE.test(campaignToken)) {
     return { ok: false, error: "キャンペーン情報が正しくありません。" };
   }
-  if (tags.length > 6 || new Set(tags).size !== tags.length
-    || tags.some((tag) => !["skilled_staff", "clean_space", "relaxing", "good_value", "easy_booking", "repeat_visit", "wait_concern", "price_concern", "other"].includes(tag))) {
+  if (tags.length > 6 || new Set(tags).size !== tags.length || tags.some((tag) => !REVIEW_TAGS.includes(tag as typeof REVIEW_TAGS[number]))) {
     return { ok: false, error: "印象タグを確認してください。" };
   }
 

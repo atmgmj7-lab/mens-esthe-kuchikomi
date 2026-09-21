@@ -14,6 +14,7 @@ function load(source) {
 }
 const review = existsSync(path) ? load(readFileSync(path, "utf8")) : {};
 assert.equal(typeof review.prepareReviewConfirmation, "function", "03E must prepare an explicit, user-controlled confirmation without relaxing the final Native Review body contract");
+assert.match(readFileSync(join(root, "lib/review-validation.ts"), "utf8"), /import \{ REVIEW_TAGS \}/, "the Native submission validator must use the same canonical UI tag set");
 
 const valid = review.prepareReviewConfirmation({
   ratingTotal: 1,
