@@ -412,6 +412,14 @@ img {
 .hl-partner-widget__badge { margin: 0; font-weight: 700; }
 .hl-partner-widget__shop { margin: 8px 0; font-weight: 700; }
 
+.hl-review-form__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.hl-review-form__tags label { min-width: min(100%, 12rem); }
+
 @media (max-width: 767px) {
   .l-main_content__inner,
   .l-mainContent__inner,

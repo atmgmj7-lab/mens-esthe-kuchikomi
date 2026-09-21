@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import { prepareReviewConfirmation, REVIEW_TAGS, type ReviewTag } from "@/lib/reviews/low-friction-review";
 import { USED_PERIODS } from "@/lib/review-validation";
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
@@ -23,6 +24,8 @@ export function ReviewSubmitForm({
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [tags, setTags] = useState<ReviewTag[]>([]);
+  const [confirming, setConfirming] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -53,6 +56,27 @@ export function ReviewSubmitForm({
       campaignToken,
     };
 
+    if (!confirming) {
+      const confirmation = prepareReviewConfirmation({
+        ratingTotal: payload.ratingTotal,
+        tags,
+        note: payload.reviewBody,
+      });
+      if (confirmation.status === "needs_note") {
+        setStatus("error");
+        setErrorMessage("投稿前に、30文字以上の口コミ本文を入力してください。");
+        return;
+      }
+      if (confirmation.status === "invalid") {
+        setStatus("error");
+        setErrorMessage("評価またはタグを確認してください。");
+        return;
+      }
+      setStatus("idle");
+      setConfirming(true);
+      return;
+    }
+
     idempotencyKeyRef.current ??= crypto.randomUUID();
 
     try {
@@ -79,11 +103,19 @@ export function ReviewSubmitForm({
       );
       setStatus("success");
       idempotencyKeyRef.current = null;
+      setTags([]);
+      setConfirming(false);
       form.reset();
     } catch {
       setStatus("error");
       setErrorMessage("送信に失敗しました。時間をおいて再度お試しください。");
     }
+  }
+
+  function toggleTag(tag: ReviewTag) {
+    setTags((current) => current.includes(tag)
+      ? current.filter((value) => value !== tag)
+      : current.length < 6 ? [...current, tag] : current);
   }
 
   if (status === "success") {
@@ -119,6 +151,20 @@ export function ReviewSubmitForm({
           autoComplete="nickname"
         />
       </div>
+
+      <fieldset className="hl-contact-field">
+        <legend>印象タグ（任意・最大6件）</legend>
+        <div className="hl-review-form__tags">
+          {REVIEW_TAGS.map((tag) => <label key={tag}>
+            <input
+              type="checkbox"
+              checked={tags.includes(tag)}
+              disabled={!tags.includes(tag) && tags.length >= 6}
+              onChange={() => toggleTag(tag)}
+            /> {tag}
+          </label>)}
+        </div>
+      </fieldset>
 
       <div className="hl-contact-field">
         <label htmlFor="review-used-period">
@@ -173,17 +219,15 @@ export function ReviewSubmitForm({
 
       <div className="hl-contact-field">
         <label htmlFor="review-body">
-          口コミ本文 <span className="hl-contact-required">必須</span>
+          口コミ本文（任意）
         </label>
         <textarea
           id="review-body"
           name="reviewBody"
           rows={8}
-          minLength={30}
           maxLength={1000}
-          required
         />
-        <p className="hl-review-form__hint">30〜1000文字で入力してください。</p>
+        <p className="hl-review-form__hint">確認画面へ進む前に、30〜1000文字の本文が必要です。</p>
       </div>
 
       <p className="hl-review-form__notice">
@@ -198,9 +242,10 @@ export function ReviewSubmitForm({
 
       <div className="hl-contact-actions">
         <button type="submit" className="hl-contact-submit" disabled={status === "submitting"}>
-          {status === "submitting" ? "送信中..." : "口コミを送信する"}
+          {status === "submitting" ? "送信中..." : confirming ? "この内容で口コミを投稿" : "そのまま確認"}
         </button>
       </div>
+      {confirming ? <p role="status">内容を確認し、必要なら編集してから「この内容で口コミを投稿」を選択してください。</p> : null}
     </form>
   );
 }
