@@ -47,13 +47,13 @@ export function parseAiReviewOutput(value: unknown): AiReviewOutput | null {
 
 function modelName(environment: Readonly<Record<string, string | undefined>>): string {
   const configured = environment.GEMINI_REVIEW_MODEL?.trim();
-  return configured && /^[a-z0-9._-]{1,120}$/i.test(configured) ? configured : "gemini-2.5-flash-lite";
+  return configured && /^[a-z0-9._-]{1,120}$/i.test(configured) ? configured : "gemini-3.1-flash-lite";
 }
 
 const telemetry: AiReviewTelemetry[] = [];
 const AI_REVIEW_PRICING_USD_PER_MILLION = {
-  standard: { input: 0.1, output: 0.4 },
-  batch: { input: 0.05, output: 0.2 },
+  standard: { input: 0.25, output: 1.5 },
+  batch: { input: 0.125, output: 0.75 },
 } as const;
 
 export function recordAiReviewTelemetry(event: AiReviewTelemetry): void {

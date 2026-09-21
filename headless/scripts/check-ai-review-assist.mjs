@@ -17,11 +17,11 @@ const assist = existsSync(path) ? load(readFileSync(path, "utf8")) : {};
 const routeSource = existsSync(routePath) ? readFileSync(routePath, "utf8") : "";
 assert.equal(typeof assist.prefilterAiReviewInput, "function", "03F must deterministically classify or redact unsafe Review input before any provider call");
 assert.equal(typeof assist.parseAiReviewOutput, "function", "03F must accept only structured AI decisions and a bounded draft");
-assert.equal(assist.resolveAiReviewModel({}), "gemini-2.5-flash-lite", "Review Assist must default to the selected stable low-cost Gemini model");
-assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0), 0.1, "standard input telemetry must use Gemini 2.5 Flash-Lite pricing");
-assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000), 0.4, "standard output telemetry must use Gemini 2.5 Flash-Lite pricing");
-assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0, "batch"), 0.05, "batch input telemetry must use Gemini 2.5 Flash-Lite pricing");
-assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000, "batch"), 0.2, "batch output telemetry must use Gemini 2.5 Flash-Lite pricing");
+assert.equal(assist.resolveAiReviewModel({}), "gemini-3.1-flash-lite", "Review Assist must default to the selected stable model available to the production key");
+assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0), 0.25, "standard input telemetry must use Gemini 3.1 Flash-Lite pricing");
+assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000), 1.5, "standard output telemetry must use Gemini 3.1 Flash-Lite pricing");
+assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0, "batch"), 0.125, "batch input telemetry must use Gemini 3.1 Flash-Lite pricing");
+assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000, "batch"), 0.75, "batch output telemetry must use Gemini 3.1 Flash-Lite pricing");
 assert.equal(typeof assist.listAvailableGeminiTextModels, "function", "production model selection must verify the key's available Gemini text models");
 const listedModels = await assist.listAvailableGeminiTextModels(
   { GEMINI_API_KEY: "fixture-key" },
