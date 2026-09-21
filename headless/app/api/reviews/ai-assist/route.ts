@@ -2,7 +2,7 @@ import { createHash, createHmac, randomUUID } from "node:crypto";
 
 import { NextRequest, NextResponse } from "next/server";
 
-import { createGeminiReviewProvider, estimateAiReviewCostUsd, estimateAiReviewTokens, prefilterAiReviewInput, recordAiReviewTelemetry, resolveAiReviewModel, type AiReviewTelemetry } from "@/lib/reviews/ai-review-assist";
+import { createGeminiReviewProvider, estimateAiReviewCostUsd, estimateAiReviewTokens, listAvailableGeminiTextModels, prefilterAiReviewInput, recordAiReviewTelemetry, resolveAiReviewModel, type AiReviewTelemetry } from "@/lib/reviews/ai-review-assist";
 import { REVIEW_TAGS } from "@/lib/reviews/low-friction-review";
 import { REVIEW_SUBMISSION_CSRF_VALUE, getReviewRateLimitWindow, resolveTrustedReviewClientIp, utf8ByteLength } from "@/lib/reviews/submission-security";
 import { reviewNativeRepository } from "@/lib/supabase/review-native";
@@ -156,6 +156,8 @@ export async function POST(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), 8_000);
   const output = await provider.generate({ ...input, note: prefilter.note }, controller.signal).catch(() => null).finally(() => clearTimeout(timeout));
   if (!output) {
+    const availableModels = await listAvailableGeminiTextModels(process.env);
+    console.info(JSON.stringify({ event: "review_ai_model_availability", status: availableModels ? "ok" : "unavailable", models: availableModels ?? [] }));
     logAiUnavailable("provider_response");
     const event = { occurredAt: new Date().toISOString(), model: resolveAiReviewModel(process.env), inputTokens: 0, outputTokens: 0, estimatedCostUsd: 0, decision: "UNAVAILABLE" as const, latencyMs: Date.now() - startedAt, mode: "standard" as const };
     recordAiReviewTelemetry(event);

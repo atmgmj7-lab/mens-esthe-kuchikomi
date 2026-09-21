@@ -70,6 +70,39 @@ export function resolveAiReviewModel(environment: Readonly<Record<string, string
   return modelName(environment);
 }
 
+type GeminiModelMetadata = Readonly<{ name?: unknown; supportedGenerationMethods?: unknown }>;
+
+function isStableTextGenerationModel(modelMetadata: GeminiModelMetadata): modelMetadata is Readonly<{ name: string; supportedGenerationMethods: readonly string[] }> {
+  if (typeof modelMetadata.name !== "string" || !Array.isArray(modelMetadata.supportedGenerationMethods)
+    || !modelMetadata.supportedGenerationMethods.includes("generateContent")) return false;
+  const model = modelMetadata.name.replace(/^models\//, "");
+  return /^gemini-[a-z0-9.-]{1,120}$/i.test(model)
+    && !/(?:preview|experimental|exp|latest|live|tts|image|embedding|robotics|banana)/i.test(model)
+    && !/^gemini-2\.0-/i.test(model);
+}
+
+export async function listAvailableGeminiTextModels(
+  environment: Readonly<Record<string, string | undefined>>,
+  fetchImpl: typeof fetch = fetch,
+): Promise<readonly string[] | null> {
+  const apiKey = environment.GEMINI_API_KEY?.trim();
+  if (!apiKey) return null;
+  try {
+    const response = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const payload = await response.json() as { models?: GeminiModelMetadata[] };
+    if (!Array.isArray(payload.models)) return null;
+    return payload.models
+      .filter(isStableTextGenerationModel)
+      .map((model) => model.name.replace(/^models\//, ""));
+  } catch {
+    return null;
+  }
+}
+
 export function createGeminiReviewProvider(
   environment: Readonly<Record<string, string | undefined>>,
   fetchImpl: typeof fetch = fetch,

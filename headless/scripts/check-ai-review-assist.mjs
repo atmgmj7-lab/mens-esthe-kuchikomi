@@ -22,6 +22,20 @@ assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0), 0.1, "standard input 
 assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000), 0.4, "standard output telemetry must use Gemini 2.5 Flash-Lite pricing");
 assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0, "batch"), 0.05, "batch input telemetry must use Gemini 2.5 Flash-Lite pricing");
 assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000, "batch"), 0.2, "batch output telemetry must use Gemini 2.5 Flash-Lite pricing");
+assert.equal(typeof assist.listAvailableGeminiTextModels, "function", "production model selection must verify the key's available Gemini text models");
+const listedModels = await assist.listAvailableGeminiTextModels(
+  { GEMINI_API_KEY: "fixture-key" },
+  async () => ({
+    ok: true,
+    json: async () => ({ models: [
+      { name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"] },
+      { name: "models/gemini-3.1-flash-lite", supportedGenerationMethods: ["generateContent"] },
+      { name: "models/gemini-3.1-flash-lite-preview", supportedGenerationMethods: ["generateContent"] },
+      { name: "models/gemini-embedding-001", supportedGenerationMethods: ["embedContent"] },
+    ] }),
+  }),
+);
+assert.deepEqual(JSON.parse(JSON.stringify(listedModels)), ["gemini-2.5-flash", "gemini-3.1-flash-lite"], "only available stable generateContent models may be considered");
 assert.match(readFileSync(path, "utf8"), /review_ai_provider_response[\s\S]*response\.status/u, "provider failures must log only model/status metadata for production diagnosis");
 assert.match(routeSource, /review_ai_unavailable/u, "route failures must log a safe availability stage for production diagnosis");
 assert.match(routeSource, /result\.status === "error"[\s\S]*result\.error\.code/u, "rate-limit diagnostics must record only the repository error category");
