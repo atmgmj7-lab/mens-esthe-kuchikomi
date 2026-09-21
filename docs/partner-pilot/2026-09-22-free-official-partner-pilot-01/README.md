@@ -99,3 +99,10 @@ Minorなコピー/UI課題は、onboardingを妨げない限りP1の停止理由
 ## Pack source
 
 店舗に渡す文章・運用手順・素材仕様は [launch-pack.md](launch-pack.md) にあります。`[[...]]` は、承認後の正しい店舗/キャンペーンに差し替える運用プレースホルダーです。P1承認前には配信・公開しません。
+
+## Creative asset status
+
+- 「Eskomi公式パートナー募集」バナーは `APPROVED_FOR_PILOT`。Pilot募集ページHero、店舗向け1枚説明資料の表紙、営業資料の冒頭、メール遷移先LPに使用します。LINE / DMのメイン画像には、縦長・短文に最適化した別素材を使います。
+- 店舗HP用口コミCTAバナーは `APPROVED`。店舗別のreview URLを差し込んだ配布版は、URL照合完了後にのみ利用します。
+- 店頭口コミQRカードは `APPROVED_PENDING_TOKEN_INSERTION`。P1 campaign tokenとreview URLを差し込むまでは外部配布しません。
+- 全assetの用途、personalization、未完成素材、次アクションは [creative-manifest.md](creative-manifest.md) を正本とします。ここにない画像・派生版を送信や公開に使いません。

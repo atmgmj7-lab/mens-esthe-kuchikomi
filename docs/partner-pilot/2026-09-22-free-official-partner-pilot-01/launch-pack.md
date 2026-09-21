@@ -34,6 +34,9 @@ Eskomiが既存の店舗ページを準備・管理し、店舗には掲載情�
 
 ### Hero
 
+**Creative status**
+「Eskomi公式パートナー募集」バナーは `APPROVED_FOR_PILOT` です。Pilot募集ページHero、店舗向け1枚説明資料の表紙、営業資料の冒頭、メール遷移先LPに使用します。LINE / DMのメイン画像には使わず、短いメッセージに最適化した専用素材を使用します。
+
 **見出し**
 掲載料0円。既存の店舗ページを、公式パートナーとしてもっと使いやすく。
 
@@ -121,6 +124,9 @@ Eskomiにある既存の店舗ページを、店舗と確認しながらより�
 ### CTA placeholder
 
 `[[無料で公式パートナーについて相談する]]`
+
+**表紙用creative**
+店舗向け1枚説明資料の表紙には、`APPROVED_FOR_PILOT` の「Eskomi公式パートナー募集」バナーを使用します。本文の情報量を置き換えず、表紙/導入の役割に限ります。
 
 ---
 
@@ -365,6 +371,14 @@ Free Official Partnerの基本利用を、店舗の個別同意なく有料化�
 
 最終画像はこのタスクでは生成しません。以下はデザイナー/制作担当に渡す仕様です。QRの最終値はProvisioning後に正しいキャンペーンURLから生成します。
 
+### Current Pilot creative status
+
+| Asset | Status | Approved use | Distribution gate |
+|---|---|---|---|
+| Eskomi公式パートナー募集バナー | `APPROVED_FOR_PILOT` | Pilot募集ページHero、店舗向け1枚説明資料表紙、営業資料冒頭、メール遷移先LP | 承認済み外部マスターをasset registryへ登録してから使用。LINE / DMメイン画像には使わない |
+| 店舗HP用口コミCTAバナー | `APPROVED` | 店舗公式サイト上の中立的なレビューCTA | P1の正しいreview URLを差し込み、店舗名・URL照合後に配布 |
+| 店頭口コミQRカード | `APPROVED_PENDING_TOKEN_INSERTION` | 受付/会計後の中立的な口コミ案内 | P1 campaign tokenとreview URLを差し込み、読み取りテスト後に配布 |
+
 | Asset | Recommended size | Required copy / CTA | Safe area and contrast | Variants |
 |---|---|---|---|---|
 | Free Official Partner badge | 1200 x 1200 px master; 240 x 240 px UI | `Free Official Partner` / `掲載料0円` | 全辺10%以上を余白。小サイズでも`公式`と`0円`が読める太字。装飾で公式認定範囲を誇張しない | light: white/brand blue; dark: deep navy/white |
@@ -378,3 +392,14 @@ Free Official Partnerの基本利用を、店舗の個別同意なく有料化�
 - QRの試し読みで、正しい店舗のレビュー画面へ到達する。
 - 星の数・肯定評価・特典を促す文言がない。
 - 公開前に店舗名・URL・CTA・モバイル表示を人が確認する。
+
+### P1 personalization and external-distribution gate
+
+QRカードと店舗HP用CTAバナーは、P1のcampaign tokenとreview URLが正しい店舗用に発行された後に完成します。差し込み前の素材、または差し込み値を確認していない素材は外部配布禁止です。
+
+1. Dashboard/運用記録で対象 `wp_shop_id`、shop名、canonical URL、campaign tokenを一件ずつ照合する。
+2. tokenから生成したreview URLが、同じshop名・canonical shopへ解決することを確認する。
+3. QRを実機で読み取り、表示先URLとCTAリンクが同じreview URLであることを確認する。
+4. 完成版に店舗名、review URL、作成日、確認者を記録してから、対象店舗だけへ配布する。
+
+差し込み、照合、読み取りテストのいずれかが未完了なら、配布・送信・公開を行いません。asset一覧と未完成素材は [creative-manifest.md](creative-manifest.md) を参照してください。
