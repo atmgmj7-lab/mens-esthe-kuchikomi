@@ -26,6 +26,9 @@ export function ReviewSubmitForm({
   const [successMessage, setSuccessMessage] = useState("");
   const [tags, setTags] = useState<ReviewTag[]>([]);
   const [confirming, setConfirming] = useState(false);
+  const [reviewBody, setReviewBody] = useState("");
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiPending, setAiPending] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -51,7 +54,7 @@ export function ReviewSubmitForm({
         ? Number(formData.get("ratingCleanliness"))
         : undefined,
       revisitIntent: String(formData.get("revisitIntent") || ""),
-      reviewBody: String(formData.get("reviewBody") || ""),
+      reviewBody,
       website: String(formData.get("website") || ""),
       campaignToken,
     };
@@ -105,6 +108,7 @@ export function ReviewSubmitForm({
       idempotencyKeyRef.current = null;
       setTags([]);
       setConfirming(false);
+      setReviewBody("");
       form.reset();
     } catch {
       setStatus("error");
@@ -118,6 +122,29 @@ export function ReviewSubmitForm({
       : current.length < 6 ? [...current, tag] : current);
   }
 
+  async function requestAiAssist() {
+    if (aiPending) return;
+    const form = document.getElementById("review-submit-form") as HTMLFormElement | null;
+    const ratingTotal = Number(new FormData(form ?? undefined).get("ratingTotal") || 0);
+    setAiPending(true);
+    setAiMessage("");
+    try {
+      const response = await fetch("/api/reviews/ai-assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ratingTotal, tags, note: reviewBody }),
+      });
+      const data = await response.json() as { ok?: boolean; decision?: string; draft?: string; message?: string };
+      if (!response.ok || !data.ok) throw new Error(data.message || "AI補助は現在利用できません。");
+      if (typeof data.draft === "string") setReviewBody(data.draft);
+      setAiMessage(data.decision === "HUMAN_REVIEW" ? "運営審査で内容を確認します。" : "AI補助の結果を確認し、必要なら編集してください。");
+    } catch (error) {
+      setAiMessage(error instanceof Error ? `${error.message} AIを使わず運営審査へ送れます。` : "AIを使わず運営審査へ送れます。");
+    } finally {
+      setAiPending(false);
+    }
+  }
+
   if (status === "success") {
     return (
       <div className="hl-contact-success" role="status">
@@ -128,7 +155,7 @@ export function ReviewSubmitForm({
   }
 
   return (
-    <form className="hl-contact-form hl-review-form" onSubmit={handleSubmit} noValidate>
+    <form id="review-submit-form" className="hl-contact-form hl-review-form" onSubmit={handleSubmit} noValidate>
       <p className="hl-review-form__shop">
         投稿先店舗：<strong>{shopTitle}</strong>
       </p>
@@ -226,6 +253,8 @@ export function ReviewSubmitForm({
           name="reviewBody"
           rows={8}
           maxLength={1000}
+          value={reviewBody}
+          onChange={(event) => setReviewBody(event.target.value)}
         />
         <p className="hl-review-form__hint">確認画面へ進む前に、30〜1000文字の本文が必要です。</p>
       </div>
@@ -241,10 +270,14 @@ export function ReviewSubmitForm({
       ) : null}
 
       <div className="hl-contact-actions">
+        <button type="button" className="hl-contact-submit" onClick={requestAiAssist} disabled={aiPending}>
+          {aiPending ? "AI確認中..." : "AIで読みやすくして確認"}
+        </button>
         <button type="submit" className="hl-contact-submit" disabled={status === "submitting"}>
           {status === "submitting" ? "送信中..." : confirming ? "この内容で口コミを投稿" : "そのまま確認"}
         </button>
       </div>
+      {aiMessage ? <p role="status">{aiMessage}</p> : null}
       {confirming ? <p role="status">内容を確認し、必要なら編集してから「この内容で口コミを投稿」を選択してください。</p> : null}
     </form>
   );
