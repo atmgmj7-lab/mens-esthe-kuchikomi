@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PartnerAccessDependencies, PartnerAuthUser, PartnerMembershipAccess } from "@/lib/partner/partner-auth";
+import type { PartnerDashboardIdentityDependencies, PartnerWorkspaceIdentity } from "@/lib/partner/partner-dashboard";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -45,6 +46,26 @@ function parseMembership(value: unknown): PartnerMembershipAccess | null {
     : null;
 }
 
+function parseWorkspaceIdentity(value: unknown): PartnerWorkspaceIdentity | null {
+  if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
+  const row = value[0] as Record<string, unknown>;
+  return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
+    && typeof row.wp_shop_id === "number" && Number.isSafeInteger(row.wp_shop_id) && row.wp_shop_id > 0
+    && typeof row.shop_slug === "string" && row.shop_slug.length > 0
+    && typeof row.shop_name === "string" && row.shop_name.trim().length > 0
+    && typeof row.canonical_url === "string" && row.canonical_url.length > 0
+    && (row.state === "free_official_partner" || row.state === "active_partner")
+    ? {
+      workspaceId: row.workspace_id,
+      shopId: row.wp_shop_id,
+      shopSlug: row.shop_slug,
+      shopName: row.shop_name,
+      canonicalUrl: row.canonical_url,
+      state: row.state,
+    }
+    : null;
+}
+
 function authConfiguration(environment: Environment): AuthConfiguration | null {
   const baseUrl = normalizeSupabaseUrl(environment.SUPABASE_URL);
   const authPublishableKey = configuredString(environment.SUPABASE_AUTH_PUBLISHABLE_KEY);
@@ -78,7 +99,7 @@ function validMagicLinkToken(value: unknown): value is string {
 export function createPartnerAuthDependencies(
   environment: Environment,
   fetchImpl: typeof fetch = fetch,
-): PartnerAccessDependencies | null {
+): (PartnerAccessDependencies & PartnerDashboardIdentityDependencies) | null {
   const auth = authConfiguration(environment);
   const serviceRoleKey = configuredString(environment.SUPABASE_SERVICE_ROLE_KEY);
   if (!auth || !serviceRoleKey) return null;
@@ -118,6 +139,20 @@ export function createPartnerAuthDependencies(
           cache: "no-store",
         });
         return response.ok ? parseMembership(await response.json()) : null;
+      } catch {
+        return null;
+      }
+    },
+    async getWorkspaceIdentity(workspaceId: string): Promise<PartnerWorkspaceIdentity | null> {
+      if (typeof workspaceId !== "string" || !UUID_RE.test(workspaceId)) return null;
+      try {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_workspace_identity`, {
+          method: "POST",
+          headers: serviceHeaders,
+          body: JSON.stringify({ p_workspace_id: workspaceId }),
+          cache: "no-store",
+        });
+        return response.ok ? parseWorkspaceIdentity(await response.json()) : null;
       } catch {
         return null;
       }
