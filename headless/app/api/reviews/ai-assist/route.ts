@@ -14,8 +14,8 @@ function json(body: Record<string, unknown>, status: number) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
 }
 
-function logAiUnavailable(stage: "provider_config" | "client_ip" | "server_secret" | "rate_limit" | "provider_response"): void {
-  console.info(JSON.stringify({ event: "review_ai_unavailable", stage, model: resolveAiReviewModel(process.env) }));
+function logAiUnavailable(stage: "provider_config" | "client_ip" | "server_secret" | "rate_limit" | "provider_response", reason?: string): void {
+  console.info(JSON.stringify({ event: "review_ai_unavailable", stage, ...(reason ? { reason } : {}), model: resolveAiReviewModel(process.env) }));
 }
 
 async function readBoundedBody(request: NextRequest): Promise<string | null> {
@@ -61,7 +61,10 @@ function sameOrigin(request: NextRequest): boolean {
   }
 }
 
-async function claimAiAssistRateLimit(ip: string, serverSecret: string): Promise<"allowed" | "limited" | "unavailable"> {
+async function claimAiAssistRateLimit(ip: string, serverSecret: string): Promise<
+  Readonly<{ status: "allowed" | "limited" }>
+  | Readonly<{ status: "unavailable"; reason: "not_configured" | "invalid_request" | "request_failed" | "invalid_response" | "no_data" }>
+> {
   const window = getReviewRateLimitWindow();
   const result = await reviewNativeRepository.claimRateLimit({
     idempotencyKeyHash: createHash("sha256").update(`ai-review-assist-v1|${randomUUID()}`).digest("hex"),
@@ -70,8 +73,9 @@ async function claimAiAssistRateLimit(ip: string, serverSecret: string): Promise
     windowExpiresAt: window.expiresAt,
     limit: MAX_REQUESTS,
   });
-  if (result.status !== "ok") return "unavailable";
-  return result.data.allowed ? "allowed" : "limited";
+  if (result.status === "error") return { status: "unavailable", reason: result.error.code };
+  if (result.status === "no_data") return { status: "unavailable", reason: "no_data" };
+  return { status: result.data.allowed ? "allowed" : "limited" };
 }
 
 async function persistAiReviewTelemetry(event: AiReviewTelemetry, serverSecret: string): Promise<void> {
@@ -137,11 +141,11 @@ export async function POST(request: NextRequest) {
     return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
   }
   const rateLimit = await claimAiAssistRateLimit(ip, serverSecret);
-  if (rateLimit === "unavailable") {
-    logAiUnavailable("rate_limit");
+  if (rateLimit.status === "unavailable") {
+    logAiUnavailable("rate_limit", rateLimit.reason);
     return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
   }
-  if (rateLimit === "limited") return json({ ok: false, message: "AI補助は現在利用できません。" }, 429);
+  if (rateLimit.status === "limited") return json({ ok: false, message: "AI補助は現在利用できません。" }, 429);
   const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8_000);

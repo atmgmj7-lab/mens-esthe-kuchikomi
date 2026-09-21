@@ -24,6 +24,7 @@ assert.equal(assist.estimateAiReviewCostUsd(1_000_000, 0, "batch"), 0.05, "batch
 assert.equal(assist.estimateAiReviewCostUsd(0, 1_000_000, "batch"), 0.2, "batch output telemetry must use Gemini 2.5 Flash-Lite pricing");
 assert.match(readFileSync(path, "utf8"), /review_ai_provider_response[\s\S]*response\.status/u, "provider failures must log only model/status metadata for production diagnosis");
 assert.match(routeSource, /review_ai_unavailable/u, "route failures must log a safe availability stage for production diagnosis");
+assert.match(routeSource, /result\.status === "error"[\s\S]*result\.error\.code/u, "rate-limit diagnostics must record only the repository error category");
 
 assert.deepEqual(JSON.parse(JSON.stringify(assist.prefilterAiReviewInput({
   ratingTotal: 1, tags: ["wait_concern"], note: "連絡が遅く、待ち時間が長く感じました。",
