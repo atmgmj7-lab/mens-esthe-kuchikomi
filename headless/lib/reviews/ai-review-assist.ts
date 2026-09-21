@@ -112,21 +112,28 @@ export function createGeminiReviewProvider(
   const model = modelName(environment);
   return {
     async generate(input, signal) {
-      const response = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal,
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: JSON.stringify({
-            task: "Return JSON only. Do not change rating or tags. Do not invent facts or reverse sentiment.",
-            ratingTotal: input.ratingTotal,
-            tags: input.tags,
-            note: input.note,
-            response: { decision: "SAFE|REWRITE_SAFE|HUMAN_REVIEW|REJECT", draft: "optional Japanese text up to 1000 chars" },
-          }) }] }],
-          generationConfig: { responseMimeType: "application/json", maxOutputTokens: 200 },
-        }),
-      });
+      let response: Response;
+      try {
+        response = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: JSON.stringify({
+              task: "Return JSON only. Do not change rating or tags. Do not invent facts or reverse sentiment.",
+              ratingTotal: input.ratingTotal,
+              tags: input.tags,
+              note: input.note,
+              response: { decision: "SAFE|REWRITE_SAFE|HUMAN_REVIEW|REJECT", draft: "optional Japanese text up to 1000 chars" },
+            }) }] }],
+            generationConfig: { responseMimeType: "application/json", maxOutputTokens: 200 },
+          }),
+        });
+      } catch (error) {
+        const reason = error instanceof Error && error.name === "AbortError" ? "aborted" : "network";
+        console.info(JSON.stringify({ event: "review_ai_provider_transport_failure", model, reason }));
+        return null;
+      }
       if (!response.ok) {
         console.info(JSON.stringify({ event: "review_ai_provider_response", model, status: response.status }));
         return null;

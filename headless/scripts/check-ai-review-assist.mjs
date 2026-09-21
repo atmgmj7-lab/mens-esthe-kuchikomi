@@ -36,6 +36,11 @@ const listedModels = await assist.listAvailableGeminiTextModels(
   }),
 );
 assert.deepEqual(JSON.parse(JSON.stringify(listedModels)), ["gemini-2.5-flash", "gemini-3.1-flash-lite"], "only available stable generateContent models may be considered");
+const transportFailureProvider = assist.createGeminiReviewProvider(
+  { GEMINI_API_KEY: "fixture-key" },
+  async () => { throw new DOMException("timed out", "AbortError"); },
+);
+assert.equal(await transportFailureProvider.generate({ ratingTotal: 3, tags: [], note: "安全なテスト本文です。" }, new AbortController().signal), null, "provider transport failures must fail closed without exposing the API key");
 assert.match(readFileSync(path, "utf8"), /review_ai_provider_response[\s\S]*response\.status/u, "provider failures must log only model/status metadata for production diagnosis");
 assert.match(routeSource, /review_ai_unavailable/u, "route failures must log a safe availability stage for production diagnosis");
 assert.match(routeSource, /result\.status === "error"[\s\S]*result\.error\.code/u, "rate-limit diagnostics must record only the repository error category");
