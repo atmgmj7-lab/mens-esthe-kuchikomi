@@ -14,7 +14,7 @@
 | 店舗画像準備中placeholder | `AVAILABLE_REPOSITORY_SOURCE` | 店舗画像未設定時の公開fallback | 店舗名を埋め込まない | Product owner: 既存fallbackを維持 | `headless/public/images/eskomi-shop-fallback.svg`。Partner募集用の訴求画像には使わない |
 | 店舗HP用口コミCTAバナー | `APPROVED` | 店舗公式サイト上の中立的な口コミ導線 | P1 review URL、対象shop名、必要時に店舗ロゴ | Partner operations: campaign発行後にP1完成版を作成し、URL照合を実施 | 外部配布版は `APPROVED_PENDING_TOKEN_INSERTION` として扱う。Widgetは任意で、CTA導入を必須にしない |
 | 店頭口コミQRカード | `APPROVED_PENDING_TOKEN_INSERTION` | 受付・会計後に実利用者へ渡す中立的な口コミ案内 | P1 campaign token、review URL、対象shop名、QR | Partner operations: token差し込み、実機読み取り、対象店舗照合 | 差し込み前・読み取り未検証の版は外部配布禁止 |
-| Official Partner badge | `MISSING_PRIORITY_1` | Dashboard、説明資料、将来の承認済みPartner表示 | Partner statusと利用箇所に応じた表示ルール | Creative owner: badgeを制作。Product owner: 表示条件を確認 | 公開ページへの実装・表示はこのtaskの対象外 |
+| Official Partner badge | `MISSING_PRIORITY_1`（Widget text fallback実装済み） | Dashboard、説明資料、将来の承認済みPartner表示 | Partner statusと利用箇所に応じた表示ルール | Creative owner: badgeを制作。Product owner: 表示条件を確認 | Widgetは画像を推測せず `Eskomi Official Partner` text fallbackを使用。差し替え点は `widget-installation.md` を参照 |
 | 店舗向け1枚説明資料 | `MISSING_PRIORITY_2` | 初回説明、承認後の補足資料 | 対象shop名・Eskomi店舗ページURL・相談先 | Creative owner: approved bannerを表紙に用いて1枚資料を制作 | 原稿は `launch-pack.md` のBを正本にする |
 | LINE / DM用案内画像 | `MISSING_PRIORITY_3` | LINE / DMの初回・follow-up案内 | 必要時にshop名または店舗ページURL | Creative owner: 短文・縦長の専用素材を制作 | 募集バナーをLINE / DMのメイン画像として流用しない |
 | 店頭QRカード本番差し込み版 | `MISSING_PRIORITY_4` | P1の実配布カード | P1 token、review URL、shop名、QR | Partner operations: token発行・URL/QR照合後に完成版を作成 | 基本デザインの承認とは別に、店舗固有値の誤差し込み防止確認が必要 |

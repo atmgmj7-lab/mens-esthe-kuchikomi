@@ -126,6 +126,21 @@ try {
   await partnerA.getByText("LINE案内文をコピーしました。").waitFor({ state: "visible" });
   await partnerA.getByRole("button", { name: "Webサイト用CTAをコピー" }).click();
   await partnerA.getByText("Webサイト用CTAをコピーしました。").waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "店舗サイトに口コミWidgetを設置" }).waitFor({ state: "visible" });
+  await partnerA.getByText("設置は任意です。").waitFor({ state: "visible" });
+  await partnerA.getByRole("link", { name: "Widgetを確認" }).waitFor({ state: "visible" });
+  const widgetCode = partnerA.locator("code").filter({ hasText: `/partner/widget/${tokenWebsite}/` });
+  await widgetCode.waitFor({ state: "visible" });
+  await widgetCode.evaluate((node) => {
+    const value = node.textContent ?? "";
+    if (!value.includes('title="Partner Shop AのEskomi口コミ"')) throw new Error("widget snippet must name the authorized shop");
+    if (!value.includes('style="width:100%;max-width:100%;border:0;min-height:180px;"')) throw new Error("widget snippet must be responsive without site-global JS");
+  });
+  await partnerA.getByRole("button", { name: "Widgetコードをコピー" }).click();
+  await partnerA.getByText("Widgetコードをコピーしました。").waitFor({ state: "visible" });
+  await partnerA.getByRole("link", { name: "設置方法を見る" }).click();
+  await partnerA.getByRole("heading", { name: "Widgetの設置方法" }).waitFor({ state: "visible" });
+  await partnerA.getByText("店舗サイトの任意の表示位置に貼り付けます。").waitFor({ state: "visible" });
   await partnerA.getByText("submitted").waitFor({ state: "visible" });
   await partnerA.getByText("8").first().waitFor({ state: "visible" });
   await partnerA.getByText("pending").waitFor({ state: "visible" });

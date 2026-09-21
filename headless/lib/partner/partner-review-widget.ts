@@ -48,8 +48,18 @@ function validSource(source: PublicPartnerWidgetSource): boolean {
     && (source.averageRating === null || (Number.isFinite(source.averageRating) && source.averageRating >= 1 && source.averageRating <= 5));
 }
 
+export function buildPartnerWidgetIframeSnippet(input: Readonly<{ shopName: string; widgetUrl: string }>): string | null {
+  const token = input.widgetUrl.match(/^https:\/\/mens-esthe-kuchikomi\.com\/partner\/widget\/([0-9a-f-]+)\/$/i)?.[1] ?? "";
+  if (!UUID_RE.test(token)
+    || !isSafeUrl(input.widgetUrl, `/partner/widget/${token.toLowerCase()}/`)
+    || input.shopName.trim().length === 0 || input.shopName.length > 120 || /[<>&"]/u.test(input.shopName)) return null;
+  return `<iframe src="${input.widgetUrl}" title="${input.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`;
+}
+
 export function resolvePublicPartnerWidget(source: PublicPartnerWidgetSource): PublicPartnerWidget {
   if (!validSource(source)) return { status: "unavailable" };
+  const iframeSnippet = buildPartnerWidgetIframeSnippet(source);
+  if (!iframeSnippet) return { status: "unavailable" };
   const reviewSummary = source.reviewCount >= 3 && source.averageRating !== null
     ? { kind: "average_and_count" as const, average: source.averageRating, count: source.reviewCount }
     : { kind: "count_only" as const, count: source.reviewCount };
@@ -59,6 +69,6 @@ export function resolvePublicPartnerWidget(source: PublicPartnerWidgetSource): P
     shopName: source.shopName,
     reviewSummary,
     reviewUrl: source.reviewUrl,
-    iframeSnippet: `<iframe src="${source.widgetUrl}" title="${source.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`,
+    iframeSnippet,
   };
 }

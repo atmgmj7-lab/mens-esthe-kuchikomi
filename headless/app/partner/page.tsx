@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import QRCode from "qrcode";
 
 import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
+import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
 import { pageMetadata } from "@/lib/seo";
 
@@ -28,7 +29,7 @@ export default async function PartnerDashboardPage() {
     ? await QRCode.toDataURL(growthKit.qr.value, { errorCorrectionLevel: "M", margin: 1, width: 512 })
     : null;
   const widgetEmbed = growthKit.widgetUrl.status === "available"
-    ? `<iframe src="${growthKit.widgetUrl.value}" title="Eskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`
+    ? buildPartnerWidgetIframeSnippet({ shopName: identity.shopName, widgetUrl: growthKit.widgetUrl.value })
     : null;
 
   return (
@@ -99,12 +100,24 @@ export default async function PartnerDashboardPage() {
           </section>
 
           <section aria-labelledby="partner-widget-heading">
-            <h3 id="partner-widget-heading">Widget v1</h3>
+            <h3 id="partner-widget-heading">店舗サイトに口コミWidgetを設置</h3>
+            <p>設置は任意です。</p>
             {growthKit.widgetUrl.status === "available" && widgetEmbed ? <>
               <p><a href={growthKit.widgetUrl.value} target="_blank" rel="noreferrer">Widgetを確認</a></p>
               <p><code className="hl-partner-growth-kit__value">{widgetEmbed}</code></p>
               <PartnerCopyButton label="Widgetコード" value={widgetEmbed} />
+              <p><a href="#partner-widget-install-guide">設置方法を見る</a></p>
             </> : <p>利用できません。</p>}
+          </section>
+
+          <section id="partner-widget-install-guide" aria-labelledby="partner-widget-install-guide-heading">
+            <h3 id="partner-widget-install-guide-heading">Widgetの設置方法</h3>
+            <p>店舗サイトの任意の表示位置に貼り付けます。</p>
+            <ol>
+              <li>「Widgetを確認」で対象店舗の表示を確認します。</li>
+              <li>「Widgetコードをコピー」でiframeコードをコピーします。</li>
+              <li>店舗サイトのHTML編集が可能な位置へ貼り付け、スマートフォンでも表示を確認します。</li>
+            </ol>
           </section>
         </section>
 

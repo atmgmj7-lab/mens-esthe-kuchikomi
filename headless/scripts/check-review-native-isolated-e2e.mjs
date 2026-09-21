@@ -87,6 +87,53 @@ function sql(input) {
   ], { input, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }).trim();
 }
 
+function cleanSyntheticFixtures() {
+  sql(`
+with fixture_reviews as (
+  select r.id from app.reviews r
+  join app.shops s on s.id = r.shop_id
+  where s.wp_post_id in (99170001, 99170002)
+), fixture_workspaces as (
+  select id from private.partner_workspaces where wp_shop_id in (99170001, 99170002)
+), fixture_campaigns as (
+  select id from private.partner_review_campaigns where workspace_id in (select id from fixture_workspaces)
+)
+delete from private.partner_review_campaign_submissions where campaign_id in (select id from fixture_campaigns);
+delete from private.review_idempotency_keys where review_id in (
+  select r.id from app.reviews r join app.shops s on s.id = r.shop_id where s.wp_post_id in (99170001, 99170002)
+);
+delete from private.review_moderation_events where review_id in (
+  select r.id from app.reviews r join app.shops s on s.id = r.shop_id where s.wp_post_id in (99170001, 99170002)
+);
+delete from private.review_submission_details where review_id in (
+  select r.id from app.reviews r join app.shops s on s.id = r.shop_id where s.wp_post_id in (99170001, 99170002)
+);
+delete from private.partner_review_campaigns where workspace_id in (
+  select id from private.partner_workspaces where wp_shop_id in (99170001, 99170002)
+);
+delete from private.partner_memberships where workspace_id in (
+  select id from private.partner_workspaces where wp_shop_id in (99170001, 99170002)
+);
+delete from private.partner_registration_submissions where workspace_id in (
+  select id from private.partner_workspaces where wp_shop_id in (99170001, 99170002)
+);
+delete from private.partner_state_history where workspace_id in (
+  select id from private.partner_workspaces where wp_shop_id in (99170001, 99170002)
+);
+delete from private.partner_workspaces where wp_shop_id in (99170001, 99170002);
+delete from app.shops where wp_post_id in (99170001, 99170002);
+`);
+}
+
+cleanSyntheticFixtures();
+process.on("exit", () => {
+  try {
+    cleanSyntheticFixtures();
+  } catch {
+    // Preserve the original assertion or runtime error; fixture cleanup is best-effort at process exit.
+  }
+});
+
 const SHOP_A = 99170001;
 const SHOP_B = 99170002;
 const shopA = {
@@ -116,18 +163,24 @@ values
   (${SHOP_A}, '${shopA.slug}', '${shopA.title}', 'https://mens-esthe-kuchikomi.com/shops/${shopA.slug}/', 'free_official_partner'),
   (${SHOP_B}, '${shopB.slug}', '${shopB.title}', 'https://mens-esthe-kuchikomi.com/shops/${shopB.slug}/', 'free_official_partner');
 insert into private.partner_review_campaigns (workspace_id, channel)
-select id, 'counter_qr' from private.partner_workspaces where wp_shop_id in (${SHOP_A}, ${SHOP_B})
-order by wp_shop_id;
-select w.wp_shop_id, w.id, c.token
+select w.id, channels.channel::private.partner_review_campaign_channel
+from private.partner_workspaces w
+cross join (values ('counter_qr'), ('shop_website')) as channels(channel)
+where w.wp_shop_id in (${SHOP_A}, ${SHOP_B})
+order by w.wp_shop_id, channels.channel;
+select w.wp_shop_id, w.id, c.channel, c.token
 from private.partner_workspaces w
 join private.partner_review_campaigns c on c.workspace_id = w.id
 where w.wp_shop_id in (${SHOP_A}, ${SHOP_B})
-order by w.wp_shop_id;
+order by w.wp_shop_id, c.channel;
 `);
 const setupRows = setup.split("\n").filter(Boolean).map((line) => line.split("|"));
-assert.equal(setupRows.length, 2);
-const [, workspaceA, campaignA] = setupRows[0];
-const [, , campaignB] = setupRows[1];
+assert.equal(setupRows.length, 4);
+const websiteCampaignA = setupRows.find(([shopId, , channel]) => shopId === String(SHOP_A) && channel === "shop_website");
+const websiteCampaignB = setupRows.find(([shopId, , channel]) => shopId === String(SHOP_B) && channel === "shop_website");
+assert.ok(websiteCampaignA && websiteCampaignB, "each fixture shop requires a shop_website campaign");
+const [, workspaceA, , campaignA] = websiteCampaignA;
+const [, , , campaignB] = websiteCampaignB;
 
 const { apiUrl, serviceRoleKey } = localSupabaseEnvironment();
 process.env.SUPABASE_URL = apiUrl;
@@ -139,7 +192,10 @@ const repository = repositoryModule.createSupabaseReviewRepository({
   serviceRoleKey,
 });
 const security = loadTypeScript("lib/reviews/submission-security.ts");
-const validation = loadTypeScript("lib/review-validation.ts");
+const lowFrictionReview = loadTypeScript("lib/reviews/low-friction-review.ts");
+const validation = loadTypeScript("lib/review-validation.ts", {
+  "@/lib/reviews/low-friction-review": lowFrictionReview,
+});
 
 class TestNextResponse extends Response {
   static json(value, init = {}) {
@@ -223,6 +279,10 @@ function reviewInput(index, rating, campaignToken = null) {
 const campaignUrlModule = loadTypeScript("lib/partner/provisioning-service.ts", {
   "@/lib/shop-slug": { normalizePublicShopSlug: (value) => value },
 });
+const partnerWorkspaceModule = loadTypeScript("lib/supabase/partner-workspace.ts", {
+  "@/lib/partner/provisioning-service": campaignUrlModule,
+});
+const widgetModule = loadTypeScript("lib/partner/partner-review-widget.ts");
 assert.equal(
   campaignUrlModule.buildPartnerReviewCampaignUrl(campaignA),
   `https://mens-esthe-kuchikomi.com/r/${campaignA}/`,
@@ -252,6 +312,57 @@ const negative = await submit(reviewInput(3, 1));
 const rejected = await submit(reviewInput(4, 2));
 const spam = await submit(reviewInput(5, 1));
 
+const publicAdapterModule = loadTypeScript("lib/reviews/public-adapter.ts", {
+  "@/lib/supabase/review-native": { reviewNativeRepository: repository },
+  "@/lib/wp/reviews": {
+    getApprovedShopReviews: async () => { throw new Error("WordPress reader must not run"); },
+    getApprovedReviewsPage: async () => { throw new Error("WordPress reader must not run"); },
+  },
+  "@/lib/wp/shops": { getAllShopsForListing: async () => [shopA, shopB] },
+});
+const adapter = publicAdapterModule.createPublicReviewAdapter({
+  repository,
+  readWordPressShopReviews: async () => { throw new Error("WordPress reader must not run"); },
+  readWordPressGlobalReviews: async () => { throw new Error("WordPress reader must not run"); },
+  listWordPressShops: async () => [shopA, shopB],
+  environment: { REVIEW_READ_SOURCE: "supabase" },
+});
+
+const widgetCampaign = await campaignUrlModule.getPublicPartnerReviewWidget(
+  campaignA,
+  partnerWorkspaceModule.partnerReviewGrowthRepository,
+);
+assert.deepEqual(widgetCampaign, {
+  shopId: SHOP_A,
+  shopSlug: shopA.slug,
+  shopName: shopA.title,
+  canonicalUrl: `https://mens-esthe-kuchikomi.com/shops/${shopA.slug}/`,
+  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${campaignA}/`,
+});
+assert.equal(await campaignUrlModule.getPublicPartnerReviewWidget(campaignB, partnerWorkspaceModule.partnerReviewGrowthRepository)
+  .then((campaign) => campaign?.shopId), SHOP_B);
+
+async function resolveWidgetSummary() {
+  const reviews = await adapter.getShopReviews(shopA, 1, 1);
+  assert.equal(reviews.status, "available");
+  return widgetModule.resolvePublicPartnerWidget({
+    ...widgetCampaign,
+    widgetUrl: `https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/`,
+    reviewCount: reviews.page.metrics.total.responseCount,
+    averageRating: reviews.page.metrics.total.average,
+  });
+}
+
+const pendingWidget = await resolveWidgetSummary();
+assert.deepEqual(pendingWidget, {
+  status: "available",
+  badge: "Eskomi Official Partner",
+  shopName: shopA.title,
+  reviewSummary: { kind: "count_only", count: 0 },
+  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${campaignA}/`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/" title="${shopA.title}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
+});
+
 const queue = await repository.listModerationQueue({ limit: 20, offset: 0 });
 assert.equal(queue.status, "ok");
 assert.equal(queue.data.filter((item) => item.shop.wpShopId === SHOP_A).length, 5);
@@ -274,21 +385,6 @@ for (const reviewId of [first.reviewId, secondId]) {
   assert.equal(published.status, "ok");
 }
 
-const publicAdapterModule = loadTypeScript("lib/reviews/public-adapter.ts", {
-  "@/lib/supabase/review-native": { reviewNativeRepository: repository },
-  "@/lib/wp/reviews": {
-    getApprovedShopReviews: async () => { throw new Error("WordPress reader must not run"); },
-    getApprovedReviewsPage: async () => { throw new Error("WordPress reader must not run"); },
-  },
-  "@/lib/wp/shops": { getAllShopsForListing: async () => [shopA, shopB] },
-});
-const adapter = publicAdapterModule.createPublicReviewAdapter({
-  repository,
-  readWordPressShopReviews: async () => { throw new Error("WordPress reader must not run"); },
-  readWordPressGlobalReviews: async () => { throw new Error("WordPress reader must not run"); },
-  listWordPressShops: async () => [shopA, shopB],
-  environment: { REVIEW_READ_SOURCE: "supabase" },
-});
 const viewModelModule = loadTypeScript("lib/shop-review-view-model.ts");
 const belowThreshold = await adapter.getShopReviews(shopA, 1, 20);
 assert.equal(belowThreshold.status, "available");
@@ -296,6 +392,8 @@ assert.equal(belowThreshold.page.total, 2);
 const belowModel = viewModelModule.buildShopReviewViewModel(belowThreshold);
 assert.equal(belowModel.showGraph, false);
 assert.equal(belowModel.aggregateRating, null);
+const belowWidget = await resolveWidgetSummary();
+assert.deepEqual(belowWidget.reviewSummary, { kind: "count_only", count: 2 });
 
 await repository.moderate({
   reviewId: negative.reviewId,
@@ -343,6 +441,8 @@ assert.ok(publicResult.page.reviews.every((review) => typeof review.id === "stri
 assert.ok(publicResult.page.reviews.some((review) => review.ratings.total === 1));
 assert.equal(publicResult.page.reviews.some((review) => review.id === rejected.reviewId), false);
 assert.equal(publicResult.page.reviews.some((review) => review.id === spam.reviewId), false);
+const publishedWidget = await resolveWidgetSummary();
+assert.deepEqual(publishedWidget.reviewSummary, { kind: "average_and_count", average: 3.3, count: 3 });
 
 const globalResult = await adapter.getGlobalReviews(1, 20, "umeda");
 assert.equal(globalResult.status, "available");
@@ -413,8 +513,24 @@ assert.match(dashboard, /承認済み口コミ/);
 assert.match(dashboard, /aria-label="承認済み口コミの評価グラフ"/);
 assert.match(dashboard, /Synthetic isolated Review/);
 
+const widgetPageModule = loadTypeScript("app/partner/widget/[token]/page.tsx", {
+  "next/navigation": { notFound: () => { throw new Error("widget must be available for the canonical fixture"); } },
+  "next/server": { connection: async () => {} },
+  "@/lib/partner/provisioning-service": campaignUrlModule,
+  "@/lib/partner/partner-review-widget": widgetModule,
+  "@/lib/reviews/public-adapter": { publicReviewAdapter: adapter },
+  "@/lib/supabase/partner-workspace": { partnerReviewGrowthRepository: partnerWorkspaceModule.partnerReviewGrowthRepository },
+  "@/lib/wp/shops": { getShopById: async (shopId) => shopId === SHOP_A ? shopA : shopId === SHOP_B ? shopB : null },
+}, true);
+assert.deepEqual(widgetPageModule.metadata, { robots: { index: false, follow: false } });
+const widgetPage = await widgetPageModule.default({ params: Promise.resolve({ token: campaignA }) });
+const widgetHtml = renderToStaticMarkup(widgetPage);
+assert.match(widgetHtml, new RegExp(`href="https://mens-esthe-kuchikomi\\.com/r/${campaignA}/"`));
+assert.match(widgetHtml, /評価 3\.3 \/ 5（3件）/);
+assert.doesNotMatch(widgetHtml, /Synthetic E2E Reviewer|private\.partner|service_role/i);
+
 const style = read("components/shop-detail/ShopDetail.module.css");
-const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto">${dashboard}</main></body></html>`;
+const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto">${dashboard}${widgetHtml}</main></body></html>`;
 const server = createServer((_request, response) => {
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   response.end(pageHtml);
@@ -433,6 +549,8 @@ try {
     const response = await page.goto(`http://127.0.0.1:${address.port}/`, { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200);
     await page.locator('[aria-label="承認済み口コミの評価グラフ"]').waitFor({ state: "visible" });
+    await page.locator(`[aria-label="${shopA.title}のEskomi口コミ"]`).waitFor({ state: "visible" });
+    await page.getByRole("link", { name: "Eskomiで口コミを投稿" }).waitFor({ state: "visible" });
     assert.equal(await page.getByText("承認済み口コミ", { exact: false }).count() >= 1, true);
     const geometry = await page.evaluate(() => ({
       body: document.body.scrollWidth,

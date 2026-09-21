@@ -38,7 +38,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget(sou
   shopName: "Partner Shop A",
   reviewSummary: { kind: "average_and_count", average: 4.2, count: 3 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
 }, "an approved Partner widget must expose only its badge, contract-eligible aggregate, and canonical shop_website CTA");
 
 assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ ...source, reviewCount: 2, averageRating: 4.9 }))), {
@@ -47,7 +47,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ .
   shopName: "Partner Shop A",
   reviewSummary: { kind: "count_only", count: 2 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
 }, "fewer than three valid ratings must display count only, never an average");
 
 assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ ...source, averageRating: null }))), {
@@ -56,7 +56,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ .
   shopName: "Partner Shop A",
   reviewSummary: { kind: "count_only", count: 3 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
 }, "an unavailable aggregate must not be fabricated from a review count");
 
 for (const unsafe of [
