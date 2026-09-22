@@ -40,6 +40,27 @@ export async function authorizePartnerDashboardSession(input: {
   return resolvePartnerDashboardIdentity(access.access, dependencies);
 }
 
+/**
+ * Settings never accept a workspace or user identifier from the browser. The
+ * active session is resolved first, then the same session supplies the Auth
+ * user whose own login email may be changed.
+ */
+export async function authorizePartnerLoginEmailSession(input: { accessToken: string | null }) {
+  const dependencies = createPartnerAuthDependencies(process.env);
+  if (!dependencies) return { status: "unavailable" as const };
+  const access = await authorizePartnerAccess({
+    accessToken: input.accessToken,
+    requestedWorkspaceId: null,
+    requestedShopId: null,
+  }, dependencies);
+  if (access.status !== "allowed") return access;
+  const identity = await resolvePartnerDashboardIdentity(access.access, dependencies);
+  if (identity.status !== "allowed") return identity;
+  const authUser = await dependencies.getUser(input.accessToken ?? "");
+  if (!authUser) return { status: "unauthenticated" as const };
+  return { status: "allowed" as const, access: access.access, identity: identity.identity, authUser };
+}
+
 export async function authorizePartnerReviewGrowthSession(input: {
   accessToken: string | null;
   requestedWorkspaceId?: string | null;
