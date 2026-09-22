@@ -52,6 +52,15 @@ export type PartnerActionFirstHome = Readonly<{
   recentActivity: Readonly<{ status: "unavailable"; message: string }>;
 }>;
 
+export type PartnerGuidedOnboardingResult =
+  | Readonly<{
+      status: "allowed";
+      kind: "first_run" | "guided" | "assets_unavailable";
+      context: Readonly<{ shopName: string; canonicalUrl: string }>;
+      steps: ReadonlyArray<Readonly<{ key: "shop" | "listing" | "review_route" | "share"; title: string; description: string; status: "complete" | "ready" | "unavailable"; href: string }>>;
+    }>
+  | Readonly<{ status: "forbidden" }>;
+
 function isCanonicalIdentity(
   membership: PartnerMembershipAccess,
   identity: PartnerWorkspaceIdentity | null,
@@ -151,5 +160,28 @@ export function resolvePartnerActionFirstHome(
       status: "unavailable",
       message: "現在、この画面で共有できる最近のアクティビティはありません。口コミの集計をご確認ください。",
     },
+  };
+}
+
+/** A pure checklist from the existing Partner identity and Growth Kit only. */
+export function resolvePartnerGuidedOnboarding(
+  identity: PartnerWorkspaceIdentity,
+  growthKit: PartnerReviewGrowthKit,
+): PartnerGuidedOnboardingResult {
+  if (identity.state !== "free_official_partner" && identity.state !== "active_partner") return { status: "forbidden" };
+  const routeReady = growthKit.reviewUrl.status === "available";
+  const distributionReady = growthKit.qr.status === "available" || growthKit.lineMessage.status === "available" || growthKit.websiteCta.status === "available";
+  const firstRun = growthKit.reviewMetrics.status === "available" && growthKit.reviewMetrics.submitted === 0;
+  const assetsUnavailable = !routeReady || !distributionReady;
+  return {
+    status: "allowed",
+    kind: assetsUnavailable ? "assets_unavailable" : firstRun ? "first_run" : "guided",
+    context: { shopName: identity.shopName, canonicalUrl: identity.canonicalUrl },
+    steps: [
+      { key: "shop", title: "店舗を確認", description: "表示中の店舗と公開ページを確認します。", status: "complete", href: identity.canonicalUrl },
+      { key: "listing", title: "掲載情報を確認", description: "変更が必要な場合は、既存の修正依頼フローを利用します。", status: "complete", href: identity.canonicalUrl },
+      { key: "review_route", title: "口コミ導線を確認", description: routeReady ? "正しい口コミURLを確認できます。" : "口コミ導線を準備中です。", status: routeReady ? "ready" : "unavailable", href: "/partner/growth/" },
+      { key: "share", title: "QR・LINE等を使い始める", description: distributionReady ? "実際に利用したお客様へ中立的に案内します。" : "導線の準備後に利用できます。", status: distributionReady ? "ready" : "unavailable", href: "/partner/growth/" },
+    ],
   };
 }

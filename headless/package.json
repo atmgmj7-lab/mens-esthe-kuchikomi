@@ -46,6 +46,7 @@
     "qa:partner-auth-membership": "node scripts/check-partner-auth-membership-browser.mjs",
     "test:partner-dashboard-shell": "node scripts/check-partner-dashboard-shell.mjs",
     "test:partner-action-first-home": "node scripts/check-partner-action-first-home.mjs",
+    "test:partner-guided-onboarding": "node scripts/check-partner-guided-onboarding.mjs",
     "test:partner-dashboard-shell-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_dashboard_identity.sql",
     "qa:partner-dashboard-shell": "npm run build && node scripts/check-partner-dashboard-shell-browser.mjs",
     "test:partner-review-growth-kit": "node scripts/check-partner-review-growth-kit.mjs",

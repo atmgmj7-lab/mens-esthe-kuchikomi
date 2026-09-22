@@ -177,6 +177,12 @@ try {
   await partnerA.getByText("設置方法を見る").click();
   await partnerA.getByText("店舗サイトの任意のHTML表示位置へ貼り付けます。").waitFor({ state: "visible" });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px Growth Center must not overflow horizontally");
+  await partnerA.goto(`${baseUrl}/partner/onboarding/`, { waitUntil: "domcontentloaded" });
+  await partnerA.getByRole("heading", { name: "Partner Shop Aのはじめ方" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "最初に確認すること" }).waitFor({ state: "visible" });
+  await partnerA.getByText("実際に利用したお客様へ率直なご感想をお願いしてください。評価の指定や特典による依頼は行いません。投稿は人による審査後に公開されます。").waitFor({ state: "visible" });
+  await partnerA.getByRole("link", { name: "口コミ導線を確認する" }).waitFor({ state: "visible" });
+  assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px guided onboarding must not overflow horizontally");
 
   await partnerA.goto(`${baseUrl}/partner/workspace/${workspaceB}/`, { waitUntil: "domcontentloaded" });
   await partnerA.getByRole("heading", { name: "パートナーログイン" }).waitFor({ state: "visible" });
@@ -199,6 +205,9 @@ try {
   assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Growth Center must not expose a stale URL copy action");
   assert.equal(await partnerB.getByRole("img", { name: "口コミURLのQRコード" }).count(), 0, "no-campaign Growth Center must not emit a QR asset");
   assert.equal(await partnerB.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px unavailable Growth Center must not overflow horizontally");
+  await partnerB.goto(`${baseUrl}/partner/onboarding/`, { waitUntil: "domcontentloaded" });
+  await partnerB.getByText("一部の導線は準備中です。").waitFor({ state: "visible" });
+  await partnerB.getByRole("link", { name: "準備状況を確認" }).first().waitFor({ state: "visible" });
 
   const publicCampaign = await browser.newPage();
   publicCampaign.setDefaultTimeout(5_000);
