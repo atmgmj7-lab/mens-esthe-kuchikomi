@@ -255,6 +255,10 @@ const Link = ({ href, children, ...props }) => React.createElement("a", { href, 
 const templateModule = compileModule("components/area/AreaHubPageTemplate.tsx", {
   // Editorial shortcut composition has its own contract/browser checks; keep this absent-module baseline.
   "@/components/area/hub/AreaEditorialFeaturedShops": { AreaEditorialFeaturedShops: () => null },
+  "@/components/area/comparison/AreaShopComparisonExperience": {
+    AreaShopComparisonProvider: ({ children }) => React.createElement(React.Fragment, null, children),
+  },
+  "@/lib/area-shop-comparison": { buildAreaShopComparisonItems: () => [] },
   // Keep the pre-ordering foundation fixture; V1 order/SEO is covered by its dedicated live contract.
   "@/lib/area-shop-ordering": { isAreaInformationOrderingTarget: () => false },
   "@/lib/area-after-midnight-comparison": { buildAreaAfterMidnightComparison: () => [] },
