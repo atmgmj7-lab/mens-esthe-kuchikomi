@@ -50,7 +50,11 @@ function normalizeShopSlug(value) {
   const raw = configuredString(value);
   if (!raw) return null;
   try {
-    return encodeURIComponent(decodeURIComponent(raw));
+    const encoded = encodeURIComponent(decodeURIComponent(raw));
+    // WordPress returns a canonical percent-encoded slug. Preserve its escape
+    // casing because the Partner Workspace identity is an exact stored value;
+    // only use the re-encoding pass to reject malformed or non-canonical input.
+    return raw.toLowerCase() === encoded.toLowerCase() ? raw : null;
   } catch {
     return null;
   }

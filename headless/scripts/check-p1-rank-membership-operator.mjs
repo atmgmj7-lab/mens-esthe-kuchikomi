@@ -48,12 +48,12 @@ function validGrant(result = "created", membershipWorkspaceId = workspaceId, mem
   }];
 }
 
-function createFetch({ users = [{ id: authUserId, email: "owner@example.invalid" }], grant = validGrant(), grantStatus = 200, createUser = null } = {}) {
+function createFetch({ users = [{ id: authUserId, email: "owner@example.invalid" }], grant = validGrant(), grantStatus = 200, createUser = null, shopSlug = "mrs-rank-up" } = {}) {
   const calls = [];
   const fetchImpl = async (url, options = {}) => {
     calls.push({ url: String(url), options });
     if (String(url) === "https://mens-esthe-kuchikomi.com/wp-json/wp/v2/shop/768?_embed=1") {
-      return response({ id: 768, slug: "mrs-rank-up", title: { rendered: "Mrs.Rank UP" } });
+      return response({ id: 768, slug: shopSlug, title: { rendered: "Mrs.Rank UP" } });
     }
     if (String(url).startsWith("https://project.supabase.co/auth/v1/admin/users?")) return response({ users });
     if (String(url) === "https://project.supabase.co/auth/v1/admin/users" && options.method === "POST") {
@@ -64,6 +64,16 @@ function createFetch({ users = [{ id: authUserId, email: "owner@example.invalid"
     return response({ message: "unexpected" }, 404);
   };
   return { fetchImpl, calls };
+}
+
+{
+  const shopSlug = "mrs-rank-up%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%a9%e3%83%b3%e3%82%af%e3%82%a2%e3%83%83%e3%83%97%ef%bc%89";
+  const { fetchImpl, calls } = createFetch({ shopSlug });
+  await operator.runP1RankAuthMembershipOperator({ environment: baseEnvironment, fetchImpl });
+  const grantCall = calls.find(({ url }) => url.endsWith("/rest/v1/rpc/grant_partner_membership"));
+  const payload = JSON.parse(String(grantCall.options.body));
+  assert.equal(payload.p_shop_slug, shopSlug, "the runner must preserve WordPress canonical percent-escape casing for the exact workspace identity check");
+  assert.equal(payload.p_canonical_url, `https://mens-esthe-kuchikomi.com/shops/${shopSlug}/`);
 }
 
 {
