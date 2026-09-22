@@ -14,7 +14,9 @@ Mrs.L'Amant, BAMBI SPA, and every other shop are excluded. The target is resolve
 
 ## A. Minimum Data API function exposure
 
-The `api` schema remains the only API schema involved. `private` remains unexposed. The Production dashboard currently reports `0 of 47 functions exposed`; this is insufficient for the existing server-only adapters.
+The exact 19-wrapper release contract and P1-RANK-02 readback checklist are maintained in [P1_RANK_DATA_API_EXPOSURE_MATRIX.md](P1_RANK_DATA_API_EXPOSURE_MATRIX.md). This summary must not be used to infer that Production configuration has been changed.
+
+The `api` schema remains the only API schema involved. `private` remains unexposed. An earlier preflight recorded `0 of 47 functions exposed`; this local-only task does not reassert that remote state. P1-RANK-02 must read the current configuration before making or validating the minimum exposure change.
 
 Enable only the following `api` wrappers, preserving the existing grants: `service_role` may execute; `anon` and `authenticated` remain denied. Exposure makes an RPC routable; it is not authorization to grant browser roles.
 

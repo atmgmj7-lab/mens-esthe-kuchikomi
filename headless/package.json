@@ -44,6 +44,7 @@
     "test:partner-auth-membership": "node scripts/check-partner-auth-membership.mjs",
     "test:p1-rank-membership-operator": "node scripts/check-p1-rank-membership-operator.mjs",
     "test:p1-rank-membership-operator-local-supabase": "node scripts/check-p1-rank-membership-operator-local-supabase.mjs",
+    "test:p1-rank-data-api-exposure": "node scripts/check-p1-rank-data-api-exposure.mjs",
     "test:partner-auth-membership-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_auth_membership.sql",
     "qa:partner-auth-membership": "node scripts/check-partner-auth-membership-browser.mjs",
     "test:partner-dashboard-shell": "node scripts/check-partner-dashboard-shell.mjs",
