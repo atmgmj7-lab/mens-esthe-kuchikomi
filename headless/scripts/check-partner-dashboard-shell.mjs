@@ -8,6 +8,9 @@ const root = process.cwd();
 const authPath = join(root, "lib/partner/partner-auth.ts");
 const dashboardPath = join(root, "lib/partner/partner-dashboard.ts");
 const serverPath = join(root, "lib/partner/partner-auth-server.ts");
+const operatorPagePath = join(root, "app/dashboard/partners/page.tsx");
+const partnerPagePath = join(root, "app/partner/page.tsx");
+const proxyPath = join(root, "proxy.ts");
 
 function loadModule(source, filename, modules = {}) {
   const output = ts.transpileModule(source, {
@@ -40,6 +43,17 @@ assert.equal(
   "function",
   "03B must resolve the existing workspace identity only after 03A has authorized membership",
 );
+
+const operatorPage = readFileSync(operatorPagePath, "utf8");
+const partnerPage = readFileSync(partnerPagePath, "utf8");
+const proxy = readFileSync(proxyPath, "utf8");
+assert.match(operatorPage, /DashboardPartnerWorkspace/, "the operator control center reuses the existing workspace control");
+assert.match(operatorPage, /DashboardReviewModeration/, "the operator control center reuses the existing moderation control");
+assert.match(operatorPage, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\}/s, "the operator control center remains noindex");
+assert.match(proxy, /["']\/dashboard\/:path\*["']/, "the existing Basic Auth proxy protects operator pages");
+assert.match(proxy, /["']\/api\/dashboard\/:path\*["']/, "the existing Basic Auth proxy protects operator APIs");
+assert.match(partnerPage, /authorizePartnerReviewGrowthSession/, "the Partner home retains its session-derived access path");
+assert.doesNotMatch(partnerPage, /DashboardPartnerWorkspace|DashboardReviewModeration|authorizeDashboardRequest/, "the Partner home must not import or invoke operator controls");
 
 const workspaceA = "11111111-1111-4111-8111-111111111111";
 const workspaceB = "22222222-2222-4222-8222-222222222222";
