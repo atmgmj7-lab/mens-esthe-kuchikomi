@@ -6,6 +6,21 @@ export type DashboardNavItem = {
 
 export const DASHBOARD_NAV_GROUPS = [
   {
+    label: "運用",
+    items: [
+      {
+        href: "/dashboard/shops/",
+        label: "店舗管理",
+        description: "公開情報・Partner・口コミの統合確認",
+      },
+      {
+        href: "/dashboard/partners/",
+        label: "Partner運用",
+        description: "申請・workspace・モデレーション",
+      },
+    ],
+  },
+  {
     label: "分析",
     items: [
       {
