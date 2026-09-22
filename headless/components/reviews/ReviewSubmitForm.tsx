@@ -12,6 +12,18 @@ const OPTIONAL_RATINGS = [
   { name: "ratingCleanliness", label: "清潔感（任意）" }
 ] as const;
 
+const REVIEW_TAG_LABELS: Readonly<Record<ReviewTag, string>> = {
+  staff_polite: "接客が丁寧",
+  clean: "店内が清潔",
+  booking_smooth: "予約がスムーズ",
+  price_clear: "料金が分かりやすい",
+  beginner_friendly: "初めてでも利用しやすい",
+  want_revisit: "また利用したい",
+  wait_concern: "待ち時間が気になった",
+  price_unclear: "料金が分かりにくかった",
+  guidance_unclear: "案内が分かりにくかった",
+};
+
 export function ReviewSubmitForm({
   shopSlug,
   shopTitle,
@@ -189,7 +201,7 @@ export function ReviewSubmitForm({
               checked={tags.includes(tag)}
               disabled={!tags.includes(tag) && tags.length >= 6}
               onChange={() => toggleTag(tag)}
-            /> {tag}
+            /> {REVIEW_TAG_LABELS[tag]}
           </label>)}
         </div>
       </fieldset>

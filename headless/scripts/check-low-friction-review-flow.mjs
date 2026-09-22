@@ -16,6 +16,23 @@ const review = existsSync(path) ? load(readFileSync(path, "utf8")) : {};
 assert.equal(typeof review.prepareReviewConfirmation, "function", "03E must prepare an explicit, user-controlled confirmation without relaxing the final Native Review body contract");
 assert.match(readFileSync(join(root, "lib/review-validation.ts"), "utf8"), /import \{ REVIEW_TAGS \}/, "the Native submission validator must use the same canonical UI tag set");
 
+const submitForm = readFileSync(join(root, "components/reviews/ReviewSubmitForm.tsx"), "utf8");
+assert.match(submitForm, /REVIEW_TAG_LABELS/, "the review form must keep a display-only tag-label map");
+for (const [code, label] of [
+  ["staff_polite", "接客が丁寧"],
+  ["clean", "店内が清潔"],
+  ["booking_smooth", "予約がスムーズ"],
+  ["price_clear", "料金が分かりやすい"],
+  ["beginner_friendly", "初めてでも利用しやすい"],
+  ["want_revisit", "また利用したい"],
+  ["wait_concern", "待ち時間が気になった"],
+  ["price_unclear", "料金が分かりにくかった"],
+  ["guidance_unclear", "案内が分かりにくかった"],
+]) {
+  assert.match(submitForm, new RegExp(`${code}:\\s*["']${label}["']`), `${code} must have a Japanese display label`);
+}
+assert.match(submitForm, /\{REVIEW_TAG_LABELS\[tag\]\}/, "checkboxes must render the display label instead of the internal tag code");
+
 const valid = review.prepareReviewConfirmation({
   ratingTotal: 1,
   tags: ["wait_concern", "price_unclear"],
