@@ -57,6 +57,16 @@ begin
   ) then
     raise exception 'Partner A must not resolve Partner B workspace';
   end if;
+
+  insert into private.partner_memberships (workspace_id, auth_user_id, role, status, revoked_at)
+  values (
+    workspace_a, 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'owner', 'revoked', now()
+  );
+  if exists (
+    select 1 from api.get_partner_auth_membership('cccccccc-cccc-4ccc-8ccc-cccccccccccc')
+  ) then
+    raise exception 'revoked membership must not resolve an active partner access path';
+  end if;
 end;
 $$;
 

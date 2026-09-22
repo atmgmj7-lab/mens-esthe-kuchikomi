@@ -163,6 +163,8 @@ assert.doesNotMatch(partnerPageSource, /export const dynamic\s*=/, "Cache Compon
 const requestLinkSource = existsSync(requestLinkPath) ? readFileSync(requestLinkPath, "utf8") : "";
 const completeLinkSource = existsSync(completeLinkPath) ? readFileSync(completeLinkPath, "utf8") : "";
 const callbackPageSource = existsSync(callbackPagePath) ? readFileSync(callbackPagePath, "utf8") : "";
+const localContractPath = join(root, "..", "supabase/tests/verify_partner_auth_membership.sql");
+const localContractSource = existsSync(localContractPath) ? readFileSync(localContractPath, "utf8") : "";
 assert.match(requestLinkSource, /randomBytes/, "starting a magic link must issue unpredictable browser-bound login state");
 assert.match(requestLinkSource, /PARTNER_LOGIN_STATE_COOKIE/, "starting a magic link must store browser-bound login state in an HttpOnly cookie");
 assert.match(requestLinkSource, /searchParams\.set\("state"/, "the Supabase redirect URL must carry the browser-bound login state");
@@ -178,5 +180,10 @@ assert.match(callbackPageSource, /history\.replaceState/, "the callback must rem
 assert.match(callbackPageSource, /complete-link/, "the callback must pass the ephemeral fragment token only to the same-origin completion endpoint");
 assert.match(callbackPageSource, /useRef/, "the callback must make completion one-shot even when React replays an effect");
 assert.match(callbackPageSource, /if \(started\.current\) return/, "a replayed callback effect must not replace a valid completion with invalid-link");
+assert.match(
+  localContractSource,
+  /revoked membership must not resolve an active partner access path/i,
+  "the local authorization contract must prove that revoked memberships cannot resolve Partner access",
+);
 
 console.log("partner auth membership contract: PASS");
