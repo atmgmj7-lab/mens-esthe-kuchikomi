@@ -514,7 +514,7 @@ assert.ok(!telActionHtml.includes(" rel="), "telephone action must not receive e
 
 const { replaceBrokenShopImage } = loadTsxModule("components/shop-detail/ShopDetailGallery.tsx", {
   "@/lib/design-constants": {
-    DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+    DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.webp",
     SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中",
     SHOP_FALLBACK_IMAGE_STYLE: {
       aspectRatio: "4 / 3",
@@ -537,7 +537,7 @@ const recordMainFallback = () => {
   mainFallbackCallbacks += 1;
 };
 replaceBrokenShopImage({ currentTarget: brokenImage }, recordMainFallback);
-assert.equal(brokenImage.src, "/images/eskomi-shop-fallback.svg", "broken image must switch to the approved fallback");
+assert.equal(brokenImage.src, "/images/eskomi-shop-fallback.webp", "broken image must switch to the approved fallback");
 assert.equal(brokenImage.alt, "Eskomi 店舗画像準備中", "runtime image fallback must replace the stale image alt");
 assert.equal(brokenImage.style.aspectRatio, "1 / 1", "runtime shop detail fallback must stay square");
 assert.equal(brokenImage.style.objectFit, "contain", "runtime image fallback must stay fully visible");

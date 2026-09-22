@@ -8295,20 +8295,14 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 
 .escomi-final-site-header .hl-header__logo {
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.62rem;
+  align-items: center;
+  gap: 0.56rem;
 }
 
-.escomi-final-site-header__brand-text {
-  color: #26333b;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.55rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.escomi-final-site-header__brand-text span {
-  color: #b08d3e;
+.escomi-final-site-header__brand-logo {
+  display: block;
+  height: auto;
+  width: clamp(148px, 13vw, 180px);
 }
 
 .escomi-final-site-header__tagline {
@@ -8503,8 +8497,8 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
     display: none;
   }
 
-  .escomi-final-site-header__brand-text {
-    font-size: 1.42rem;
+  .escomi-final-site-header__brand-logo {
+    width: 144px;
   }
 
   .escomi-final-site-header__nav {

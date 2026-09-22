@@ -100,7 +100,7 @@ const areaListControls = loadTsModule("lib/area-shop-list-controls.ts", (id) => 
 
 const viewModel = loadTsModule("lib/shop-detail-view-model.ts", (id) => {
   if (id === "@/lib/design-constants") {
-    return { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg" };
+    return { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.webp" };
   }
   if (id === "@/lib/price-normalization") {
     return {
@@ -132,7 +132,7 @@ const seo = loadTsModule("lib/seo.ts", (id) => {
 const areaCardViewModel = loadTsModule("lib/area-shop-card-view-model.ts", (id) => {
   if (id === "@/lib/design-constants") {
     return {
-      DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+      DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.webp",
       SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中"
     };
   }

@@ -135,7 +135,7 @@ export function organizationJsonLd() {
     name: "Eskomi",
     alternateName: "関西メンズエステ口コミナビ エスコミ",
     url: canonicalUrl("/"),
-    logo: "https://mens-esthe-kuchikomi.com/images/eskomi-logo.svg"
+    logo: "https://mens-esthe-kuchikomi.com/images/eskomi-logo.png"
   };
 }
 

@@ -105,7 +105,7 @@ const shop = {
 };
 
 const viewModel = load("lib/shop-detail-view-model.ts", {
-  "@/lib/design-constants": { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg" },
+  "@/lib/design-constants": { DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.webp" },
   "@/lib/price-normalization": priceStub,
   "@/lib/shop-fact-normalization": factStub,
 });

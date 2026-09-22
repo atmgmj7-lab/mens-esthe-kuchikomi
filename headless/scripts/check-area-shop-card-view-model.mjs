@@ -40,7 +40,7 @@ const priceNormalization = compileModule("lib/price-normalization.ts");
 const promotionDisclosure = compileModule("lib/promotion-disclosure.ts");
 const cardViewModel = compileModule("lib/area-shop-card-view-model.ts", {
   "@/lib/design-constants": {
-    DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+    DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.webp",
     SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中"
   },
   "@/lib/price-normalization": priceNormalization,
@@ -188,7 +188,7 @@ const sparse = buildAreaShopCardViewModel(
   { rank: null, showRank: true }
 );
 assert.equal(sparse.rank, null);
-assert.equal(sparse.image.src, "/images/eskomi-shop-fallback.svg");
+assert.equal(sparse.image.src, "/images/eskomi-shop-fallback.webp");
 assert.equal(sparse.image.alt, "Eskomi 店舗画像準備中");
 assert.equal(sparse.image.isFallback, true);
 assert.equal(sparse.summary, null);
@@ -261,7 +261,7 @@ assert.ok(
 );
 
 const fallbackConstants = {
-  DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.svg",
+  DEFAULT_SHOP_IMAGE: "/images/eskomi-shop-fallback.webp",
   SHOP_FALLBACK_IMAGE_ALT: "Eskomi 店舗画像準備中",
   SHOP_FALLBACK_IMAGE_STYLE: {
     aspectRatio: "4 / 3",

@@ -184,7 +184,7 @@ function shopFor(fixture: Fixture): ShopView {
     media: {
       cardSquare: fixture.fallback
         ? { mediaId: null, source: "fallback", url: "", alt: fixture.title }
-        : { mediaId: 9001, source: "legacy-featured", url: "/images/eskomi-logo.svg", alt: fixture.title, width: 960, height: 960 },
+        : { mediaId: 9001, source: "legacy-featured", url: "/images/eskomi-logo.png", alt: fixture.title, width: 960, height: 960 },
       detailBanner: null,
     },
     terms: areaTerms,
@@ -352,6 +352,26 @@ async function runFixtureQa(browser) {
       const titleGeometry = await page.locator("main h1").evaluate((element) => ({ scrollWidth: element.scrollWidth, clientWidth: element.clientWidth }));
       check(titleGeometry.scrollWidth <= titleGeometry.clientWidth + 1, `${variant.slug} ${viewport.width}px long title wraps`, titleGeometry);
       check(await page.locator("header.escomi-final-site-header").count() === 1, `${variant.slug} ${viewport.width}px site header`);
+      const headerLogo = page.locator('header.escomi-final-site-header img[alt="Eskomi"]');
+      check(await headerLogo.count() === 1, `${variant.slug} ${viewport.width}px approved header logo`);
+      if (await headerLogo.count() === 1) {
+        const logo = await headerLogo.evaluate((image) => {
+          const box = image.getBoundingClientRect();
+          return {
+            complete: image.complete,
+            naturalHeight: image.naturalHeight,
+            naturalWidth: image.naturalWidth,
+            x: box.x,
+            right: box.right,
+            width: box.width,
+            height: box.height,
+            viewport: document.documentElement.clientWidth,
+          };
+        });
+        check(logo.complete && logo.naturalWidth > 0 && logo.naturalHeight > 0, `${variant.slug} ${viewport.width}px header logo decodes`, logo);
+        check(Math.abs(logo.width / logo.height - 3) <= 0.03, `${variant.slug} ${viewport.width}px header logo preserves 3:1 ratio`, logo);
+        check(logo.x >= -1 && logo.right <= logo.viewport + 1, `${variant.slug} ${viewport.width}px header logo fits viewport`, logo);
+      }
       check(await page.locator("footer").count() >= 1, `${variant.slug} ${viewport.width}px footer`);
 
       const takeScreenshot = (variant.slug === "rich" && [320, 390, 1024, 1440].includes(viewport.width))

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -20,9 +21,15 @@ export function SiteHeader() {
     <header className="l-header hl-header escomi-final-site-header">
       <div className="l-container escomi-final-site-header__inner">
         <Link className="l-header__logo hl-header__logo" href="/">
-          <span className="escomi-final-site-header__brand-text">
-            Eskomi<span aria-hidden="true">.</span>
-          </span>
+          <Image
+            alt="Eskomi"
+            className="escomi-final-site-header__brand-logo"
+            height={60}
+            preload
+            sizes="(max-width: 560px) 144px, 180px"
+            src="/images/eskomi-logo.png"
+            width={180}
+          />
           <span className="escomi-final-site-header__tagline">関西メンズエステ口コミナビ</span>
         </Link>
         <nav className="escomi-final-site-header__nav" aria-label="メインナビゲーション">

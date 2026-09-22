@@ -354,7 +354,7 @@ assert.deepEqual(
 );
 
 const expectedVisibleBrand = [
-  ["components/SiteHeader.tsx", "Eskomi<span"],
+  ["components/SiteHeader.tsx", 'alt="Eskomi"'],
   ["components/SiteFooter.tsx", "Eskomi<span"],
   ["lib/seo.ts", 'SITE_NAME = "Eskomi | 関西メンズエステ口コミナビ"'],
   ["lib/seo.ts", 'siteName: "Eskomi"'],
@@ -457,14 +457,19 @@ const frontPageSource = readRepository("front-page.php");
 assert.ok(!siteHeaderSource.includes(oldWordPressLogoPath), "ヘッダーは旧WordPressロゴURLを公開DOMへ出してはいけません");
 assert.ok(!siteHeaderSource.includes("HEADER_LOGO"), "ヘッダーから旧ロゴ定数を削除してください");
 assert.ok(!siteHeaderSource.includes("legacy-logo"), "ヘッダーからdisplay:noneの旧ロゴimgを削除してください");
+assert.ok(siteHeaderSource.includes('import Image from "next/image";'), "ヘッダーはNext Imageでサイト所有ロゴを表示してください");
+assert.ok(siteHeaderSource.includes('src="/images/eskomi-logo.png"'), "ヘッダーは承認済みPNGロゴを表示してください");
+assert.ok(siteHeaderSource.includes('alt="Eskomi"'), "ヘッダーロゴには簡潔な代替テキストが必要です");
+assert.ok(siteHeaderSource.includes("width={180}") && siteHeaderSource.includes("height={60}"), "ヘッダーロゴはCLSを防ぐ固定intrinsic sizeを持つ必要があります");
+assert.ok(siteHeaderSource.includes("escomi-final-site-header__brand-logo"), "ヘッダーロゴ専用のresponsive classが必要です");
 assert.ok(!frontPageSource.includes(oldWordPressLogoPath), "WordPress予備トップは旧WordPressロゴURLを参照してはいけません");
 assert.ok(
   frontPageSource.includes("get_theme_file_uri('/assets/img/eskomi-logo.svg')"),
   "WordPress予備トップはサイト所有のEskomi SVGを参照してください"
 );
 assert.ok(
-  designConstantsSource.includes('DEFAULT_SHOP_IMAGE = "/images/eskomi-shop-fallback.svg"'),
-  "店舗画像fallbackはサイト所有のEskomi SVGへ切り替えてください"
+  designConstantsSource.includes('DEFAULT_SHOP_IMAGE = "/images/eskomi-shop-fallback.webp"'),
+  "店舗画像fallbackは承認済みのサイト所有WebPへ切り替えてください"
 );
 assert.ok(!designConstantsSource.includes("shop-default-image.webp"), "旧fallbackラスタの公開参照を削除してください");
 assert.ok(
@@ -484,8 +489,8 @@ for (const expected of [
   );
 }
 assert.ok(
-  seoSource.includes('logo: "https://mens-esthe-kuchikomi.com/images/eskomi-logo.svg"'),
-  "Organization schemaはサイト所有のEskomi SVGを参照してください"
+  seoSource.includes('logo: "https://mens-esthe-kuchikomi.com/images/eskomi-logo.png"'),
+  "Organization schemaは承認済みのサイト所有PNGを参照してください"
 );
 assert.ok(!seoSource.includes(oldWordPressLogoPath), "Organization schemaに旧WordPressロゴURLを残してはいけません");
 const fallbackImageContracts = [
@@ -608,11 +613,7 @@ assert.match(
   "ShopImageThumb fallbackだけを不透明・通常合成で表示してください"
 );
 
-const svgAssets = [
-  ["headless/public/images/eskomi-logo.svg", "logo"],
-  ["headless/public/images/eskomi-shop-fallback.svg", "fallback"],
-  ["assets/img/eskomi-logo.svg", "WordPress logo"]
-];
+const svgAssets = [["assets/img/eskomi-logo.svg", "WordPress logo"]];
 for (const [path, label] of svgAssets) {
   const absolutePath = join(repositoryRoot, path);
   assert.ok(existsSync(absolutePath), `${label} SVGが必要です: ${path}`);
@@ -624,9 +625,26 @@ for (const [path, label] of svgAssets) {
   assert.equal(/<image\b/i.test(source), false, `${label} SVGに外部画像を含めてはいけません`);
 }
 
-const fallbackSvg = readRepository("headless/public/images/eskomi-shop-fallback.svg");
-assert.ok(/viewBox="0 0 800 600"/.test(fallbackSvg), "店舗画像fallback SVGは4:3 viewBoxが必要です");
-assert.ok(fallbackSvg.includes("店舗画像準備中"), "店舗画像fallback SVGに読みやすい準備中ラベルが必要です");
+const logoPng = readFileSync(join(repositoryRoot, "headless/public/images/eskomi-logo.png"));
+assert.deepEqual(
+  [...logoPng.subarray(0, 8)],
+  [137, 80, 78, 71, 13, 10, 26, 10],
+  "ヘッダー用ロゴは安全なPNGとして格納してください"
+);
+const fallbackWebp = readFileSync(join(repositoryRoot, "headless/public/images/eskomi-shop-fallback.webp"));
+assert.equal(fallbackWebp.subarray(0, 4).toString("ascii"), "RIFF", "店舗fallbackはWebPとして格納してください");
+assert.equal(fallbackWebp.subarray(8, 12).toString("ascii"), "WEBP", "店舗fallbackはWebPコンテナである必要があります");
+assert.ok(fallbackWebp.length > 0, "店舗fallback WebPは空であってはいけません");
+assert.match(
+  globalCssSource,
+  /\.escomi-final-site-header__brand-logo\s*\{[^}]*display:\s*block;[^}]*height:\s*auto;[^}]*width:\s*clamp\(/s,
+  "ヘッダーロゴはアスペクト比を維持してresponsiveに表示してください"
+);
+assert.match(
+  globalCssSource,
+  /@media \(max-width:\s*560px\)[\s\S]*\.escomi-final-site-header__brand-logo\s*\{[^}]*width:/,
+  "320px/390pxでヘッダーロゴを明示的に縮小してください"
+);
 assert.equal(
   existsSync(join(repositoryRoot, "headless/public/shop-default-image.webp")),
   false,

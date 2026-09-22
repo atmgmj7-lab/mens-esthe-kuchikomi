@@ -1166,7 +1166,7 @@ async function checkShopInteractions(page, viewport) {
     alt: image.getAttribute("alt"),
     ratio: image.getBoundingClientRect().width / image.getBoundingClientRect().height
   }));
-  check(fallback.src === "/images/eskomi-shop-fallback.svg", `${label} broken image fallback source`, fallback);
+  check(fallback.src === "/images/eskomi-shop-fallback.webp", `${label} broken image fallback source`, fallback);
   check(fallback.alt === "Eskomi 店舗画像準備中", `${label} broken image fallback alt`, fallback);
   check(Math.abs(fallback.ratio - 1) <= 0.005, `${label} broken image fallback ratio 1:1`, fallback);
 }

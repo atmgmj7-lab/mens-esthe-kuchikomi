@@ -9,9 +9,9 @@
 
 | Asset name | Status | Intended use | Required personalization | Owner / next action | Notes |
 |---|---|---|---|---|---|
-| Eskomi logo | `AVAILABLE_REPOSITORY_SOURCE` | Pilot資料、CTA、QRカード、説明資料のブランド表記 | 不要。縦横比・色を変えない | Creative owner: 既存SVGを使用 | Headless: `headless/public/images/eskomi-logo.svg`。WordPress theme: `assets/img/eskomi-logo.svg` |
+| Eskomi logo | `APPROVED_FOR_PRODUCTION` | Headless公開ヘッダー、Organization schema、Pilot資料、CTA、QRカード、説明資料のブランド表記 | 不要。承認済みPNGの縦横比・色・透過を変えない | Product owner: headless assetを反映済み。WordPress themeは別releaseでparity確認 | Headless: `headless/public/images/eskomi-logo.png`。WordPress theme SVGは今回のscope外で `PARITY_PENDING` |
 | Eskomi公式パートナー募集バナー | `APPROVED_FOR_PILOT` | Pilot募集ページHero、店舗向け1枚説明資料表紙、営業資料冒頭、メール遷移先LP | 不要 | Creative owner: 承認済み外部マスターのファイル名・保管場所・版をasset registryへ登録 | LINE / DMのメイン画像には別素材を推奨。リポジトリに未登録のため、推測したパスや代替画像を作らない |
-| 店舗画像準備中placeholder | `AVAILABLE_REPOSITORY_SOURCE` | 店舗画像未設定時の公開fallback | 店舗名を埋め込まない | Product owner: 既存fallbackを維持 | `headless/public/images/eskomi-shop-fallback.svg`。Partner募集用の訴求画像には使わない |
+| 店舗画像準備中placeholder | `APPROVED_FOR_PRODUCTION` | 店舗画像未設定時の公開fallback | 店舗名を埋め込まない。承認済み4:3比率を変えない | Product owner: headless fallbackを反映済み | `headless/public/images/eskomi-shop-fallback.webp`。Partner募集用の訴求画像には使わない |
 | 店舗HP用口コミCTAバナー | `APPROVED` | 店舗公式サイト上の中立的な口コミ導線 | P1 review URL、対象shop名、必要時に店舗ロゴ | Partner operations: campaign発行後にP1完成版を作成し、URL照合を実施 | 外部配布版は `APPROVED_PENDING_TOKEN_INSERTION` として扱う。Widgetは任意で、CTA導入を必須にしない |
 | 店頭口コミQRカード | `APPROVED_PENDING_TOKEN_INSERTION` | 受付・会計後に実利用者へ渡す中立的な口コミ案内 | P1 campaign token、review URL、対象shop名、QR | Partner operations: token差し込み、実機読み取り、対象店舗照合 | 差し込み前・読み取り未検証の版は外部配布禁止 |
 | Official Partner badge | `MISSING_PRIORITY_1`（Widget text fallback実装済み） | Dashboard、説明資料、将来の承認済みPartner表示 | Partner statusと利用箇所に応じた表示ルール | Creative owner: badgeを制作。Product owner: 表示条件を確認 | Widgetは画像を推測せず `Eskomi Official Partner` text fallbackを使用。差し替え点は `widget-installation.md` を参照 |

@@ -133,7 +133,7 @@ const model = {
   ],
   images: [
     { url: "https://example.test/one.jpg", alt: "one", isFallback: false },
-    { url: "/images/eskomi-shop-fallback.svg", alt: "fallback", isFallback: true },
+    { url: "/images/eskomi-shop-fallback.webp", alt: "fallback", isFallback: true },
     { url: "https://example.test/two.jpg", alt: "two", isFallback: false }
   ]
 };
