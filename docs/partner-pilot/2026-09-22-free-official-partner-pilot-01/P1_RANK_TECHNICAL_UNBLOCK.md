@@ -23,6 +23,7 @@ Enable only the following `api` wrappers, preserving the existing grants: `servi
 | `claim_shop_owner_request_rate_limit` | REQUIRED_SERVICE_ONLY | Store-registration rate limit. |
 | `provision_partner_workspace` | REQUIRED_SERVICE_ONLY | Canonical Workspace initialization. |
 | `register_partner_submission` | REQUIRED_SERVICE_ONLY | Store-controlled registration persistence. |
+| `grant_partner_membership` | REQUIRED_SERVICE_ONLY | P1-RANK-04 server-runner grant after canonical workspace and Auth-user checks. |
 | `get_partner_auth_membership` | REQUIRED_SERVER_AUTH | Session-derived active membership lookup. |
 | `get_partner_workspace_identity` | REQUIRED_SERVER_AUTH | Canonical Partner identity projection. |
 | `list_partner_registration_reviews` | OPERATOR_ONLY | Existing Basic-Auth operator review list. |
@@ -94,9 +95,9 @@ All fixtures are synthetic and are rolled back or cleaned locally. No Production
 | Packet | Exact operation | Preconditions / postcheck |
 | --- | --- | --- |
 | `P1-RANK-01` | Initial participation outreach | Confirm official shop contact and user approval immediately before sending. No DB write. |
-| `P1-RANK-02` | Minimum Data API function exposure | Enable only the 18 listed `api` wrappers; read back `service_role=execute`, `anon/authenticated=deny`, and `private=unexposed`. |
+| `P1-RANK-02` | Minimum Data API function exposure | Enable only the 19 listed `api` wrappers; read back `service_role=execute`, `anon/authenticated=deny`, and `private=unexposed`. |
 | `P1-RANK-03` | Workspace provisioning | Read canonical WP Shop 768, call the existing provision wrapper once, and read back exact identity/state. |
-| `P1-RANK-04` | Auth + membership | Use the controlled operation in `P1_RANK_AUTH_MEMBERSHIP_OPERATION.md`; this packet is not ready until an approved server-side Auth/membership operator method exists. |
+| `P1-RANK-04` | Auth + membership | Use the controlled non-browser server runner documented in `P1_RANK_AUTH_MEMBERSHIP_OPERATION.md` and `P1_RANK_04_AUTH_MEMBERSHIP_APPROVAL_PACKET.md`. |
 | `P1-RANK-05` | Lifecycle + campaigns | Approve the existing atomic registration-review transaction as one operation; read back `free_official_partner` and four exact channels. |
 | `P1-RANK-06` | Asset readback | Verify every asset against WP Shop 768, workspace, channel, and token; no external distribution before match. |
 | `P1-RANK-07` | Controlled real review | Obtain reviewer consent, preserve negative-review acceptance, submit once, and confirm pending moderation. |
@@ -105,6 +106,6 @@ All fixtures are synthetic and are rolled back or cleaned locally. No Production
 
 ## Current stop
 
-`P1-RANK-01` is the first external operation. `P1-RANK-02` is the first technical operation. Neither is executed by this task.
+`P1-RANK-01` outreach is complete and must not be sent again. `P1-RANK-02` is the first remaining technical operation. Neither P1-RANK-02 nor any later packet is executed by this task.
 
-The remaining local blocker is the missing approved server-side Auth-user and membership-grant operator method. This is not solved by exposing `private`, granting browser roles, or creating a new client-side Auth flow.
+`P1-RANK-04` is now implemented as the non-browser server runner documented in `P1_RANK_04_AUTH_MEMBERSHIP_APPROVAL_PACKET.md`. Its sole new Data API surface is `api.grant_partner_membership`; the wrapper independently checks the workspace against the canonical WP Shop ID, slug, and canonical URL before it can create an active membership. This is not solved by exposing `private`, granting browser roles, or creating a client-side Auth flow.
