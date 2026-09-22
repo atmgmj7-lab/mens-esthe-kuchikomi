@@ -49,6 +49,7 @@
     "test:partner-dashboard-shell-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_dashboard_identity.sql",
     "qa:partner-dashboard-shell": "npm run build && node scripts/check-partner-dashboard-shell-browser.mjs",
     "test:partner-review-growth-kit": "node scripts/check-partner-review-growth-kit.mjs",
+    "test:partner-review-growth-center": "node scripts/check-partner-review-growth-center.mjs",
     "qa:partner-review-growth-kit": "npm run build && node scripts/check-partner-review-growth-kit-browser.mjs",
     "test:partner-review-widget": "node scripts/check-partner-review-widget.mjs",
     "test:partner-review-widget-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_review_widget.sql",

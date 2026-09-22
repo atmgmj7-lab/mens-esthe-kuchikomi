@@ -511,6 +511,25 @@ img {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
+
+.hl-partner-growth-center__funnel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.25rem;
+  margin: 1rem 0;
+  padding-left: 1.25rem;
+}
+
+.hl-partner-growth-center__asset-state {
+  margin-top: 1rem;
+  padding: .875rem;
+  border-left: 3px solid var(--color_main, #916c22);
+  background: #fbf7ed;
+}
+
+.hl-partner-growth-center__asset-state p { margin: .4rem 0 0; }
+.hl-partner-growth-center details { margin-top: 1rem; }
+.hl-partner-growth-center summary { cursor: pointer; font-weight: 600; }
 .hl-partner-home__collection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hl-partner-home__asset h3 { margin-top: 0; }
 .hl-partner-home__asset p:last-child { margin-bottom: 0; }

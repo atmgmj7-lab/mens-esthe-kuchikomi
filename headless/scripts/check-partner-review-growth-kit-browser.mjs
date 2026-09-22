@@ -166,6 +166,18 @@ try {
   await partnerA.setViewportSize({ width: 320, height: 844 });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "320px Growth Kit must not overflow horizontally");
 
+  await partnerA.setViewportSize({ width: 390, height: 844 });
+  await partnerA.goto(`${baseUrl}/partner/growth/`, { waitUntil: "domcontentloaded" });
+  await partnerA.getByRole("heading", { name: "口コミを集める" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "配布するものを選ぶ" }).waitFor({ state: "visible" });
+  await partnerA.getByText("評価の指定、特典や報酬による依頼、良い口コミだけを求める案内は行いません。").waitFor({ state: "visible" });
+  await partnerA.getByRole("button", { name: "口コミURLをコピー" }).click();
+  await partnerA.getByText("口コミURLをコピーしました。").waitFor({ state: "visible" });
+  await partnerA.getByRole("link", { name: "Widgetを確認" }).waitFor({ state: "visible" });
+  await partnerA.getByText("設置方法を見る").click();
+  await partnerA.getByText("店舗サイトの任意のHTML表示位置へ貼り付けます。").waitFor({ state: "visible" });
+  assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px Growth Center must not overflow horizontally");
+
   await partnerA.goto(`${baseUrl}/partner/workspace/${workspaceB}/`, { waitUntil: "domcontentloaded" });
   await partnerA.getByRole("heading", { name: "パートナーログイン" }).waitFor({ state: "visible" });
   assert.equal(metricWorkspaceRequests.includes(workspaceB), false, "a manipulated Partner B workspace must be denied before metrics are requested");
@@ -182,6 +194,11 @@ try {
   assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Home must not expose a working review URL");
   assert.equal(await partnerB.getByRole("img", { name: "口コミURLのQRコード" }).count(), 0, "no-campaign Home must not emit a QR asset");
   assert.equal(await partnerB.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px unavailable Home must not overflow horizontally");
+  await partnerB.goto(`${baseUrl}/partner/growth/`, { waitUntil: "domcontentloaded" });
+  await partnerB.getByText("口コミ導線のデータを現在確認できません。").first().waitFor({ state: "visible" });
+  assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Growth Center must not expose a stale URL copy action");
+  assert.equal(await partnerB.getByRole("img", { name: "口コミURLのQRコード" }).count(), 0, "no-campaign Growth Center must not emit a QR asset");
+  assert.equal(await partnerB.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px unavailable Growth Center must not overflow horizontally");
 
   const publicCampaign = await browser.newPage();
   publicCampaign.setDefaultTimeout(5_000);

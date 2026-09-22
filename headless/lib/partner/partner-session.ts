@@ -60,5 +60,5 @@ export async function authorizePartnerReviewGrowthSession(input: {
   const metrics = await getPartnerReviewGrowthMetrics(access.access.workspaceId, partnerReviewGrowthRepository);
   const growthKit = resolvePartnerReviewGrowthKit(dashboard.identity, metrics);
   if (growthKit.status !== "allowed") return growthKit;
-  return { status: "allowed" as const, identity: dashboard.identity, growthKit };
+  return { status: "allowed" as const, identity: dashboard.identity, growthKit, metrics };
 }
