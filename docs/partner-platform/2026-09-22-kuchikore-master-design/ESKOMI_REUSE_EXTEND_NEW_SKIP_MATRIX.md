@@ -19,13 +19,17 @@
 | Multi-shop switcher | single workspace session | NEW | P2; scope switch and membership audit mandatory |
 | Roles beyond owner/manager | only owner/manager contract | SKIP for Pilot | Evaluate only after real multi-shop need |
 | Customer email / LINE lists | not in Eskomi model | SKIP | PII and sending are out of scope |
-| Survey builder / incentives | not in Eskomi model | SKIP | Neutral-review contract prohibits incentive-led acquisition |
+| Survey builder / rating-steered incentives | not in Eskomi model | SKIP | No survey builder or rating/content-dependent reward; the neutral-review contract rejects steering |
+| Review Coupon / Repeat Visit | no current Coupon domain | NEW later | `GROWTH-07`, only after initial Pilot; eligible review submission only, never rating/content/sentiment dependent |
+| Coupon Campaign / Issuance / Redemption | no current private domain | NEW later | Separate private, server-authorized model; opaque token, one-time redemption, no customer account v1 |
+| Native Reservation / Coupon wallet / SMS | not in Eskomi model | SKIP v1 | Reuse LINE/Web booking; Customer UUID, SMS, wallet, and reservation history need separate approval |
 | GBP / ranks / Maps / MEO | deliberately absent | SKIP | Out of product scope |
 | Therapist / schedule / newcomer | not yet in Partner model | FUTURE | Keep service boundaries independent of Review system |
 
 ## P0 / P1 / P2 / Future
 
 - **P0_NOW:** action-first Home, asset grouping, campaign readiness / empty states, explicit onboarding checklist, safe aggregate review status.
+- **P1_AFTER_INITIAL_PILOT:** `GROWTH-07` neutral Review Coupon / Repeat Visit design-to-implementation gate; Pilot evidence and separate approval required.
 - **P1_AFTER_P1:** operator Review Inbox polish, Widget Studio diagnostics, Campaign performance trend only when data exists.
 - **P2_AFTER_PILOT:** reports, multi-shop, role expansion, notification preferences.
 - **FUTURE:** therapist, schedule, newcomer, shop/therapist performance; each needs separate source-of-truth and authority design.

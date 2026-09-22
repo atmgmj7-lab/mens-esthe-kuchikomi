@@ -18,6 +18,11 @@ Partner Platform
 │  ├─ Embed snippet
 │  ├─ Install verification
 │  └─ Summary eligibility
+├─ Coupon / Repeat Visit (P1_AFTER_INITIAL_PILOT)
+│  ├─ Coupon Campaign
+│  ├─ Issuance
+│  ├─ Booking click
+│  └─ Redemption
 ├─ Analytics / Action Center
 │  ├─ Funnel
 │  ├─ Campaign comparison
@@ -31,6 +36,11 @@ Partner Platform
 └─ Team / roles (P2)
 
 Future extension plane (not Pilot scope)
+├─ Customer
+│  ├─ UUID identity
+│  ├─ SMS auth
+│  ├─ Coupon Wallet
+│  └─ Reservation history
 ├─ Therapist
 ├─ Therapist Review
 ├─ Schedule / Today
@@ -56,6 +66,7 @@ Operator Plane (separate)
 | Campaign / attribution | Supabase `private` | own campaign aggregate and public asset | service-only management |
 | Widget public summary | approved review adapter | public, noindex, read-only | diagnostic only |
 | AI assist | request-scoped provider + service telemetry | customer result only | aggregate token/cost / outcome telemetry |
+| Coupon / Repeat Visit (future) | Supabase `private` Coupon Campaign / Issuance / Redemption | own-workspace aggregate projection only | audited cross-workspace operational access |
 
 The public source stays WordPress for Shop / Area. Native Review stays the review system of record. No internal `private` schema becomes public to simplify a dashboard.
 
@@ -73,6 +84,7 @@ candidate and must match it before data is projected.
 | Growth Kit projection | authorized identity + exactly one active campaign per channel | canonical review URL, QR payload, LINE copy, CTA, Widget URL, aggregates | raw private rows, a campaign token for an unrelated workspace, a duplicate active-channel guess |
 | Review status projection | authorized workspace + approved aggregate metrics | submitted / pending / published counts and documented availability state | reviewer identity, review body, moderation controls, a missing denominator represented as `0%` |
 | Widget public adapter | opaque widget token + publication threshold | noindex public summary and public review CTA | Partner session, private metrics, hidden reviews, installation success claim |
+| Future Coupon projection | authorized workspace membership + opaque coupon token | neutral conditions, own aggregate status, safe booking destination | rating/content eligibility, raw review ID, customer data, private workspace ID, cross-workspace issuance/redemption |
 | AI review assist | bounded public review input + PII prefilter + service-only rate-limit / telemetry adapters | structured draft or `HUMAN_REVIEW` / unavailable result | rating/tag mutation, new facts, auto-publish, raw PII in telemetry |
 | Operator moderation projection | operator authorization + Native Review moderation authority | queue, detail and audit-backed decision controls | Partner-route access, public access, AI-driven publication |
 

@@ -11,9 +11,10 @@ GROWTH-01 Action model + Home IA
   └─ GROWTH-04 Widget Studio
 GROWTH-02 + real Pilot events → GROWTH-05 Analytics Action Center
 GROWTH-01 → GROWTH-06 Onboarding
-GROWTH-05 + Pilot evidence → GROWTH-07 Reports
-GROWTH-07 + approved tenancy model → GROWTH-08 Multi-shop / roles
-GROWTH-08 + separate source contracts → GROWTH-09 Therapist extensions
+initial Pilot completion + neutral-review contract → GROWTH-07 Coupon / Repeat Visit
+GROWTH-05 + Pilot evidence → GROWTH-08 Reports
+GROWTH-08 + approved tenancy model → GROWTH-09 Multi-shop / roles
+GROWTH-09 + separate source contracts → GROWTH-10 Therapist extensions
 ```
 
 ## GROWTH-01 — Action-first Partner Home (P0_NOW)
@@ -117,7 +118,18 @@ identity, makes QR/LINE/CTA availability understandable, and has no hidden
 provisioning, invitation, state transition, WordPress write, or campaign
 creation side effect.
 
-## GROWTH-07 — Partner Reports (P2_AFTER_PILOT)
+## GROWTH-07 — Review Coupon / Repeat Visit (P1_AFTER_INITIAL_PILOT)
+
+- **Dependency:** initial Pilot completion; demonstrated neutral review flow; separate incentive, privacy, token, and redemption approval.
+- **Design authority:** `GROWTH-07-REVIEW-COUPON-REPEAT-VISIT-DESIGN.md`.
+- **Candidate files:** to be designed only after a separate implementation authorization; expect private schema/service, a protected Partner projection, a separate Operator projection, public opaque coupon route, and focused contracts.
+- **RED test:** ★1/★5/negative/positive eligible reviews have the same outcome; rating/content-dependent discount cannot be represented; cross-workspace, duplicate redemption, expiry, revocation, PII/token leakage, and Google/MEO integration deny.
+- **Implementation:** extend campaign/event concepts without changing Review body/rating/tags, moderation, ranking, public SEO, or Partner tenant model. Reuse LINE/Web booking paths; no account, SMS, wallet, CRM, or native reservation v1.
+- **Validation / review / commit:** focused security/privacy/authorization tests, deterministic metrics, accessibility/empty-state review, then one local commit. Production remains separately approved.
+
+**Acceptance contract:** Coupon eligibility is review-submission-only and structurally cannot depend on rating, sentiment, tag, or wording. The public route accepts an opaque token only, and Partner/Operator projections preserve Workspace boundaries.
+
+## GROWTH-08 — Partner Reports (P2_AFTER_PILOT)
 
 - **Dependency:** GROWTH-05 plus agreed reporting cadence and sufficient Pilot data.
 - **Candidate files:** new protected report route/components/service projection/tests.
@@ -125,7 +137,7 @@ creation side effect.
 - **Implementation:** monthly review/campaign report with definitions and deltas.
 - **Validation / review / commit:** focused calculations, accessibility, privacy, performance, then one local commit.
 
-## GROWTH-08 — Multi-shop and roles (P2_AFTER_PILOT)
+## GROWTH-09 — Multi-shop and roles (P2_AFTER_PILOT)
 
 - **Dependency:** demonstrated multi-shop use case; separate membership/tenant design approval.
 - **Candidate files:** Partner session, membership service/repository, protected UI, migrations only if approved.
@@ -133,7 +145,7 @@ creation side effect.
 - **Implementation:** explicit workspace switcher and scoped projection. Retain server-side authorization; do not rely on client-selected IDs.
 - **Validation / review / commit:** local security/RLS contract, browser isolation matrix, migration review, one local commit.
 
-## GROWTH-09 — Therapist and operational extensions (FUTURE)
+## GROWTH-10 — Therapist and operational extensions (FUTURE)
 
 - **Dependency:** separate canonical sources, consent/privacy, public-display contract, and Pilot evidence.
 - **Candidate files:** to be designed; no reuse assumption across Shop Review and Therapist Review domains.
