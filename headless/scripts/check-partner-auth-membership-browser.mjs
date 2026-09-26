@@ -47,11 +47,12 @@ async function assertNoHorizontalOverflow(page, label) {
 const mockPort = await freePort();
 const appPort = await freePort();
 const mock = http.createServer(async (request, response) => {
-  if (request.url === "/auth/v1/otp" && request.method === "POST") {
+  const requestUrl = new URL(request.url ?? "/", `http://127.0.0.1:${mockPort}`);
+  if (requestUrl.pathname === "/auth/v1/otp" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const parsed = JSON.parse(body);
-    otpRequests.push(parsed);
+    otpRequests.push({ body: parsed, redirectTo: requestUrl.searchParams.get("redirect_to") });
     if (parsed.email === "fail@example.invalid") return json(response, 503, { message: "provider unavailable" });
     return json(response, 200, { user: null, session: null });
   }
@@ -148,10 +149,11 @@ try {
   assert.equal(await loginFlow.getByRole("status").innerText(), "登録済みのメールアドレスの場合、ログイン用リンクを送信しました。");
   assert.equal(otpRequests.length, 1, "login start must request Supabase's default magic link");
   assert.equal(
-    otpRequests[0].options.email_redirect_to,
+    otpRequests[0].redirectTo,
     `${baseUrl}/partner/auth/callback/`,
-    "Supabase must receive the exact allow-listed callback URL without dynamic state",
+    "Supabase must receive the exact allow-listed callback URL through its redirect_to query contract",
   );
+  assert.equal("options" in otpRequests[0].body, false, "the raw Auth API request must not rely on an ignored client-library options object");
   const issuedCookies = await loginFlow.context().cookies();
   const stateCookie = issuedCookies.find((cookie) => cookie.name === serverStateCookieName);
   const handoffCookie = issuedCookies.find((cookie) => cookie.name === handoffStateCookieName);

@@ -32,12 +32,15 @@ function loadModule(source, filename) {
 
 const auth = existsSync(authPath) ? loadModule(readFileSync(authPath, "utf8"), authPath) : {};
 const server = existsSync(serverPath) ? loadModule(readFileSync(serverPath, "utf8"), serverPath) : {};
+const serverSource = existsSync(serverPath) ? readFileSync(serverPath, "utf8") : "";
 
 assert.equal(
   typeof auth.authorizePartnerAccess,
   "function",
   "partner access must be authorized from a verified session and server-side membership",
 );
+assert.match(serverSource, /searchParams\.set\("redirect_to", redirectTo\)/, "the raw Supabase OTP request must send the callback through the Auth API redirect_to query contract");
+assert.doesNotMatch(serverSource, /email_redirect_to/, "the raw Supabase OTP request must not use the client-library-only email_redirect_to options shape");
 
 async function authorize(input, dependencies) {
   return auth.authorizePartnerAccess(input, dependencies);

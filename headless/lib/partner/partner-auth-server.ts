@@ -174,13 +174,14 @@ export function createPartnerMagicLinkClient(environment: Environment, fetchImpl
       if (typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
         || typeof redirectTo !== "string") return false;
       try {
-        const response = await fetchImpl(`${auth.baseUrl}/auth/v1/otp`, {
+        const url = new URL(`${auth.baseUrl}/auth/v1/otp`);
+        url.searchParams.set("redirect_to", redirectTo);
+        const response = await fetchImpl(url, {
           method: "POST",
           headers: { apikey: auth.authPublishableKey, "Content-Type": "application/json" },
           body: JSON.stringify({
             email: email.trim(),
             create_user: false,
-            options: { email_redirect_to: redirectTo },
           }),
           cache: "no-store",
         });
