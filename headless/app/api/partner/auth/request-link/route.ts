@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "node:crypto";
 
+import { PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
+import { createPartnerLoginState } from "@/lib/partner/partner-auth-login-state";
 import { createPartnerMagicLinkClient, partnerAuthRedirectOrigin } from "@/lib/partner/partner-auth-server";
 import { PARTNER_LOGIN_STATE_COOKIE } from "@/lib/partner/partner-session";
 
@@ -13,6 +14,24 @@ function noStoreJson(body: object, status: number) {
 
 function sameOrigin(request: NextRequest, trustedOrigin: string) {
   return request.headers.get("origin") === trustedOrigin;
+}
+
+function clearLoginState(response: NextResponse) {
+  response.cookies.set(PARTNER_LOGIN_STATE_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/api/partner/auth/complete-link",
+    maxAge: 0,
+  });
+  response.cookies.set(PARTNER_LOGIN_STATE_HANDOFF_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/partner/auth/callback/",
+    maxAge: 0,
+  });
+  return response;
 }
 
 export async function POST(request: NextRequest) {
@@ -36,9 +55,9 @@ export async function POST(request: NextRequest) {
   const client = createPartnerMagicLinkClient(process.env);
   if (!client || !email) return noStoreJson({ ok: false, message: "現在ログインを開始できません。" }, 503);
 
-  const state = randomBytes(32).toString("base64url");
+  const state = createPartnerLoginState(email, process.env);
+  if (!state) return noStoreJson({ ok: false, message: "現在ログインを開始できません。" }, 503);
   const redirectTo = new URL("/partner/auth/callback/", trustedOrigin);
-  redirectTo.searchParams.set("state", state);
   const requested = await client.request(email, redirectTo.toString());
   const response = noStoreJson({ ok: true, message: "登録済みのメールアドレスの場合、ログイン用リンクを送信しました。" }, 202);
   if (requested) {
@@ -49,6 +68,15 @@ export async function POST(request: NextRequest) {
       path: "/api/partner/auth/complete-link",
       maxAge: 10 * 60,
     });
+    response.cookies.set(PARTNER_LOGIN_STATE_HANDOFF_COOKIE, state, {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/partner/auth/callback/",
+      maxAge: 10 * 60,
+    });
+  } else {
+    clearLoginState(response);
   }
   return response;
 }

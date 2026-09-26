@@ -1,6 +1,7 @@
 import "server-only";
 
 import { authorizePartnerAccess } from "@/lib/partner/partner-auth";
+import { partnerLoginStateMatchesEmail } from "@/lib/partner/partner-auth-login-state";
 import { resolvePartnerDashboardIdentity } from "@/lib/partner/partner-dashboard";
 import { createPartnerAuthDependencies } from "@/lib/partner/partner-auth-server";
 import { resolvePartnerReviewGrowthKit } from "@/lib/partner/partner-review-growth-kit";
@@ -22,6 +23,23 @@ export async function authorizePartnerSession(input: {
     requestedWorkspaceId: input.requestedWorkspaceId ?? null,
     requestedShopId: input.requestedShopId ?? null,
   }, dependencies);
+}
+
+export async function authorizePartnerLoginCompletion(input: { accessToken: string; state: string }) {
+  const dependencies = createPartnerAuthDependencies(process.env);
+  if (!dependencies) return { status: "unavailable" as const };
+  const authUser = await dependencies.getUser(input.accessToken);
+  if (!authUser || !partnerLoginStateMatchesEmail(input.state, authUser.email, process.env)) {
+    return { status: "unauthenticated" as const };
+  }
+  return authorizePartnerAccess({
+    accessToken: input.accessToken,
+    requestedWorkspaceId: null,
+    requestedShopId: null,
+  }, {
+    ...dependencies,
+    getUser: async (accessToken) => accessToken === input.accessToken ? authUser : null,
+  });
 }
 
 export async function authorizePartnerDashboardSession(input: {

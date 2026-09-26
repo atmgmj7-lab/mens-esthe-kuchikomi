@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
 import { partnerAuthRedirectOrigin } from "@/lib/partner/partner-auth-server";
-import { PARTNER_LOGIN_STATE_COOKIE, PARTNER_SESSION_COOKIE, authorizePartnerSession } from "@/lib/partner/partner-session";
+import { PARTNER_LOGIN_STATE_COOKIE, PARTNER_SESSION_COOKIE, authorizePartnerLoginCompletion } from "@/lib/partner/partner-session";
 import { secretsMatch } from "@/lib/server/secure-secret";
 
 function noStoreJson(body: object, status: number) {
@@ -17,6 +18,13 @@ function clearLoginState(response: NextResponse) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/api/partner/auth/complete-link",
+    maxAge: 0,
+  });
+  response.cookies.set(PARTNER_LOGIN_STATE_HANDOFF_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/partner/auth/callback/",
     maxAge: 0,
   });
   return response;
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
     return failedCompletion();
   }
 
-  const authorization = await authorizePartnerSession({ accessToken });
+  const authorization = await authorizePartnerLoginCompletion({ accessToken, state });
   if (authorization.status !== "allowed") return failedCompletion();
 
   const response = clearLoginState(noStoreJson({ ok: true }, 200));

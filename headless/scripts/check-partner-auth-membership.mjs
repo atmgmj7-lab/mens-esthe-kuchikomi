@@ -165,18 +165,23 @@ const completeLinkSource = existsSync(completeLinkPath) ? readFileSync(completeL
 const callbackPageSource = existsSync(callbackPagePath) ? readFileSync(callbackPagePath, "utf8") : "";
 const localContractPath = join(root, "..", "supabase/tests/verify_partner_auth_membership.sql");
 const localContractSource = existsSync(localContractPath) ? readFileSync(localContractPath, "utf8") : "";
-assert.match(requestLinkSource, /randomBytes/, "starting a magic link must issue unpredictable browser-bound login state");
+assert.match(requestLinkSource, /createPartnerLoginState/, "starting a magic link must issue unpredictable state bound to the requested email");
 assert.match(requestLinkSource, /PARTNER_LOGIN_STATE_COOKIE/, "starting a magic link must store browser-bound login state in an HttpOnly cookie");
-assert.match(requestLinkSource, /searchParams\.set\("state"/, "the Supabase redirect URL must carry the browser-bound login state");
+assert.doesNotMatch(requestLinkSource, /searchParams\.set\("state"/, "the allow-listed Supabase redirect URL must not contain dynamic state");
+assert.match(requestLinkSource, /PARTNER_LOGIN_STATE_HANDOFF_COOKIE/, "starting a magic link must also issue the callback-readable handoff nonce");
 assert.match(completeLinkSource, /secretsMatch/, "magic link completion must compare state without a timing oracle");
 assert.match(completeLinkSource, /PARTNER_LOGIN_STATE_COOKIE/, "magic link completion must require the initiating browser state cookie");
-assert.match(completeLinkSource, /authorizePartnerSession/, "magic link completion must validate the returned access token server-side");
+assert.match(completeLinkSource, /PARTNER_LOGIN_STATE_HANDOFF_COOKIE/, "magic link completion must clear the callback-readable handoff nonce");
+assert.match(completeLinkSource, /authorizePartnerLoginCompletion/, "magic link completion must validate the returned access token and requested email server-side");
 assert.ok(
-  completeLinkSource.indexOf("!secretsMatch(expectedState, state)") < completeLinkSource.indexOf("const authorization = await authorizePartnerSession"),
+  completeLinkSource.indexOf("!secretsMatch(expectedState, state)") < completeLinkSource.indexOf("const authorization = await authorizePartnerLoginCompletion"),
   "magic link completion must reject mismatched state before accepting a Supabase session",
 );
 assert.match(callbackPageSource, /window\.location\.hash/, "the default Supabase magic-link fragment must be consumed only in the callback browser page");
 assert.match(callbackPageSource, /history\.replaceState/, "the callback must remove token and state from the visible URL before continuing");
+assert.match(callbackPageSource, /document\.cookie/, "the callback must obtain state from the callback-scoped handoff cookie");
+assert.doesNotMatch(callbackPageSource, /searchParams\.get\("state"/, "the callback must not depend on state in the redirect URL");
+assert.doesNotMatch(callbackPageSource, /localStorage|sessionStorage/, "magic-link state must not depend on tab-scoped or persistent browser storage");
 assert.match(callbackPageSource, /complete-link/, "the callback must pass the ephemeral fragment token only to the same-origin completion endpoint");
 assert.match(callbackPageSource, /useRef/, "the callback must make completion one-shot even when React replays an effect");
 assert.match(callbackPageSource, /if \(started\.current\) return/, "a replayed callback effect must not replace a valid completion with invalid-link");
