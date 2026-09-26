@@ -11,6 +11,8 @@ const partnerPagePath = join(root, "app/partner/page.tsx");
 const requestLinkPath = join(root, "app/api/partner/auth/request-link/route.ts");
 const completeLinkPath = join(root, "app/api/partner/auth/complete-link/route.ts");
 const callbackPagePath = join(root, "app/partner/auth/callback/page.tsx");
+const serverSecretPath = join(root, "lib/supabase/server-secret.ts");
+let serverSecretModule;
 function loadModule(source, filename) {
   const output = ts.transpileModule(source, {
     fileName: filename,
@@ -22,6 +24,10 @@ function loadModule(source, filename) {
     exports: module.exports,
     require: (specifier) => {
       if (specifier === "server-only") return {};
+      if (specifier === "@/lib/supabase/server-secret") {
+        serverSecretModule ??= loadModule(readFileSync(serverSecretPath, "utf8"), serverSecretPath);
+        return serverSecretModule;
+      }
       throw new Error(`Unexpected dependency in ${filename}: ${specifier}`);
     },
     URL,

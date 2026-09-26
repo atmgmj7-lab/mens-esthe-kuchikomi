@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { PartnerRegistrationData } from "@/lib/partner/registration-validation";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 import {
   PARTNER_REVIEW_CAMPAIGN_CHANNELS,
   PARTNER_WORKSPACE_STATES,
@@ -15,20 +16,16 @@ import {
   type PartnerWorkspaceRepository,
 } from "@/lib/partner/provisioning-service";
 
-const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function serviceHeaders(): Record<string, string> | null {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) return null;
-  const headers: Record<string, string> = {
-    apikey: serviceKey,
+  const serverSecret = resolveSupabaseServerSecret();
+  if (!serverSecret) return null;
+  return createSupabaseServerHeaders(serverSecret.value, {
     "Content-Type": "application/json",
     "Content-Profile": "api",
     "Accept-Profile": "api",
-  };
-  if (LEGACY_SERVICE_ROLE_JWT_RE.test(serviceKey)) headers.Authorization = `Bearer ${serviceKey}`;
-  return headers;
+  });
 }
 
 function supabaseUrl(): string | null {

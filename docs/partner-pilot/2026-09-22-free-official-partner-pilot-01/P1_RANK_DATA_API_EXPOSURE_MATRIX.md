@@ -12,7 +12,8 @@ The `api` schema is the only candidate Data API schema. `private` stays unexpose
 | anon | `DENY` |
 | authenticated browser | `DENY` for privileged direct execution |
 | service role | server-only, through a server adapter or controlled operator runner |
-| `SUPABASE_SERVICE_ROLE_KEY` | `server-only`; client exposure `0` |
+| `SUPABASE_SECRET_KEY` | canonical modern server-only secret; client exposure `0` |
+| `SUPABASE_SERVICE_ROLE_KEY` | temporary legacy server-only fallback; client exposure `0` |
 
 ## Required wrapper set — 19
 
@@ -58,7 +59,7 @@ These are not a reason to broaden exposure. They remain outside the single-shop 
 1. Confirm the configured API schema does not include `private`.
 2. Confirm the available wrapper set equals the 19 required entries above — no more and no fewer.
 3. For every listed signature, confirm `service_role` can execute and `anon` plus `authenticated` cannot.
-4. Confirm no browser bundle, client environment variable, response, log, or screenshot contains `SUPABASE_SERVICE_ROLE_KEY`.
+4. Confirm no browser bundle, client environment variable, response, log, or screenshot contains `SUPABASE_SECRET_KEY` or `SUPABASE_SERVICE_ROLE_KEY`.
 5. Confirm API calls use only server-side adapters and retain session-derived workspace/shop checks.
 
 Any mismatch is a P1-RANK-02 blocker. This document does not authorize a configuration change.

@@ -7,6 +7,8 @@ import vm from "node:vm";
 const root = resolve(import.meta.dirname, "..");
 const typesPath = resolve(root, "lib/reviews/repository.ts");
 const implementationPath = resolve(root, "lib/supabase/review-native.ts");
+const serverSecretPath = resolve(root, "lib/supabase/server-secret.ts");
+let serverSecretModule;
 
 assert.ok(existsSync(typesPath), "server-only Review repository contract must exist");
 assert.ok(existsSync(implementationPath), "Supabase Review repository implementation must exist");
@@ -39,6 +41,10 @@ function compile(source, filename, dependencies = {}) {
     clearTimeout,
     require(specifier) {
       if (specifier === "server-only") return {};
+      if (specifier === "@/lib/supabase/server-secret") {
+        serverSecretModule ??= compile(readFileSync(serverSecretPath, "utf8"), serverSecretPath);
+        return serverSecretModule;
+      }
       if (specifier in dependencies) return dependencies[specifier];
       throw new Error(`Unexpected dependency in ${filename}: ${specifier}`);
     },

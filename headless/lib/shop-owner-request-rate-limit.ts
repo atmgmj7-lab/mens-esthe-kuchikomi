@@ -1,6 +1,8 @@
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+
 type HeaderReader = Pick<Headers, "get">;
 
 export type ShopOwnerRateLimitClaim =
@@ -8,7 +10,6 @@ export type ShopOwnerRateLimitClaim =
   | { ok: true; allowed: false; retryAfterSec: number }
   | { ok: false; reason: "not-configured" | "request-failed" };
 
-const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const RATE_LIMIT_WINDOW_SECONDS = 600;
 
 function firstValidIp(value: string | null): string | null {
@@ -64,9 +65,9 @@ export async function claimShopOwnerRequestRateLimit({
   }
 
   const baseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serverSecret = resolveSupabaseServerSecret();
   const rateLimitSecret = process.env.SHOP_OWNER_REQUEST_RATE_LIMIT_SECRET;
-  if (!baseUrl || !serviceKey || !rateLimitSecret) {
+  if (!baseUrl || !serverSecret || !rateLimitSecret) {
     return { ok: false, reason: "not-configured" };
   }
 
@@ -76,15 +77,11 @@ export async function claimShopOwnerRequestRateLimit({
     clientIp,
     secret: rateLimitSecret,
   });
-  const headers: Record<string, string> = {
-    apikey: serviceKey,
+  const headers = createSupabaseServerHeaders(serverSecret.value, {
     "Content-Type": "application/json",
     "Content-Profile": "api",
     "Accept-Profile": "api",
-  };
-  if (LEGACY_SERVICE_ROLE_JWT_RE.test(serviceKey)) {
-    headers.Authorization = `Bearer ${serviceKey}`;
-  }
+  });
 
   try {
     const response = await fetch(

@@ -122,6 +122,11 @@ const routeModule = loadTypeScript("app/api/reviews/submit/route.ts", {
   "@/lib/review-validation": validationModule,
   "@/lib/wp/shops": { getShopBySlug: async () => wpShop },
   "@/lib/seo": { SITE_URL: "https://mens-esthe-kuchikomi.com" },
+  "@/lib/supabase/server-secret": {
+    resolveSupabaseServerSecret: () => process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+      ? { value: process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY }
+      : null,
+  },
 });
 
 const validPayload = {

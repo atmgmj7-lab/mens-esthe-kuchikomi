@@ -20,6 +20,11 @@ function configuredString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function resolveSupabaseServerSecret(environment) {
+  return configuredString(environment.SUPABASE_SECRET_KEY)
+    ?? configuredString(environment.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 function normalizedSupabaseUrl(value) {
   const configured = configuredString(value);
   if (!configured) return null;
@@ -201,7 +206,7 @@ async function grantMembership({ baseUrl, serviceRoleKey, canonicalShop, workspa
  */
 export async function runP1RankAuthMembershipOperator({ environment = process.env, fetchImpl = fetch } = {}) {
   const baseUrl = normalizedSupabaseUrl(environment.SUPABASE_URL);
-  const serviceRoleKey = configuredString(environment.SUPABASE_SERVICE_ROLE_KEY);
+  const serviceRoleKey = resolveSupabaseServerSecret(environment);
   const workspaceId = normalizedWorkspaceId(environment.P1_RANK_WORKSPACE_ID);
   const email = normalizedEmail(environment.P1_RANK_CONTACT_EMAIL);
   const role = normalizedRole(environment.P1_RANK_PARTNER_ROLE);

@@ -59,7 +59,7 @@ function verifySourceContract() {
   assert.match(provisioning, /export async function openPartnerReviewCampaign/);
   assert.match(provisioning, /export async function recordPartnerReviewCampaignSubmission/);
   assert.match(repository, /import "server-only"/);
-  assert.match(repository, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(repository, /resolveSupabaseServerSecret/);
   assert.match(repository, /rest\/v1\/rpc\/review_partner_registration/);
   assert.match(repository, /rest\/v1\/rpc\/list_partner_registration_reviews/);
   assert.match(repository, /rest\/v1\/rpc\/open_partner_review_campaign/);

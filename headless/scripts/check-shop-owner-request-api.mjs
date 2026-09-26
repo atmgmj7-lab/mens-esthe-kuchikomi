@@ -196,6 +196,19 @@ vm.runInNewContext(rateLimitCompiled, {
   require: (specifier) => {
     if (specifier === "node:crypto") return awaitImportStubs.crypto;
     if (specifier === "node:net") return awaitImportStubs.net;
+    if (specifier === "@/lib/supabase/server-secret") {
+      return {
+        resolveSupabaseServerSecret: () => {
+          const value = rateProcessMock.env.SUPABASE_SECRET_KEY ?? rateProcessMock.env.SUPABASE_SERVICE_ROLE_KEY;
+          return value ? { value } : null;
+        },
+        createSupabaseServerHeaders: (value, additional = {}) => ({
+          apikey: value,
+          ...additional,
+          ...(value.startsWith("eyJ") ? { Authorization: `Bearer ${value}` } : {}),
+        }),
+      };
+    }
     throw new Error(`Unexpected rate-limit dependency: ${specifier}`);
   }
 });
@@ -256,7 +269,7 @@ for (const key of [ipKey, otherShopKey, noIpKeyA, noIpKeyB]) {
 
 rateProcessMock.env = {
   SUPABASE_URL: "https://project.supabase.co/",
-  SUPABASE_SERVICE_ROLE_KEY: "sb_secret_test_server_only_key",
+  SUPABASE_SECRET_KEY: "sb_secret_test_server_only_key",
   SHOP_OWNER_REQUEST_RATE_LIMIT_SECRET: "unit-test-secret"
 };
 const claimed = await claimShopOwnerRequestRateLimit({
@@ -389,8 +402,8 @@ assert.doesNotMatch(
 );
 
 const persistence = readFileSync(join(root, "lib/supabase/shop-owner-request.ts"), "utf8");
-assert.match(persistence, /SUPABASE_SERVICE_ROLE_KEY/);
-assert.doesNotMatch(persistence, /NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY/);
+assert.match(persistence, /resolveSupabaseServerSecret/);
+assert.doesNotMatch(persistence, /NEXT_PUBLIC_SUPABASE_(?:SECRET|SERVICE_ROLE)_KEY/);
 assert.match(persistence, /Content-Profile/);
 assert.match(persistence, /api/);
 
@@ -411,7 +424,23 @@ vm.runInNewContext(persistenceCompiled, {
   module: persistenceModule,
   exports: persistenceModule.exports,
   process: processMock,
-  fetch: fetchMock
+  fetch: fetchMock,
+  require: (specifier) => {
+    if (specifier === "@/lib/supabase/server-secret") {
+      return {
+        resolveSupabaseServerSecret: () => {
+          const value = processMock.env.SUPABASE_SECRET_KEY ?? processMock.env.SUPABASE_SERVICE_ROLE_KEY;
+          return value ? { value } : null;
+        },
+        createSupabaseServerHeaders: (value, additional = {}) => ({
+          apikey: value,
+          ...additional,
+          ...(value.startsWith("eyJ") ? { Authorization: `Bearer ${value}` } : {}),
+        }),
+      };
+    }
+    throw new Error(`Unexpected persistence dependency: ${specifier}`);
+  },
 });
 const { saveShopOwnerRequest } = persistenceModule.exports;
 
@@ -431,7 +460,7 @@ assert.equal((await saveShopOwnerRequest(normalized.data)).reason, "not-configur
 
 processMock.env = {
   SUPABASE_URL: "https://project.supabase.co/",
-  SUPABASE_SERVICE_ROLE_KEY: "sb_secret_test_server_only_key"
+  SUPABASE_SECRET_KEY: "sb_secret_test_server_only_key"
 };
 assert.equal((await saveShopOwnerRequest(normalized.data)).ok, true);
 assert.equal(fetchCalls.length, 1);
@@ -449,6 +478,7 @@ assert.equal(requestBody.evidence_url, null);
 assert.equal(requestBody.official_image_url, null);
 
 const legacyServiceRoleJwt = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature";
+delete processMock.env.SUPABASE_SECRET_KEY;
 processMock.env.SUPABASE_SERVICE_ROLE_KEY = legacyServiceRoleJwt;
 assert.equal((await saveShopOwnerRequest(normalized.data)).ok, true);
 assert.equal(fetchCalls.length, 2);
@@ -465,6 +495,7 @@ assert.equal((await saveShopOwnerRequest(normalized.data)).reason, "request-fail
 
 const envExample = readFileSync(join(root, ".env.example"), "utf8");
 assert.match(envExample, /^SUPABASE_URL=$/m);
+assert.match(envExample, /^SUPABASE_SECRET_KEY=$/m);
 assert.match(envExample, /^SUPABASE_SERVICE_ROLE_KEY=$/m);
 assert.match(envExample, /^SHOP_OWNER_REQUEST_RATE_LIMIT_SECRET=$/m);
 assert.match(envExample, /^SHOP_OWNER_REQUEST_DRY_RUN=true$/m);

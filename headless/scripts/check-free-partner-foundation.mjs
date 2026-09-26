@@ -47,12 +47,12 @@ assert.doesNotMatch(registrationRoute, /state:\s*result\.state/);
 assert.match(registrationRoute, /request\.nextUrl\.origin/);
 assert.match(registrationRoute, /partner\/register\//);
 assert.match(repository, /import "server-only"/);
-assert.match(repository, /SUPABASE_SERVICE_ROLE_KEY/);
+assert.match(repository, /resolveSupabaseServerSecret/);
 assert.match(repository, /Content-Profile": "api"/);
 assert.match(repository, /rest\/v1\/rpc\/register_partner_submission/);
 assert.doesNotMatch(repository, /rest\/v1\/partner_registration_submissions/);
 assert.match(localSupabaseContract, /supabase_db_\$\{projectId\}/);
-assert.doesNotMatch(partnerPage, /SUPABASE_SERVICE_ROLE_KEY|SUPABASE_URL/);
+assert.doesNotMatch(partnerPage, /SUPABASE_(?:SECRET_KEY|SERVICE_ROLE_KEY)|SUPABASE_URL/);
 
 assert.match(migration, /create schema if not exists private/i);
 assert.match(migration, /create table private\.partner_workspaces/i);

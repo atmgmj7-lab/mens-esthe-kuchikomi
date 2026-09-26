@@ -40,7 +40,8 @@ assert.deepEqual(requiredRows.map((match) => match[1]), required, "the required 
 assert.match(matrix, /private schema \| `NOT EXPOSED`/i);
 assert.match(matrix, /anon \| `DENY`/i);
 assert.match(matrix, /authenticated browser \| `DENY`/i);
-assert.match(matrix, /`SUPABASE_SERVICE_ROLE_KEY` \| `server-only`; client exposure `0`/i);
+assert.match(matrix, /`SUPABASE_SECRET_KEY` \| canonical modern server-only secret; client exposure `0`/i);
+assert.match(matrix, /`SUPABASE_SERVICE_ROLE_KEY` \| temporary legacy server-only fallback; client exposure `0`/i);
 assert.match(matrix, /`record_partner_review_campaign_submission` \| NOT_REQUIRED/i);
 assert.match(matrix, /`record_partner_review_campaign_review` \| NOT_REQUIRED/i);
 assert.match(matrix, /`submit_review` \| NOT_REQUIRED/i);

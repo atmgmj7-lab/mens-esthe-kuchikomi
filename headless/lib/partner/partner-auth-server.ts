@@ -2,9 +2,9 @@ import "server-only";
 
 import type { PartnerAccessDependencies, PartnerAuthUser, PartnerMembershipAccess } from "@/lib/partner/partner-auth";
 import type { PartnerDashboardIdentityDependencies, PartnerWorkspaceIdentity } from "@/lib/partner/partner-dashboard";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 type Environment = Readonly<Record<string, string | undefined>>;
 type AuthConfiguration = Readonly<{ baseUrl: string; authPublishableKey: string }>;
@@ -101,16 +101,14 @@ export function createPartnerAuthDependencies(
   fetchImpl: typeof fetch = fetch,
 ): (PartnerAccessDependencies & PartnerDashboardIdentityDependencies) | null {
   const auth = authConfiguration(environment);
-  const serviceRoleKey = configuredString(environment.SUPABASE_SERVICE_ROLE_KEY);
-  if (!auth || !serviceRoleKey) return null;
+  const serverSecret = resolveSupabaseServerSecret(environment);
+  if (!auth || !serverSecret) return null;
 
-  const serviceHeaders: Record<string, string> = {
-    apikey: serviceRoleKey,
+  const serviceHeaders = createSupabaseServerHeaders(serverSecret.value, {
     "Content-Type": "application/json",
     "Content-Profile": "api",
     "Accept-Profile": "api",
-  };
-  if (LEGACY_SERVICE_ROLE_JWT_RE.test(serviceRoleKey)) serviceHeaders.Authorization = `Bearer ${serviceRoleKey}`;
+  });
 
   return {
     async getUser(accessToken: string): Promise<PartnerAuthUser | null> {

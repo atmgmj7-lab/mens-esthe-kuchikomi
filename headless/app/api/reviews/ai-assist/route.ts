@@ -6,6 +6,7 @@ import { createGeminiReviewProvider, estimateAiReviewCostUsd, estimateAiReviewTo
 import { REVIEW_TAGS } from "@/lib/reviews/low-friction-review";
 import { REVIEW_SUBMISSION_CSRF_VALUE, getReviewRateLimitWindow, resolveTrustedReviewClientIp, utf8ByteLength } from "@/lib/reviews/submission-security";
 import { reviewNativeRepository } from "@/lib/supabase/review-native";
+import { resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const MAX_BODY_BYTES = 8_192;
 const MAX_REQUESTS = 5;
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
     return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);
   }
   const ip = resolveTrustedReviewClientIp(request.headers);
-  const serverSecret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serverSecret = resolveSupabaseServerSecret()?.value;
   if (!ip || !serverSecret) {
     logAiUnavailable(!ip ? "client_ip" : "server_secret");
     return json({ ok: false, message: "AI補助は現在利用できません。" }, 503);

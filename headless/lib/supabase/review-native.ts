@@ -24,10 +24,10 @@ import type {
   SubmitReviewResult,
   WordPressShopIdentity,
 } from "@/lib/reviews/repository";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const SHA256_RE = /^[0-9a-f]{64}$/;
-const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 type ReviewRepositoryConfiguration = Readonly<{
   baseUrl: string | null | undefined;
@@ -395,15 +395,11 @@ export function createSupabaseReviewRepository(
     signal?: AbortSignal,
   ): Promise<ReviewRepositoryResult<T>> {
     if (!baseUrl || !serviceRoleKey) return error("not_configured");
-    const headers: Record<string, string> = {
-      apikey: serviceRoleKey,
+    const headers = createSupabaseServerHeaders(serviceRoleKey, {
       "Content-Type": "application/json",
       "Content-Profile": "api",
       "Accept-Profile": "api",
-    };
-    if (LEGACY_SERVICE_ROLE_JWT_RE.test(serviceRoleKey)) {
-      headers.Authorization = `Bearer ${serviceRoleKey}`;
-    }
+    });
     try {
       const response = await fetchImpl(`${baseUrl}/rest/v1/rpc/${name}`, {
         method: "POST",
@@ -556,5 +552,5 @@ export function createSupabaseReviewRepository(
 
 export const reviewNativeRepository = createSupabaseReviewRepository({
   baseUrl: process.env.SUPABASE_URL,
-  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  serviceRoleKey: resolveSupabaseServerSecret()?.value,
 });

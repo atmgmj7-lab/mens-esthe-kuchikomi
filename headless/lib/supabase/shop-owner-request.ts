@@ -1,10 +1,9 @@
 import type { ShopOwnerRequestData } from "@/lib/shop-owner-request-validation";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 type SaveResult =
   | { ok: true }
   | { ok: false; reason: "not-configured" | "request-failed" };
-
-const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 export async function saveShopOwnerRequest(data: ShopOwnerRequestData): Promise<SaveResult> {
   if (
@@ -15,20 +14,16 @@ export async function saveShopOwnerRequest(data: ShopOwnerRequestData): Promise<
   }
 
   const baseUrl = process.env.SUPABASE_URL?.replace(/\/$/, "");
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!baseUrl || !serviceKey) {
+  const serverSecret = resolveSupabaseServerSecret();
+  if (!baseUrl || !serverSecret) {
     return { ok: false, reason: "not-configured" };
   }
 
-  const headers: Record<string, string> = {
-    apikey: serviceKey,
+  const headers = createSupabaseServerHeaders(serverSecret.value, {
     "Content-Type": "application/json",
     "Content-Profile": "api",
     Prefer: "return=minimal",
-  };
-  if (LEGACY_SERVICE_ROLE_JWT_RE.test(serviceKey)) {
-    headers.Authorization = `Bearer ${serviceKey}`;
-  }
+  });
 
   try {
     const response = await fetch(`${baseUrl}/rest/v1/shop_owner_requests`, {

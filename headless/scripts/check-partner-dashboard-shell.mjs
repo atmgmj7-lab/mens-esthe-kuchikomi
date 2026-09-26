@@ -8,9 +8,12 @@ const root = process.cwd();
 const authPath = join(root, "lib/partner/partner-auth.ts");
 const dashboardPath = join(root, "lib/partner/partner-dashboard.ts");
 const serverPath = join(root, "lib/partner/partner-auth-server.ts");
+const serverSecretPath = join(root, "lib/supabase/server-secret.ts");
 const operatorPagePath = join(root, "app/dashboard/partners/page.tsx");
 const partnerPagePath = join(root, "app/partner/page.tsx");
 const proxyPath = join(root, "proxy.ts");
+
+let serverSecretModule;
 
 function loadModule(source, filename, modules = {}) {
   const output = ts.transpileModule(source, {
@@ -23,6 +26,10 @@ function loadModule(source, filename, modules = {}) {
     exports: module.exports,
     require: (specifier) => {
       if (specifier === "server-only") return {};
+      if (specifier === "@/lib/supabase/server-secret") {
+        serverSecretModule ??= loadModule(readFileSync(serverSecretPath, "utf8"), serverSecretPath);
+        return serverSecretModule;
+      }
       if (specifier in modules) return modules[specifier];
       throw new Error(`Unexpected dependency in ${filename}: ${specifier}`);
     },

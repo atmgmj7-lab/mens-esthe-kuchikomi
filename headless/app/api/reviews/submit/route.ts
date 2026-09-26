@@ -12,6 +12,7 @@ import {
   utf8ByteLength,
 } from "@/lib/reviews/submission-security";
 import { reviewNativeRepository } from "@/lib/supabase/review-native";
+import { resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 import { validateReviewPayload } from "@/lib/review-validation";
 import { getShopBySlug } from "@/lib/wp/shops";
 import { SITE_URL } from "@/lib/seo";
@@ -107,7 +108,7 @@ export async function POST(request: NextRequest) {
     return json({ ok: false, message: "指定された店舗が見つかりません。" }, 404);
   }
 
-  const serverSecret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serverSecret = resolveSupabaseServerSecret()?.value;
   if (!serverSecret) {
     return json({ ok: false, message: "現在口コミを受け付けできません。" }, 503);
   }

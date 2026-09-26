@@ -6,9 +6,9 @@ import {
   type PartnerLoginEmailIntentKind,
   type PartnerLoginEmailManagement,
 } from "@/lib/partner/partner-login-email";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const LEGACY_SERVICE_ROLE_JWT_RE = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 type Environment = Readonly<Record<string, string | undefined>>;
 
 export type CanonicalPartnerLoginEmailShop = Readonly<{
@@ -23,7 +23,7 @@ function configuredString(value: unknown): string | null {
 
 function configuration(environment: Environment): Readonly<{ baseUrl: string; serviceRoleKey: string }> | null {
   const rawUrl = configuredString(environment.SUPABASE_URL);
-  const serviceRoleKey = configuredString(environment.SUPABASE_SERVICE_ROLE_KEY);
+  const serviceRoleKey = resolveSupabaseServerSecret(environment)?.value ?? null;
   if (!rawUrl || !serviceRoleKey) return null;
   try {
     const url = new URL(rawUrl);
@@ -36,14 +36,11 @@ function configuration(environment: Environment): Readonly<{ baseUrl: string; se
 }
 
 function serviceHeaders(serviceRoleKey: string): Record<string, string> {
-  const headers: Record<string, string> = {
-    apikey: serviceRoleKey,
+  return createSupabaseServerHeaders(serviceRoleKey, {
     "Content-Type": "application/json",
     "Content-Profile": "api",
     "Accept-Profile": "api",
-  };
-  if (LEGACY_SERVICE_ROLE_JWT_RE.test(serviceRoleKey)) headers.Authorization = `Bearer ${serviceRoleKey}`;
-  return headers;
+  });
 }
 
 function validCanonicalShop(shop: CanonicalPartnerLoginEmailShop): boolean {
