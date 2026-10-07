@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 /**
  * Headless 本番切替前の簡易 SEO / URL チェック CLI
  * Usage: node scripts/seo-cutover-check.mjs https://example.com
@@ -40,6 +43,7 @@ const CANONICAL_CHECK_PATHS = [
 const GA4_ID = "G-6XFMW5XKBW";
 const SITEMAP_MIN_URLS = 300;
 const SITEMAP_SHOP_SAMPLE_MAX = 5;
+const GA4_CHUNK_MAX = 64;
 
 function usage() {
   console.error("Usage: node scripts/seo-cutover-check.mjs <base-url>");
@@ -105,26 +109,26 @@ function hasNoindex(html) {
   return /name=["']robots["'][^>]*content=["'][^"']*noindex/i.test(html);
 }
 
-function hasGa4(html) {
+export function hasGa4(html) {
   return html.includes(GA4_ID) || html.includes("googletagmanager.com/gtag/js");
 }
 
-function extractScriptUrls(html, base) {
+export function extractScriptUrls(html, base) {
   const urls = new Set();
-  const re = /src="(\/_next\/static\/chunks\/[^"]+\.js)"/g;
+  const re = /<script\b[^>]*\ssrc\s*=\s*(["'])(\/_next\/static\/(?:immutable\/)?chunks\/[^"'?#\s>]+\.js(?:\?[^"'#\s>]*)?)\1[^>]*>/gi;
   let match;
   while ((match = re.exec(html)) !== null) {
     try {
-      urls.add(new URL(match[1], base).href);
+      urls.add(new URL(match[2], base).href);
     } catch {
-      urls.add(`${base}${match[1]}`);
+      urls.add(`${base}${match[2]}`);
     }
-    if (urls.size >= 12) break;
+    if (urls.size >= GA4_CHUNK_MAX) break;
   }
   return [...urls];
 }
 
-async function detectGa4(html, base) {
+export async function detectGa4(html, base, fetchImpl = fetch) {
   if (hasGa4(html)) {
     return { ok: true, detail: `${GA4_ID} または gtag/js を HTML 内で検出` };
   }
@@ -132,7 +136,7 @@ async function detectGa4(html, base) {
   const scriptUrls = extractScriptUrls(html, base);
   for (const scriptUrl of scriptUrls) {
     try {
-      const res = await fetch(scriptUrl);
+      const res = await fetchImpl(scriptUrl);
       if (!res.ok) continue;
       const js = await res.text();
       if (hasGa4(js)) {
@@ -355,4 +359,6 @@ async function main() {
   process.exit(failures > 0 ? 1 : 0);
 }
 
-main();
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
