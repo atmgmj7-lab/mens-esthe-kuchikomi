@@ -12,6 +12,9 @@ import { chromium } from "@playwright/test";
 
 const headlessRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(headlessRoot, "..");
+const supabaseWorkdir = process.env.E2E_SUPABASE_WORKDIR
+  ? resolve(process.env.E2E_SUPABASE_WORKDIR)
+  : repositoryRoot;
 const read = (path) => readFileSync(resolve(headlessRoot, path), "utf8");
 
 function loadTypeScript(path, dependencies = {}, jsx = false) {
@@ -53,8 +56,8 @@ const awaitImportCache = {
 };
 
 function localSupabaseEnvironment() {
-  const output = execFileSync("supabase", ["status", "-o", "env"], {
-    cwd: repositoryRoot,
+  const output = execFileSync("supabase", ["status", "-o", "env", "--workdir", supabaseWorkdir], {
+    cwd: supabaseWorkdir,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -66,14 +69,15 @@ function localSupabaseEnvironment() {
   }
   const apiUrl = values.get("API_URL");
   const serviceRoleKey = values.get("SERVICE_ROLE_KEY");
-  assert.ok(apiUrl && serviceRoleKey, "local Supabase API and service role must be available");
+  assert.ok(apiUrl, "local Supabase API URL must be available");
+  assert.ok(serviceRoleKey, "local Supabase service role must be available");
   const parsed = new URL(apiUrl);
   assert.equal(parsed.protocol, "http:");
   assert.ok(["127.0.0.1", "localhost"].includes(parsed.hostname), "E2E must target local Supabase only");
   return { apiUrl, serviceRoleKey };
 }
 
-const config = readFileSync(join(repositoryRoot, "supabase/config.toml"), "utf8");
+const config = readFileSync(join(supabaseWorkdir, "supabase/config.toml"), "utf8");
 const projectId = config.match(/^project_id\s*=\s*"([^"]+)"\s*$/m)?.[1];
 assert.ok(projectId, "local Supabase project_id is required");
 const database = `supabase_db_${projectId}`;
@@ -186,7 +190,10 @@ const { apiUrl, serviceRoleKey } = localSupabaseEnvironment();
 process.env.SUPABASE_URL = apiUrl;
 process.env.SUPABASE_SERVICE_ROLE_KEY = serviceRoleKey;
 
-const repositoryModule = loadTypeScript("lib/supabase/review-native.ts");
+const serverSecret = loadTypeScript("lib/supabase/server-secret.ts");
+const repositoryModule = loadTypeScript("lib/supabase/review-native.ts", {
+  "@/lib/supabase/server-secret": serverSecret,
+});
 const repository = repositoryModule.createSupabaseReviewRepository({
   baseUrl: apiUrl,
   serviceRoleKey,
@@ -210,6 +217,7 @@ const route = loadTypeScript("app/api/reviews/submit/route.ts", {
   "next/server": { NextResponse: TestNextResponse },
   "@/lib/reviews/submission-security": security,
   "@/lib/supabase/review-native": { reviewNativeRepository: repository },
+  "@/lib/supabase/server-secret": serverSecret,
   "@/lib/review-validation": validation,
   "@/lib/wp/shops": {
     getShopBySlug: async (slug) => slug === shopA.slug ? shopA : slug === shopB.slug ? shopB : null,
@@ -281,6 +289,7 @@ const campaignUrlModule = loadTypeScript("lib/partner/provisioning-service.ts", 
 });
 const partnerWorkspaceModule = loadTypeScript("lib/supabase/partner-workspace.ts", {
   "@/lib/partner/provisioning-service": campaignUrlModule,
+  "@/lib/supabase/server-secret": serverSecret,
 });
 const widgetModule = loadTypeScript("lib/partner/partner-review-widget.ts");
 assert.equal(

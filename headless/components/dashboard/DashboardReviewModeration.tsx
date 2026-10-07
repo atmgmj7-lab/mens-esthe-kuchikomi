@@ -48,14 +48,25 @@ function formatDate(value: string | null) {
 export function DashboardReviewModeration({
   reviews,
   sourceStatus,
+  shopName,
+  wpShopId,
 }: {
   reviews: QueueReview[];
   sourceStatus: "ok" | "no_data" | "error";
+  shopName: string;
+  wpShopId: number;
 }) {
   const [detail, setDetail] = useState<DetailState>(null);
   const [message, setMessage] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
+  const [status, setStatus] = useState<"all" | "pending" | "approved_ready">("all");
+  const filtered = reviews.filter((review) => review.shop.wpShopId === wpShopId
+    && (status === "all" || (
+      status === "pending"
+        ? review.moderationStatus === "pending"
+        : review.moderationStatus === "approved" && review.publicationStatus === "draft" && !review.isPublic
+    )));
 
   async function loadDetail(reviewId: string) {
     setLoadingId(reviewId);
@@ -116,12 +127,19 @@ export function DashboardReviewModeration({
 
   return (
     <section className="hl-partner-review-list" aria-labelledby="native-review-moderation-heading">
-      <h2 id="native-review-moderation-heading">保留中の口コミ</h2>
-      <p>口コミ本文・評価は変更せず、審査と公開を別々に判断します。理由は非公開の監査履歴へ保存されます。</p>
+      <h2 id="native-review-moderation-heading">口コミ審査キュー</h2>
+      <p>{shopName}（WP {wpShopId}）の要対応口コミだけを表示します。口コミ本文・評価は変更せず、審査と公開を別々に判断します。理由は非公開の監査履歴へ保存されます。</p>
+      <p>既存キューをサーバー側でページ走査してから対象店舗へ絞り込んでいます。公開済み・却下・スパムを含む履歴検索は、このキューに混在させません。</p>
       {message ? <p role="status">{message}</p> : null}
       {sourceStatus === "error" ? <p role="alert">口コミ審査一覧を取得できませんでした。</p> : null}
-      {sourceStatus !== "error" && reviews.length === 0 ? <p>保留中の口コミはありません。</p> : null}
-      {reviews.map((review) => (
+      {sourceStatus !== "error" && reviews.length > 0 ? <div className="hl-partner-review-filters" aria-label="口コミ審査キューを絞り込む">
+        <p>対象店舗: {shopName}（WP {wpShopId}）</p>
+        <label>状態<select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}>
+          <option value="all">すべての要対応</option><option value="pending">審査待ち</option><option value="approved_ready">承認済み・公開待ち</option>
+        </select></label>
+      </div> : null}
+      {sourceStatus !== "error" && filtered.length === 0 ? <p>この条件の要対応口コミはありません。</p> : null}
+      {filtered.map((review) => (
         <article className="hl-partner-review-card" key={review.reviewId}>
           <h3>{review.shop.name}</h3>
           <p>投稿者: {review.nickname}</p>

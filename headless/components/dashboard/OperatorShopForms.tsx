@@ -4,19 +4,16 @@ import { useState, type FormEvent } from "react";
 import {
   LISTING_EXCLUSION_REASONS,
   createListingExclusionIntent,
-  createOperatorShopWriteIntent,
   type ListingExclusionReason,
-  type OperatorShopDraft,
 } from "@/lib/dashboard/operator-shop-write-contract";
+import {
+  OPERATOR_WRITER_FIELDS,
+  OPERATOR_WRITER_FIELD_LABELS,
+  createOperatorShopFactDryRun,
+  type OperatorShopFactSnapshot,
+  type OperatorWriterField,
+} from "@/lib/dashboard/operator-shop-fact-dry-run";
 import styles from "./OperatorShops.module.css";
-
-type FormMode = "create" | "update";
-
-type Props = Readonly<{
-  mode: FormMode;
-  wpShopId?: number;
-  initialValue?: Partial<OperatorShopDraft>;
-}>;
 
 const exclusionLabels: Record<ListingExclusionReason, string> = {
   out_of_scope_industry: "対象業種ではない",
@@ -30,42 +27,65 @@ function text(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value : "";
 }
 
-function draftFrom(form: HTMLFormElement): OperatorShopDraft {
+function valuesFrom(form: HTMLFormElement): Record<OperatorWriterField, string> {
   const formData = new FormData(form);
-  return {
-    title: text(formData.get("title")), area: text(formData.get("area")), officialUrl: text(formData.get("officialUrl")),
-    address: text(formData.get("address")), businessHours: text(formData.get("businessHours")), phone: text(formData.get("phone")),
-    lineUrl: text(formData.get("lineUrl")), bookingUrl: text(formData.get("bookingUrl")), basicPrice: text(formData.get("basicPrice")),
-    publicationState: (text(formData.get("publicationState")) || "draft") as OperatorShopDraft["publicationState"],
-  };
+  return Object.fromEntries(OPERATOR_WRITER_FIELDS.map((field) => [field, text(formData.get(field))])) as Record<OperatorWriterField, string>;
 }
 
-export function OperatorShopWriteForm({ mode, wpShopId, initialValue = {} }: Props) {
-  const [message, setMessage] = useState("");
-  const isUpdate = mode === "update";
+export function OperatorShopFactEditForm({ snapshot }: { snapshot: OperatorShopFactSnapshot }) {
+  const [result, setResult] = useState<ReturnType<typeof createOperatorShopFactDryRun> | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const intent = createOperatorShopWriteIntent(mode, draftFrom(event.currentTarget), wpShopId ?? null);
-    setMessage("message" in intent ? intent.message : "入力を検証しました。WordPress Writerの項目対応と個別承認が必要なため、ここからは書き込みません。");
+    setConfirmed(false);
+    setSaveMessage("");
+    setResult(createOperatorShopFactDryRun(snapshot, valuesFrom(event.currentTarget)));
+  }
+  async function requestSaveApproval() {
+    if (!result || result.state !== "ready" || !confirmed) return;
+    setSaveMessage("保存可否を確認しています…");
+    try {
+      const updates = Object.fromEntries(result.changes.map((change) => [change.field, change.after]));
+      const response = await fetch(`/api/dashboard/shops/${snapshot.wpShopId}/official-facts/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "official-facts-write" },
+        body: JSON.stringify({ updates }),
+      });
+      const payload = await response.json() as { message?: string };
+      setSaveMessage(payload.message || "保存可否を確認できませんでした。");
+    } catch {
+      setSaveMessage("保存可否を確認できませんでした。");
+    }
   }
   return <section className={styles.formPanel} aria-labelledby="operator-shop-form-heading">
     <p className={styles.eyebrow}>WordPress public source</p>
-    <h2 id="operator-shop-form-heading">{isUpdate ? "公開情報を編集" : "店舗を追加"}</h2>
-    <p className={styles.note}>このローカル候補では入力検証だけを行います。Supabaseへ店舗CMSを作らず、WordPress Writerの対応項目とProduction承認が揃うまで外部書込みは行いません。</p>
+    <h2 id="operator-shop-form-heading">公開情報を確認・修正候補にする</h2>
+    <p className={styles.note}>現在のWordPress公開情報を読み込みました。既存の限定Writerが対応する10項目だけを確認できます。タイトル・エリア・公開状態・taxonomy・新規作成は今回の対象外で、保存できるようには表示しません。</p>
+    <p className={styles.note}>WP ID {snapshot.wpShopId} / slug {snapshot.slug}。この画面の確認操作は、WordPress・Supabase・公開サイトへ書き込みません。</p>
     <form className={styles.form} onSubmit={submit} noValidate>
-      <label>店舗名<input name="title" required maxLength={120} defaultValue={initialValue.title ?? ""} /></label>
-      <label>Area<input name="area" required maxLength={80} defaultValue={initialValue.area ?? ""} /></label>
-      <label>公式URL<input name="officialUrl" type="url" defaultValue={initialValue.officialUrl ?? ""} /></label>
-      <label>住所<input name="address" defaultValue={initialValue.address ?? ""} /></label>
-      <label>営業時間<input name="businessHours" defaultValue={initialValue.businessHours ?? ""} /></label>
-      <label>電話番号<input name="phone" inputMode="tel" defaultValue={initialValue.phone ?? ""} /></label>
-      <label>LINE URL<input name="lineUrl" type="url" defaultValue={initialValue.lineUrl ?? ""} /></label>
-      <label>予約URL<input name="bookingUrl" type="url" defaultValue={initialValue.bookingUrl ?? ""} /></label>
-      <label>基本料金<input name="basicPrice" defaultValue={initialValue.basicPrice ?? ""} /></label>
-      <label>公開状態<select name="publicationState" defaultValue={initialValue.publicationState ?? "draft"}><option value="draft">下書き</option><option value="publish">公開</option><option value="private">非公開</option></select></label>
-      <button type="submit">入力を検証する（書込みなし）</button>
+      {OPERATOR_WRITER_FIELDS.map((field) => {
+        const value = snapshot.values[field];
+        const available = value !== null;
+        return <label key={field}>{OPERATOR_WRITER_FIELD_LABELS[field]}
+          <input name={field} type={field.endsWith("url") || field === "shop_line" ? "url" : "text"} inputMode={field === "basic_price" || field === "price_90" ? "numeric" : undefined} defaultValue={value ?? ""} disabled={!available} aria-describedby={!available ? `${field}-unavailable` : undefined} />
+          {!available ? <small id={`${field}-unavailable`}>公開REST値で正確に読めないため、この項目は編集対象外です。</small> : null}
+        </label>;
+      })}
+      <button type="submit">変更候補を確認する（dry-run・書込みなし）</button>
     </form>
-    {message ? <p className={styles.formMessage} role="status">{message}</p> : null}
+    {result ? <div className={styles.formMessage} role="status">
+      <p>{result.message}</p>
+      {result.state === "ready" ? <>
+        <dl className={styles.diffList}>{result.changes.map((change) => <div key={change.field}><dt>{OPERATOR_WRITER_FIELD_LABELS[change.field]}</dt><dd><s>{change.before ?? "未設定"}</s><span aria-hidden="true"> → </span><strong>{change.after}</strong></dd></div>)}</dl>
+        <label className={styles.confirmation}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />差分と「書込みなし」を確認しました。</label>
+        {confirmed ? <div className={styles.saveGate}>
+          <p>保存には、対応項目ごとの確認済み公式根拠・canonical・監査情報と、最新snapshotの再照合が必要です。ブラウザ入力から根拠を作成することはありません。</p>
+          <button type="button" onClick={requestSaveApproval}>保存前の承認条件を確認する</button>
+          {saveMessage ? <p role="status">{saveMessage}</p> : null}
+        </div> : null}
+      </> : null}
+    </div> : null}
   </section>;
 }
 

@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { mkdirSync } from "node:fs";
 import net from "node:net";
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
 
 const root = process.cwd();
+const screenshotDir = process.env.OPERATOR_QA_SCREENSHOT_DIR;
+if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
 
 function freePort() {
   return new Promise((resolve) => {
@@ -69,10 +72,8 @@ try {
     assert.equal(await page.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, `${viewport.width}px must not overflow horizontally`);
     await page.getByRole("link", { name: "店舗を追加" }).click();
     await page.getByRole("heading", { name: "店舗を追加" }).waitFor({ state: "visible" });
-    await page.getByLabel("店舗名").fill("Local Candidate Shop");
-    await page.getByLabel("Area").fill("大阪");
-    await page.getByRole("button", { name: "入力を検証する（書込みなし）" }).click();
-    await page.getByRole("status").getByText(/書き込みません/).waitFor({ state: "visible" });
+    await page.getByText(/この画面から作成・保存はできません/).waitFor({ state: "visible" });
+    if (screenshotDir) await page.screenshot({ path: `${screenshotDir}/operator-shop-create-${viewport.width}.png`, fullPage: true });
     assert.equal(await page.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, `${viewport.width}px form must not overflow horizontally`);
     await context.close();
   }

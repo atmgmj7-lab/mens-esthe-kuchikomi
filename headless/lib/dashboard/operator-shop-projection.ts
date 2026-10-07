@@ -8,6 +8,7 @@ import {
 } from "@/lib/partner/provisioning-service";
 import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
 import { getAllShopsForListing, getShopById } from "@/lib/wp/shops";
+import { createOperatorShopFactSnapshot, type OperatorShopFactSnapshot } from "@/lib/dashboard/operator-shop-fact-dry-run";
 import type { ShopView } from "@/lib/wp/types";
 
 export const OPERATOR_SHOP_PAGE_SIZE = 30;
@@ -230,4 +231,11 @@ export async function getOperatorShopDetail(
   const registration = registrationFor(shop, registrations);
   const metrics = registration ? await services.getMetrics(registration.workspaceId) : null;
   return projectShop(shop, registrations, metrics);
+}
+
+/** Read-only source snapshot for the existing WordPress writer allowlist. */
+export async function getOperatorShopFactSnapshot(shopId: number): Promise<OperatorShopFactSnapshot | null> {
+  if (!Number.isSafeInteger(shopId) || shopId <= 0) return null;
+  const shop = await getShopById(shopId);
+  return shop ? createOperatorShopFactSnapshot(shop) : null;
 }
