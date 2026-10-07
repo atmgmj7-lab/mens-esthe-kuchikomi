@@ -24,6 +24,7 @@ function loadProjection() {
       };
       if (specifier === "@/lib/supabase/partner-workspace") return { partnerReviewGrowthRepository: {} };
       if (specifier === "@/lib/wp/shops") return { getAllShopsForListing: async () => [], getShopById: async () => null };
+      if (specifier === "@/lib/dashboard/operator-shop-fact-dry-run") return { createOperatorShopFactSnapshot: (shop) => ({ wpShopId: shop.id, slug: shop.slug, values: {} }) };
       throw new Error(`Unexpected dependency: ${specifier}`);
     },
   });

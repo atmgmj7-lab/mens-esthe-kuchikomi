@@ -413,16 +413,17 @@ img {
 .hl-partner-widget__shop { margin: 8px 0; font-weight: 700; }
 
 /* ESKOMI-PARTNER-GROWTH-01: action-first protected Partner Home. */
-.hl-partner-home { color: #17263c; }
+.hl-partner-home { color: var(--color-luxury-text, #1a2830); }
 .hl-partner-home__inner { max-width: 1040px; }
 .hl-partner-home__context,
 .hl-partner-home__action,
 .hl-partner-home__section {
   margin-top: 24px;
   padding: clamp(20px, 3vw, 32px);
-  border: 1px solid #d9d6ce;
-  border-radius: 16px;
-  background: #fffdf8;
+  border: 1px solid #e3dfd6;
+  border-radius: var(--radius-card, 14px);
+  background: var(--color-luxury-card, #fff);
+  box-shadow: 0 10px 26px rgba(20, 61, 77, .06);
 }
 .hl-partner-home__context { margin-top: 32px; }
 .hl-partner-home__context-row,
@@ -435,13 +436,13 @@ img {
 }
 .hl-partner-home h1,
 .hl-partner-home h2,
-.hl-partner-home h3 { color: #17263c; }
+.hl-partner-home h3 { color: var(--color-luxury-text, #1a2830); font-family: var(--hl-serif, Georgia, serif); }
 .hl-partner-home h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.45rem); }
 .hl-partner-home h2 { margin: 0; font-size: clamp(1.25rem, 2.5vw, 1.65rem); }
 .hl-partner-home h3 { margin: 8px 0; font-size: 1.15rem; }
 .hl-partner-home__eyebrow {
   margin: 0 0 8px;
-  color: #7a5b1c;
+  color: #8d6a20;
   font-size: .78rem;
   font-weight: 700;
   letter-spacing: .08em;
@@ -458,8 +459,8 @@ img {
   font-weight: 700;
 }
 .hl-partner-home__action {
-  border-color: #c8ad70;
-  background: #fff8e9;
+  border-color: #dfcf9f;
+  background: var(--es-gold-bg, #fffcf0);
 }
 .hl-partner-home__primary-action,
 .hl-partner-home__text-link {
@@ -472,7 +473,7 @@ img {
 .hl-partner-home__primary-action {
   margin-top: 8px;
   padding: 10px 16px;
-  background: #17263c;
+  background: var(--mep-navy, #143d4d);
   color: #fff !important;
   text-decoration: none;
 }
@@ -482,7 +483,7 @@ img {
   outline: 3px solid #b68528;
   outline-offset: 3px;
 }
-.hl-partner-home__text-link { color: #173f76; }
+.hl-partner-home__text-link { color: var(--mep-navy, #143d4d); }
 .hl-partner-home__period,
 .hl-partner-home__section-note,
 .hl-partner-home__unavailable { color: #5b6470; }
@@ -542,7 +543,7 @@ img {
 .hl-partner-home__metric dt { color: #596675; font-size: .88rem; font-weight: 700; }
 .hl-partner-home__metric dd {
   margin: 4px 0 0;
-  color: #17263c;
+  color: var(--color-luxury-text, #1a2830);
   font-size: clamp(1.7rem, 4vw, 2.2rem);
   font-variant-numeric: tabular-nums;
   font-weight: 700;

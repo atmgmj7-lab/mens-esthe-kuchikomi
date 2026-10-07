@@ -13,6 +13,8 @@ const required = [
   "components/dashboard/OperatorShops.module.css",
   "lib/dashboard/operator-shop-projection.ts",
   "lib/dashboard/operator-shop-write-contract.ts",
+  "lib/dashboard/official-facts-writer.ts",
+  "app/api/dashboard/shops/[id]/official-facts/route.ts",
 ];
 
 for (const path of required) {
@@ -40,7 +42,12 @@ assert.doesNotMatch(writeContract, /fetch\s*\(/, "local UIはWordPressへ書き�
 
 const forms = readFileSync(join(root, "components/dashboard/OperatorShopForms.tsx"), "utf8");
 assert.match(forms, /preventDefault\(\)/, "Create/Editフォームは承認済みWriter接続まで送信しない");
-assert.doesNotMatch(forms, /fetch\s*\(/, "Create/Editフォームはネットワーク書込みをしてはならない");
+assert.match(forms, /\/api\/dashboard\/shops\/\$\{snapshot\.wpShopId\}\/official-facts\//, "保存可否確認は限定サーバー経路だけを使用する");
+assert.match(forms, /ブラウザ入力から根拠を作成することはありません/, "ブラウザ入力を根拠にしてはならない");
+const factsRoute = readFileSync(join(root, "app/api/dashboard/shops/[id]/official-facts/route.ts"), "utf8");
+assert.match(factsRoute, /authorizeDashboardRequest/);
+assert.match(factsRoute, /確認済みの公式根拠・canonical・監査情報が未連携/);
+assert.doesNotMatch(factsRoute, /new OfficialFactsWriter/, "未連携の根拠でWordPress Writerを起動してはならない");
 
 const presentation = readFileSync(join(root, "components/dashboard/OperatorShops.tsx"), "utf8");
 for (const label of ["公開情報", "Partner", "口コミ", "Campaign", "QR / LINE / CTA / Widget", "掲載対象外"]) {

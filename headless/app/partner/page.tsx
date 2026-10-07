@@ -8,6 +8,7 @@ import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
 import { resolvePartnerActionFirstHome } from "@/lib/partner/partner-dashboard";
 import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
+import { buildShopOwnerRequestUrl } from "@/lib/shop-owner-request-links";
 import { pageMetadata } from "@/lib/seo";
 
 export const instant = false;
@@ -26,6 +27,7 @@ export default async function PartnerDashboardPage() {
   if (dashboard.status !== "allowed") redirect("/partner/login/");
   const { identity, growthKit } = dashboard;
   const home = resolvePartnerActionFirstHome(identity, growthKit);
+  const listingRequestHref = buildShopOwnerRequestUrl({ id: identity.shopId, slug: identity.shopSlug, title: identity.shopName });
   const asset = (key: (typeof home.collection)[number]["key"]) => home.collection.find((item) => item.key === key);
   const qrAsset = asset("qr");
   const qrDataUrl = qrAsset?.status === "available"
@@ -51,7 +53,7 @@ export default async function PartnerDashboardPage() {
               <h1>{home.context.shopName}</h1>
               <p className="hl-partner-home__status">{home.context.partnerStatus}</p>
             </div>
-            <div><a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a><a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></div>
+            <div><a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a><a className="hl-partner-home__text-link" href={listingRequestHref}>掲載情報の修正を申請</a><a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></div>
           </div>
         </header>
 

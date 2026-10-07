@@ -60,6 +60,8 @@ assert.match(operatorPage, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\
 assert.match(proxy, /["']\/dashboard\/:path\*["']/, "the existing Basic Auth proxy protects operator pages");
 assert.match(proxy, /["']\/api\/dashboard\/:path\*["']/, "the existing Basic Auth proxy protects operator APIs");
 assert.match(partnerPage, /authorizePartnerReviewGrowthSession/, "the Partner home retains its session-derived access path");
+assert.match(partnerPage, /buildShopOwnerRequestUrl/, "the Partner home may only link its authorized canonical shop to the existing correction-request flow");
+assert.match(partnerPage, /掲載情報の修正を申請/);
 assert.doesNotMatch(partnerPage, /DashboardPartnerWorkspace|DashboardReviewModeration|authorizeDashboardRequest/, "the Partner home must not import or invoke operator controls");
 
 const workspaceA = "11111111-1111-4111-8111-111111111111";

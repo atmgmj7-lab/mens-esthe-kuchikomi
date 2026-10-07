@@ -30,7 +30,15 @@ assert.match(route, /application\/json/i);
 assert.doesNotMatch(route, /SUPABASE_SERVICE_ROLE_KEY|rest\/v1|private\./);
 assert.doesNotMatch(route, /(?:body|rating|ratingTotal):\s*input\./);
 
-assert.match(component, /保留中の口コミ/);
+assert.match(component, /口コミ審査キュー/);
+assert.match(component, /wpShopId/);
+assert.match(component, /審査待ち/);
+assert.match(component, /承認済み・公開待ち/);
+assert.match(
+  component,
+  /status === "all"\s*\|\|\s*\(\s*status === "pending"\s*\?\s*review\.moderationStatus === "pending"\s*:\s*review\.moderationStatus === "approved"/,
+  "the all filter must keep both pending and approved-ready actionable reviews",
+);
 assert.match(component, /詳細を確認/);
 assert.match(component, /承認/);
 assert.match(component, /却下/);
@@ -40,6 +48,10 @@ assert.match(component, /非公開の判断理由/);
 assert.match(component, /監査履歴/);
 assert.match(page, /DashboardReviewModeration/);
 assert.match(page, /listModerationQueue/);
+assert.match(page, /RANK_UP_WP_SHOP_ID\s*=\s*768/);
+assert.match(page, /while\s*\(true\)/);
+assert.match(page, /review\.shop\.wpShopId === RANK_UP_WP_SHOP_ID/);
+assert.match(page, /offset \+= MODERATION_PAGE_SIZE/);
 assert.match(page, /export const instant = false/, "private moderation data must not be statically captured");
 assert.match(page, /import\s*\{\s*connection\s*\}\s*from\s*["']next\/server["']/);
 assert.match(page, /await connection\(\)/, "private moderation reads must cross the request-time boundary");

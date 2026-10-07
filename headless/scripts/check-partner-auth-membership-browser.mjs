@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
+import { mkdirSync } from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
 
 const root = process.cwd();
+const screenshotDir = process.env.PARTNER_QA_SCREENSHOT_DIR;
+if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
 const workspaceA = "11111111-1111-4111-8111-111111111111";
 const workspaceB = "22222222-2222-4222-8222-222222222222";
 const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -14,6 +17,7 @@ const otpRequests = [];
 const serverStateCookieName = "eskomi_partner_login_state";
 const handoffStateCookieName = "eskomi_partner_login_state_handoff";
 const partnerSessionCookieName = "eskomi_partner_access_token";
+const rankUpFixture = { id: 768, slug: "mrs-rank-up-fixture", name: "Mrs.Rank UP（隔離fixture）" };
 
 function freePort() {
   return new Promise((resolve) => {
@@ -69,8 +73,8 @@ const mock = http.createServer(async (request, response) => {
     const authUserId = JSON.parse(body).p_auth_user_id;
     return json(response, 200, authUserId === userA || authUserId === userB ? [{
       workspace_id: authUserId === userA ? workspaceA : workspaceB,
-      wp_shop_id: authUserId === userA ? 101 : 202,
-      shop_slug: authUserId === userA ? "shop-a" : "shop-b",
+      wp_shop_id: authUserId === userA ? rankUpFixture.id : 202,
+      shop_slug: authUserId === userA ? rankUpFixture.slug : "shop-b",
       role: "owner",
     }] : []);
   }
@@ -80,10 +84,10 @@ const mock = http.createServer(async (request, response) => {
     const workspaceId = JSON.parse(body).p_workspace_id;
     return json(response, 200, workspaceId === workspaceA || workspaceId === workspaceB ? [{
       workspace_id: workspaceId,
-      wp_shop_id: workspaceId === workspaceA ? 101 : 202,
-      shop_slug: workspaceId === workspaceA ? "shop-a" : "shop-b",
-      shop_name: workspaceId === workspaceA ? "Shop A" : "Shop B",
-      canonical_url: `https://mens-esthe-kuchikomi.com/shops/${workspaceId === workspaceA ? "shop-a" : "shop-b"}/`,
+      wp_shop_id: workspaceId === workspaceA ? rankUpFixture.id : 202,
+      shop_slug: workspaceId === workspaceA ? rankUpFixture.slug : "shop-b",
+      shop_name: workspaceId === workspaceA ? rankUpFixture.name : "Shop B",
+      canonical_url: `https://mens-esthe-kuchikomi.com/shops/${workspaceId === workspaceA ? rankUpFixture.slug : "shop-b"}/`,
       state: "free_official_partner",
     }] : []);
   }
@@ -93,7 +97,7 @@ const mock = http.createServer(async (request, response) => {
     const workspaceId = JSON.parse(body).p_workspace_id;
     return json(response, 200, workspaceId === workspaceA || workspaceId === workspaceB ? [{
       workspace_id: workspaceId,
-      wp_shop_id: workspaceId === workspaceA ? 101 : 202,
+      wp_shop_id: workspaceId === workspaceA ? rankUpFixture.id : 202,
       submitted_reviews: 0,
       pending_reviews: 0,
       public_reviews: 0,
@@ -197,7 +201,7 @@ try {
   const callbackUrl = `${baseUrl}/partner/auth/callback/#access_token=partner-a-session-token`;
   await loginFlow.goto(callbackUrl, { waitUntil: "domcontentloaded" });
   try {
-    await loginFlow.getByRole("heading", { name: "Shop A" }).waitFor({ state: "visible", timeout: 5_000 });
+    await loginFlow.getByRole("heading", { name: rankUpFixture.name }).waitFor({ state: "visible", timeout: 5_000 });
   } catch {
     throw new Error(`magic-link completion did not reach the partner gate: ${loginFlow.url()}\n${await loginFlow.locator("body").innerText()}\n${log}`);
   }
@@ -209,8 +213,15 @@ try {
   assert.equal(completedCookies.find((cookie) => cookie.name === partnerSessionCookieName)?.httpOnly, true, "the Partner session must be HttpOnly");
   await assertNoHorizontalOverflow(loginFlow, "390px Partner Home");
   await loginFlow.setViewportSize({ width: 1280, height: 900 });
-  await loginFlow.getByRole("heading", { name: "Shop A" }).waitFor({ state: "visible" });
+  await loginFlow.getByRole("heading", { name: rankUpFixture.name }).waitFor({ state: "visible" });
   await assertNoHorizontalOverflow(loginFlow, "1280px Partner Home");
+  const correctionRequest = loginFlow.getByRole("link", { name: "掲載情報の修正を申請" });
+  await correctionRequest.waitFor({ state: "visible" });
+  assert.match(await correctionRequest.getAttribute("href"), /^\/storelisting\/\?shop_id=768&shop_slug=mrs-rank-up-fixture&shop_name=/, "the Partner correction link must be bound to the authenticated Partner's own canonical shop");
+  if (screenshotDir) await loginFlow.screenshot({ path: `${screenshotDir}/partner-correction-1280.png`, fullPage: true });
+  await loginFlow.setViewportSize({ width: 390, height: 844 });
+  await assertNoHorizontalOverflow(loginFlow, "390px Partner correction link");
+  if (screenshotDir) await loginFlow.screenshot({ path: `${screenshotDir}/partner-correction-390.png`, fullPage: true });
 
   async function assertDeniedCompletion({ serverState, handoffState, accessToken }, message) {
     const context = await browser.newContext();
@@ -239,7 +250,7 @@ try {
   const partnerA = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await partnerA.context().addCookies([{ name: partnerSessionCookieName, value: "partner-a-session-token", domain: "127.0.0.1", path: "/partner" }]);
   await partnerA.goto(`${baseUrl}/partner/`, { waitUntil: "domcontentloaded" });
-  await partnerA.getByRole("heading", { name: "Shop A" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: rankUpFixture.name }).waitFor({ state: "visible" });
 
   const noMembership = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await noMembership.context().addCookies([{ name: partnerSessionCookieName, value: "partner-none-session-token", domain: "127.0.0.1", path: "/partner" }]);
