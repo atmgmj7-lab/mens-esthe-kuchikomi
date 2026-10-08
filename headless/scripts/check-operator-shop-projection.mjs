@@ -23,7 +23,11 @@ function loadProjection() {
         listPartnerRegistrationReviews: async () => [],
       };
       if (specifier === "@/lib/supabase/partner-workspace") return { partnerReviewGrowthRepository: {} };
-      if (specifier === "@/lib/wp/shops") return { getAllShopsForListing: async () => [], getShopById: async () => null };
+      if (specifier === "@/lib/supabase/partner-shop-facts") return {
+        partnerShopFactsRepository: { get: async () => null, importFromWordPress: async () => null },
+        useSupabaseShopManagement: () => false,
+      };
+      if (specifier === "@/lib/wp/shops") return { getAllShopsForListing: async () => [], getWordPressShopById: async () => null };
       if (specifier === "@/lib/dashboard/operator-shop-fact-dry-run") return { createOperatorShopFactSnapshot: (shop) => ({ wpShopId: shop.id, slug: shop.slug, values: {} }) };
       throw new Error(`Unexpected dependency: ${specifier}`);
     },

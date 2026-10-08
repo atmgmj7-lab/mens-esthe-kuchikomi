@@ -7,8 +7,9 @@ import {
   type PartnerReviewGrowthMetrics,
 } from "@/lib/partner/provisioning-service";
 import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
-import { getAllShopsForListing, getShopById } from "@/lib/wp/shops";
+import { getAllShopsForListing, getWordPressShopById } from "@/lib/wp/shops";
 import { createOperatorShopFactSnapshot, type OperatorShopFactSnapshot } from "@/lib/dashboard/operator-shop-fact-dry-run";
+import { partnerShopFactsRepository, useSupabaseShopManagement } from "@/lib/supabase/partner-shop-facts";
 import type { ShopView } from "@/lib/wp/types";
 
 export const OPERATOR_SHOP_PAGE_SIZE = 30;
@@ -69,7 +70,7 @@ type OperatorProjectionDependencies = Readonly<{
 
 const dependencies: OperatorProjectionDependencies = {
   listShops: getAllShopsForListing,
-  getShop: getShopById,
+  getShop: getWordPressShopById,
   listRegistrations: () => listPartnerRegistrationReviews(partnerReviewGrowthRepository),
   getMetrics: (workspaceId) => getPartnerReviewGrowthMetrics(workspaceId, partnerReviewGrowthRepository),
 };
@@ -236,6 +237,15 @@ export async function getOperatorShopDetail(
 /** Read-only source snapshot for the existing WordPress writer allowlist. */
 export async function getOperatorShopFactSnapshot(shopId: number): Promise<OperatorShopFactSnapshot | null> {
   if (!Number.isSafeInteger(shopId) || shopId <= 0) return null;
-  const shop = await getShopById(shopId);
+  if (useSupabaseShopManagement()) {
+    if (shopId !== 768) return null;
+    const existing = await partnerShopFactsRepository.get(shopId);
+    if (existing) return existing;
+    // WordPress remains a read-only bootstrap source only when the private
+    // Supabase snapshot has not yet been imported for this approved shop.
+    const shop = await getWordPressShopById(shopId);
+    return shop ? partnerShopFactsRepository.importFromWordPress(createOperatorShopFactSnapshot(shop)) : null;
+  }
+  const shop = await getWordPressShopById(shopId);
   return shop ? createOperatorShopFactSnapshot(shop) : null;
 }

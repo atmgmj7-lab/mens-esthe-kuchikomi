@@ -3,6 +3,7 @@ import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
+import { applyManagedShopFacts, applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
 import type { ShopView, WpShop } from "@/lib/wp/types";
 
 function safeDecodeURIComponent(value: string): string {
@@ -95,8 +96,9 @@ export async function getLatestShops(limit = 6): Promise<ShopView[]> {
   cacheTag("wp", "shops", `shops:list:${limit}`);
   try {
     const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?per_page=${limit}&_embed=1`);
-    return shops.map(normalizeShop);
+    return applyManagedShopFactsToList(shops.map(normalizeShop));
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(`latest shops ${limit}`, error);
     return [];
   }
@@ -111,7 +113,7 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
     for (const variant of getSlugQueryVariants(slug)) {
       const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?slug=${variant}&_embed=1`);
       if (shops[0]) {
-        return normalizeShop(shops[0]);
+        return applyManagedShopFacts(normalizeShop(shops[0]));
       }
     }
 
@@ -121,8 +123,9 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
     }
 
     cacheTag("wp", "shops", shopSlugCacheTag(match.slug));
-    return normalizeShop(match);
+    return applyManagedShopFacts(normalizeShop(match));
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(`shop ${slug}`, error);
     return null;
   }
@@ -133,11 +136,22 @@ export async function getShopById(id: number): Promise<ShopView | null> {
   cacheLife("hours");
   cacheTag("wp", "shops", shopIdCacheTag(id));
 
+  const shop = await getWordPressShopById(id);
+  return shop ? applyManagedShopFacts(shop) : null;
+}
+
+/** Server-only management bootstrap reader. It never applies the public source overlay. */
+export async function getWordPressShopById(id: number): Promise<ShopView | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("wp", "shops", shopIdCacheTag(id), "shops:management-bootstrap");
+
   if (!Number.isSafeInteger(id) || id <= 0) return null;
   try {
     const shop = await wpFetch<WpShop>(`/wp/v2/shop/${id}?_embed=1`);
     return shop.id === id ? normalizeShop(shop) : null;
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(`shop id ${id}`, error);
     return null;
   }
@@ -194,10 +208,11 @@ export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]>
       page += 1;
     }
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(`shops listing ${maxShops}`, error);
   }
 
-  return shops.slice(0, maxShops);
+    return applyManagedShopFactsToList(shops.slice(0, maxShops));
 }
 
 export async function getShopCount(): Promise<number> {

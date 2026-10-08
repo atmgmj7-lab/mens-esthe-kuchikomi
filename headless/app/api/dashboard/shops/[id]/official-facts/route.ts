@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authorizeDashboardRequest } from "@/lib/dashboard/content-admin-auth";
 import { type OperatorWriterField } from "@/lib/dashboard/operator-shop-fact-dry-run";
 import { readOfficialFactsWriterEnvironment } from "@/lib/dashboard/official-facts-writer";
+import { partnerShopFactsRepository, useSupabaseShopManagement } from "@/lib/supabase/partner-shop-facts";
 
 const headers = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" };
 
@@ -25,8 +26,9 @@ function isUpdates(value: unknown): value is Record<OperatorWriterField, string>
 export async function POST(request: NextRequest, { params }: Readonly<{ params: Promise<{ id: string }> }>) {
   const authorization = authorizeDashboardRequest(request.headers.get("authorization"), process.env);
   if (!authorization.ok) return response("管理画面の認証が必要です。", authorization.status);
+  const fetchSite = request.headers.get("sec-fetch-site");
   if (request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json"
-    || request.headers.get("sec-fetch-site") !== "same-origin"
+    || (fetchSite !== null && fetchSite !== "same-origin")
     || request.headers.get("x-eskomi-csrf") !== "official-facts-write"
     || request.headers.get("origin") !== request.nextUrl.origin) return response("この操作は受け付けられません。", 403);
   const id = Number((await params).id);
@@ -35,6 +37,30 @@ export async function POST(request: NextRequest, { params }: Readonly<{ params: 
   try { body = await request.json(); } catch { return response("変更内容を確認してください。", 400); }
   if (!body || typeof body !== "object" || Array.isArray(body) || !isUpdates((body as { updates?: unknown }).updates)) {
     return response("変更内容を確認してください。", 400);
+  }
+  if (useSupabaseShopManagement()) {
+    if (id !== 768) return response("このSupabase検証はMrs.Rank UPだけが対象です。", 404);
+    const expectedRevision = (body as { expectedRevision?: unknown }).expectedRevision;
+    if (!Number.isSafeInteger(expectedRevision) || (expectedRevision as number) < 1) {
+      return response("店舗情報を再読込して差分を確認してください。", 409);
+    }
+    const saved = await partnerShopFactsRepository.save({
+      wpShopId: id,
+      expectedRevision: expectedRevision as number,
+      updates: (body as { updates: Record<OperatorWriterField, string> }).updates,
+      actorLabel: "operator-dashboard",
+    });
+    if (saved.status === "conflict") {
+      return NextResponse.json({ ok: false, message: "店舗情報が更新されています。再読込して差分を確認してください。", snapshot: saved.snapshot }, { status: 409, headers });
+    }
+    if (saved.status === "saved" || saved.status === "noop") {
+      return NextResponse.json({
+        ok: true,
+        message: saved.status === "saved" ? "Supabaseの検証用正本へ保存し、再読込用snapshotを取得しました。" : "保存済み内容と同一です。",
+        snapshot: saved.snapshot,
+      }, { headers });
+    }
+    return response("Supabaseの検証用店舗情報を保存できませんでした。", 503);
   }
   if (!readOfficialFactsWriterEnvironment()) return response("限定Writerのサーバー設定を確認してください。", 503);
 

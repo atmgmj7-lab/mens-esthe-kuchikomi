@@ -33,6 +33,7 @@ function valuesFrom(form: HTMLFormElement): Record<OperatorWriterField, string> 
 }
 
 export function OperatorShopFactEditForm({ snapshot }: { snapshot: OperatorShopFactSnapshot }) {
+  const [currentSnapshot, setCurrentSnapshot] = useState(snapshot);
   const [result, setResult] = useState<ReturnType<typeof createOperatorShopFactDryRun> | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
@@ -40,35 +41,43 @@ export function OperatorShopFactEditForm({ snapshot }: { snapshot: OperatorShopF
     event.preventDefault();
     setConfirmed(false);
     setSaveMessage("");
-    setResult(createOperatorShopFactDryRun(snapshot, valuesFrom(event.currentTarget)));
+    setResult(createOperatorShopFactDryRun(currentSnapshot, valuesFrom(event.currentTarget)));
   }
   async function requestSaveApproval() {
     if (!result || result.state !== "ready" || !confirmed) return;
     setSaveMessage("保存可否を確認しています…");
     try {
       const updates = Object.fromEntries(result.changes.map((change) => [change.field, change.after]));
-      const response = await fetch(`/api/dashboard/shops/${snapshot.wpShopId}/official-facts/`, {
+      const response = await fetch(`/api/dashboard/shops/${currentSnapshot.wpShopId}/official-facts/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "official-facts-write" },
-        body: JSON.stringify({ updates }),
+        body: JSON.stringify({ updates, expectedRevision: currentSnapshot.revision }),
       });
-      const payload = await response.json() as { message?: string };
+      const payload = await response.json() as { message?: string; snapshot?: OperatorShopFactSnapshot };
+      const returnedSnapshot = payload.snapshot?.source === "supabase" && Number.isSafeInteger(payload.snapshot.revision)
+        ? payload.snapshot
+        : null;
+      if (returnedSnapshot && (response.ok || response.status === 409)) {
+        setCurrentSnapshot(returnedSnapshot);
+        setResult(null);
+        setConfirmed(false);
+      }
       setSaveMessage(payload.message || "保存可否を確認できませんでした。");
     } catch {
       setSaveMessage("保存可否を確認できませんでした。");
     }
   }
   return <section className={styles.formPanel} aria-labelledby="operator-shop-form-heading">
-    <p className={styles.eyebrow}>WordPress public source</p>
+    <p className={styles.eyebrow}>{currentSnapshot.source === "supabase" ? "Supabase verification source" : "WordPress public source"}</p>
     <h2 id="operator-shop-form-heading">公開情報を確認・修正候補にする</h2>
-    <p className={styles.note}>現在のWordPress公開情報を読み込みました。既存の限定Writerが対応する10項目だけを確認できます。タイトル・エリア・公開状態・taxonomy・新規作成は今回の対象外で、保存できるようには表示しません。</p>
-    <p className={styles.note}>WP ID {snapshot.wpShopId} / slug {snapshot.slug}。この画面の確認操作は、WordPress・Supabase・公開サイトへ書き込みません。</p>
+    <p className={styles.note}>{currentSnapshot.source === "supabase" ? "検証用Supabaseの保存済み情報を読み込みました。既存の限定Writerと同じ10項目だけを扱います。タイトル・エリア・公開状態・taxonomy・新規作成は対象外で、保存できるようには表示しません。" : "現在のWordPress公開情報を読み込みました。既存の限定Writerが対応する10項目だけを確認できます。タイトル・エリア・公開状態・taxonomy・新規作成は今回の対象外で、保存できるようには表示しません。"}</p>
+    <p className={styles.note}>WP ID {currentSnapshot.wpShopId} / slug {currentSnapshot.slug}{currentSnapshot.source === "supabase" ? ` / revision ${currentSnapshot.revision ?? 0}` : ""}。{currentSnapshot.source === "supabase" ? "この検証モードの保存先は非公開Supabaseのみで、WordPressと公開サイトは更新しません。" : "この画面の確認操作は、WordPress・Supabase・公開サイトへ書き込みません。"}</p>
     <form className={styles.form} onSubmit={submit} noValidate>
       {OPERATOR_WRITER_FIELDS.map((field) => {
-        const value = snapshot.values[field];
+        const value = currentSnapshot.values[field];
         const available = value !== null;
         return <label key={field}>{OPERATOR_WRITER_FIELD_LABELS[field]}
-          <input name={field} type={field.endsWith("url") || field === "shop_line" ? "url" : "text"} inputMode={field === "basic_price" || field === "price_90" ? "numeric" : undefined} defaultValue={value ?? ""} disabled={!available} aria-describedby={!available ? `${field}-unavailable` : undefined} />
+          <input key={`${field}-${currentSnapshot.revision ?? 0}-${value ?? "missing"}`} name={field} type={field.endsWith("url") || field === "shop_line" ? "url" : "text"} inputMode={field === "basic_price" || field === "price_90" ? "numeric" : undefined} defaultValue={value ?? ""} disabled={!available} aria-describedby={!available ? `${field}-unavailable` : undefined} />
           {!available ? <small id={`${field}-unavailable`}>公開REST値で正確に読めないため、この項目は編集対象外です。</small> : null}
         </label>;
       })}
@@ -78,14 +87,15 @@ export function OperatorShopFactEditForm({ snapshot }: { snapshot: OperatorShopF
       <p>{result.message}</p>
       {result.state === "ready" ? <>
         <dl className={styles.diffList}>{result.changes.map((change) => <div key={change.field}><dt>{OPERATOR_WRITER_FIELD_LABELS[change.field]}</dt><dd><s>{change.before ?? "未設定"}</s><span aria-hidden="true"> → </span><strong>{change.after}</strong></dd></div>)}</dl>
-        <label className={styles.confirmation}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />差分と「書込みなし」を確認しました。</label>
+        <label className={styles.confirmation}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />差分と保存先を確認しました。</label>
         {confirmed ? <div className={styles.saveGate}>
-          <p>保存には、対応項目ごとの確認済み公式根拠・canonical・監査情報と、最新snapshotの再照合が必要です。ブラウザ入力から根拠を作成することはありません。</p>
-          <button type="button" onClick={requestSaveApproval}>保存前の承認条件を確認する</button>
+          <p>{currentSnapshot.source === "supabase" ? "保存は非公開検証用Supabaseに限定し、revisionの再照合で競合を止めます。WordPressと公開サイトへの書込みは行いません。" : "保存には、対応項目ごとの確認済み公式根拠・canonical・監査情報と、最新snapshotの再照合が必要です。ブラウザ入力から根拠を作成することはありません。"}</p>
+          <button type="button" onClick={requestSaveApproval}>{currentSnapshot.source === "supabase" ? "Supabaseへ保存して再読込" : "保存前の承認条件を確認する"}</button>
           {saveMessage ? <p role="status">{saveMessage}</p> : null}
         </div> : null}
       </> : null}
     </div> : null}
+    {saveMessage && !result ? <p className={styles.formMessage} role="status">{saveMessage}</p> : null}
   </section>;
 }
 

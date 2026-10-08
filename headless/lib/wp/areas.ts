@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getAreaShopOrderIndex, fetchAreaShopsInOrder } from "@/lib/wp/area-shop-order";
+import { applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
@@ -124,8 +125,9 @@ export async function getAreaShops(
     const totalPages = Math.max(1, Math.ceil(index.length / perPage));
     const entries = index.slice((page - 1) * perPage, page * perPage);
     const shops = await fetchAreaShopsInOrder(areaId, entries);
-    return { shops: shops.map(normalizeShop), totalPages };
+    return { shops: await applyManagedShopFactsToList(shops.map(normalizeShop)), totalPages };
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(`area shops ${areaId}`, error);
     return {
       shops: [],
@@ -142,8 +144,9 @@ export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
   try {
     const index = await getAreaShopOrderIndex(areaId);
     const shops = await fetchAreaShopsInOrder(areaId, index);
-    return shops.map(normalizeShop);
+    return applyManagedShopFactsToList(shops.map(normalizeShop));
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(`area ranking shops ${areaId}`, error);
     return [];
   }
