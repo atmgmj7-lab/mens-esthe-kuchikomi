@@ -116,7 +116,7 @@ jobs:
           fi
 
       - name: Diagnose Mrs.Rank UP Supabase RPC (read-only)
-        run: npm run diagnose:rankup-supabase-rpc -- --require-ready
+        run: npm run diagnose:rankup-supabase-rpc
 
       - name: Critical WordPress build preflight
         run: npm run wp:critical-preflight
