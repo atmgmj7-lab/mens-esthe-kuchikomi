@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "diagnose:rankup-supabase-rpc": "node --env-file-if-exists=.env.local scripts/diagnose-rankup-supabase-rpc.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
