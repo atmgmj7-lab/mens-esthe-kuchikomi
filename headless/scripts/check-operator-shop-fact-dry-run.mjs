@@ -66,6 +66,8 @@ assert.match(form, /dry-run・書込みなし/);
 assert.match(form, /disabled=\{!available\}/);
 assert.match(form, /official-facts-write/, "the browser may only ask the server to check gated save conditions");
 assert.match(form, /canonical・監査情報/, "browser input must not be treated as writer provenance");
+assert.match(form, /Supabaseへ保存して再読込/);
+assert.match(form, /response\.status === 409/, "a conflict response must replace the stale browser snapshot");
 assert.match(editPage, /getOperatorShopFactSnapshot/);
 assert.doesNotMatch(editPage, /publicationState|officialUrl:\s*record/, "the legacy partial edit projection must not be used");
 

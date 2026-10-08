@@ -14,6 +14,7 @@ const required = [
   "lib/dashboard/operator-shop-projection.ts",
   "lib/dashboard/operator-shop-write-contract.ts",
   "lib/dashboard/official-facts-writer.ts",
+  "lib/supabase/partner-shop-facts.ts",
   "app/api/dashboard/shops/[id]/official-facts/route.ts",
 ];
 
@@ -42,12 +43,20 @@ assert.doesNotMatch(writeContract, /fetch\s*\(/, "local UIはWordPressへ書き�
 
 const forms = readFileSync(join(root, "components/dashboard/OperatorShopForms.tsx"), "utf8");
 assert.match(forms, /preventDefault\(\)/, "Create/Editフォームは承認済みWriter接続まで送信しない");
-assert.match(forms, /\/api\/dashboard\/shops\/\$\{snapshot\.wpShopId\}\/official-facts\//, "保存可否確認は限定サーバー経路だけを使用する");
+assert.match(forms, /\/api\/dashboard\/shops\/\$\{currentSnapshot\.wpShopId\}\/official-facts\//, "保存は限定サーバー経路だけを使用する");
 assert.match(forms, /ブラウザ入力から根拠を作成することはありません/, "ブラウザ入力を根拠にしてはならない");
+assert.match(forms, /expectedRevision:\s*currentSnapshot\.revision/, "Supabase保存は現在のrevisionを必須にする");
+assert.match(forms, /response\.status === 409/, "競合時は最新snapshotへ戻して再確認させる");
 const factsRoute = readFileSync(join(root, "app/api/dashboard/shops/[id]/official-facts/route.ts"), "utf8");
 assert.match(factsRoute, /authorizeDashboardRequest/);
 assert.match(factsRoute, /確認済みの公式根拠・canonical・監査情報が未連携/);
+assert.match(factsRoute, /useSupabaseShopManagement/);
+assert.match(factsRoute, /partnerShopFactsRepository\.save/);
 assert.doesNotMatch(factsRoute, /new OfficialFactsWriter/, "未連携の根拠でWordPress Writerを起動してはならない");
+
+const factsAdapter = readFileSync(join(root, "lib/supabase/partner-shop-facts.ts"), "utf8");
+assert.match(factsAdapter, /Content-Profile": "api"/);
+assert.doesNotMatch(factsAdapter, /rest\/v1\/private/i, "browser/public経路からprivate schemaを直接公開してはならない");
 
 const presentation = readFileSync(join(root, "components/dashboard/OperatorShops.tsx"), "utf8");
 for (const label of ["公開情報", "Partner", "口コミ", "Campaign", "QR / LINE / CTA / Widget", "掲載対象外"]) {

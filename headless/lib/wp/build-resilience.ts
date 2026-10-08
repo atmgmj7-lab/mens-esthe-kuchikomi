@@ -1,3 +1,5 @@
+import { isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
+
 export function logWpBuildFallback(label: string, error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
   console.warn(`[wp-build] ${label} failed; using fallback. ${message}`);
@@ -7,7 +9,7 @@ export async function getStaticParamsOrFallback<T, P>(
   label: string,
   load: () => Promise<T[]>,
   map: (item: T) => P,
-  fallback: P[]
+  fallback: P[],
 ): Promise<P[]> {
   try {
     const items = await load();
@@ -22,11 +24,12 @@ export async function getStaticParamsOrFallback<T, P>(
 export async function withWpBuildFallback<T>(
   label: string,
   load: () => Promise<T>,
-  fallback: T
+  fallback: T,
 ): Promise<T> {
   try {
     return await load();
   } catch (error) {
+    if (isManagedShopSourceUnavailableError(error)) throw error;
     logWpBuildFallback(label, error);
     return fallback;
   }

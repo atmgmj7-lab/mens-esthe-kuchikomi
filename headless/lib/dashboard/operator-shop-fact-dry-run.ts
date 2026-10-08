@@ -24,6 +24,9 @@ export type OperatorShopFactSnapshot = Readonly<{
   wpShopId: number;
   slug: string;
   values: Readonly<Record<OperatorWriterField, string | null>>;
+  source?: "wordpress" | "supabase";
+  revision?: number;
+  updatedAt?: string;
 }>;
 
 export type OperatorShopFactChange = Readonly<{
@@ -75,7 +78,7 @@ export function createOperatorShopFactSnapshot(shop: ShopView): OperatorShopFact
     field,
     field === "official_url" ? readableValue(shop.acf[field]) ?? readableValue(shop.officialUrl) : readableValue(shop.acf[field]),
   ])) as Record<OperatorWriterField, string | null>;
-  return { wpShopId: shop.id, slug: shop.slug, values };
+  return { wpShopId: shop.id, slug: shop.slug, values, source: "wordpress" };
 }
 
 /**
