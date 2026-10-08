@@ -2,7 +2,7 @@
 
 const EXPECTED_PROJECT_REF = "goeagrxjsjcbbatpotbu";
 const WP_SHOP_ID = 768;
-const REQUIRE_READY = process.argv.includes("--require-ready");
+const REQUIRE_READY = process.argv.includes("--require-ready") || process.env.SHOP_MANAGEMENT_SOURCE === "supabase";
 
 function configured(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
@@ -18,6 +18,10 @@ function result(value, exitCode = 0) {
   process.exitCode = exitCode;
 }
 
+function availability(value) {
+  return value ? "PRESENT" : "MISSING";
+}
+
 const rawUrl = configured(process.env.SUPABASE_URL);
 const secret = resolveSecret();
 let endpoint;
@@ -31,9 +35,9 @@ const endpointProjectMatches = endpoint?.hostname.split(".")[0] === EXPECTED_PRO
 if (!endpoint || !secret || !endpointProjectMatches) {
   result({
     status: "NOT_READY",
-    endpoint_configured: Boolean(endpoint),
-    endpoint_project_matches: Boolean(endpointProjectMatches),
-    server_secret_configured: Boolean(secret),
+    endpoint: availability(endpoint),
+    endpoint_project: endpoint ? (endpointProjectMatches ? "EXPECTED" : "OTHER") : "UNAVAILABLE",
+    server_secret: availability(secret),
   }, REQUIRE_READY ? 1 : 0);
 } else {
   const legacyJwt = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(secret);
@@ -64,16 +68,18 @@ if (!endpoint || !secret || !endpointProjectMatches) {
     const status = response.ok && validSnapshot ? "PASS" : "RPC_UNAVAILABLE";
     result({
       status,
-      endpoint_project_matches: true,
-      server_secret_configured: true,
+      endpoint: "PRESENT",
+      endpoint_project: "EXPECTED",
+      server_secret: "PRESENT",
       http_status: response.status,
       snapshot_shape_valid: Boolean(validSnapshot),
     }, REQUIRE_READY && status !== "PASS" ? 1 : 0);
   } catch (error) {
     result({
       status: "NETWORK_ERROR",
-      endpoint_project_matches: true,
-      server_secret_configured: true,
+      endpoint: "PRESENT",
+      endpoint_project: "EXPECTED",
+      server_secret: "PRESENT",
       error_code: error?.name === "AbortError" ? "TIMEOUT" : "REQUEST_FAILED",
     }, REQUIRE_READY ? 1 : 0);
   } finally {
