@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "diagnose:rankup-supabase-rpc": "node --env-file-if-exists=.env.local scripts/diagnose-rankup-supabase-rpc.mjs",
+    "prebuild": "npm run diagnose:rankup-supabase-rpc",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
