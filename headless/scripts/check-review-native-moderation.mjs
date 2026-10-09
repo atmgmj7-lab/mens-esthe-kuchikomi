@@ -117,7 +117,7 @@ const repositoryMock = {
   },
 };
 const routeModule = loadTypeScript("app/api/dashboard/reviews/moderation/route.ts", {
-  "next/cache": { revalidatePath: () => {} },
+  "next/cache": { revalidatePath: () => {}, revalidateTag: () => {} },
   "next/server": { NextResponse: TestNextResponse },
   "@/lib/dashboard/content-admin-auth": {
     authorizeDashboardRequest: () => authorized

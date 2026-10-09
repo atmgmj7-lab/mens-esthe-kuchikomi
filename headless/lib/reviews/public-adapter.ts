@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cacheLife, cacheTag } from "next/cache";
 import type {
   PublishedReview,
   PublishedReviewMetrics,
@@ -254,6 +255,33 @@ async function readNative(
   return { ok: true, reviews: rows, metrics: metrics.data };
 }
 
+/**
+ * Static public shells may read the one-store native pilot only through the
+ * Cache Components boundary. Injected test repositories deliberately retain
+ * the uncached path above so their fixtures remain deterministic.
+ */
+async function readDefaultNativeForPublic(
+  wpShopIds: readonly number[],
+  page: number,
+  perPage: number,
+): ReturnType<typeof readNative> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("reviews:native", ...wpShopIds.map((wpShopId) => `reviews:native:${wpShopId}`));
+  return readNative(reviewNativeRepository, wpShopIds, page, perPage);
+}
+
+function readNativeForPublic(
+  repository: PublicReviewAdapterDependencies["repository"],
+  wpShopIds: readonly number[],
+  page: number,
+  perPage: number,
+): ReturnType<typeof readNative> {
+  return repository === reviewNativeRepository
+    ? readDefaultNativeForPublic(wpShopIds, page, perPage)
+    : readNative(repository, wpShopIds, page, perPage);
+}
+
 export function createPublicReviewAdapter(
   dependencies: PublicReviewAdapterDependencies,
 ): PublicReviewAdapter {
@@ -273,7 +301,7 @@ export function createPublicReviewAdapter(
         return { ...result, source: shopSource };
       }
       if (!isCurrentPublicShop(shop)) return unavailable(shopSource, "invalid-response");
-      const native = await readNative(dependencies.repository, [shop.id], page, perPage);
+      const native = await readNativeForPublic(dependencies.repository, [shop.id], page, perPage);
       if (!native.ok) return unavailable(shopSource, native.reason);
       if (native.reviews.some((review) => review.shop.wpShopId !== shop.id)) {
         return unavailable(shopSource, "invalid-response");
@@ -326,7 +354,7 @@ export function createPublicReviewAdapter(
             return emptyGlobalPage("supabase", page);
           }
 
-          const native = await readNative(dependencies.repository, [RANK_UP_WP_SHOP_ID], page, perPage);
+          const native = await readNativeForPublic(dependencies.repository, [RANK_UP_WP_SHOP_ID], page, perPage);
           if (!native.ok) return unavailable("supabase", native.reason);
           if (native.reviews.some((review) => review.shop.wpShopId !== RANK_UP_WP_SHOP_ID)) {
             return unavailable("supabase", "invalid-response");
@@ -365,7 +393,7 @@ export function createPublicReviewAdapter(
         }
       }
       const wpShopIds = [...identities.keys()].sort((left, right) => left - right);
-      const native = await readNative(dependencies.repository, wpShopIds, page, perPage);
+      const native = await readNativeForPublic(dependencies.repository, wpShopIds, page, perPage);
       if (!native.ok) return unavailable(source, native.reason);
       const reviews: PublicGlobalReview[] = [];
       for (const review of native.reviews) {

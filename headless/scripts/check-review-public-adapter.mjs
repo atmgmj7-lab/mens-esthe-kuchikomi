@@ -104,6 +104,7 @@ const wpGlobalResult = {
 };
 const module = loadTypeScript("lib/reviews/public-adapter.ts", {
   "server-only": {},
+  "next/cache": { cacheLife: () => {}, cacheTag: () => {} },
   "@/lib/reviews/rankup-native-review-pilot": {
     RANK_UP_WP_SHOP_ID: 768,
     useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
