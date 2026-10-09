@@ -41,7 +41,7 @@ function registerAnalyticsRuntime() {
       if (specifier.startsWith("@/")) {
         return {
           shortCircuit: true,
-          url: new URL(`../../${specifier.slice(2)}.ts`, import.meta.url).href,
+          url: new URL(`../../${specifier.slice(2)}${/\.(?:[cm]?[jt]sx?)$/u.test(specifier) ? "" : ".ts"}`, import.meta.url).href,
         };
       }
       if (

@@ -5,6 +5,7 @@ import { prepareReviewConfirmation, REVIEW_TAGS, type ReviewTag } from "@/lib/re
 import { USED_PERIODS } from "@/lib/review-validation";
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
+type AiAssistStatus = "idle" | "loading" | "success" | "error";
 
 const OPTIONAL_RATINGS = [
   { name: "ratingPrice", label: "料金満足度（任意）" },
@@ -40,6 +41,8 @@ export function ReviewSubmitForm({
   const [confirming, setConfirming] = useState(false);
   const [reviewBody, setReviewBody] = useState("");
   const [aiMessage, setAiMessage] = useState("");
+  const [aiStatus, setAiStatus] = useState<AiAssistStatus>("idle");
+  const [aiDraft, setAiDraft] = useState<string | null>(null);
   const [aiPending, setAiPending] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
 
@@ -139,23 +142,64 @@ export function ReviewSubmitForm({
     if (aiPending) return;
     const form = document.getElementById("review-submit-form") as HTMLFormElement | null;
     const ratingTotal = Number(new FormData(form ?? undefined).get("ratingTotal") || 0);
+    const note = reviewBody.trim();
+    setAiDraft(null);
+    if (!note) {
+      setAiStatus("error");
+      setAiMessage("口コミ本文を入力してから、AI添削をお試しください。");
+      return;
+    }
+    if (!Number.isInteger(ratingTotal) || ratingTotal < 1 || ratingTotal > 5) {
+      setAiStatus("error");
+      setAiMessage("総合評価を選択してから、AI添削をお試しください。");
+      return;
+    }
     setAiPending(true);
+    setAiStatus("loading");
     setAiMessage("");
     try {
       const response = await fetch("/api/reviews/ai-assist", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-submit-v1" },
-        body: JSON.stringify({ ratingTotal, tags, note: reviewBody }),
+        body: JSON.stringify({ ratingTotal, tags, note }),
       });
-      const data = await response.json() as { ok?: boolean; decision?: string; draft?: string; message?: string };
-      if (!response.ok || !data.ok) throw new Error(data.message || "AI補助は現在利用できません。");
-      if (typeof data.draft === "string") setReviewBody(data.draft);
-      setAiMessage(data.decision === "HUMAN_REVIEW" ? "運営審査で内容を確認します。" : "AI補助の結果を確認し、必要なら編集してください。");
-    } catch (error) {
-      setAiMessage(error instanceof Error ? `${error.message} AIを使わず運営審査へ送れます。` : "AIを使わず運営審査へ送れます。");
+      const data = response.headers.get("content-type")?.includes("application/json")
+        ? await response.json() as { ok?: boolean; decision?: string; draft?: string; message?: string }
+        : null;
+      if (!response.ok || !data?.ok) {
+        setAiStatus("error");
+        setAiMessage(`${data?.message || "AI補助は現在利用できません。"} AIを使わず運営審査へ送れます。`);
+        return;
+      }
+      if (typeof data.draft === "string" && data.draft.trim()) {
+        setAiDraft(data.draft.trim());
+        setAiMessage("修正案を確認し、採用する場合だけ本文へ反映してください。原文はまだ変更していません。");
+      } else {
+        setAiMessage(data.decision === "HUMAN_REVIEW"
+          ? "この内容は自動添削せず、運営審査で確認します。原文は変更していません。"
+          : "AI補助では変更案を作成しませんでした。原文のまま確認へ進めます。");
+      }
+      setAiStatus("success");
+    } catch {
+      setAiStatus("error");
+      setAiMessage("AI補助の応答を確認できませんでした。もう一度試すか、AIを使わず運営審査へ送れます。");
     } finally {
       setAiPending(false);
     }
+  }
+
+  function acceptAiDraft() {
+    if (!aiDraft) return;
+    setReviewBody(aiDraft);
+    setAiDraft(null);
+    setAiStatus("success");
+    setAiMessage("修正案を本文に反映しました。投稿前に内容をご確認ください。");
+  }
+
+  function dismissAiDraft() {
+    setAiDraft(null);
+    setAiStatus("idle");
+    setAiMessage("原文のまま保持しています。必要ならもう一度AI添削をお試しください。");
   }
 
   if (status === "success") {
@@ -267,7 +311,14 @@ export function ReviewSubmitForm({
           rows={8}
           maxLength={1000}
           value={reviewBody}
-          onChange={(event) => setReviewBody(event.target.value)}
+          onChange={(event) => {
+            setReviewBody(event.target.value);
+            if (aiDraft) {
+              setAiDraft(null);
+              setAiStatus("idle");
+              setAiMessage("本文を編集したため、先ほどの修正案は破棄しました。");
+            }
+          }}
         />
         <p className="hl-review-form__hint">確認画面へ進む前に、30〜1000文字の本文が必要です。</p>
       </div>
@@ -282,15 +333,33 @@ export function ReviewSubmitForm({
         </p>
       ) : null}
 
-      <div className="hl-contact-actions">
-        <button type="button" className="hl-contact-submit" onClick={requestAiAssist} disabled={aiPending}>
+      <div className="hl-contact-actions hl-review-form__actions">
+        <button
+          type="button"
+          className="hl-contact-submit hl-review-form__ai-button"
+          onClick={requestAiAssist}
+          disabled={aiPending}
+          aria-busy={aiPending}
+          aria-describedby={aiMessage ? "review-ai-feedback" : undefined}
+        >
           {aiPending ? "AI確認中..." : "AIで読みやすくして確認"}
         </button>
         <button type="submit" className="hl-contact-submit" disabled={status === "submitting"}>
           {status === "submitting" ? "送信中..." : confirming ? "この内容で口コミを投稿" : "そのまま確認"}
         </button>
       </div>
-      {aiMessage ? <p role="status">{aiMessage}</p> : null}
+      {aiMessage ? <p id="review-ai-feedback" className={`hl-review-form__ai-feedback${aiStatus === "error" ? " is-error" : ""}`} role={aiStatus === "error" ? "alert" : "status"} aria-live="polite">{aiMessage}</p> : null}
+      {aiDraft ? (
+        <section className="hl-review-form__ai-proposal" aria-labelledby="review-ai-proposal-heading">
+          <h2 className="hl-review-form__ai-proposal-label" id="review-ai-proposal-heading">AIによる修正案</h2>
+          <p className="hl-review-form__ai-proposal-note">原文・評価・タグは変更していません。内容を確認してから反映してください。</p>
+          <p className="hl-review-form__ai-proposal-body">{aiDraft}</p>
+          <div className="hl-review-form__proposal-actions">
+            <button type="button" className="hl-contact-submit" onClick={acceptAiDraft}>修正案を本文に反映</button>
+            <button type="button" className="hl-review-form__text-button" onClick={dismissAiDraft}>原文のままにする</button>
+          </div>
+        </section>
+      ) : null}
       {confirming ? <p role="status">内容を確認し、必要なら編集してから「この内容で口コミを投稿」を選択してください。</p> : null}
     </form>
   );

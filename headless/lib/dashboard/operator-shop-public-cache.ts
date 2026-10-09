@@ -16,3 +16,10 @@ export function revalidateOperatorShopPublicCaches(
   cache.revalidatePath(`/shops/${slug}`);
   cache.revalidatePath("/sitemap.xml");
 }
+
+export function revalidateOfficialFactsPublicCaches(
+  slug: string,
+  cache: OperatorShopPublicCache,
+): void {
+  revalidateOperatorShopPublicCaches(slug, cache);
+}

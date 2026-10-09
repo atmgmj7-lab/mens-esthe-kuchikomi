@@ -11,7 +11,7 @@ import { registerServerOnly } from "./register-server-only.mjs";
 registerServerOnly();
 
 const exporter = await import("../../scripts/analytics/export-current.mjs");
-const { createAnalyticsCurrentHandler } = await import("../../app/api/dashboard/analytics/current/route.ts");
+const { createAnalyticsCurrentHandler } = await import("../../lib/analytics/current-handler.ts");
 const root = await mkdtemp(join(tmpdir(), "eskomi-analytics-export-"));
 
 test("export parser accepts only explicit period and output arguments before collection", () => {

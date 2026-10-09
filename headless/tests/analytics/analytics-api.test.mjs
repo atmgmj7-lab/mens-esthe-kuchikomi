@@ -5,7 +5,7 @@ import { registerServerOnly } from "./register-server-only.mjs";
 
 registerServerOnly();
 
-const { createAnalyticsCurrentHandler } = await import("../../app/api/dashboard/analytics/current/route.ts");
+const { createAnalyticsCurrentHandler } = await import("../../lib/analytics/current-handler.ts");
 
 const snapshot = { schemaVersion: "1.0.0", timezone: "Asia/Tokyo", sources: { ga4: { state: "partial" } } };
 const request = (suffix = "") => new Request(`https://test.invalid/api/dashboard/analytics/current${suffix}`);
