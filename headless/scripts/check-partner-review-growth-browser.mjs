@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import net from "node:net";
@@ -152,7 +152,10 @@ const appPort = await new Promise((resolve) => {
 });
 assert.equal(await isPortOpen(appPort), false, "QA app port must be unused");
 const baseUrl = `http://127.0.0.1:${appPort}`;
-const next = spawn("npm", ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(appPort)], {
+const nextCommand = process.env.REVIEW_FORM_QA_DEV_SERVER === "1"
+  ? ["run", "dev", "--", "--webpack", "--hostname", "127.0.0.1", "--port", String(appPort)]
+  : ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(appPort)];
+const next = spawn("npm", nextCommand, {
   cwd: root,
   detached: true,
   stdio: ["ignore", "pipe", "pipe"],
@@ -180,20 +183,76 @@ try {
   await page.goto(`${baseUrl}/r/${fixtureToken}/`, { waitUntil: "domcontentloaded" });
   assert.equal(new URL(page.url()).pathname, "/reviews/submit/");
   assert.equal(new URL(page.url()).search, `?shop=${fixtureShop.slug}&campaign=${fixtureToken}`);
-  assert.deepEqual(campaignEvents, [
-    { p_token: fixtureToken, p_event: "open" },
-    { p_token: fixtureToken, p_event: "start" },
-  ]);
+  if (process.env.REVIEW_FORM_QA_DEV_SERVER === "1") {
+    assert.ok(campaignEvents.length >= 2, "development fixture must reach campaign open/start");
+    assert.ok(campaignEvents.every((event) => event.p_token === fixtureToken), "development fixture must not use a different campaign token");
+    assert.ok(campaignEvents.some((event) => event.p_event === "open"));
+    assert.ok(campaignEvents.some((event) => event.p_event === "start"));
+  } else {
+    assert.deepEqual(campaignEvents, [
+      { p_token: fixtureToken, p_event: "open" },
+      { p_token: fixtureToken, p_event: "start" },
+    ]);
+  }
   const campaignForm = page.locator("form.hl-review-form");
   await campaignForm.waitFor({ state: "visible" });
   assert.match(await campaignForm.innerText(), new RegExp(fixtureShop.title));
+
+  const aiButton = page.getByRole("button", { name: "AIで読みやすくして確認" });
+  await aiButton.click();
+  const aiFeedback = page.locator("#review-ai-feedback");
+  await aiFeedback.getByText("口コミ本文を入力してから", { exact: false }).waitFor({ state: "visible" });
+  assert.equal(await aiFeedback.getAttribute("role"), "alert", "AI validation failures must be announced instead of appearing silent");
+
+  const firstTag = page.locator(".hl-review-form__tags input[type=checkbox]").first();
+  const tagLabel = page.locator(".hl-review-form__tags label").first();
+  const checkboxBox = await firstTag.boundingBox();
+  const labelBox = await tagLabel.boundingBox();
+  assert.ok(checkboxBox && checkboxBox.width < 32 && checkboxBox.height < 32, "checkbox controls must not inherit full-width text input sizing");
+  assert.ok(labelBox && labelBox.height >= 44, "tag labels must keep a touch-friendly target");
+  await firstTag.focus();
+  await page.keyboard.press("Space");
+  assert.equal(await firstTag.isChecked(), true, "tag checkbox must remain keyboard operable");
+  await page.keyboard.press("Space");
+  assert.equal(await firstTag.isChecked(), false, "keyboard can clear a selected tag");
+
   await page.locator("#review-nickname").fill("投稿者");
   await page.locator("#review-used-period").selectOption("今月");
   await page.locator("#review-rating-total").selectOption("5");
   await page.locator("#review-body").fill(reviewPayload.reviewBody);
-  await page.getByRole("button", { name: "AIで読みやすくして確認" }).click();
+  await aiButton.click();
+  await page.getByText("AIを使わず運営審査へ送れます。", { exact: false }).waitFor({ state: "visible" });
+  assert.equal(await aiFeedback.getAttribute("role"), "alert", "unavailable AI must remain visible as an error");
+  assert.equal(await aiButton.isDisabled(), false, "AI errors must leave the retry control available");
+  await aiButton.click();
   await page.getByText("AIを使わず運営審査へ送れます。", { exact: false }).waitFor({ state: "visible" });
   assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "AI outage preserves the customer draft");
+
+  const syntheticDraft = "予約時の案内が分かりやすく、落ち着いて利用できました。";
+  await page.route("**/api/reviews/ai-assist", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, decision: "REWRITE_SAFE", draft: syntheticDraft }) });
+  });
+  await aiButton.click();
+  await page.getByRole("heading", { name: "AIによる修正案" }).waitFor({ state: "visible" });
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "AI proposals must not overwrite the original before explicit confirmation");
+  await page.getByRole("button", { name: "修正案を本文に反映" }).click();
+  assert.equal(await page.locator("#review-body").inputValue(), syntheticDraft, "only the explicit apply action may replace the original with a proposal");
+  await page.locator("#review-body").fill(reviewPayload.reviewBody);
+  await page.unroute("**/api/reviews/ai-assist");
+
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    const layout = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
+    assert.ok(layout.scrollWidth <= layout.clientWidth, `review form must not overflow at ${viewport.width}px`);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  if (process.env.REVIEW_FORM_QA_SCREENSHOT_DIR) {
+    mkdirSync(process.env.REVIEW_FORM_QA_SCREENSHOT_DIR, { recursive: true });
+    await page.screenshot({ path: join(process.env.REVIEW_FORM_QA_SCREENSHOT_DIR, "review-form-mobile.png"), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({ path: join(process.env.REVIEW_FORM_QA_SCREENSHOT_DIR, "review-form-desktop.png"), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+  }
   await page.getByRole("button", { name: "そのまま確認" }).click();
   await page.getByText("内容を確認し、必要なら編集してから", { exact: false }).waitFor({ state: "visible" });
   await page.getByRole("button", { name: "この内容で口コミを投稿" }).click();

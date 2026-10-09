@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { authorizeDashboardRequest } from "@/lib/dashboard/content-admin-auth";
 import { type OperatorWriterField } from "@/lib/dashboard/operator-shop-fact-dry-run";
-import { revalidateOperatorShopPublicCaches } from "@/lib/dashboard/operator-shop-public-cache";
+import { revalidateOfficialFactsPublicCaches } from "@/lib/dashboard/operator-shop-public-cache";
 import { readOfficialFactsWriterEnvironment } from "@/lib/dashboard/official-facts-writer";
 import { partnerShopFactsRepository, useSupabaseShopManagement } from "@/lib/supabase/partner-shop-facts";
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest, { params }: Readonly<{ params: 
       return NextResponse.json({ ok: false, message: "店舗情報が更新されています。再読込して差分を確認してください。", snapshot: saved.snapshot }, { status: 409, headers });
     }
     if (saved.status === "saved" || saved.status === "noop") {
-      if (saved.status === "saved") revalidateOfficialFactsPublicCaches(saved.snapshot.slug);
+      if (saved.status === "saved") revalidateOfficialFactsPublicCaches(saved.snapshot.slug, { revalidateTag, revalidatePath });
       return NextResponse.json({
         ok: true,
         message: saved.status === "saved" ? "Supabaseの検証用正本へ保存し、再読込用snapshotを取得しました。" : "保存済み内容と同一です。",
@@ -69,10 +69,4 @@ export async function POST(request: NextRequest, { params }: Readonly<{ params: 
   // Deliberately fail closed: this route is not a provenance authoring API.
   // A later reviewed-evidence service may invoke OfficialFactsWriter directly.
   return response("確認済みの公式根拠・canonical・監査情報が未連携のため、保存は開始していません。", 409);
-}
-
-// Kept exported for the reviewed server workflow. It is never reached by the
-// browser request above, so there is no accidental production write path.
-export function revalidateOfficialFactsPublicCaches(slug: string) {
-  revalidateOperatorShopPublicCaches(slug, { revalidateTag, revalidatePath });
 }

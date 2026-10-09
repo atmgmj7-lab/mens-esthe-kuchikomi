@@ -10,7 +10,7 @@ const routePath = resolve(root, "app/api/dashboard/shops/[id]/official-facts/rou
 assert.ok(existsSync(helperPath), "managed-facts public cache helper must exist");
 const helperSource = readFileSync(helperPath, "utf8");
 const routeSource = readFileSync(routePath, "utf8");
-assert.match(routeSource, /saved\.status === "saved"\) revalidateOfficialFactsPublicCaches\(saved\.snapshot\.slug\)/);
+assert.match(routeSource, /saved\.status === "saved"\) revalidateOfficialFactsPublicCaches\(saved\.snapshot\.slug, \{ revalidateTag, revalidatePath \}\)/);
 assert.doesNotMatch(routeSource, /saved\.status === "noop"\) revalidateOfficialFactsPublicCaches/);
 
 const output = ts.transpileModule(helperSource, {
@@ -30,6 +30,7 @@ loaded.exports.revalidateOperatorShopPublicCaches(
     revalidatePath: (...args) => calls.push(["path", ...args]),
   },
 );
+assert.equal(typeof loaded.exports.revalidateOfficialFactsPublicCaches, "function", "Route helpers must live outside the Next Route module");
 assert.deepEqual(calls, [
   ["tag", "wp", { expire: 0 }],
   ["path", "/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89"],
