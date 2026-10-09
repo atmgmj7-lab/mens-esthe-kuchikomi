@@ -117,11 +117,19 @@ const repositoryMock = {
   },
 };
 const routeModule = loadTypeScript("app/api/dashboard/reviews/moderation/route.ts", {
+  "next/cache": { revalidatePath: () => {} },
   "next/server": { NextResponse: TestNextResponse },
   "@/lib/dashboard/content-admin-auth": {
     authorizeDashboardRequest: () => authorized
       ? { ok: true, status: 200, reason: "authorized" }
       : { ok: false, status: 401, reason: "missing-credentials" },
+  },
+  "@/lib/reviews/rankup-native-review-public-cache": {
+    revalidateRankUpNativeReviewPublicCaches: () => {},
+  },
+  "@/lib/reviews/rankup-native-review-pilot": {
+    RANK_UP_WP_SHOP_ID: 768,
+    useRankUpNativeReviewPilot: () => false,
   },
   "@/lib/supabase/review-native": { reviewNativeRepository: repositoryMock },
 });

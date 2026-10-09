@@ -1,6 +1,9 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 import { authorizeDashboardRequest } from "@/lib/dashboard/content-admin-auth";
+import { revalidateRankUpNativeReviewPublicCaches } from "@/lib/reviews/rankup-native-review-public-cache";
+import { RANK_UP_WP_SHOP_ID, useRankUpNativeReviewPilot } from "@/lib/reviews/rankup-native-review-pilot";
 import { reviewNativeRepository } from "@/lib/supabase/review-native";
 
 const RESPONSE_HEADERS = {
@@ -102,6 +105,13 @@ export async function POST(request: NextRequest) {
     });
   if (result.status !== "ok") {
     return fail("判断を保存できませんでした。状態を確認して再度お試しください。", 409);
+  }
+
+  if (input.action === "published" && useRankUpNativeReviewPilot(process.env)) {
+    const detail = await reviewNativeRepository.getModerationDetail(input.reviewId);
+    if (detail.status === "ok" && detail.data.shop.wpShopId === RANK_UP_WP_SHOP_ID) {
+      revalidateRankUpNativeReviewPublicCaches(detail.data.shop.slug, { revalidatePath });
+    }
   }
 
   return NextResponse.json({ ok: true, review: result.data }, { headers: RESPONSE_HEADERS });

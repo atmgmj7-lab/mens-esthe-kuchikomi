@@ -104,6 +104,10 @@ const wpGlobalResult = {
 };
 const module = loadTypeScript("lib/reviews/public-adapter.ts", {
   "server-only": {},
+  "@/lib/reviews/rankup-native-review-pilot": {
+    RANK_UP_WP_SHOP_ID: 768,
+    useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
+  },
   "@/lib/supabase/review-native": { reviewNativeRepository: repository },
   "@/lib/wp/reviews": {
     getApprovedShopReviews: async (...args) => { calls.push(["wp-shop", args]); return wpShopResult; },
@@ -118,6 +122,9 @@ assert.equal(module.resolveReviewReadSource({}), "wordpress");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "wordpress" }), "wordpress");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "supabase" }), "supabase");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "unexpected" }), "wordpress");
+assert.equal(module.useRankUpNativeReviewPilot({}), false);
+assert.equal(module.useRankUpNativeReviewPilot({ RANKUP_NATIVE_REVIEW_READ_SOURCE: "supabase" }), true);
+assert.equal(module.useRankUpNativeReviewPilot({ RANKUP_NATIVE_REVIEW_READ_SOURCE: "wordpress" }), false);
 
 let adapter = module.createPublicReviewAdapter({
   repository,
@@ -167,5 +174,93 @@ repository.listPublished = async () => ({
 });
 result = await adapter.getGlobalReviews(1, 20, null);
 assert.equal(result.status, "unavailable", "unknown WordPress Shop identity must fail closed");
+
+const rankUpShop = {
+  ...publishedShop,
+  id: 768,
+  slug: "mrs-rank-up%ef%bc%88fixture%ef%bc%89",
+  title: "Mrs.Rank UP fixture",
+};
+const rankUpNativeReview = {
+  ...nativeReview,
+  reviewId: "33333333-3333-4333-8333-333333333333",
+  shop: { wpShopId: 768 },
+  body: "Rank Up native fixture review",
+};
+const rankUpNativeMetrics = {
+  ...nativeMetrics,
+  shop: { wpShopId: 768 },
+  reviewCount: 1,
+};
+const pilotCalls = [];
+const pilotRepository = {
+  async listPublished(request) {
+    pilotCalls.push(["native-list", request]);
+    assert.deepEqual(request.wpShopIds, [768], "pilot must never read another shop's native reviews");
+    return { status: "ok", data: [rankUpNativeReview] };
+  },
+  async getPublishedMetrics(request) {
+    pilotCalls.push(["native-metrics", request]);
+    assert.deepEqual(request.wpShopIds, [768], "pilot metrics must stay scoped to WP768");
+    return { status: "ok", data: rankUpNativeMetrics };
+  },
+};
+let wordpressGlobal = wpGlobalResult;
+adapter = module.createPublicReviewAdapter({
+  repository: pilotRepository,
+  readWordPressShopReviews: async (...args) => { pilotCalls.push(["wp-shop", args]); return wpShopResult; },
+  readWordPressGlobalReviews: async (...args) => { pilotCalls.push(["wp-global", args]); return wordpressGlobal; },
+  listWordPressShops: async () => [rankUpShop, draftShop],
+  environment: { RANKUP_NATIVE_REVIEW_READ_SOURCE: "supabase" },
+});
+
+pilotCalls.length = 0;
+result = await adapter.getShopReviews(rankUpShop, 1, 20);
+assert.equal(result.status, "available");
+assert.equal(result.source, "supabase", "only WP768 may use the native pilot source");
+assert.equal(result.page.reviews[0].body, "Rank Up native fixture review");
+assert.equal(pilotCalls.some(([name]) => name === "wp-shop"), false);
+
+pilotCalls.length = 0;
+result = await adapter.getShopReviews(publishedShop, 1, 20);
+assert.equal(result.status, "available");
+assert.equal(result.source, "wordpress", "another shop must retain WordPress review reads");
+assert.equal(pilotCalls.some(([name]) => name === "native-list"), false);
+assert.equal(pilotCalls.some(([name]) => name === "wp-shop"), true);
+
+pilotCalls.length = 0;
+result = await adapter.getGlobalReviews(1, 20, "umeda");
+assert.equal(result.status, "available");
+assert.equal(result.source, "supabase");
+assert.equal(result.page.total, 1);
+assert.equal(result.page.reviews[0].shop.id, 768);
+assert.equal(result.page.reviews[0].body, "Rank Up native fixture review");
+assert.equal(pilotCalls.filter(([name]) => name === "wp-global").length, 1, "pilot must check the empty WordPress-corpus precondition");
+assert.equal(pilotCalls.filter(([name]) => name === "native-list").length, 1);
+
+pilotCalls.length = 0;
+result = await adapter.getGlobalReviews(1, 20, "namba");
+assert.equal(result.status, "available");
+assert.equal(result.source, "supabase");
+assert.equal(result.page.total, 0, "unrelated areas must not receive the Rank Up review");
+assert.equal(pilotCalls.some(([name]) => name === "native-list"), false);
+
+wordpressGlobal = {
+  status: "available",
+  page: { reviews: [{ id: 9 }], total: 1, totalPages: 1, page: 1 },
+};
+pilotCalls.length = 0;
+result = await adapter.getGlobalReviews(1, 20, null);
+assert.equal(result.status, "unavailable", "a non-empty WordPress corpus must stop the pilot before a partial merge");
+assert.equal(result.source, "wordpress");
+assert.equal(pilotCalls.some(([name]) => name === "native-list"), false, "blocked merge must not duplicate native data");
+
+wordpressGlobal = { status: "unavailable", reason: "request-failed" };
+pilotCalls.length = 0;
+result = await adapter.getGlobalReviews(1, 20, null);
+assert.equal(result.status, "unavailable", "a WordPress outage must not be treated as an empty corpus");
+assert.equal(result.source, "wordpress");
+assert.equal(result.reason, "request-failed");
+assert.equal(pilotCalls.some(([name]) => name === "native-list"), false, "an unavailable precondition must not expose a partial native feed");
 
 console.log("Review public adapter contract passed");

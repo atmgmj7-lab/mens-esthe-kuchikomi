@@ -12,6 +12,7 @@ import {
 } from "@/lib/wp/reviews";
 import { getAllShopsForListing } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
+import { RANK_UP_WP_SHOP_ID, useRankUpNativeReviewPilot } from "@/lib/reviews/rankup-native-review-pilot";
 
 export type ReviewReadSource = "wordpress" | "supabase";
 export type PublicReviewId = number | string;
@@ -121,6 +122,8 @@ export function resolveReviewReadSource(environment: Environment): ReviewReadSou
   return environment.REVIEW_READ_SOURCE === "supabase" ? "supabase" : "wordpress";
 }
 
+export { useRankUpNativeReviewPilot } from "@/lib/reviews/rankup-native-review-pilot";
+
 function unavailable(
   source: ReviewReadSource,
   reason: "request-failed" | "invalid-response",
@@ -205,6 +208,14 @@ function toMetrics(metrics: PublishedReviewMetrics): PublicShopReviewPage["metri
   };
 }
 
+function emptyGlobalPage(source: ReviewReadSource, page: number): PublicGlobalReviewResult {
+  return {
+    status: "available",
+    source,
+    page: { reviews: [], total: 0, totalPages: 0, page },
+  };
+}
+
 async function readNative(
   repository: PublicReviewAdapterDependencies["repository"],
   wpShopIds: readonly number[],
@@ -247,27 +258,30 @@ export function createPublicReviewAdapter(
   dependencies: PublicReviewAdapterDependencies,
 ): PublicReviewAdapter {
   const source = resolveReviewReadSource(dependencies.environment);
+  const rankUpPilot = source === "wordpress" && useRankUpNativeReviewPilot(dependencies.environment);
   return {
     source,
 
     async getShopReviews(shop, page = 1, perPage = 20) {
       if (!validPageRequest(page, perPage)) return unavailable(source, "invalid-response");
-      if (source === "wordpress") {
+      const shopSource: ReviewReadSource = source === "supabase"
+        || (rankUpPilot && shop.id === RANK_UP_WP_SHOP_ID)
+        ? "supabase"
+        : "wordpress";
+      if (shopSource === "wordpress") {
         const result = await dependencies.readWordPressShopReviews(shop.id, page, perPage);
-        return result.status === "available"
-          ? { ...result, source }
-          : { ...result, source };
+        return { ...result, source: shopSource };
       }
-      if (!isCurrentPublicShop(shop)) return unavailable(source, "invalid-response");
+      if (!isCurrentPublicShop(shop)) return unavailable(shopSource, "invalid-response");
       const native = await readNative(dependencies.repository, [shop.id], page, perPage);
-      if (!native.ok) return unavailable(source, native.reason);
+      if (!native.ok) return unavailable(shopSource, native.reason);
       if (native.reviews.some((review) => review.shop.wpShopId !== shop.id)) {
-        return unavailable(source, "invalid-response");
+        return unavailable(shopSource, "invalid-response");
       }
       const total = native.metrics.reviewCount;
       return {
         status: "available",
-        source,
+        source: shopSource,
         page: {
           reviews: native.reviews.map(toPublicReview),
           total,
@@ -290,6 +304,45 @@ export function createPublicReviewAdapter(
         return unavailable(source, "invalid-response");
       }
       if (source === "wordpress") {
+        if (rankUpPilot) {
+          // The approved pilot begins with an empty WordPress review corpus.
+          // If that precondition changes, fail closed rather than silently
+          // dropping or duplicating reviews while combining two paginated feeds.
+          const wordpress = await dependencies.readWordPressGlobalReviews(page, perPage, primaryAreaSlug);
+          if (wordpress.status !== "available") return { ...wordpress, source: "wordpress" };
+          if (wordpress.page.total !== 0) return unavailable("wordpress", "invalid-response");
+
+          let shops: ShopView[];
+          try {
+            shops = await dependencies.listWordPressShops(500);
+          } catch {
+            return unavailable("supabase", "request-failed");
+          }
+          const matching = shops.filter((shop) => shop.id === RANK_UP_WP_SHOP_ID);
+          if (matching.length !== 1) return unavailable("supabase", "invalid-response");
+          const identity = currentShopIdentity(matching[0]);
+          if (!identity) return unavailable("supabase", "invalid-response");
+          if (primaryAreaSlug !== null && identity.shop.primaryArea?.slug !== primaryAreaSlug) {
+            return emptyGlobalPage("supabase", page);
+          }
+
+          const native = await readNative(dependencies.repository, [RANK_UP_WP_SHOP_ID], page, perPage);
+          if (!native.ok) return unavailable("supabase", native.reason);
+          if (native.reviews.some((review) => review.shop.wpShopId !== RANK_UP_WP_SHOP_ID)) {
+            return unavailable("supabase", "invalid-response");
+          }
+          const total = native.metrics.reviewCount;
+          return {
+            status: "available",
+            source: "supabase",
+            page: {
+              reviews: native.reviews.map((review) => ({ ...toPublicReview(review), ...identity })),
+              total,
+              totalPages: total === 0 ? 0 : Math.ceil(total / perPage),
+              page,
+            },
+          };
+        }
         const result = await dependencies.readWordPressGlobalReviews(page, perPage, primaryAreaSlug);
         return result.status === "available"
           ? { ...result, source }

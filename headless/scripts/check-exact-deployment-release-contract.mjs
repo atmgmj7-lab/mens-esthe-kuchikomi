@@ -49,7 +49,7 @@ function workflowStep(name) {
   return workflow.slice(start, next < 0 ? undefined : next);
 }
 
-const stagedDeployStep = workflowStep("Create staged Vercel production deployment");
+const stagedDeployStep = workflowStep("Create staged Vercel remote-build deployment");
 const exactQaStep = workflowStep("Verify exact staged deployment");
 const handoffStep = workflowStep("Record staged release gate result");
 
@@ -59,10 +59,10 @@ check(
 );
 check(
   stagedDeployStep.includes("vercel deploy")
-    && stagedDeployStep.includes("--prebuilt")
+    && !stagedDeployStep.includes("--prebuilt")
     && stagedDeployStep.includes("--prod")
     && stagedDeployStep.includes("--skip-domain"),
-  "deployment must use --prebuilt --prod --skip-domain",
+  "deployment must use remote build with --prod --skip-domain",
 );
 check(
   stagedDeployStep.includes('--meta eskomiGitSha="$GITHUB_SHA"'),
