@@ -6,13 +6,18 @@ import ts from "typescript";
 const root = resolve(import.meta.dirname, "..");
 const helperPath = resolve(root, "lib/reviews/rankup-native-review-public-cache.ts");
 const routePath = resolve(root, "app/api/dashboard/reviews/moderation/route.ts");
+const adapterPath = resolve(root, "lib/reviews/public-adapter.ts");
 const helperSource = readFileSync(helperPath, "utf8");
 const routeSource = readFileSync(routePath, "utf8");
+const adapterSource = readFileSync(adapterPath, "utf8");
 
 assert.match(routeSource, /input\.action === "published" && useRankUpNativeReviewPilot\(process\.env\)/);
 assert.match(routeSource, /detail\.data\.shop\.wpShopId === RANK_UP_WP_SHOP_ID/);
 assert.match(routeSource, /revalidateRankUpNativeReviewPublicCaches\(detail\.data\.shop\.slug/);
 assert.doesNotMatch(routeSource, /input\.action === "approved"[\s\S]{0,300}revalidateRankUpNativeReviewPublicCaches/);
+assert.match(adapterSource, /"use cache"/);
+assert.match(adapterSource, /cacheTag\("reviews:native", \.\.\.wpShopIds\.map/);
+assert.match(adapterSource, /readDefaultNativeForPublic/);
 
 const output = ts.transpileModule(helperSource, {
   fileName: helperPath,
@@ -25,14 +30,17 @@ new Function("require", "module", "exports", output)(() => {
 
 const calls = [];
 loaded.exports.revalidateRankUpNativeReviewPublicCaches("mrs-rank-up%ef%bc%88fixture%ef%bc%89", {
-  revalidatePath: (...args) => calls.push(args),
+  revalidateTag: (...args) => calls.push(["tag", ...args]),
+  revalidatePath: (...args) => calls.push(["path", ...args]),
 });
 assert.deepEqual(calls, [
-  ["/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89"],
-  ["/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89/reviews"],
-  ["/"],
-  ["/reviews"],
-  ["/area/[slug]", "page"],
+  ["tag", "reviews:native", { expire: 0 }],
+  ["tag", "reviews:native:768", { expire: 0 }],
+  ["path", "/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89"],
+  ["path", "/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89/reviews"],
+  ["path", "/"],
+  ["path", "/reviews"],
+  ["path", "/area/[slug]", "page"],
 ]);
 
 console.log("Mrs.Rank UP native review public cache contract: PASS");
