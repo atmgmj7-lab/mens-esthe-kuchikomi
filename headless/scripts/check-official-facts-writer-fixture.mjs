@@ -9,6 +9,7 @@ import vm from "node:vm";
 const root = process.cwd();
 const writerPath = join(root, "lib/dashboard/official-facts-writer.ts");
 const routePath = join(root, "app/api/dashboard/shops/[id]/official-facts/route.ts");
+const cachePath = join(root, "lib/dashboard/operator-shop-public-cache.ts");
 const writerSource = readFileSync(writerPath, "utf8")
   .replace('import "server-only";\n', "")
   .replace(/import \{[\s\S]*?\} from "@\/lib\/dashboard\/operator-shop-fact-dry-run";/, 'const { OPERATOR_WRITER_FIELDS } = require("dry-run");');
@@ -111,8 +112,9 @@ try {
   await assert.rejects(() => writer.apply({ expected: stale, changes: { shop_hours: "12:00〜翌2:00" }, evidence, batchId: "33333333-3333-4333-8333-333333333333" }), /snapshot conflict/);
   assert.equal(postCount, postsBeforeConflict, "CAS conflict must fail before POST");
   await assert.rejects(() => writer.apply({ expected: snapshot, changes: { shop_hours: "12:00〜翌2:00" }, evidence: { ...evidence, provenance: [] }, batchId: "44444444-4444-4444-8444-444444444444" }), /evidence required/);
-  assert.match(readFileSync(routePath, "utf8"), /revalidateTag\("wp", \{ expire: 0 \}\)/, "post-readback server workflow must invalidate the public WP cache tag");
-  assert.match(readFileSync(routePath, "utf8"), /revalidatePath\(`\/shops\/\$\{slug\}`\)/, "post-readback server workflow must refresh the affected public shop path");
+  assert.match(readFileSync(routePath, "utf8"), /revalidateOperatorShopPublicCaches/, "post-readback server workflow must invoke the shared public cache contract");
+  assert.match(readFileSync(cachePath, "utf8"), /revalidateTag\("wp", \{ expire: 0 \}\)/, "post-readback server workflow must invalidate the public WP cache tag");
+  assert.match(readFileSync(cachePath, "utf8"), /revalidatePath\(`\/shops\/\$\{slug\}`\)/, "post-readback server workflow must refresh the affected public shop path");
   console.log("official facts writer isolated fixture: PASS");
 } finally {
   await new Promise((resolve) => server.close(resolve));

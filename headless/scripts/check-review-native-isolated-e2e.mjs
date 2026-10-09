@@ -322,6 +322,10 @@ const rejected = await submit(reviewInput(4, 2));
 const spam = await submit(reviewInput(5, 1));
 
 const publicAdapterModule = loadTypeScript("lib/reviews/public-adapter.ts", {
+  "@/lib/reviews/rankup-native-review-pilot": {
+    RANK_UP_WP_SHOP_ID: 768,
+    useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
+  },
   "@/lib/supabase/review-native": { reviewNativeRepository: repository },
   "@/lib/wp/reviews": {
     getApprovedShopReviews: async () => { throw new Error("WordPress reader must not run"); },

@@ -121,6 +121,7 @@
     "test:exact-deployment-release": "node scripts/check-exact-deployment-release-contract.mjs",
     "qa:exact-deployment-release": "node scripts/check-exact-deployment-release.mjs",
     "test:nodemailer-security": "node scripts/check-nodemailer-security-contract.mjs",
+    "test:contact-nodemailer-route": "node scripts/check-contact-nodemailer-route.mjs",
     "test:xserver-ssh-deploy": "node scripts/check-xserver-ssh-deploy-contract.mjs",
     "test:wp-phase0-security": "node scripts/check-wp-phase0-security-contract.mjs && php ../tests/php/check-ai-update-route-security.php",
     "test:daily-update-proxy": "node scripts/check-daily-update-proxy-contract.mjs && cd ../ai-site-monitor && python3 -m unittest tests.test_daily_update_payload",
@@ -134,6 +135,8 @@
     "test:official-facts-writer-fixture": "node scripts/check-official-facts-writer-fixture.mjs",
     "qa:operator-shop-control-center": "node scripts/check-operator-shop-control-center-browser.mjs",
     "qa:rankup-operator-fixture": "node scripts/check-rankup-operator-fixture-browser.mjs",
+    "test:rankup-public-cache-revalidation": "node scripts/check-rankup-public-cache-revalidation.mjs",
+    "test:rankup-native-review-public-cache": "node scripts/check-rankup-native-review-public-cache.mjs",
     "test:public-reviews": "node scripts/check-public-review-contract.mjs",
     "test:shop-review-dashboard": "node scripts/check-shop-review-dashboard-contract.mjs",
     "test:shop-dashboard-foundation": "node scripts/check-shop-dashboard-foundation-contract.mjs",
@@ -147,8 +150,8 @@
     "test:shop-detail-information-ux": "node scripts/check-shop-detail-information-ux.mjs"
   },
   "dependencies": {
-    "next": "16.3.3",
-    "nodemailer": "9.1.1",
+    "next": "16.3.8",
+    "nodemailer": "10.0.16",
     "qrcode": "1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
@@ -163,5 +166,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "typescript": "^5"
+  },
+  "overrides": {
+    "sharp": "0.35.5",
+    "source-map-js": "1.2.2"
   }
 }

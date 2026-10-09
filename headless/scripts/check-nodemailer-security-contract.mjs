@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import nodemailer from "nodemailer";
 
 const require = createRequire(import.meta.url);
-const MINIMUM_SAFE_VERSION = "9.0.3";
+const MINIMUM_SAFE_VERSION = "10.0.16";
 const appPackage = require("../package.json");
 const packageLock = require("../package-lock.json");
 const { version: installedVersion } = require("nodemailer/package.json");
