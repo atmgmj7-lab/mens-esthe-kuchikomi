@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import { createAutomaticReviewDraft } from "@/lib/reviews/automatic-review-draft";
 import { prepareReviewConfirmation, REVIEW_TAGS, type ReviewTag } from "@/lib/reviews/low-friction-review";
 import { USED_PERIODS } from "@/lib/review-validation";
 
@@ -8,8 +9,8 @@ type FormStatus = "idle" | "submitting" | "success" | "error";
 type AiAssistStatus = "idle" | "loading" | "success" | "error";
 
 const OPTIONAL_RATINGS = [
-  { name: "ratingPrice", label: "料金満足度（任意）" },
-  { name: "ratingService", label: "接客満足度（任意）" },
+  { name: "ratingPrice", label: "料金の納得感（任意）" },
+  { name: "ratingService", label: "接客の印象（任意）" },
   { name: "ratingCleanliness", label: "清潔感（任意）" }
 ] as const;
 
@@ -44,6 +45,9 @@ export function ReviewSubmitForm({
   const [aiStatus, setAiStatus] = useState<AiAssistStatus>("idle");
   const [aiDraft, setAiDraft] = useState<string | null>(null);
   const [aiPending, setAiPending] = useState(false);
+  const [automaticDraft, setAutomaticDraft] = useState<string | null>(null);
+  const [automaticDraftMessage, setAutomaticDraftMessage] = useState("");
+  const [automaticDraftOverwriteConfirmation, setAutomaticDraftOverwriteConfirmation] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -133,6 +137,8 @@ export function ReviewSubmitForm({
   }
 
   function toggleTag(tag: ReviewTag) {
+    setAutomaticDraft(null);
+    setAutomaticDraftMessage("");
     setTags((current) => current.includes(tag)
       ? current.filter((value) => value !== tag)
       : current.length < 6 ? [...current, tag] : current);
@@ -200,6 +206,62 @@ export function ReviewSubmitForm({
     setAiDraft(null);
     setAiStatus("idle");
     setAiMessage("原文のまま保持しています。必要ならもう一度AI添削をお試しください。");
+  }
+
+  function clearAutomaticDraftForSelectionChange() {
+    if (!automaticDraft) return;
+    setAutomaticDraft(null);
+    setAutomaticDraftOverwriteConfirmation(false);
+    setAutomaticDraftMessage("選択内容が変わったため、下書き提案を破棄しました。必要なら再生成してください。");
+  }
+
+  function requestAutomaticDraft() {
+    const form = document.getElementById("review-submit-form") as HTMLFormElement | null;
+    const formData = new FormData(form ?? undefined);
+    const draft = createAutomaticReviewDraft({
+      ratingPrice: formData.get("ratingPrice") ? Number(formData.get("ratingPrice")) : undefined,
+      ratingService: formData.get("ratingService") ? Number(formData.get("ratingService")) : undefined,
+      ratingCleanliness: formData.get("ratingCleanliness") ? Number(formData.get("ratingCleanliness")) : undefined,
+      tags,
+    });
+    if (!draft) {
+      setAutomaticDraft(null);
+      setAutomaticDraftOverwriteConfirmation(false);
+      setAutomaticDraftMessage("下書きに使う選択項目を選んでください。未回答の項目は文章に含めません。");
+      return;
+    }
+    setAutomaticDraft(draft);
+    setAutomaticDraftOverwriteConfirmation(false);
+    setAutomaticDraftMessage("選択内容から下書きを作成しました。原文はまだ変更していません。");
+  }
+
+  function applyAutomaticDraft() {
+    if (!automaticDraft) return;
+    setReviewBody(automaticDraft);
+    setAutomaticDraft(null);
+    setAutomaticDraftOverwriteConfirmation(false);
+    setAutomaticDraftMessage("下書きを本文へ反映しました。投稿前に内容をご確認ください。");
+  }
+
+  function requestAutomaticDraftApply() {
+    if (!automaticDraft) return;
+    if (reviewBody.trim() && reviewBody !== automaticDraft) {
+      setAutomaticDraftOverwriteConfirmation(true);
+      setAutomaticDraftMessage("現在の本文を下書きで置き換えます。内容を確認してから選択してください。");
+      return;
+    }
+    applyAutomaticDraft();
+  }
+
+  function keepCurrentReviewBody() {
+    setAutomaticDraftOverwriteConfirmation(false);
+    setAutomaticDraftMessage("本文は原文のまま保持しています。下書きは確認用に表示しています。");
+  }
+
+  function dismissAutomaticDraft() {
+    setAutomaticDraft(null);
+    setAutomaticDraftOverwriteConfirmation(false);
+    setAutomaticDraftMessage("原文のまま保持しています。選択内容を変えた場合は、もう一度生成できます。");
   }
 
   if (status === "success") {
@@ -285,13 +347,13 @@ export function ReviewSubmitForm({
       {OPTIONAL_RATINGS.map(({ name, label }) => (
         <div className="hl-contact-field" key={name}>
           <label htmlFor={`review-${name}`}>{label}</label>
-          <select id={`review-${name}`} name={name} defaultValue="">
-            <option value="">未入力</option>
-            {[5, 4, 3, 2, 1].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
+          <select id={`review-${name}`} name={name} defaultValue="" onChange={clearAutomaticDraftForSelectionChange}>
+            <option value="">未回答</option>
+            <option value="5">良い（5）</option>
+            <option value="4">良い（4）</option>
+            <option value="3">普通（3）</option>
+            <option value="2">気になった（2）</option>
+            <option value="1">気になった（1）</option>
           </select>
         </div>
       ))}
@@ -313,6 +375,11 @@ export function ReviewSubmitForm({
           value={reviewBody}
           onChange={(event) => {
             setReviewBody(event.target.value);
+            if (automaticDraft) {
+              setAutomaticDraft(null);
+              setAutomaticDraftOverwriteConfirmation(false);
+              setAutomaticDraftMessage("本文を編集したため、下書き提案は破棄しました。必要なら再生成してください。");
+            }
             if (aiDraft) {
               setAiDraft(null);
               setAiStatus("idle");
@@ -322,6 +389,36 @@ export function ReviewSubmitForm({
         />
         <p className="hl-review-form__hint">確認画面へ進む前に、30〜1000文字の本文が必要です。</p>
       </div>
+
+      <section className="hl-review-form__automatic-draft" aria-labelledby="automatic-review-draft-heading">
+        <h2 id="automatic-review-draft-heading">自動下書き生成</h2>
+        <p>選択した項目だけから、確認用の下書きを作ります。本文は自動で変更されません。</p>
+        <button type="button" className="hl-contact-submit hl-review-form__automatic-draft-button" onClick={requestAutomaticDraft}>
+          {automaticDraft ? "選択内容から再生成" : "自動下書き生成"}
+        </button>
+        {automaticDraftMessage ? <p className="hl-review-form__automatic-draft-feedback" role="status" aria-live="polite">{automaticDraftMessage}</p> : null}
+        {automaticDraft ? (
+          <section className="hl-review-form__ai-proposal hl-review-form__automatic-draft-proposal" aria-labelledby="automatic-review-draft-proposal-heading">
+            <h3 className="hl-review-form__ai-proposal-label" id="automatic-review-draft-proposal-heading">自動下書きの提案</h3>
+            <p className="hl-review-form__ai-proposal-note">選択していない項目や本文の内容は追加していません。反映する場合だけ本文を置き換えます。</p>
+            <p className="hl-review-form__ai-proposal-body">{automaticDraft}</p>
+            {automaticDraftOverwriteConfirmation ? (
+              <div className="hl-review-form__automatic-draft-confirmation" role="status" aria-live="polite">
+                <p>現在の本文を下書きで置き換えます。よろしければ確定してください。</p>
+                <div className="hl-review-form__proposal-actions">
+                  <button type="button" className="hl-contact-submit" onClick={applyAutomaticDraft}>下書きで本文を置き換える</button>
+                  <button type="button" className="hl-review-form__text-button" onClick={keepCurrentReviewBody}>本文を保持する</button>
+                </div>
+              </div>
+            ) : (
+              <div className="hl-review-form__proposal-actions">
+                <button type="button" className="hl-contact-submit" onClick={requestAutomaticDraftApply}>下書きを本文に反映</button>
+                <button type="button" className="hl-review-form__text-button" onClick={dismissAutomaticDraft}>原文のままに戻る</button>
+              </div>
+            )}
+          </section>
+        ) : null}
+      </section>
 
       <p className="hl-review-form__notice">
         個人情報、誹謗中傷、事実確認が難しい内容、過度な表現は掲載できない場合があります。

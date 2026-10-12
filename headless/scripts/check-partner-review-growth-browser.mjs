@@ -220,6 +220,40 @@ try {
   await page.locator("#review-used-period").selectOption("今月");
   await page.locator("#review-rating-total").selectOption("5");
   await page.locator("#review-body").fill(reviewPayload.reviewBody);
+  await page.locator("#review-ratingPrice").selectOption("2");
+  await page.locator("#review-ratingService").selectOption("5");
+  await page.locator("#review-ratingCleanliness").selectOption("3");
+  const automaticDraftButton = page.getByRole("button", { name: "自動下書き生成" });
+  const deterministicDraft = [
+    "料金については気になる点がありました。",
+    "接客については良いと感じました。",
+    "清潔感は普通と感じました。",
+  ].join("\n");
+  await automaticDraftButton.click();
+  await page.getByRole("heading", { name: "自動下書きの提案" }).waitFor({ state: "visible" });
+  assert.equal(await page.locator(".hl-review-form__automatic-draft-proposal .hl-review-form__ai-proposal-body").innerText(), deterministicDraft, "automatic draft must use only selected positive, neutral, and concern answers");
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "automatic draft proposals must preserve an existing customer draft");
+  await page.getByRole("button", { name: "選択内容から再生成" }).click();
+  assert.equal(await page.locator(".hl-review-form__automatic-draft-proposal .hl-review-form__ai-proposal-body").innerText(), deterministicDraft, "repeated generation must not duplicate deterministic sentences");
+  await page.getByRole("button", { name: "原文のままに戻る" }).click();
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "returning from an automatic proposal must preserve the original customer draft");
+  await automaticDraftButton.click();
+  await page.locator("#review-ratingPrice").selectOption("5");
+  await page.getByText("選択内容が変わったため、下書き提案を破棄しました。", { exact: false }).waitFor({ state: "visible" });
+  assert.equal(await page.getByRole("heading", { name: "自動下書きの提案" }).count(), 0, "a stale proposal must not remain applicable after selections change");
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "selection changes must not overwrite the customer draft");
+  await page.locator("#review-ratingPrice").selectOption("2");
+  await automaticDraftButton.click();
+  await page.getByRole("button", { name: "下書きを本文に反映" }).click();
+  await page.getByText("現在の本文を下書きで置き換えます。よろしければ確定してください。", { exact: false }).waitFor({ state: "visible" });
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "an edited customer draft must remain unchanged until overwrite is confirmed");
+  await page.getByRole("button", { name: "本文を保持する" }).click();
+  assert.equal(await page.locator("#review-body").inputValue(), reviewPayload.reviewBody, "declining overwrite must preserve the customer draft");
+  await page.getByRole("button", { name: "下書きを本文に反映" }).click();
+  await page.getByRole("button", { name: "下書きで本文を置き換える" }).click();
+  assert.equal(await page.locator("#review-body").inputValue(), deterministicDraft, "only explicit acceptance may replace the customer draft with an automatic draft");
+  assert.equal(privateEvents.length, 0, "automatic draft generation and acceptance must not save or submit anything");
+  await page.locator("#review-body").fill(reviewPayload.reviewBody);
   await aiButton.click();
   await page.getByText("AIを使わず運営審査へ送れます。", { exact: false }).waitFor({ state: "visible" });
   assert.equal(await aiFeedback.getAttribute("role"), "alert", "unavailable AI must remain visible as an error");
