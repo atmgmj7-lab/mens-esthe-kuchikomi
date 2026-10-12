@@ -59,7 +59,7 @@ check("server-rendered review dashboard", () => {
   assert.ok(reviewDashboardSource.includes("model.latest"));
 });
 check("review text measure", () => {
-  assert.match(cssSource, /\.reviews\s*\{[^}]*max-width:\s*960px/);
+  assert.match(cssSource, /\.reviews\s*\{[^}]*max-width:\s*760px/);
 });
 check("single article width", () => {
   assert.match(cssSource, /\.shell\s*\{[^}]*max-width:\s*1200px/);

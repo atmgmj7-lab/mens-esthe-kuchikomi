@@ -6721,8 +6721,32 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 
 .hl-review-form__lead {
   margin: 0 0 1.25rem;
+  max-width: 62ch;
   color: var(--hl-text-muted, #5c5c5c);
-  line-height: 1.7;
+  font-size: 0.96rem;
+  line-height: 1.8;
+}
+
+.hl-review-submit-page .hl-page-inner {
+  max-width: 780px;
+}
+
+.hl-review-submit-page .hl-contact-section {
+  max-width: 720px;
+  margin: 36px auto 0;
+  padding-top: 32px;
+}
+
+.hl-review-submit-page .hl-contact-heading {
+  max-width: 20ch;
+  margin-bottom: 16px;
+  font-size: clamp(1.6rem, 2.5vw, 2.1rem) !important;
+  text-align: left;
+}
+
+.hl-review-submit-page .hl-contact-form {
+  max-width: 720px;
+  gap: 20px;
 }
 
 .hl-review-form__shop {
@@ -6973,6 +6997,13 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 }
 
 @media (max-width: 640px) {
+  .hl-review-submit-page .hl-contact-section {
+    margin-top: 24px;
+    padding-top: 24px;
+  }
+  .hl-review-submit-page .hl-contact-heading {
+    font-size: 1.65rem !important;
+  }
   .hl-review-form__tags { grid-template-columns: minmax(0, 1fr); }
   .hl-review-form__actions { grid-template-columns: minmax(0, 1fr); }
   .hl-review-form__proposal-actions { align-items: stretch; }

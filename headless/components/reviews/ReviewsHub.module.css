@@ -37,8 +37,8 @@
   line-height: 1.35;
 }
 
-.hero h1 { max-width: 1100px; font-size: clamp(2rem, 5vw, 3.6rem); }
-.hero > p:not(.eyebrow) { max-width: 720px; margin: 18px 0 0; color: var(--review-muted); line-height: 1.9; }
+.hero h1 { max-width: 22ch; font-size: clamp(1.85rem, 3.3vw, 2.55rem); }
+.hero > p:not(.eyebrow) { max-width: 64ch; margin: 18px 0 0; color: var(--review-muted); font-size: 0.96rem; line-height: 1.85; }
 .eyebrow { margin: 0 0 12px; color: #755a16; font: 800 0.72rem/1.4 Georgia, serif; letter-spacing: 0.2em; }
 
 .primaryCta,
@@ -59,8 +59,8 @@
 .filterSection,
 .shopDiscovery {
   display: grid;
-  grid-template-columns: minmax(220px, 0.36fr) minmax(0, 1fr);
-  gap: clamp(28px, 6vw, 72px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
   padding: clamp(48px, 7vw, 76px) 0;
   border-bottom: 1px solid var(--review-line);
 }
@@ -68,13 +68,14 @@
 .filterSection h2,
 .sectionHeading h2,
 .shopDiscovery h2,
-.editorialSection h2 { font-size: clamp(1.65rem, 3vw, 2.35rem); }
-.filterSection p:not(.eyebrow), .sectionHeading p, .shopDiscovery p { color: var(--review-muted); line-height: 1.8; }
+.editorialSection h2 { font-size: clamp(1.35rem, 2vw, 1.7rem); }
+.filterSection p:not(.eyebrow), .sectionHeading p, .shopDiscovery p { max-width: 66ch; color: var(--review-muted); font-size: 0.95rem; line-height: 1.8; }
 
 .filterForm {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(180px, 0.5fr) auto;
   gap: 12px;
+  max-width: 820px;
   align-items: end;
 }
 
@@ -88,7 +89,7 @@
 .sectionHeading { display: flex; justify-content: space-between; gap: 32px; align-items: end; margin-bottom: 28px; }
 .sectionHeading > span, .sectionHeading > a { color: var(--review-teal); font: 700 0.85rem/1.5 "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
 
-.reviewGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.reviewGrid { display: grid; max-width: 820px; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .reviewCard { display: flex; min-width: 0; flex-direction: column; padding: 24px; border: 1px solid var(--review-line); background: #fff; }
 .reviewCardCompact { padding: 20px; }
 .reviewCardHeader { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; color: var(--review-muted); font: 700 0.74rem/1.5 "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
@@ -126,4 +127,6 @@
   .reviewGrid, .editorialGrid { grid-template-columns: 1fr; }
   .sectionHeading { display: grid; gap: 12px; align-items: start; }
   .reviewCard { padding: 20px; }
+  .hero h1 { font-size: clamp(1.65rem, 7vw, 2rem); }
+  .filterSection h2, .sectionHeading h2, .shopDiscovery h2, .editorialSection h2 { font-size: 1.35rem; }
 }
