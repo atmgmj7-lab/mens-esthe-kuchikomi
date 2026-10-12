@@ -68,7 +68,7 @@
 }
 
 .title {
-  --shop-title-size: 34px;
+  --shop-title-size: 30px;
   min-width: 0;
   max-width: 100%;
   margin: 0;
@@ -345,9 +345,17 @@
   overflow-wrap: anywhere;
 }
 
+.sectionHeading h1 {
+  max-width: 12ch;
+  margin: 0;
+  font: 500 1.65rem / 1.35 Georgia, "Yu Mincho", serif;
+  overflow-wrap: anywhere;
+}
+
 .informationDashboard {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 720px;
   gap: 18px;
   min-width: 0;
 }
@@ -614,7 +622,7 @@
 
 .reviews {
   width: 100%;
-  max-width: 960px;
+  max-width: 760px;
   min-width: 0;
 }
 
@@ -843,7 +851,7 @@
 
 .relatedLinks {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0 24px;
   border-top: 1px solid var(--line);
 }
@@ -912,7 +920,7 @@
 
 @media (max-width: 1024px) {
   .title {
-    --shop-title-size: 30px;
+    --shop-title-size: 28px;
   }
 
   .detailGrid {
@@ -1056,6 +1064,11 @@
 
   .sectionHeading h2 {
     font-size: 20px;
+  }
+
+  .sectionHeading h1 {
+    max-width: none;
+    font-size: 1.35rem;
   }
 
   .reviewGraph {

@@ -53,7 +53,7 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
 
   if (campaignMismatch) {
     return (
-      <main id="main_content" className="l-mainContent l-article">
+      <main id="main_content" className="l-mainContent l-article hl-review-submit-page">
         <div className="l-mainContent__inner hl-page-inner">
           <section className="hl-contact-section">
             <h1 className="hl-contact-heading">口コミを投稿する</h1>
@@ -71,7 +71,7 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
     );
     if (!recorded || recorded.id !== campaignShop.id) {
       return (
-        <main id="main_content" className="l-mainContent l-article">
+        <main id="main_content" className="l-mainContent l-article hl-review-submit-page">
           <div className="l-mainContent__inner hl-page-inner">
             <section className="hl-contact-section">
               <h1 className="hl-contact-heading">口コミを投稿する</h1>
@@ -93,7 +93,7 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
       ? allShops.flatMap((shop) => shop.terms).find((term) => term.slug === areaContext)?.name ?? null
       : null;
     return (
-      <main id="main_content" className="l-mainContent l-article">
+      <main id="main_content" className="l-mainContent l-article hl-review-submit-page">
         <div className="l-mainContent__inner hl-page-inner">
           <section className="hl-contact-section">
             <h1 className="hl-contact-heading">口コミを投稿する</h1>
@@ -121,7 +121,7 @@ async function ReviewSubmitPageContent({ searchParams }: Props) {
   }
 
   return (
-    <main id="main_content" className="l-mainContent l-article">
+    <main id="main_content" className="l-mainContent l-article hl-review-submit-page">
       <div className="l-mainContent__inner hl-page-inner">
         <section className="hl-contact-section" aria-labelledby="review-submit-heading">
           <h1 id="review-submit-heading" className="hl-contact-heading">
