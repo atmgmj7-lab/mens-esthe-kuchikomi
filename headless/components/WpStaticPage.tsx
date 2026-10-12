@@ -1,5 +1,6 @@
 import { ContactForm } from "@/components/ContactForm";
 import { ShopOwnerRequestForm } from "@/components/ShopOwnerRequestForm";
+import { StoreListingGuide } from "@/components/StoreListingGuide";
 import type { ShopOwnerRequestInitial } from "@/lib/shop-owner-request-links";
 import { getStaticPageFallback, getStaticPageMeta, type StaticPageSlug } from "@/lib/static-pages";
 import type { PageView } from "@/lib/wp/pages";
@@ -24,6 +25,12 @@ export function WpStaticPage({ slug, page, ownerRequestInitial }: WpStaticPagePr
   const contentHtml = page?.contentHtml?.trim()
     ? page.contentHtml
     : getStaticPageFallback(slug);
+  const hasOwnerRequestTarget = Boolean(
+    ownerRequestInitial?.shopId
+    && ownerRequestInitial.shopSlug
+    && ownerRequestInitial.shopName
+    && ownerRequestInitial.targetUrl,
+  );
 
   return (
     <main className="l-mainContent hl-static-page" id="main_content">
@@ -39,19 +46,18 @@ export function WpStaticPage({ slug, page, ownerRequestInitial }: WpStaticPagePr
               <ContactForm />
             </section>
           ) : null}
-          {slug === "storelisting" ? (
+          {slug === "storelisting" ? <StoreListingGuide /> : null}
+          {slug === "storelisting" && hasOwnerRequestTarget ? (
             <section
               id="shop-owner-request"
               className="hl-contact-section hl-owner-request-section"
               aria-labelledby="shop-owner-request-heading"
             >
-              <p className="hl-static-page-kicker">FOR SHOP OWNER</p>
+              <p className="hl-static-page-kicker">EXISTING LISTING</p>
               <h2 id="shop-owner-request-heading" className="hl-contact-heading">
                 掲載情報の登録・修正申請
               </h2>
-              <p className="hl-owner-request-intro">
-                申請内容は運営確認前に公開されません。現在の公開情報はWordPressのまま維持されます。
-              </p>
+              <p className="hl-owner-request-intro">対象店舗を確認しました。申請内容は運営確認前に公開されず、現在の公開情報はWordPressのまま維持されます。</p>
               <ShopOwnerRequestForm initial={ownerRequestInitial ?? EMPTY_OWNER_REQUEST_INITIAL} />
             </section>
           ) : null}

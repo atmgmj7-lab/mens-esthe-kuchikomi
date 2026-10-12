@@ -100,9 +100,9 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
           <li>現在公開中の情報は、確認が終わるまで変更されません。</li>
         </ul>
         <h2>登録・修正を申請する</h2>
-        <p>店舗詳細ページから進むと、対象店舗が事前入力された状態で確認できます。</p>
+        <p>新規掲載、掲載中情報の修正、招待済み担当者のログインは、下の案内から該当する窓口を選んでください。</p>
         <p class="hl-static-page-cta">
-          <a href="#shop-owner-request" class="hl-static-page-btn">申請フォームへ進む</a>
+          <a href="#listing-actions" class="hl-static-page-btn">窓口を選ぶ</a>
         </p>
       `;
     case "osaka-nihonbashi":

@@ -13,6 +13,7 @@ const shopSlugSource = read("lib/shop-slug.ts");
 const validationSource = read("lib/shop-owner-request-validation.ts");
 const form = read("components/ShopOwnerRequestForm.tsx");
 const staticPage = read("components/WpStaticPage.tsx");
+const listingGuide = read("components/StoreListingGuide.tsx");
 const route = read("app/[slug]/page.tsx");
 const css = read("app/globals.css");
 
@@ -299,13 +300,18 @@ assert.match(
 );
 
 assert.match(staticPage, /slug === "storelisting"/);
-assert.doesNotMatch(staticPage, /slug === "storelisting" && ownerRequestInitial/);
+assert.match(staticPage, /hasOwnerRequestTarget/);
 assert.match(staticPage, /ShopOwnerRequestForm/);
 assert.match(
   staticPage,
-  /slug === "storelisting"[\s\S]*<section[\s\S]*id="shop-owner-request"[\s\S]*className="hl-contact-section hl-owner-request-section"/,
-  "storelisting owner section must always own the anchor, including the empty state",
+  /slug === "storelisting" && hasOwnerRequestTarget[\s\S]*<section[\s\S]*id="shop-owner-request"[\s\S]*className="hl-contact-section hl-owner-request-section"/,
+  "owner form must render only after a canonical target is confirmed",
 );
+assert.match(staticPage, /slug === "storelisting" \? <StoreListingGuide \/> : null/);
+assert.match(listingGuide, /href="\/contact\/#contact-form-heading"/);
+assert.match(listingGuide, /href="\/shops\/"/);
+assert.match(listingGuide, /href="\/partner\/login\/"/);
+assert.doesNotMatch(listingGuide, /<form/);
 assert.match(route, /searchParams/);
 assert.match(route, /ownerRequestInitial=\{parseShopOwnerRequestInitial\(query\)\}/);
 assert.match(route, /import \{ Suspense \} from "react"/);

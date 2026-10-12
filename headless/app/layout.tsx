@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import "@fontsource/shippori-mincho/400.css";
+import "@fontsource/shippori-mincho/500.css";
+import "@fontsource/shippori-mincho/600.css";
+import "@fontsource/shippori-mincho/700.css";
+import "@fontsource-variable/playfair-display/wght.css";
 import "./globals.css";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { SiteFooter } from "@/components/SiteFooter";

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="728" height="90" viewBox="0 0 728 90" role="img" aria-labelledby="title desc">
+  <title id="title">Eskomi（エスコミ）</title><desc id="desc">関西メンズエステの店舗情報と口コミ</desc>
+  <defs><linearGradient id="bg" x1="0" x2="1"><stop stop-color="#143d4d"/><stop offset="1" stop-color="#1d5968"/></linearGradient></defs>
+  <rect width="728" height="90" rx="8" fill="url(#bg)"/><path d="M50 16c17 0 29 12 29 29S67 74 50 74 21 62 21 45 33 16 50 16Z" fill="none" stroke="#d4af37" stroke-width="2"/><path d="M37 45h26M50 32v26" stroke="#d4af37" stroke-width="2"/>
+  <text x="98" y="39" fill="#fff" font-family="Georgia, serif" font-size="25" font-weight="700">Eskomi</text><text x="98" y="64" fill="#dce9ec" font-family="sans-serif" font-size="15">関西メンズエステの店舗情報・口コミ</text>
+  <rect x="560" y="27" width="134" height="36" rx="18" fill="#d4af37"/><text x="627" y="51" fill="#143d4d" font-family="sans-serif" font-size="14" font-weight="700" text-anchor="middle">掲載について</text>
+</svg>
