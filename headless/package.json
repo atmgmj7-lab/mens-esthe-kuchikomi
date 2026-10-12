@@ -65,6 +65,7 @@
     "test:partner-review-widget-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_review_widget.sql",
     "test:low-friction-review-flow": "node scripts/check-low-friction-review-flow.mjs",
     "test:ai-review-assist": "node scripts/check-ai-review-assist.mjs",
+    "test:automatic-review-draft": "node scripts/check-automatic-review-draft.mjs",
     "test:partner-review-growth": "node scripts/check-partner-review-growth.mjs",
     "test:partner-review-growth-local-supabase": "node scripts/check-partner-review-growth.mjs --local-supabase",
     "test:review-native-db-contract": "node scripts/check-review-native-db-contract.mjs",

@@ -6848,6 +6848,66 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
   color: #85342f;
 }
 
+.hl-review-form__automatic-draft {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 16px;
+  border: 1px solid rgba(17, 59, 82, .2);
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.hl-review-form__automatic-draft h2 {
+  margin: 0;
+  color: var(--mep-navy);
+  font-size: .98rem;
+  font-weight: 700;
+}
+
+.hl-review-form__automatic-draft > p {
+  margin: 0;
+  color: var(--hl-text-muted, #666);
+  font-size: .85rem;
+  line-height: 1.65;
+}
+
+.hl-review-form__automatic-draft-button {
+  min-height: 46px;
+  background: #fff;
+  color: var(--mep-navy);
+}
+
+.hl-review-form__automatic-draft-button:hover {
+  background: #eef6f8;
+}
+
+.hl-review-form__automatic-draft-feedback {
+  padding: 9px 10px;
+  border-left: 3px solid var(--mep-navy);
+  background: #fff;
+}
+
+.hl-review-form__automatic-draft-proposal {
+  margin-top: 4px;
+}
+
+.hl-review-form__automatic-draft-confirmation {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border-left: 3px solid var(--mep-navy);
+  background: #f4f8fa;
+}
+
+.hl-review-form__automatic-draft-confirmation p {
+  margin: 0;
+  color: var(--mep-navy);
+  font-size: .88rem;
+  line-height: 1.65;
+}
+
 .hl-review-form__ai-proposal {
   margin-top: -4px;
   padding: 16px;
