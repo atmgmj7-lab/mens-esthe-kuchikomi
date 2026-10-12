@@ -45,7 +45,7 @@ check("desktop profile layout", () => {
   );
 });
 check("desktop title scale", () => {
-  assert.match(cssSource, /\.title\s*\{[\s\S]*--shop-title-size:\s*34px/);
+  assert.match(cssSource, /\.title\s*\{[\s\S]*--shop-title-size:\s*30px/);
 });
 check("mobile CTA handoff", () => {
   assert.match(

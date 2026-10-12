@@ -58,14 +58,15 @@
   --es-heading-color: #26333b;
   --es-heading-muted: #687982;
   --es-heading-rule: linear-gradient(90deg, #b08d3e 0%, #d9bf73 52%, rgba(176, 141, 62, 0) 100%);
-  --es-h1-size: 3.1rem;
-  --es-h2-size: 2.05rem;
-  --es-h3-size: 1.38rem;
-  --es-h4-size: 1.18rem;
+  /* Keep page hierarchy clear without letting every route inherit a display-sized heading. */
+  --es-h1-size: clamp(2rem, 2.6vw, 2.5rem);
+  --es-h2-size: clamp(1.35rem, 1.8vw, 1.65rem);
+  --es-h3-size: 1.22rem;
+  --es-h4-size: 1.06rem;
   --es-h5-size: 0.96rem;
   --es-h6-size: 0.86rem;
   --es-heading-line: 1.32;
-  --es-body-size: 0.96rem;
+  --es-body-size: 0.94rem;
   --es-body-small-size: 0.86rem;
   --es-note-size: 0.78rem;
   --es-tag-size: 0.76rem;
@@ -4130,7 +4131,7 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 
 .area-hub-secondary-shop-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -4207,7 +4208,6 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 
 @media (min-width: 768px) {
   .area-hub-hero__stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .area-hub-guide-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .price-label {
@@ -9651,7 +9651,7 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 }
 
 .escomi-updated-grid-v2 {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .escomi-updated-grid-v2 .escomi-home-empty-state-v2 {
@@ -9705,9 +9705,13 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
 
 .escomi-home-trust-v2__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(32px, 6vw, 76px);
   align-items: start;
+}
+
+.escomi-home-trust-v2__grid > * {
+  max-width: 880px;
 }
 
 .escomi-source-list-v2 {
@@ -9828,10 +9832,13 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
   }
 
   .escomi-prefecture-grid-v2,
-  .escomi-featured-grid-v2,
+  .escomi-featured-grid-v2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .escomi-condition-grid-v2,
   .escomi-updated-grid-v2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .escomi-featured-card-v2--large,
@@ -10362,10 +10369,10 @@ body .mep-area-section h2.mep-section-title::after {
 
 @media (max-width: 700px) {
   :root {
-    --es-h1-size: 2.2rem;
-    --es-h2-size: 1.55rem;
-    --es-h3-size: 1.18rem;
-    --es-h4-size: 1.05rem;
+    --es-h1-size: 1.95rem;
+    --es-h2-size: 1.4rem;
+    --es-h3-size: 1.12rem;
+    --es-h4-size: 1rem;
     --es-body-size: 0.92rem;
     --es-body-small-size: 0.82rem;
     --es-note-size: 0.72rem;
@@ -10696,7 +10703,7 @@ body .mep-area-section h2.mep-section-title::after {
 .area-hub-priority-links__grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
 }
 
 .area-hub-priority-links__card {
@@ -11319,7 +11326,7 @@ body .mep-area-section h2.mep-section-title::after {
 
 .escomi-home-reviews-v2__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -11340,7 +11347,7 @@ body .mep-area-section h2.mep-section-title::after {
 
 .escomi-priority-areas__grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: 1px solid #d9dfdc;
   border-bottom: 1px solid #d9dfdc;
 }
@@ -11357,6 +11364,10 @@ body .mep-area-section h2.mep-section-title::after {
 }
 
 .escomi-priority-areas__grid a:last-child {
+  border-right: 0;
+}
+
+.escomi-priority-areas__grid a:nth-child(4n) {
   border-right: 0;
 }
 
@@ -11404,6 +11415,15 @@ body .mep-area-section h2.mep-section-title::after {
 @media (max-width: 900px) {
   .escomi-home-start-v2__grid,
   .escomi-priority-areas__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .escomi-home-reviews-v2__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .escomi-condition-grid-v2,
+  .escomi-updated-grid-v2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
