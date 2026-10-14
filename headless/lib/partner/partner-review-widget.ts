@@ -53,7 +53,9 @@ export function buildPartnerWidgetIframeSnippet(input: Readonly<{ shopName: stri
   if (!UUID_RE.test(token)
     || !isSafeUrl(input.widgetUrl, `/partner/widget/${token.toLowerCase()}/`)
     || input.shopName.trim().length === 0 || input.shopName.length > 120 || /[<>&"]/u.test(input.shopName)) return null;
-  return `<iframe src="${input.widgetUrl}" title="${input.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:280px;"></iframe>`;
+  // A phone-sized embed can contain three excerpt cards and two separate CTAs.
+  // Keep enough height for the final CTA instead of cropping the iframe content.
+  return `<iframe src="${input.widgetUrl}" title="${input.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe>`;
 }
 
 export function resolvePublicPartnerWidget(source: PublicPartnerWidgetSource): PublicPartnerWidget {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import React from "react";
 import * as jsxRuntime from "react/jsx-runtime";
@@ -12,6 +12,8 @@ import { chromium } from "@playwright/test";
 
 const headlessRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(headlessRoot, "..");
+// Keep retries isolated from the local rate-limit window of a previous E2E run.
+const fixtureIpSeed = 20 + (Date.now() % 200);
 const supabaseWorkdir = process.env.E2E_SUPABASE_WORKDIR
   ? resolve(process.env.E2E_SUPABASE_WORKDIR)
   : repositoryRoot;
@@ -277,9 +279,11 @@ where k.key_hash = '${keyHash}';
 function reviewInput(index, rating, campaignToken = null) {
   return {
     idempotencyKey: randomUUID(),
-    body: `Synthetic isolated Review ${index} validates the complete native workflow without Production data.`,
+    body: index === 1
+      ? `${"Synthetic isolated long-form Review validates only the local native workflow. ".repeat(5)}No Production data is used.`
+      : `Synthetic isolated Review ${index} validates the complete native workflow without Production data.`,
     rating,
-    ip: `198.51.100.${20 + index}`,
+    ip: `198.51.100.${fixtureIpSeed + index}`,
     campaignToken,
   };
 }
@@ -374,7 +378,7 @@ assert.deepEqual(pendingWidget, {
   shopName: shopA.title,
   reviewSummary: { kind: "count_only", count: 0 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${campaignA}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/" title="${shopA.title}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/" title="${shopA.title}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe>`,
 });
 
 const queue = await repository.listModerationQueue({ limit: 20, offset: 0 });
@@ -541,20 +545,30 @@ const widgetPage = await widgetPageModule.default({ params: Promise.resolve({ to
 const widgetHtml = renderToStaticMarkup(widgetPage);
 assert.match(widgetHtml, new RegExp(`href="https://mens-esthe-kuchikomi\\.com/r/${campaignA}/"`));
 assert.match(widgetHtml, /評価 3\.3 \/ 5（3件）/);
+assert.match(widgetHtml, /Synthetic isolated long-form Review/);
+assert.match(widgetHtml, /…/);
+assert.match(widgetHtml, /評価 1 \/ 5/);
+assert.equal((widgetHtml.match(/出典：Eskomi/g) ?? []).length, 3);
 assert.doesNotMatch(widgetHtml, /Synthetic E2E Reviewer|private\.partner|service_role/i);
+assert.doesNotMatch(widgetHtml, new RegExp(shopB.title));
 
 const style = read("components/shop-detail/ShopDetail.module.css");
-const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto">${dashboard}${widgetHtml}</main></body></html>`;
-const server = createServer((_request, response) => {
+const widgetStyle = read("app/globals.css");
+const iframeTitle = `${shopA.title}のEskomi口コミ`;
+const widgetFrameHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${widgetStyle}</style></head><body>${widgetHtml}</body></html>`;
+const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto"><section aria-label="sample store website"><h1>Sample store website</h1><iframe src="/widget" title="${iframeTitle}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe></section>${dashboard}</main></body></html>`;
+const server = createServer((request, response) => {
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-  response.end(pageHtml);
+  response.end(request.url === "/widget" ? widgetFrameHtml : pageHtml);
 });
 await new Promise((resolveServer) => server.listen(0, "127.0.0.1", resolveServer));
 const address = server.address();
 assert.ok(address && typeof address !== "string");
 const browser = await chromium.launch({ headless: true });
 try {
-  for (const width of [390, 1280]) {
+  const screenshotDir = process.env.REVIEW_NATIVE_E2E_QA_SCREENSHOT_DIR;
+  if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
+  for (const width of [320, 390, 768, 1280]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     const consoleErrors = [];
     const pageErrors = [];
@@ -563,16 +577,35 @@ try {
     const response = await page.goto(`http://127.0.0.1:${address.port}/`, { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200);
     await page.locator('[aria-label="承認済み口コミの評価グラフ"]').waitFor({ state: "visible" });
-    await page.locator(`[aria-label="${shopA.title}のEskomi口コミ"]`).waitFor({ state: "visible" });
-    await page.getByRole("link", { name: "Eskomiで口コミを投稿" }).waitFor({ state: "visible" });
+    const iframe = page.locator(`iframe[title="${iframeTitle}"]`);
+    await iframe.waitFor({ state: "visible" });
+    const frame = page.frameLocator(`iframe[title="${iframeTitle}"]`);
+    await frame.getByRole("link", { name: "Eskomiで口コミをもっと見る" }).waitFor({ state: "visible" });
+    await frame.getByRole("link", { name: "口コミを書く" }).waitFor({ state: "visible" });
     assert.equal(await page.getByText("承認済み口コミ", { exact: false }).count() >= 1, true);
     const geometry = await page.evaluate(() => ({
       body: document.body.scrollWidth,
       viewport: document.documentElement.clientWidth,
     }));
     assert.ok(geometry.body <= geometry.viewport + 1, `${width}px UI must not overflow`);
+    const iframeGeometry = await frame.locator("body").evaluate(() => ({
+      body: document.body.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }));
+    assert.ok(iframeGeometry.body <= iframeGeometry.viewport + 1, `${width}px iframe must not overflow`);
+    const iframeBox = await iframe.boundingBox();
+    const readMoreBox = await frame.getByRole("link", { name: "Eskomiで口コミをもっと見る" }).boundingBox();
+    const writeBox = await frame.getByRole("link", { name: "口コミを書く" }).boundingBox();
+    assert.ok(iframeBox && readMoreBox && writeBox, `${width}px widget CTAs must have visible bounds`);
+    assert.ok(iframeBox.height >= 1200, `${width}px iframe must reserve space for its lower CTA`);
+    assert.ok(readMoreBox.y + readMoreBox.height <= iframeBox.height + 1, `${width}px read-more CTA must be reachable`);
+    assert.ok(writeBox.y + writeBox.height <= iframeBox.height + 1, `${width}px write CTA must be reachable`);
+    const overlaps = readMoreBox.x < writeBox.x + writeBox.width && writeBox.x < readMoreBox.x + readMoreBox.width
+      && readMoreBox.y < writeBox.y + writeBox.height && writeBox.y < readMoreBox.y + readMoreBox.height;
+    assert.equal(overlaps, false, `${width}px widget CTAs must not overlap`);
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(pageErrors, []);
+    if (screenshotDir) await iframe.screenshot({ path: join(screenshotDir, `partner-widget-iframe-${width}.png`) });
     await page.close();
   }
 } finally {
@@ -601,6 +634,6 @@ console.log(JSON.stringify({
   belowThreeGraph: false,
   atLeastThreeGraph: true,
   aggregateRating: schema.aggregateRating,
-  viewports: [390, 1280],
+  viewports: [320, 390, 768, 1280],
   productionWrite: 0,
 }, null, 2));

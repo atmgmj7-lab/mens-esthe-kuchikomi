@@ -155,7 +155,7 @@ try {
   await widgetCode.evaluate((node) => {
     const value = node.textContent ?? "";
     if (!value.includes('title="Partner Shop AのEskomi口コミ"')) throw new Error("widget snippet must name the authorized shop");
-    if (!value.includes('style="width:100%;max-width:100%;border:0;min-height:280px;"')) throw new Error("widget snippet must be responsive without site-global JS");
+    if (!value.includes('style="width:100%;max-width:100%;border:0;min-height:1200px;"')) throw new Error("widget snippet must reserve room for the lower CTA without site-global JS");
   });
   await partnerA.getByRole("button", { name: "設置用コードをコピー" }).click();
   await partnerA.getByText("設置用コードをコピーしました。").waitFor({ state: "visible" });
