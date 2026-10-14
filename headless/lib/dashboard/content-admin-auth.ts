@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHmac } from "node:crypto";
+
 import { secretsMatch } from "@/lib/server/secure-secret";
 
 const LEGACY_DASHBOARD_PREFIX = "/wp-content/themes/swell_child/dashboard";
@@ -139,4 +141,29 @@ export function authorizeDashboardRequest(
     ...result,
     status: result.reason === "missing-configuration" ? 503 : 401,
   };
+}
+
+const SESSION_COOKIE = "eskomi_dashboard_session";
+const SESSION_TTL_SECONDS = 30 * 60;
+
+function sessionSignature(credentials: AuthCredentials, expiresAt: number): string {
+  return createHmac("sha256", `${credentials.user}\n${credentials.password}`).update(String(expiresAt)).digest("hex");
+}
+
+export function dashboardSessionCookieName(): string { return SESSION_COOKIE; }
+
+export function createDashboardSessionValue(environment: AuthEnvironment, now = Date.now()): string | null {
+  const credentials = resolveConfiguredCredentials(environment); if (!credentials) return null;
+  const expiresAt = Math.floor(now / 1000) + SESSION_TTL_SECONDS;
+  return `${expiresAt}.${sessionSignature(credentials, expiresAt)}`;
+}
+
+export function authorizeListingDashboardRequest(authorization: string | null, cookieValue: string | undefined, environment: AuthEnvironment): DashboardAuthorization {
+  const basic = authorizeDashboardRequest(authorization, environment); if (basic.ok) return basic;
+  const credentials = resolveConfiguredCredentials(environment); if (!credentials || !cookieValue) return basic;
+  const [expiresRaw, signature] = cookieValue.split("."); const expiresAt = Number(expiresRaw);
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000) || !signature) return basic;
+  return secretsMatch(signature, sessionSignature(credentials, expiresAt))
+    ? { ok: true, status: 200, reason: "authorized" }
+    : basic;
 }

@@ -12,16 +12,18 @@ export async function POST(request: NextRequest) {
   const response = await fetch(`${base}/rest/v1/rpc/submit_listing_application`, { method: "POST", headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "api" }), body: JSON.stringify({ p_payload: payload }), cache: "no-store" });
   const applicationId = response.ok ? await response.json() as unknown : null;
   if (typeof applicationId !== "string" || !/^[0-9a-f-]{36}$/i.test(applicationId)) {
+    console.error("listing application submit RPC failed", { status: response.status });
     return NextResponse.json({ ok: false, message: "現在申請を受け付けできません。" }, { status: 503 });
   }
   const capability = createListingApplicationUploadCapability();
   const capabilityResponse = await fetch(`${base}/rest/v1/rpc/issue_listing_application_upload_token`, {
     method: "POST",
-    headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "private" }),
+    headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "api" }),
     body: JSON.stringify({ p_application_id: applicationId, p_token_hash: capability.tokenHash, p_object_id: capability.objectId, p_expires_at: capability.expiresAt }),
     cache: "no-store",
   });
   if (!capabilityResponse.ok) {
+    console.error("listing application upload capability RPC failed", { status: capabilityResponse.status });
     return NextResponse.json({ ok: false, message: "現在申請を受け付けできません。" }, { status: 503 });
   }
   return NextResponse.json({ ok: true, applicationId, uploadToken: capability.token, message: "申請を受け付けました。公開前に運営が確認します。" });

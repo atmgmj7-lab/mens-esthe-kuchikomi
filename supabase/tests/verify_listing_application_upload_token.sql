@@ -5,6 +5,9 @@ begin
   a := private.submit_listing_application(jsonb_build_object('idempotency_key','11111111-1111-4111-8111-111111111111','kind','new_listing','shop_name','画像付き新規店舗','area','大阪市中央区','website_url','https://example.test/first','contact_name','非公開担当者','contact_email','private@example.test','contact_role','owner','edit_preference','operator','consent_privacy',true,'consent_accuracy',true,'consent_image_rights',true));
   if private.submit_listing_application(jsonb_build_object('idempotency_key','11111111-1111-4111-8111-111111111111','kind','new_listing','shop_name','画像付き新規店舗','area','大阪市中央区','website_url','https://example.test/first','contact_name','非公開担当者','contact_email','private@example.test','contact_role','owner','edit_preference','operator','consent_privacy',true,'consent_accuracy',true,'consent_image_rights',true)) <> a then raise exception 'idempotent submit changed application id'; end if;
   b := private.submit_listing_application(jsonb_build_object('idempotency_key','22222222-2222-4222-8222-222222222222','kind','new_listing','shop_name','別の店舗','area','大阪市北区','website_url','https://example.test/second','contact_name','別の担当者','contact_email','other@example.test','contact_role','manager','edit_preference','shop','consent_privacy',true,'consent_accuracy',true,'consent_image_rights',true));
+  perform private.issue_listing_application_upload_token(b, repeat('d',64), gen_random_uuid(), now() + interval '10 minutes');
+  perform private.reserve_listing_application_upload(b, repeat('d',64), 'image/png');
+  begin perform private.reserve_listing_application_upload(b,repeat('d',64),'image/png'); raise exception 'concurrent token reservation unexpectedly accepted'; exception when insufficient_privilege then null; end;
   perform private.issue_listing_application_upload_token(a, repeat('a',64), gen_random_uuid(), now() + interval '10 minutes');
   key := private.reserve_listing_application_upload(a, repeat('a',64), 'image/png');
   if key !~ ('^listing-applications/' || a::text || '/[0-9a-f-]+[.]png$') then raise exception 'bad reserved key'; end if;
@@ -25,4 +28,7 @@ begin
 end $$;
 select 1 / case when not has_table_privilege('anon','private.listing_application_upload_tokens','select') then 1 else 0 end;
 select 1 / case when not has_function_privilege('anon','api.attach_listing_application_asset(uuid,text,text,text,text,integer,integer,integer)','execute') then 1 else 0 end;
+select 1 / case when not has_function_privilege('anon','api.issue_listing_application_upload_token(uuid,text,uuid,timestamptz)','execute') then 1 else 0 end;
+select 1 / case when not has_function_privilege('anon','api.reserve_listing_application_upload(uuid,text,text)','execute') then 1 else 0 end;
+select 1 / case when not has_function_privilege('anon','api.get_listing_application_operator_detail(uuid)','execute') then 1 else 0 end;
 rollback;
