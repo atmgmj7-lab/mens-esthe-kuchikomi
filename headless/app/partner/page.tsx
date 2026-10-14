@@ -53,7 +53,7 @@ export default async function PartnerDashboardPage() {
               <h1>{home.context.shopName}</h1>
               <p className="hl-partner-home__status">招待済みの店舗担当者向け</p>
             </div>
-            <div><a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a><a className="hl-partner-home__text-link" href={listingRequestHref}>掲載情報の修正を申請</a><a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></div>
+            <div><a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a><a className="hl-partner-home__text-link" href="/partner/listing/">掲載情報を本人編集</a><a className="hl-partner-home__text-link" href={listingRequestHref}>掲載情報の修正を申請</a><a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></div>
           </div>
         </header>
 

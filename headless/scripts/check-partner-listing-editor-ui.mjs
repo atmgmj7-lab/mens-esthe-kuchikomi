@@ -1,0 +1,23 @@
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.cwd();
+const api = join(root, "app/api/partner/listing/route.ts");
+const page = join(root, "app/partner/listing/page.tsx");
+const editor = join(root, "components/partner/PartnerListingEditor.tsx");
+for (const path of [api, page, editor]) assert.ok(existsSync(path), `missing Partner listing editor file: ${path}`);
+const apiSource = readFileSync(api, "utf8");
+const pageSource = readFileSync(page, "utf8");
+const editorSource = readFileSync(editor, "utf8");
+assert.match(apiSource, /authorizePartnerSession/);
+assert.match(apiSource, /get_partner_listing_editor/);
+assert.match(apiSource, /save_partner_listing_draft/);
+assert.match(apiSource, /submit_partner_listing_change/);
+assert.doesNotMatch(apiSource, /requestedWorkspaceId:\s*body/);
+assert.match(pageSource, /PartnerListingEditor/);
+assert.match(editorSource, /差し戻し理由/);
+assert.match(editorSource, /下書きを保存/);
+assert.match(editorSource, /変更を申請する/);
+assert.match(editorSource, /credentials:\s*["']include/);
+console.log("partner listing editor UI contract: PASS");
