@@ -41,14 +41,14 @@ export function StoreListingGuide() {
 
       <section className="hl-listing-guide__banner" aria-labelledby="listing-banner-heading">
         <div>
-          <p className="hl-static-page-kicker">OPTIONAL LINK BANNER</p>
-          <h3 id="listing-banner-heading">相互リンク用バナー</h3>
-          <p>相互リンクは任意です。掲載順位や審査結果には影響しません。ご自身で管理するページにだけ設置してください。</p>
+          <p className="hl-static-page-kicker">FREE LISTING BANNER</p>
+          <h3 id="listing-banner-heading">無料掲載のご案内バナー</h3>
+          <p>店舗サイトやSNSで使える任意のご案内です。バナー設置や相互リンクは、掲載順位・審査結果に影響しません。</p>
         </div>
         {reciprocalBanners.length === 0 ? (
           <div className="hl-listing-guide__banner-pending" role="status">
-            <p><strong>準備中です。</strong> 正式な相互リンク用バナー画像の受領・確認後、この欄でプレビュー、ダウンロード、店舗サイトへの貼り付け用コードをご案内します。</p>
-            <dl><div><dt>プレビュー</dt><dd>画像を準備中です</dd></div><div><dt>ダウンロード</dt><dd>配布できる画像はまだありません</dd></div><div><dt>貼り付け用コード</dt><dd>画像の公開後に表示します</dd></div></dl>
+            <p><strong>正式な200×80バナー画像を準備中です。</strong> 画像の受領・確認後、この欄でプレビューとダウンロードをご案内します。画像がない間は誤ったファイルを配布しません。</p>
+            <dl><div><dt>用途</dt><dd>無料掲載のご案内</dd></div><div><dt>ダウンロード</dt><dd>正式画像の公開後に有効化します</dd></div><div><dt>設置</dt><dd>任意です。相互リンクは必須ではありません</dd></div></dl>
           </div>
         ) : <>
           <ul className="hl-listing-guide__banner-list">
