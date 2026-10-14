@@ -140,7 +140,7 @@ try {
   assert.equal(response?.headers()["cache-control"], "private, no-store", "Partner Growth Kit must remain no-store");
   assert.equal(response?.headers()["x-robots-tag"], "noindex, nofollow", "Partner Growth Kit must remain noindex");
   await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`).waitFor({ state: "visible" });
-  const qr = partnerA.getByRole("img", { name: "口コミURLのQRコード" });
+  const qr = partnerA.getByRole("img", { name: "口コミ投稿リンクのQRコード" });
   await qr.waitFor({ state: "visible" });
   assert.match(await qr.getAttribute("src") ?? "", /^data:image\/(png|svg\+xml);/i, "the QR must be a local server-derived image asset, not an external tracker");
   await partnerA.getByRole("button", { name: "LINE案内文をコピー" }).click();
@@ -155,7 +155,7 @@ try {
   await widgetCode.evaluate((node) => {
     const value = node.textContent ?? "";
     if (!value.includes('title="Partner Shop AのEskomi口コミ"')) throw new Error("widget snippet must name the authorized shop");
-    if (!value.includes('style="width:100%;max-width:100%;border:0;min-height:180px;"')) throw new Error("widget snippet must be responsive without site-global JS");
+    if (!value.includes('style="width:100%;max-width:100%;border:0;min-height:280px;"')) throw new Error("widget snippet must be responsive without site-global JS");
   });
   await partnerA.getByRole("button", { name: "設置用コードをコピー" }).click();
   await partnerA.getByText("設置用コードをコピーしました。").waitFor({ state: "visible" });
@@ -174,26 +174,31 @@ try {
   await partnerA.getByRole("heading", { name: "口コミを集める" }).waitFor({ state: "visible" });
   await partnerA.getByRole("heading", { name: "配布するものを選ぶ" }).waitFor({ state: "visible" });
   await partnerA.getByText("評価の指定、特典や報酬による依頼、良い口コミだけを求める案内は行いません。").waitFor({ state: "visible" });
-  const reviewBanner = partnerA.getByRole("link", { name: "Partner Shop Aの口コミを投稿する" });
-  await reviewBanner.waitFor({ state: "visible" });
-  assert.equal(await reviewBanner.getAttribute("href"), `https://mens-esthe-kuchikomi.com/r/${tokenQr}/`, "the review banner must use the authorized shop's canonical review URL");
-  await reviewBanner.getByRole("img", { name: "Partner Shop Aの口コミを投稿する" }).waitFor({ state: "visible" });
-  if (screenshotDir) await partnerA.screenshot({ path: `${screenshotDir}/partner-growth-review-banner-390.png`, fullPage: true });
-  await partnerA.getByRole("button", { name: "口コミURLをコピー" }).click();
-  await partnerA.getByText("口コミURLをコピーしました。").waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "お客様に送る口コミ投稿リンク" }).waitFor({ state: "visible" });
+  await partnerA.getByText("このリンクから、お客様がこの店舗の口コミを投稿できます。").waitFor({ state: "visible" });
+  await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`).last().waitFor({ state: "visible" });
+  const reviewPreview = partnerA.getByRole("link", { name: "投稿ページを確認" });
+  assert.equal(await reviewPreview.getAttribute("href"), `https://mens-esthe-kuchikomi.com/r/${tokenQr}/`, "the review preview must use the authorized shop's canonical review URL");
+  assert.equal(await reviewPreview.getAttribute("target"), "_blank", "the QA must not navigate to the review URL");
+  if (screenshotDir) await partnerA.screenshot({ path: `${screenshotDir}/partner-growth-review-link-390.png`, fullPage: true });
+  await partnerA.getByRole("button", { name: "リンクをコピー" }).click();
+  await partnerA.getByText("リンクをコピーしました。").waitFor({ state: "visible" });
   await partnerA.getByRole("link", { name: "表示内容を確認" }).waitFor({ state: "visible" });
   await partnerA.getByText("設置方法を見る").click();
   await partnerA.getByText("店舗サイトの任意のHTML表示位置へ貼り付けます。").waitFor({ state: "visible" });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px Growth Center must not overflow horizontally");
+  for (const width of [320, 768, 1280]) {
+    await partnerA.setViewportSize({ width, height: 900 });
+    assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, `${width}px Growth Center must not overflow horizontally`);
+    if (screenshotDir && (width === 320 || width === 768 || width === 1280)) await partnerA.screenshot({ path: `${screenshotDir}/partner-growth-review-link-${width}.png`, fullPage: true });
+  }
+  await partnerA.setViewportSize({ width: 390, height: 844 });
   await partnerA.goto(`${baseUrl}/partner/growth/pop/`, { waitUntil: "domcontentloaded" });
   await partnerA.getByRole("heading", { name: "ご利用後のご感想をお聞かせください" }).waitFor({ state: "visible" });
-  const popTemplate = partnerA.locator("img.hl-partner-pop__template");
-  await popTemplate.waitFor({ state: "visible" });
-  assert.equal(await popTemplate.getAttribute("src"), "/images/partner/review-pop-template.png", "the POP must use the local template asset only");
   await partnerA.getByRole("img", { name: "Eskomi（エスコミ）" }).waitFor({ state: "visible" });
   if (screenshotDir) await partnerA.screenshot({ path: `${screenshotDir}/partner-pop-template-390.png`, fullPage: true });
   await partnerA.emulateMedia({ media: "print" });
-  assert.equal(await popTemplate.evaluate((node) => getComputedStyle(node).display !== "none"), true, "the POP template must remain in the printed material");
+  assert.equal(await partnerA.locator(".hl-partner-pop").evaluate((node) => getComputedStyle(node).display !== "none"), true, "the POP content must remain in the printed material");
   assert.equal(await partnerA.locator(".hl-partner-pop__actions").evaluate((node) => getComputedStyle(node).display), "none", "print must exclude interactive download controls");
   if (screenshotDir) await partnerA.screenshot({ path: `${screenshotDir}/partner-pop-print-390.png`, fullPage: true });
   await partnerA.emulateMedia({ media: "screen" });
@@ -222,13 +227,13 @@ try {
   await partnerB.getByRole("link", { name: "公開店舗ページを確認する" }).waitFor({ state: "visible" });
   await partnerB.getByText("口コミ件数を現在確認できません。").waitFor({ state: "visible" });
   assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Home must not expose a working review URL");
-  assert.equal(await partnerB.getByRole("img", { name: "口コミURLのQRコード" }).count(), 0, "no-campaign Home must not emit a QR asset");
+  assert.equal(await partnerB.getByRole("img", { name: "口コミ投稿リンクのQRコード" }).count(), 0, "no-campaign Home must not emit a QR asset");
   assert.equal(await partnerB.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px unavailable Home must not overflow horizontally");
   await partnerB.goto(`${baseUrl}/partner/growth/`, { waitUntil: "domcontentloaded" });
   await partnerB.getByText("口コミ導線のデータを現在確認できません。").first().waitFor({ state: "visible" });
-  assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Growth Center must not expose a stale URL copy action");
-  assert.equal(await partnerB.getByRole("link", { name: "Partner Shop Bの口コミを投稿する" }).count(), 0, "no-campaign Growth Center must not expose a stale review banner link");
-  assert.equal(await partnerB.getByRole("img", { name: "口コミURLのQRコード" }).count(), 0, "no-campaign Growth Center must not emit a QR asset");
+  assert.equal(await partnerB.getByRole("button", { name: "リンクをコピー" }).count(), 0, "no-campaign Growth Center must not expose a stale URL copy action");
+  assert.equal(await partnerB.getByRole("link", { name: "投稿ページを確認" }).count(), 0, "no-campaign Growth Center must not expose a stale review preview link");
+  assert.equal(await partnerB.getByRole("img", { name: "口コミ投稿リンクのQRコード" }).count(), 0, "no-campaign Growth Center must not emit a QR asset");
   assert.equal(await partnerB.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px unavailable Growth Center must not overflow horizontally");
   await partnerB.goto(`${baseUrl}/partner/onboarding/`, { waitUntil: "domcontentloaded" });
   await partnerB.getByText("一部の導線は準備中です。").waitFor({ state: "visible" });

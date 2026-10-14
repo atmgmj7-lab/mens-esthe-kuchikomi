@@ -96,7 +96,7 @@ export default async function PartnerDashboardPage() {
             </section>
             <section className="hl-partner-home__asset" aria-labelledby="partner-qr-heading">
               <h3 id="partner-qr-heading">QR</h3>
-              {qrDataUrl && qrAsset?.status === "available" ? <><img className="hl-partner-growth-kit__qr" src={qrDataUrl} alt="口コミURLのQRコード" width={256} height={256} /><p><a className="hl-partner-home__text-link" href={qrDataUrl} download="eskomi-review-qr.png">QRをダウンロード</a></p></> : <p className="hl-partner-home__unavailable">{unavailableMessage(qrAsset)}</p>}
+              {qrDataUrl && qrAsset?.status === "available" ? <><img className="hl-partner-growth-kit__qr" src={qrDataUrl} alt="口コミ投稿リンクのQRコード" width={256} height={256} /><p><a className="hl-partner-home__text-link" href={qrDataUrl} download="eskomi-review-qr.png">QRをダウンロード</a></p></> : <p className="hl-partner-home__unavailable">{unavailableMessage(qrAsset)}</p>}
             </section>
             <section className="hl-partner-home__asset" aria-labelledby="partner-line-message-heading">
               <h3 id="partner-line-message-heading">LINE案内文</h3>

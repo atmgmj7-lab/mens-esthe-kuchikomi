@@ -6,6 +6,7 @@ import vm from "node:vm";
 
 const root = process.cwd();
 const widgetPath = join(root, "lib/partner/partner-review-widget.ts");
+const widgetPagePath = join(root, "app/partner/widget/[token]/page.tsx");
 
 function load(source, filename) {
   const output = ts.transpileModule(source, {
@@ -38,7 +39,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget(sou
   shopName: "Partner Shop A",
   reviewSummary: { kind: "average_and_count", average: 4.2, count: 3 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:280px;"></iframe>`,
 }, "an approved Partner widget must expose only its badge, contract-eligible aggregate, and canonical shop_website CTA");
 
 assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ ...source, reviewCount: 2, averageRating: 4.9 }))), {
@@ -47,7 +48,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ .
   shopName: "Partner Shop A",
   reviewSummary: { kind: "count_only", count: 2 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:280px;"></iframe>`,
 }, "fewer than three valid ratings must display count only, never an average");
 
 assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ ...source, averageRating: null }))), {
@@ -56,7 +57,7 @@ assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ .
   shopName: "Partner Shop A",
   reviewSummary: { kind: "count_only", count: 3 },
   reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
+  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:280px;"></iframe>`,
 }, "an unavailable aggregate must not be fabricated from a review count");
 
 for (const unsafe of [
@@ -67,5 +68,16 @@ for (const unsafe of [
 ]) {
   assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget(unsafe))), { status: "unavailable" }, "unsafe or malformed widget data must fail closed");
 }
+
+const widgetPage = readFileSync(widgetPagePath, "utf8");
+assert.match(widgetPage, /getShopReviews\(shop, 1, 3\)/, "widget must read a bounded set of public reviews only");
+assert.match(widgetPage, /公開済みの口コミはまだありません。/, "widget must show an honest empty state instead of fabricated reviews");
+assert.match(widgetPage, /reviews\.page\.reviews\.map/, "widget must render only the public adapter review projection");
+assert.match(widgetPage, /Eskomiで口コミをもっと見る/, "widget must link readers to the shop's public Eskomi page");
+assert.match(widgetPage, /口コミを書く/, "widget must keep review writing separate from review reading");
+assert.match(widgetPage, /Eskomiに寄せられた口コミ/, "widget must identify the independent review source");
+assert.match(widgetPage, /出典：Eskomi/, "widget must label the review source without hidden links");
+assert.match(widgetPage, /rel="nofollow noopener noreferrer"/, "widget links must not be an SEO link scheme");
+assert.doesNotMatch(widgetPage, /nickname|email|moderationStatus|audit/i, "widget page must not render private reviewer or moderation fields");
 
 console.log("partner review widget contract: PASS");
