@@ -30,6 +30,7 @@ assert.match(editorSource, /下書きを保存/);
 assert.match(editorSource, /変更を申請する/);
 assert.match(editorSource, /credentials:\s*["']include/);
 assert.match(editorSource, /api\/partner\/listing\/banner/);
+assert.match(editorSource, /listing\.revision\.state === "approved"/);
 assert.match(operatorSource, /公開中の紹介文/);
 assert.match(operatorSource, /差し戻し/);
 assert.match(operatorSource, /partner-listing-revisions/);

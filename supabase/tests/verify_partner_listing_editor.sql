@@ -9,6 +9,7 @@ declare
   workspace_b uuid;
   new_store uuid;
   legacy_application uuid;
+  new_application uuid;
   legacy_store uuid;
   decision text;
   publication record;
@@ -105,6 +106,21 @@ begin
     'shop_name', '競合', 'area', '大阪市', 'website_url', 'https://example.test/stale'
   )) <> 'conflict' then raise exception 'stale Partner save was accepted'; end if;
 
+  -- Approval is a public-projection checkpoint, not the end of a Partner's
+  -- ability to prepare and submit the next revision.
+  if private.save_partner_listing_draft(workspace_a, 3, jsonb_build_object(
+    'shop_name', '新規ローカル店舗', 'area', '大阪市中央区', 'website_url', 'https://example.test/new',
+    'introduction', '承認後の次回更新', 'banner_asset_id', null
+  )) <> 'ok' then raise exception 'Partner could not start a new draft after approval'; end if;
+  if private.submit_partner_listing_change(workspace_a, 4) <> 'ok'
+    or private.review_partner_listing_change(new_store, 4, 'approved', 'local_operator', '再承認') <> 'ok' then
+    raise exception 'Partner could not complete a second approval cycle';
+  end if;
+  if not exists (
+    select 1 from private.listing_store_publications
+    where listing_store_id = new_store and approved_revision = 4 and introduction = '承認後の次回更新'
+  ) then raise exception 'second Partner approval did not update the stable public projection'; end if;
+
   legacy_application := private.submit_listing_application(jsonb_build_object(
     'idempotency_key', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'kind', 'existing_change',
     'existing_wp_shop_id', 8400000000000000099, 'existing_shop_slug', 'legacy-unowned-store',
@@ -119,6 +135,42 @@ begin
   if legacy_store is null or exists (select 1 from private.listing_stores where id = legacy_store and workspace_id is not null) then
     raise exception 'existing application granted ownership instead of creating an unbound stable listing';
   end if;
+
+  -- Separate approved applications may target one existing stable store. The
+  -- newer approval must replace only its public projection, never ownership.
+  legacy_application := private.submit_listing_application(jsonb_build_object(
+    'idempotency_key', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'kind', 'existing_change',
+    'existing_wp_shop_id', 8400000000000000099, 'existing_shop_slug', 'legacy-unowned-store',
+    'shop_name', '既存店舗の再申請', 'area', '大阪市', 'website_url', 'https://example.test/legacy-v2',
+    'introduction', '既存店舗の二回目承認紹介文', 'contact_name', '別の非公開連絡先', 'contact_email', 'second-contact@example.test', 'contact_role', 'manager',
+    'edit_preference', 'operator', 'consent_privacy', true, 'consent_accuracy', true, 'consent_image_rights', true
+  ));
+  if private.review_listing_application(legacy_application, 1, 'approved', 'local_operator', 'second content approval') <> 'ok' then
+    raise exception 'second existing-store application approval failed';
+  end if;
+  if not exists (
+    select 1 from private.listing_store_publications
+    where listing_store_id = legacy_store and shop_name = '既存店舗の再申請'
+      and website_url = 'https://example.test/legacy-v2' and introduction = '既存店舗の二回目承認紹介文'
+  ) then raise exception 'second application approval did not update the stable shop projection'; end if;
+  if (select count(*) from private.listing_applications where listing_store_id = legacy_store) <> 2 then
+    raise exception 'multiple applications were not retained against the existing stable store';
+  end if;
+
+  new_application := private.submit_listing_application(jsonb_build_object(
+    'idempotency_key', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'kind', 'new_listing',
+    'shop_name', '新規申請の公開店舗', 'area', '大阪市', 'website_url', 'https://example.test/new-public',
+    'introduction', '新規申請の承認済み紹介文', 'contact_name', '新規の非公開連絡先', 'contact_email', 'new-contact@example.test', 'contact_role', 'owner',
+    'edit_preference', 'operator', 'consent_privacy', true, 'consent_accuracy', true, 'consent_image_rights', true
+  ));
+  if private.review_listing_application(new_application, 1, 'approved', 'local_operator', 'new listing approval') <> 'ok' then
+    raise exception 'new listing application approval failed';
+  end if;
+  if not exists (
+    select 1 from private.listing_store_publications p
+    join private.listing_stores s on s.id=p.listing_store_id
+    where s.origin_application_id=new_application and p.shop_name='新規申請の公開店舗'
+  ) then raise exception 'new listing approval did not create a stable public projection'; end if;
 end;
 $$;
 
