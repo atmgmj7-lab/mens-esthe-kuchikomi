@@ -45,6 +45,7 @@ export function StoreListingGuide() {
         <ul className="hl-listing-guide__banner-list">
           {banners.map((banner) => (
             <li key={banner.href}>
+              <img className="hl-listing-guide__banner-preview" src={banner.href} alt="Eskomi（エスコミ）紹介用バナーのプレビュー" width={banner.width} height={banner.height} />
               <a href={banner.href} download>{banner.label}をダウンロード</a>
             </li>
           ))}

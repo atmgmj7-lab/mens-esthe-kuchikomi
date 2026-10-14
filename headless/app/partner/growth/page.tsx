@@ -44,7 +44,7 @@ export default async function PartnerReviewGrowthCenterPage() {
   return <main id="main_content" className="l-mainContent l-article hl-partner-home hl-partner-growth-center" data-partner-growth-center-root>
     <div className="l-mainContent__inner hl-page-inner hl-partner-home__inner">
       <header className="hl-partner-home__context">
-        <p className="hl-partner-home__eyebrow">Review Growth Center</p>
+        <p className="hl-partner-home__eyebrow">口コミのご案内</p>
         <div className="hl-partner-home__context-row">
           <div><h1>口コミを集める</h1><p>{center.context.shopName}の口コミ導線</p></div>
           <a className="hl-partner-home__text-link" href={center.context.canonicalUrl}>公開店舗ページを確認</a>
@@ -52,20 +52,20 @@ export default async function PartnerReviewGrowthCenterPage() {
       </header>
 
       <section className="hl-partner-home__action" aria-labelledby="growth-center-how-heading">
-        <p className="hl-partner-home__eyebrow">How it works</p>
+        <p className="hl-partner-home__eyebrow">ご利用の流れ</p>
         <h2 id="growth-center-how-heading">正しい導線を、実際に利用したお客様へ</h2>
         <ol className="hl-partner-growth-center__funnel"><li>導線を確認</li><li>必要な場所で案内</li><li>投稿は人による審査後に公開</li></ol>
         <p>評価の指定、特典や報酬による依頼、良い口コミだけを求める案内は行いません。</p>
       </section>
 
       <section className="hl-partner-home__section" aria-labelledby="growth-center-assets-heading">
-        <div className="hl-partner-home__section-heading"><div><p className="hl-partner-home__eyebrow">Assets</p><h2 id="growth-center-assets-heading">配布するものを選ぶ</h2></div><a className="hl-partner-home__text-link" href="/partner/">ダッシュボードへ戻る</a></div>
+        <div className="hl-partner-home__section-heading"><div><p className="hl-partner-home__eyebrow">ご案内に使うもの</p><h2 id="growth-center-assets-heading">配布するものを選ぶ</h2></div><a className="hl-partner-home__text-link" href="/partner/">店舗用メニューへ戻る</a></div>
         <div className="hl-partner-home__collection">
           <section className="hl-partner-home__asset" aria-labelledby="growth-review-url-heading"><h3 id="growth-review-url-heading">口コミURL</h3><p>お客様へ直接ご案内するためのURLです。</p>{reviewUrl?.status === "available" ? <PartnerCopyButton label="口コミURL" value={reviewUrl.value} /> : <Unavailable asset={unavailable(reviewUrl)} />}</section>
           <section className="hl-partner-home__asset" aria-labelledby="growth-qr-heading"><h3 id="growth-qr-heading">店頭QR</h3><p>会計後など、店頭でご案内するためのQRです。</p>{qrDataUrl && qr?.status === "available" ? <><img className="hl-partner-growth-kit__qr" src={qrDataUrl} alt="口コミURLのQRコード" width={256} height={256} /><a className="hl-partner-home__text-link" href={qrDataUrl} download="eskomi-review-qr.png">QRをダウンロード</a><a className="hl-partner-home__text-link" href="/partner/growth/pop/">印刷用POPを開く</a></> : <Unavailable asset={unavailable(qr)} />}</section>
           <section className="hl-partner-home__asset" aria-labelledby="growth-line-heading"><h3 id="growth-line-heading">LINE案内文</h3><p>来店後に中立的な案内文として利用できます。</p>{line?.status === "available" ? <PartnerCopyButton label="LINE案内文" value={line.value} /> : <Unavailable asset={unavailable(line)} />}</section>
-          <section className="hl-partner-home__asset" aria-labelledby="growth-cta-heading"><h3 id="growth-cta-heading">Webサイト用CTA</h3><p>店舗サイトから口コミ投稿へ案内するためのものです。設置は任意です。</p>{websiteCta?.status === "available" ? <PartnerCopyButton label="Webサイト用CTA" value={websiteCta.value} /> : <Unavailable asset={unavailable(websiteCta)} />}</section>
-          <section className="hl-partner-home__asset hl-partner-growth-center__widget" aria-labelledby="growth-widget-heading"><h3 id="growth-widget-heading">口コミWidget</h3><p>店舗サイトに任意で設置できます。</p>{widget?.status === "available" && widgetSnippet ? <><a className="hl-partner-home__text-link" href={widget.value} target="_blank" rel="noreferrer">Widgetを確認</a><PartnerCopyButton label="Widgetコード" value={widgetSnippet} /><details><summary>設置方法を見る</summary><ol><li>Widgetを確認し、対象店舗を確かめます。</li><li>Widgetコードをコピーします。</li><li>店舗サイトの任意のHTML表示位置へ貼り付けます。</li></ol></details></> : <Unavailable asset={unavailable(widget)} />}</section>
+          <section className="hl-partner-home__asset" aria-labelledby="growth-cta-heading"><h3 id="growth-cta-heading">店舗サイト用の案内</h3><p>店舗サイトから口コミ投稿へ案内するためのものです。設置は任意です。</p>{websiteCta?.status === "available" ? <PartnerCopyButton label="店舗サイト用の案内" value={websiteCta.value} /> : <Unavailable asset={unavailable(websiteCta)} />}</section>
+          <section className="hl-partner-home__asset hl-partner-growth-center__widget" aria-labelledby="growth-widget-heading"><h3 id="growth-widget-heading">店舗サイトの口コミ表示</h3><p>店舗サイトに任意で設置できます。</p>{widget?.status === "available" && widgetSnippet ? <><a className="hl-partner-home__text-link" href={widget.value} target="_blank" rel="noreferrer">表示内容を確認</a><PartnerCopyButton label="設置用コード" value={widgetSnippet} /><details><summary>設置方法を見る</summary><ol><li>表示内容を確認し、対象店舗を確かめます。</li><li>設置用コードをコピーします。</li><li>店舗サイトの任意のHTML表示位置へ貼り付けます。</li></ol></details></> : <Unavailable asset={unavailable(widget)} />}</section>
         </div>
       </section>
     </div>

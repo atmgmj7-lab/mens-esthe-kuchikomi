@@ -132,7 +132,7 @@ function verifySourceContract() {
   assert.doesNotMatch(dashboardPage, /contactName|contactEmail|confirmationDetails/);
   assert.match(dashboardWorkspace, /pendingReviews/);
   assert.match(dashboardWorkspace, /review\.status === "received"/);
-  assert.match(dashboardWorkspace, /Free Official Partnerとして承認/);
+  assert.match(dashboardWorkspace, /店舗アカウントとして承認/);
   assert.match(dashboardWorkspace, /却下/);
   assert.match(dashboardWorkspace, /率直な口コミにご協力ください/);
   assert.match(dashboardWorkspace, /counter_qr/);

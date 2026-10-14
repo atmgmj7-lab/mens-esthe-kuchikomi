@@ -45,7 +45,7 @@ assert.match(component, /却下/);
 assert.match(component, /スパム/);
 assert.match(component, /公開/);
 assert.match(component, /非公開の判断理由/);
-assert.match(component, /監査履歴/);
+assert.match(component, /判断の記録/);
 assert.match(page, /DashboardReviewModeration/);
 assert.match(page, /listModerationQueue/);
 assert.match(page, /RANK_UP_WP_SHOP_ID\s*=\s*768/);

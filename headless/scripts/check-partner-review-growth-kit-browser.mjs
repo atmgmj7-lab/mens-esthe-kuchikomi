@@ -142,11 +142,11 @@ try {
   assert.match(await qr.getAttribute("src") ?? "", /^data:image\/(png|svg\+xml);/i, "the QR must be a local server-derived image asset, not an external tracker");
   await partnerA.getByRole("button", { name: "LINE案内文をコピー" }).click();
   await partnerA.getByText("LINE案内文をコピーしました。").waitFor({ state: "visible" });
-  await partnerA.getByRole("button", { name: "Webサイト用CTAをコピー" }).click();
-  await partnerA.getByText("Webサイト用CTAをコピーしました。").waitFor({ state: "visible" });
-  await partnerA.getByRole("heading", { name: "口コミWidget" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("button", { name: "店舗サイト用の案内をコピー" }).click();
+  await partnerA.getByText("店舗サイト用の案内をコピーしました。").waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "店舗サイトの口コミ表示" }).waitFor({ state: "visible" });
   await partnerA.getByText("設置は任意です。").waitFor({ state: "visible" });
-  await partnerA.getByRole("link", { name: "Widgetを確認" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("link", { name: "表示内容を確認" }).waitFor({ state: "visible" });
   const widgetCode = partnerA.locator("code").filter({ hasText: `/partner/widget/${tokenWebsite}/` });
   await widgetCode.waitFor({ state: "visible" });
   await widgetCode.evaluate((node) => {
@@ -154,8 +154,8 @@ try {
     if (!value.includes('title="Partner Shop AのEskomi口コミ"')) throw new Error("widget snippet must name the authorized shop");
     if (!value.includes('style="width:100%;max-width:100%;border:0;min-height:180px;"')) throw new Error("widget snippet must be responsive without site-global JS");
   });
-  await partnerA.getByRole("button", { name: "Widgetコードをコピー" }).click();
-  await partnerA.getByText("Widgetコードをコピーしました。").waitFor({ state: "visible" });
+  await partnerA.getByRole("button", { name: "設置用コードをコピー" }).click();
+  await partnerA.getByText("設置用コードをコピーしました。").waitFor({ state: "visible" });
   await partnerA.getByText("投稿済み").waitFor({ state: "visible" });
   await partnerA.getByText("8").first().waitFor({ state: "visible" });
   await partnerA.getByText("審査中").waitFor({ state: "visible" });
@@ -173,7 +173,7 @@ try {
   await partnerA.getByText("評価の指定、特典や報酬による依頼、良い口コミだけを求める案内は行いません。").waitFor({ state: "visible" });
   await partnerA.getByRole("button", { name: "口コミURLをコピー" }).click();
   await partnerA.getByText("口コミURLをコピーしました。").waitFor({ state: "visible" });
-  await partnerA.getByRole("link", { name: "Widgetを確認" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("link", { name: "表示内容を確認" }).waitFor({ state: "visible" });
   await partnerA.getByText("設置方法を見る").click();
   await partnerA.getByText("店舗サイトの任意のHTML表示位置へ貼り付けます。").waitFor({ state: "visible" });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px Growth Center must not overflow horizontally");

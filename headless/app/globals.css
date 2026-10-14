@@ -11165,6 +11165,8 @@ body .mep-area-section h2.mep-section-title::after {
 .hl-listing-guide__banner h3 { margin: 0 0 10px; color: #14211d; font-size: 1.15rem; }
 .hl-listing-guide__banner p { color: #596560; line-height: 1.75; }
 .hl-listing-guide__banner-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0; padding: 0; list-style: none; }
+.hl-listing-guide__banner-list li { display: grid; gap: 10px; min-width: 0; }
+.hl-listing-guide__banner-preview { display: block; width: min(100%, 360px); height: auto; border: 1px solid #e3dfd6; border-radius: 6px; background: #fff; }
 .hl-listing-guide__banner-list a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid #8b6f2f; border-radius: 6px; color: #654e16; font-weight: 700; text-decoration: none; }
 .hl-listing-guide__html { border-top: 1px solid #dfd5bd; padding-top: 16px; }
 .hl-listing-guide__html summary { cursor: pointer; color: #143d4d; font-weight: 700; }
@@ -11180,6 +11182,7 @@ body .mep-area-section h2.mep-section-title::after {
 .hl-partner-guide h3 { color: #1a2830; font-family: var(--hl-serif); }
 .hl-partner-guide h1 { margin: 0 0 16px; font-size: clamp(1.9rem, 4vw, 2.8rem); }
 .hl-partner-guide h2 { margin: 0 0 22px; font-size: clamp(1.35rem, 3vw, 1.8rem); }
+.hl-partner-guide__logo { display: block; width: min(100%, 246px); height: auto; margin: 0 0 20px; }
 .hl-partner-guide__hero > p:not(.hl-static-page-kicker) { max-width: 48rem; color: #596560; line-height: 1.8; }
 .hl-partner-guide__roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .hl-partner-guide__roles article { display: flex; flex-direction: column; min-width: 0; padding: 20px; border: 1px solid #e3dfd6; border-radius: 12px; background: #fffdfa; }
@@ -11190,6 +11193,7 @@ body .mep-area-section h2.mep-section-title::after {
 .hl-partner-guide__next a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 18px; color: #143d4d; font-weight: 700; }
 .hl-partner-guide__roles div { display: flex; flex-wrap: wrap; gap: 14px; }
 .hl-partner-guide__flow { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.hl-partner-guide__review-visual { display: block; width: min(100%, 680px); height: auto; margin: 0 0 20px; border: 1px solid #e3dfd6; border-radius: 10px; }
 .hl-partner-guide__flow li { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: 16px; padding: 18px 0; border-top: 1px solid #e3dfd6; }
 .hl-partner-guide__flow strong { color: #143d4d; }
 .hl-partner-guide__flow span { color: #596560; line-height: 1.75; }
@@ -11201,11 +11205,12 @@ body .mep-area-section h2.mep-section-title::after {
 .hl-partner-pop-page__inner { max-width: 860px; padding-top: 28px; }
 .hl-partner-pop-page__notice { margin: 0 auto 18px; color: #596560; font-size: .88rem; line-height: 1.7; text-align: center; }
 .hl-partner-pop { padding: clamp(28px, 6vw, 58px); border: 2px solid #d4af37; border-radius: 18px; background: #fffdf8; color: #1a2830; text-align: center; }
+.hl-partner-pop__logo { display: block; width: min(100%, 202px); height: auto; margin: 0 auto 20px; }
 .hl-partner-pop__eyebrow { margin: 0; color: #8b6f2f; font-family: var(--es-heading-display); font-size: .8rem; font-weight: 700; letter-spacing: .17em; }
 .hl-partner-pop h1 { margin: 20px auto 14px; color: #143d4d; font-family: var(--hl-serif); font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.4; }
 .hl-partner-pop__shop { margin: 0; color: #1a2830; font-size: clamp(1.15rem, 3vw, 1.45rem); font-weight: 700; }
 .hl-partner-pop__lead { max-width: 37rem; margin: 20px auto; color: #4e5b62; line-height: 1.8; }
-.hl-partner-pop img { display: block; width: min(100%, 360px); height: auto; margin: 20px auto; padding: 12px; border: 1px solid #e3dfd6; border-radius: 12px; background: #fff; }
+.hl-partner-pop__qr { display: block; width: min(100%, 360px); height: auto; margin: 20px auto; padding: 12px; border: 1px solid #e3dfd6; border-radius: 12px; background: #fff; }
 .hl-partner-pop__instruction { color: #143d4d; font-weight: 700; line-height: 1.7; }
 .hl-partner-pop__note { max-width: 40rem; margin: 20px auto 0; color: #596560; font-size: .88rem; line-height: 1.75; }
 .hl-partner-pop__brand { margin: 28px 0 0; color: #8b6f2f; font-family: var(--es-heading-display); font-weight: 700; }
