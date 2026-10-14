@@ -42,6 +42,8 @@
     "test:shop-owner-api": "node scripts/check-shop-owner-request-api.mjs",
     "test:shop-owner-form": "node scripts/check-shop-owner-request-form.mjs",
     "test:shop-owner-local-integration": "node scripts/check-shop-owner-request-local-integration.mjs",
+    "test:listing-application-local": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_listing_application_upload_token.sql",
+    "qa:listing-application-local": "node scripts/check-listing-application-browser.mjs",
     "test:free-partner-foundation": "node scripts/check-free-partner-foundation.mjs",
     "test:free-partner-local-supabase": "node scripts/check-free-partner-local-supabase.mjs",
     "test:partner-auth-membership": "node scripts/check-partner-auth-membership.mjs",
