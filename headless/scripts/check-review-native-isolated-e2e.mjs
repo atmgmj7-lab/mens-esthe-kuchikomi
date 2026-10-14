@@ -280,8 +280,10 @@ function reviewInput(index, rating, campaignToken = null) {
   return {
     idempotencyKey: randomUUID(),
     body: index === 1
-      ? `${"Synthetic isolated long-form Review validates only the local native workflow. ".repeat(5)}No Production data is used.`
-      : `Synthetic isolated Review ${index} validates the complete native workflow without Production data.`,
+      ? "接客は落ち着いた雰囲気で、説明も分かりやすく安心して利用できました。料金や予約時の案内についても丁寧で、次回も都合が合えば利用したいです。混雑する時間帯の目安も事前に分かると、さらに予定を立てやすいと感じました。受付から案内までの流れも穏やかで、初めて利用する人にも分かりやすいと感じます。設備や室内について気になった点を質問した際も、急かされずに説明を受けられました。"
+      : index === 2
+        ? "予約から利用後まで、必要な案内が簡潔で分かりやすかったです。店内も清潔に保たれていました。"
+        : "利用後に感じた点を率直に投稿するための、隔離環境専用のテスト口コミです。",
     rating,
     ip: `198.51.100.${fixtureIpSeed + index}`,
     campaignToken,
@@ -524,7 +526,7 @@ const dashboard = renderToStaticMarkup(React.createElement(
 ));
 assert.match(dashboard, /承認済み口コミ/);
 assert.match(dashboard, /aria-label="承認済み口コミの評価グラフ"/);
-assert.match(dashboard, /Synthetic isolated Review/);
+assert.match(dashboard, /隔離環境専用のテスト口コミ/);
 
 const widgetPageModule = loadTypeScript("app/partner/widget/[token]/page.tsx", {
   "next/navigation": { notFound: () => { throw new Error("widget must be available for the canonical fixture"); } },
@@ -540,7 +542,7 @@ const widgetPage = await widgetPageModule.default({ params: Promise.resolve({ to
 const widgetHtml = renderToStaticMarkup(widgetPage);
 assert.match(widgetHtml, new RegExp(`href="https://mens-esthe-kuchikomi\\.com/r/${campaignA}/"`));
 assert.match(widgetHtml, /評価 3\.3 \/ 5（3件）/);
-assert.match(widgetHtml, /Synthetic isolated long-form Review/);
+assert.match(widgetHtml, /接客は落ち着いた雰囲気/);
 assert.match(widgetHtml, /…/);
 assert.match(widgetHtml, /評価 1 \/ 5/);
 assert.equal((widgetHtml.match(/出典：Eskomi/g) ?? []).length, 3);
@@ -552,7 +554,7 @@ const widgetStyle = read("app/globals.css");
 const iframeTitle = `${shopA.title}のEskomi口コミ`;
 const widgetFrameHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${widgetStyle}</style></head><body>${widgetHtml}</body></html>`;
 const localWidgetEmbed = publishedWidget.iframeSnippet.replace(`https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/`, "/widget");
-const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto"><section aria-label="sample store website"><h1>Sample store website</h1>${localWidgetEmbed}</section>${dashboard}</main></body></html>`;
+const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto"><p data-fixture-label="true">隔離fixture表示：実店舗・実口コミではありません</p><section aria-label="sample store website"><h1>Sample store website</h1>${localWidgetEmbed}</section>${dashboard}</main></body></html>`;
 const server = createServer((request, response) => {
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   response.end(request.url === "/widget" ? widgetFrameHtml : pageHtml);

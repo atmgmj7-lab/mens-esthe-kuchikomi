@@ -46,12 +46,12 @@ export default async function PartnerReviewWidgetPage({ params }: Readonly<{ par
   if (widget.status !== "available") notFound();
 
   return <><main className="hl-partner-widget" aria-label={`${widget.shopName}のEskomi口コミ`}>
-    <p className="hl-partner-widget__badge">{widget.badge}</p>
     <p className="hl-partner-widget__shop">{widget.shopName}</p>
+    <h2 className="hl-partner-widget__heading">Eskomiに寄せられた口コミ</h2>
     <p>{widget.reviewSummary.kind === "average_and_count"
       ? `評価 ${widget.reviewSummary.average} / 5（${widget.reviewSummary.count}件）`
       : `有効な評価 ${widget.reviewSummary.count}件`}</p>
-    <h2 className="hl-partner-widget__heading">Eskomiに寄せられた口コミ</h2>
+    <p className="hl-partner-widget__badge">{widget.badge}</p>
     {reviews.page.reviews.length === 0 ? <p>公開済みの口コミはまだありません。</p> : <ul className="hl-partner-widget__reviews">
       {reviews.page.reviews.map((review) => <li key={String(review.id)}>
         <p>{excerpt(review.body)}</p>

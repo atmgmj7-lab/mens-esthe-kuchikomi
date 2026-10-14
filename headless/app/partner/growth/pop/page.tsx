@@ -52,7 +52,7 @@ export default async function PartnerReviewPopPage() {
               <p className="hl-partner-pop__lead">実際にご利用いただいたご感想を、よろしければお聞かせください。回答は任意です。</p>
               <img className="hl-partner-pop__qr" src={qrDataUrl} width={360} height={360} alt={`${center.context.shopName}の口コミ投稿用QRコード`} />
               <p className="hl-partner-pop__instruction">スマートフォンのカメラで読み取ると、口コミ投稿ページが開きます。</p>
-              <p className="hl-partner-pop__note">投稿内容は運営が確認し、審査と公開を分けて判断します。評価や内容を指定する依頼、特典・報酬による依頼は行いません。</p>
+              <p className="hl-partner-pop__note">口コミは運営の確認・審査後に公開されます。評価や内容を指定する依頼、特典・報酬による依頼は行いません。</p>
               <p className="hl-partner-pop__brand">Eskomi（エスコミ）</p>
             </article>
             <PartnerPopActions />

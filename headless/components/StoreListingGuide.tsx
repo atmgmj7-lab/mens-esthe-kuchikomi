@@ -42,12 +42,12 @@ export function StoreListingGuide() {
       <section className="hl-listing-guide__banner" aria-labelledby="listing-banner-heading">
         <div>
           <p className="hl-static-page-kicker">ESKOMI INTRODUCTION BANNER</p>
-          <h3 id="listing-banner-heading">Eskomi紹介バナーのダウンロード</h3>
+          <h3 id="listing-banner-heading">Eskomi紹介バナー（準備中）</h3>
           <p>店舗サイトやSNSでご利用いただける、Eskomiの紹介用バナーです。設置は任意です。</p>
         </div>
         {reciprocalBanners.length === 0 ? (
           <div className="hl-listing-guide__banner-pending" role="status">
-            <p><strong>正式な200×80のEskomi紹介バナー画像を準備中です。</strong> 画像の受領・確認後、この欄でプレビューとダウンロードをご案内します。画像がない間は誤ったファイルを配布しません。</p>
+            <p><strong>正式な200×80のEskomi紹介バナーを準備中です。</strong> 公開後、この欄でプレビューとダウンロードをご案内します。</p>
             <dl><div><dt>用途</dt><dd>店舗HP・SNSでのEskomi紹介</dd></div><div><dt>ダウンロード</dt><dd>正式画像の公開後に有効化します</dd></div><div><dt>設置</dt><dd>任意です</dd></div></dl>
           </div>
         ) : <>

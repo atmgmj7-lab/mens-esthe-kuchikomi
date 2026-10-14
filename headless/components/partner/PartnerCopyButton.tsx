@@ -26,13 +26,17 @@ async function copyText(value: string): Promise<boolean> {
 
 export function PartnerCopyButton({ label, value }: Readonly<{ label: string; value: string }>) {
   const [message, setMessage] = useState("");
+  const [isCopying, setIsCopying] = useState(false);
 
   async function copy() {
-    setMessage((await copyText(value)) ? `${label}をコピーしました。` : `${label}をコピーできませんでした。`);
+    setIsCopying(true);
+    const copied = await copyText(value);
+    setMessage(copied ? `${label}をコピーしました。` : `${label}をコピーできませんでした。`);
+    setIsCopying(false);
   }
 
-  return <span className="hl-partner-copy">
-    <button type="button" onClick={copy}>{label}をコピー</button>
-    <span role="status" aria-live="polite">{message}</span>
+  return <span className={`hl-partner-copy${message.endsWith("しました。") ? " is-complete" : ""}${message.endsWith("ませんでした。") ? " is-error" : ""}`}>
+    <button type="button" onClick={copy} disabled={isCopying}>{isCopying ? "コピー中…" : `${label}をコピー`}</button>
+    <span className="hl-partner-copy__status" role="status" aria-live="polite">{message}</span>
   </span>;
 }

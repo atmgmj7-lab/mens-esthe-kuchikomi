@@ -571,6 +571,15 @@ img {
 .hl-partner-growth-center__card-kicker { margin: 0 0 8px; color: #a27c27; font-size: .7rem; font-weight: 700; letter-spacing: .12em; }
 .hl-partner-growth-center__message-card { background: linear-gradient(145deg, #fffdf8, #f8f3e8); }
 .hl-partner-growth-center__message-preview { margin: 16px 0; padding: 14px 16px; border-left: 2px solid #b7923d; color: #33464e; background: rgba(255,255,255,.72); white-space: pre-line; font-size: .94rem; line-height: 1.8; }
+.hl-partner-copy { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; }
+.hl-partner-copy button { min-height: 44px; padding: 10px 16px; border: 1px solid #143d4d; border-radius: 7px; background: #143d4d; color: #fffdf8; cursor: pointer; font: 700 .9rem/1.2 inherit; letter-spacing: .02em; transition: background .16s ease, border-color .16s ease, transform .16s ease; }
+.hl-partner-copy button:hover { border-color: #235c70; background: #235c70; }
+.hl-partner-copy button:focus-visible { outline: 3px solid rgba(183,146,61,.48); outline-offset: 3px; }
+.hl-partner-copy button:active { transform: translateY(1px); }
+.hl-partner-copy button:disabled { cursor: wait; border-color: #8a9898; background: #8a9898; }
+.hl-partner-copy.is-complete button { border-color: #9a7628; background: #9a7628; }
+.hl-partner-copy.is-error button { border-color: #963f3d; background: #963f3d; }
+.hl-partner-copy__status { color: #596560; font-size: .84rem; line-height: 1.5; }
 .hl-partner-home__collection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hl-partner-home__asset h3 { margin-top: 0; }
 .hl-partner-home__asset p:last-child { margin-bottom: 0; }
