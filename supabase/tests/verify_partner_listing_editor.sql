@@ -12,6 +12,8 @@ declare
   legacy_store uuid;
   decision text;
   publication record;
+  banner_key text;
+  banner_asset uuid;
 begin
   if to_regprocedure('private.create_listing_store(text,text,text,text,uuid,bigint)') is null
     or to_regprocedure('private.save_partner_listing_draft(uuid,integer,jsonb)') is null
@@ -40,6 +42,21 @@ begin
   ) then
     raise exception 'new store must receive a stable slug without a legacy WordPress id';
   end if;
+
+  -- The authenticated workspace may attach a private banner only to its own
+  -- stable listing. The public projection is not touched by this upload.
+  banner_key := private.reserve_partner_listing_banner_upload(workspace_a, 'image/png');
+  banner_asset := private.attach_partner_listing_banner_asset(
+    workspace_a, banner_key, repeat('a', 64), 'image/png', 1, 1, 1
+  );
+  if not exists (select 1 from private.listing_application_assets where id=banner_asset and listing_store_id=new_store and application_id is null) then
+    raise exception 'Partner banner was not isolated to its stable store';
+  end if;
+  begin
+    perform private.attach_partner_listing_banner_asset(workspace_b, banner_key, repeat('a', 64), 'image/png', 1, 1, 1);
+    raise exception 'another Partner attached a banner to this store';
+  exception when insufficient_privilege then null;
+  end;
 
   decision := private.save_partner_listing_draft(workspace_a, 1, jsonb_build_object(
     'shop_name', '新規ローカル店舗', 'area', '大阪市中央区', 'website_url', 'https://example.test/new',

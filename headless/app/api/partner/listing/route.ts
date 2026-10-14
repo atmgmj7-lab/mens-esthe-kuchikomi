@@ -33,7 +33,8 @@ function payload(body: Record<string, unknown>) {
   try {
     const url = new URL(websiteUrl);
     if (!['http:', 'https:'].includes(url.protocol)) return null;
-    return { shop_name: shopName, area, website_url: url.toString(), introduction: introduction || null, banner_asset_id: null };
+    const bannerAssetId = typeof body.bannerAssetId === "string" && /^[0-9a-f-]{36}$/i.test(body.bannerAssetId) ? body.bannerAssetId : null;
+    return { shop_name: shopName, area, website_url: url.toString(), introduction: introduction || null, banner_asset_id: bannerAssetId };
   } catch { return null; }
 }
 

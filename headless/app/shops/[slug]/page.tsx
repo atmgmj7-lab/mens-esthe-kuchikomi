@@ -8,6 +8,8 @@ import { publicReviewAdapter } from "@/lib/reviews/public-adapter";
 import { toShopRouteParam } from "@/lib/shop-route-param";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
+import { getPublicPartnerListing } from "@/lib/partner/public-listing";
+import { PublicPartnerListing } from "@/components/partner/PublicPartnerListing";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -26,8 +28,11 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const shop = await withWpBuildFallback(`shop metadata ${slug}`, () => getShopBySlug(slug), null);
-  if (!shop) return {};
+  const [shop, partner] = await Promise.all([withWpBuildFallback(`shop metadata ${slug}`, () => getShopBySlug(slug), null), getPublicPartnerListing(slug)]);
+  if (!shop) {
+    if (partner) return pageMetadata({ title: `${partner.shop_name}の店舗情報`, description: partner.introduction || `${partner.shop_name}の承認済み店舗情報`, path: `/shops/${partner.shop_slug}/` });
+    return {};
+  }
 
   const primaryAreaName = shop.primaryArea?.name ?? "";
   const title = primaryAreaName
@@ -46,18 +51,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ShopPage({ params }: Props) {
   const { slug } = await params;
-  const shop = await withWpBuildFallback(`shop page ${slug}`, () => getShopBySlug(slug), null);
+  const [shop, partner] = await Promise.all([withWpBuildFallback(`shop page ${slug}`, () => getShopBySlug(slug), null), getPublicPartnerListing(slug)]);
+  if (!shop && !partner) notFound();
+  if (!shop && partner) return <PublicPartnerListing listing={partner} />;
   if (!shop) notFound();
+  const approvedShop = partner ? { ...shop, contentHtml: partner.introduction ?? shop.contentHtml, imageUrl: partner.banner_asset_id ? `/api/partner/listing/banner/${partner.banner_asset_id}/` : shop.imageUrl, media: partner.banner_asset_id ? { ...shop.media, cardSquare: { ...shop.media.cardSquare, url: `/api/partner/listing/banner/${partner.banner_asset_id}/`, source: "legacy-acf" as const, alt: `${shop.title} の掲載画像` } } : shop.media, officialUrl: partner.website_url || shop.officialUrl } : shop;
 
   const [allAreas, reviewResult] = await Promise.all([
-    withWpBuildFallback(`shop area list ${shop.slug}`, getAreas, []),
-    publicReviewAdapter.getShopReviews(shop, 1, 3)
+    withWpBuildFallback(`shop area list ${approvedShop.slug}`, getAreas, []),
+    publicReviewAdapter.getShopReviews(approvedShop, 1, 3)
   ]);
-  const { parent: parentArea } = resolveShopDetailAreaContext(shop, allAreas);
+  const { parent: parentArea } = resolveShopDetailAreaContext(approvedShop, allAreas);
 
   return (
     <ShopDetail
-      shop={shop}
+      shop={approvedShop}
       parentArea={parentArea}
       reviewResult={reviewResult}
     />
