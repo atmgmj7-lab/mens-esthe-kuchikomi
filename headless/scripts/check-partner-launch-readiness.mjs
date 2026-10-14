@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
@@ -15,6 +15,11 @@ for (const href of ["/contact/#contact-form-heading", "/shops/", "/partner/login
   assert.match(listing, new RegExp(`href="${href.replace(/[/.]/g, "\\$&")}"`), `listing guide needs ${href}`);
 }
 assert.match(listing, /相互リンクは任意です。掲載順位や審査結果には影響しません。/);
+assert.match(listing, /正式な相互リンク用バナー画像の受領・確認後/);
+assert.match(listing, /配布できる画像はまだありません/);
+assert.match(listing, /const reciprocalLinkTargetUrl = "https:\/\/mens-esthe-kuchikomi\.com\/"/);
+assert.match(listing, /const reciprocalBanners: ReadonlyArray/);
+assert.doesNotMatch(listing, /eskomi-link-banner-728x90/, "unreviewed legacy banner files must not be offered as reciprocal-link downloads");
 assert.match(listing, /rel="noopener noreferrer"/);
 assert.doesNotMatch(listing, /<script/i, "copyable HTML must not inject script");
 assert.match(guide, /店舗担当者/);
@@ -31,12 +36,4 @@ assert.match(popImage, /qr\?\.status !== "available"/);
 assert.match(popImage, /Cache-Control": "private, no-store"/);
 assert.doesNotMatch(popPage, /fetch\(/, "POP generation must not request the tracking redirect");
 assert.doesNotMatch(popImage, /fetch\(/, "POP preview must not request the tracking redirect");
-for (const [name, width, height] of [["728x90", 728, 90], ["468x60", 468, 60], ["300x250", 300, 250]]) {
-  const asset = `public/downloads/eskomi-link-banner-${name}.svg`;
-  assert.equal(existsSync(join(root, asset)), true, `${asset} must exist`);
-  const source = read(asset);
-  assert.match(source, new RegExp(`width="${width}" height="${height}"`));
-  assert.match(source, /Eskomi/);
-}
-
 console.log("partner launch readiness contract: PASS");

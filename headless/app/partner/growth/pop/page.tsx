@@ -45,7 +45,8 @@ export default async function PartnerReviewPopPage() {
           <>
             <p className="hl-partner-pop-page__notice">現在有効な店頭QR用のURLから生成しています。印刷後は読み取り先と店舗名を確認してください。</p>
             <article className="hl-partner-pop" aria-labelledby="partner-pop-heading">
-              <img className="hl-partner-pop__logo" src="/images/eskomi-logo.svg" alt="Eskomi（エスコミ）" width={202} height={68} />
+              <img className="hl-partner-pop__template" src="/images/partner/review-pop-template.png" alt="" aria-hidden="true" width={1734} height={907} />
+              <img className="hl-partner-pop__logo" src="/images/partner/eskomi-logo-official.png" alt="Eskomi（エスコミ）" width={202} height={68} />
               <p className="hl-partner-pop__eyebrow">ご利用後の口コミ</p>
               <h1 id="partner-pop-heading">ご利用後のご感想をお聞かせください</h1>
               <p className="hl-partner-pop__shop">{center.context.shopName}</p>

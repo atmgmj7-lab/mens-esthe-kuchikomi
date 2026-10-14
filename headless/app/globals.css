@@ -568,6 +568,9 @@ img {
 .hl-partner-growth-center__asset-state p { margin: .4rem 0 0; }
 .hl-partner-growth-center details { margin-top: 1rem; }
 .hl-partner-growth-center summary { cursor: pointer; font-weight: 600; }
+.hl-partner-growth-center__review-banner { display: block; margin: 14px 0; border: 1px solid #e3dfd6; border-radius: 10px; overflow: hidden; background: #fffdf8; }
+.hl-partner-growth-center__review-banner:focus-visible { outline: 3px solid #006f72; outline-offset: 3px; }
+.hl-partner-growth-center__review-banner img { display: block; width: 100%; height: auto; }
 .hl-partner-home__collection { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hl-partner-home__asset h3 { margin-top: 0; }
 .hl-partner-home__asset p:last-child { margin-bottom: 0; }
@@ -11168,6 +11171,12 @@ body .mep-area-section h2.mep-section-title::after {
 .hl-listing-guide__banner-list li { display: grid; gap: 10px; min-width: 0; }
 .hl-listing-guide__banner-preview { display: block; width: min(100%, 360px); height: auto; border: 1px solid #e3dfd6; border-radius: 6px; background: #fff; }
 .hl-listing-guide__banner-list a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid #8b6f2f; border-radius: 6px; color: #654e16; font-weight: 700; text-decoration: none; }
+.hl-listing-guide__banner-pending { margin-top: 20px; padding: 18px; border: 1px dashed #bfa977; border-radius: 8px; background: rgba(255, 255, 255, .62); }
+.hl-listing-guide__banner-pending p { margin: 0; }
+.hl-listing-guide__banner-pending dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 16px 0 0; }
+.hl-listing-guide__banner-pending dl > div { padding: 12px; border-radius: 6px; background: #fffdf8; }
+.hl-listing-guide__banner-pending dt { color: #8b6f2f; font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
+.hl-listing-guide__banner-pending dd { margin: 6px 0 0; color: #596560; font-size: .88rem; line-height: 1.6; }
 .hl-listing-guide__html { border-top: 1px solid #dfd5bd; padding-top: 16px; }
 .hl-listing-guide__html summary { cursor: pointer; color: #143d4d; font-weight: 700; }
 .hl-listing-guide__html pre { overflow-x: auto; padding: 14px; background: #172833; color: #f7f4ee; font: .78rem/1.7 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -11204,7 +11213,8 @@ body .mep-area-section h2.mep-section-title::after {
 .hl-partner-pop-page { background: #f7f4ee; min-height: calc(100dvh - 120px); }
 .hl-partner-pop-page__inner { max-width: 860px; padding-top: 28px; }
 .hl-partner-pop-page__notice { margin: 0 auto 18px; color: #596560; font-size: .88rem; line-height: 1.7; text-align: center; }
-.hl-partner-pop { padding: clamp(28px, 6vw, 58px); border: 2px solid #d4af37; border-radius: 18px; background: #fffdf8; color: #1a2830; text-align: center; }
+.hl-partner-pop { position: relative; isolation: isolate; overflow: hidden; padding: clamp(28px, 6vw, 58px); border: 2px solid #d4af37; border-radius: 18px; background: #fffdf8; color: #1a2830; text-align: center; }
+.hl-partner-pop__template { position: absolute; right: -14%; bottom: -4%; z-index: -1; width: min(116%, 940px); height: auto; opacity: .15; pointer-events: none; }
 .hl-partner-pop__logo { display: block; width: min(100%, 202px); height: auto; margin: 0 auto 20px; }
 .hl-partner-pop__eyebrow { margin: 0; color: #8b6f2f; font-family: var(--es-heading-display); font-size: .8rem; font-weight: 700; letter-spacing: .17em; }
 .hl-partner-pop h1 { margin: 20px auto 14px; color: #143d4d; font-family: var(--hl-serif); font-size: clamp(1.8rem, 5vw, 2.8rem); line-height: 1.4; }
@@ -11220,11 +11230,13 @@ body .mep-area-section h2.mep-section-title::after {
 
 @media (max-width: 760px) {
   .hl-listing-guide__actions,
-  .hl-partner-guide__roles { grid-template-columns: 1fr; }
+  .hl-partner-guide__roles,
+  .hl-listing-guide__banner-pending dl { grid-template-columns: 1fr; }
   .hl-listing-guide__heading { text-align: left; }
   .hl-listing-guide__button { width: 100%; }
   .hl-partner-guide__flow li { grid-template-columns: 1fr; gap: 7px; }
   .hl-partner-pop__actions > * { width: 100%; justify-content: center; }
+  .hl-partner-pop__template { right: -52%; bottom: 2%; width: 150%; opacity: .11; }
 }
 
 @media print {

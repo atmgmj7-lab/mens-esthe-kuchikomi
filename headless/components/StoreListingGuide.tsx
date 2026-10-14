@@ -1,10 +1,13 @@
 import Link from "next/link";
 
-const banners = [
-  { label: "横長 728 × 90", href: "/downloads/eskomi-link-banner-728x90.svg", width: 728, height: 90 },
-  { label: "横長 468 × 60", href: "/downloads/eskomi-link-banner-468x60.svg", width: 468, height: 60 },
-  { label: "レクタングル 300 × 250", href: "/downloads/eskomi-link-banner-300x250.svg", width: 300, height: 250 },
-] as const;
+const reciprocalLinkTargetUrl = "https://mens-esthe-kuchikomi.com/";
+
+/**
+ * Only add entries after the reciprocal-link artwork has been supplied and reviewed.
+ * Files are served through the existing public /downloads/ path; no placeholder link
+ * is exposed while the artwork is unavailable.
+ */
+const reciprocalBanners: ReadonlyArray<Readonly<{ label: string; href: string; width: number; height: number }>> = [];
 
 export function StoreListingGuide() {
   return (
@@ -39,24 +42,31 @@ export function StoreListingGuide() {
       <section className="hl-listing-guide__banner" aria-labelledby="listing-banner-heading">
         <div>
           <p className="hl-static-page-kicker">OPTIONAL LINK BANNER</p>
-          <h3 id="listing-banner-heading">サイト紹介用バナー</h3>
+          <h3 id="listing-banner-heading">相互リンク用バナー</h3>
           <p>相互リンクは任意です。掲載順位や審査結果には影響しません。ご自身で管理するページにだけ設置してください。</p>
         </div>
-        <ul className="hl-listing-guide__banner-list">
-          {banners.map((banner) => (
-            <li key={banner.href}>
-              <img className="hl-listing-guide__banner-preview" src={banner.href} alt="Eskomi（エスコミ）紹介用バナーのプレビュー" width={banner.width} height={banner.height} />
-              <a href={banner.href} download>{banner.label}をダウンロード</a>
-            </li>
-          ))}
-        </ul>
-        <details className="hl-listing-guide__html">
-          <summary>安全なHTML設置例を見る</summary>
-          <p>画像のURLとリンク先は Eskomi の正規URLです。JavaScript、計測用パラメータ、隠しリンクは含みません。</p>
-          <pre><code>{`<a href="https://mens-esthe-kuchikomi.com/storelisting/" target="_blank" rel="noopener noreferrer">
-  <img src="https://mens-esthe-kuchikomi.com/downloads/eskomi-link-banner-${banners[0].width}x${banners[0].height}.svg" width="${banners[0].width}" height="${banners[0].height}" alt="Eskomi（エスコミ）｜関西メンズエステの店舗情報・口コミ">
+        {reciprocalBanners.length === 0 ? (
+          <div className="hl-listing-guide__banner-pending" role="status">
+            <p><strong>準備中です。</strong> 正式な相互リンク用バナー画像の受領・確認後、この欄でプレビュー、ダウンロード、店舗サイトへの貼り付け用コードをご案内します。</p>
+            <dl><div><dt>プレビュー</dt><dd>画像を準備中です</dd></div><div><dt>ダウンロード</dt><dd>配布できる画像はまだありません</dd></div><div><dt>貼り付け用コード</dt><dd>画像の公開後に表示します</dd></div></dl>
+          </div>
+        ) : <>
+          <ul className="hl-listing-guide__banner-list">
+            {reciprocalBanners.map((banner) => (
+              <li key={banner.href}>
+                <img className="hl-listing-guide__banner-preview" src={banner.href} alt="Eskomi（エスコミ）相互リンク用バナーのプレビュー" width={banner.width} height={banner.height} />
+                <a href={banner.href} download>{banner.label}をダウンロード</a>
+              </li>
+            ))}
+          </ul>
+          <details className="hl-listing-guide__html">
+            <summary>安全なHTML設置例を見る</summary>
+            <p>画像のURLとリンク先は Eskomi の正規URLです。JavaScript、計測用パラメータ、隠しリンクは含みません。</p>
+            <pre><code>{`<a href="${reciprocalLinkTargetUrl}" target="_blank" rel="noopener noreferrer">
+  <img src="https://mens-esthe-kuchikomi.com${reciprocalBanners[0].href}" width="${reciprocalBanners[0].width}" height="${reciprocalBanners[0].height}" alt="Eskomi（エスコミ）｜関西メンズエステの店舗情報・口コミ">
 </a>`}</code></pre>
-        </details>
+          </details>
+        </>}
       </section>
     </section>
   );
