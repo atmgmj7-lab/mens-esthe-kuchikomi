@@ -56,6 +56,7 @@ export default async function PartnerReviewPopPage() {
               <p className="hl-partner-pop__brand">Eskomi（エスコミ）</p>
             </article>
             <PartnerPopActions />
+            <p className="hl-partner-pop__return"><a className="hl-partner-home__text-link" href="/partner/growth/">口コミの案内に戻る</a></p>
           </>
         )}
       </div>

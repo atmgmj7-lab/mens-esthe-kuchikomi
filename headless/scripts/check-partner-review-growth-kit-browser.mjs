@@ -127,7 +127,7 @@ try {
   await partnerA.getByRole("heading", { name: "今やること" }).waitFor({ state: "visible" });
   await partnerA.getByRole("heading", { name: "口コミ状況" }).waitFor({ state: "visible" });
   await partnerA.getByRole("heading", { name: "口コミを集める" }).waitFor({ state: "visible" });
-  await partnerA.getByRole("heading", { name: "最近の動き" }).waitFor({ state: "visible" });
+  await partnerA.getByRole("heading", { name: "最近の確認内容" }).waitFor({ state: "visible" });
   const primaryAction = partnerA.getByRole("link", { name: "口コミURLを確認する" });
   await primaryAction.waitFor({ state: "visible" });
   assert.equal(await primaryAction.getAttribute("href"), "#partner-collect-reviews", "a ready Partner Home must show one safe primary action before operational assets");
@@ -177,6 +177,12 @@ try {
   await partnerA.getByText("設置方法を見る").click();
   await partnerA.getByText("店舗サイトの任意のHTML表示位置へ貼り付けます。").waitFor({ state: "visible" });
   assert.equal(await partnerA.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "390px Growth Center must not overflow horizontally");
+  await partnerA.goto(`${baseUrl}/partner/growth/pop/`, { waitUntil: "domcontentloaded" });
+  await partnerA.getByRole("heading", { name: "ご利用後のご感想をお聞かせください" }).waitFor({ state: "visible" });
+  const popReturn = partnerA.getByRole("link", { name: "口コミの案内に戻る" });
+  assert.equal(await popReturn.getAttribute("href"), "/partner/growth/");
+  await popReturn.click();
+  await partnerA.getByRole("heading", { name: "口コミを集める" }).waitFor({ state: "visible" });
   await partnerA.goto(`${baseUrl}/partner/onboarding/`, { waitUntil: "domcontentloaded" });
   await partnerA.getByRole("heading", { name: "Partner Shop Aのはじめ方" }).waitFor({ state: "visible" });
   await partnerA.getByRole("heading", { name: "最初に確認すること" }).waitFor({ state: "visible" });
@@ -194,7 +200,7 @@ try {
   await partnerB.context().addCookies([{ name: "eskomi_partner_access_token", value: "partner-b-session-token", domain: "127.0.0.1", path: "/partner" }]);
   await partnerB.goto(`${baseUrl}/partner/`, { waitUntil: "domcontentloaded" });
   await partnerB.getByRole("heading", { name: "口コミ導線は準備中です" }).waitFor({ state: "visible" });
-  await partnerB.getByText("有効な口コミCampaignを確認できないため、口コミURLはまだ利用できません。").waitFor({ state: "visible" });
+  await partnerB.getByText("現在使える口コミのご案内を確認できないため、口コミURLはまだ利用できません。").waitFor({ state: "visible" });
   await partnerB.getByRole("link", { name: "公開店舗ページを確認する" }).waitFor({ state: "visible" });
   await partnerB.getByText("口コミ件数を現在確認できません。").waitFor({ state: "visible" });
   assert.equal(await partnerB.getByRole("button", { name: "口コミURLをコピー" }).count(), 0, "no-campaign Home must not expose a working review URL");

@@ -93,17 +93,17 @@ function growthCenterAsset(
       title,
       distribution,
       status: "unavailable",
-      message: matching.length === 0 ? "この導線のCampaignはまだ準備中です。" : "この導線に有効なCampaignがありません。",
-      prerequisite: "運営が正しいCampaignを準備または有効化するまでお待ちください。",
+      message: matching.length === 0 ? "このご案内はまだ準備中です。" : "このご案内は現在利用できません。",
+      prerequisite: "運営で正しいご案内を準備するまでお待ちください。",
     };
   }
   if (active.length !== 1) {
-    return { key, title, distribution, status: "misconfigured", message: "この導線に複数の有効なCampaignがあります。", prerequisite: "運営へ設定確認を依頼してください。" };
+    return { key, title, distribution, status: "misconfigured", message: "このご案内の設定を確認できません。", prerequisite: "運営へお問い合わせください。" };
   }
   const canonical = activeCanonicalCampaign(metrics, channel);
   const value = canonical ? toValue(canonical) : null;
   return value === null
-    ? { key, title, distribution, status: "misconfigured", message: "この導線のCampaign設定を確認できません。", prerequisite: "運営へ設定確認を依頼してください。" }
+    ? { key, title, distribution, status: "misconfigured", message: "このご案内の設定を確認できません。", prerequisite: "運営へお問い合わせください。" }
     : { key, title, distribution, status: "available", value };
 }
 
