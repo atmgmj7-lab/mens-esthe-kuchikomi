@@ -43,9 +43,24 @@ const mock = http.createServer(async (req, res) => {
   if (url.pathname === "/rest/v1/rpc/submit_partner_listing_change") { if (payload.p_workspace_id !== workspaceA) return json(res, 200, "forbidden"); if (payload.p_expected_revision !== current.revision || current.state !== "draft") return json(res, 200, "conflict"); current.state = "submitted"; return json(res, 200, "ok"); }
   if (url.pathname === "/rest/v1/rpc/get_partner_listing_review_queue") return json(res, 200, current.state === "submitted" ? [{ store_id: storeId, shop_slug: "listing-test", revision: current.revision, shop_name: "新規テスト店舗", area: "大阪市", website_url: "https://example.invalid/", introduction: current.introduction, banner_asset_id: current.banner_asset_id, current_public: publicProjection?.introduction ?? null }] : []);
   if (url.pathname === "/rest/v1/rpc/review_partner_listing_change") { if (payload.p_listing_store_id !== storeId || payload.p_expected_revision !== current.revision || current.state !== "submitted") return json(res, 200, "conflict"); if (payload.p_decision === "changes_requested") { current.state = "changes_requested"; latestReview = { decision: "changes_requested", note: payload.p_note, created_at: new Date().toISOString() }; return json(res, 200, "ok"); } current.state = "approved"; latestReview = { decision: "approved", note: payload.p_note, created_at: new Date().toISOString() }; publicProjection = { shop_slug: "listing-test", canonical_url: `http://127.0.0.1:${appPort}/shops/listing-test/`, shop_name: "新規テスト店舗", area: "大阪市", website_url: "https://example.invalid/", introduction: current.introduction, banner_asset_id: current.banner_asset_id, approved_revision: current.revision }; return json(res, 200, "ok"); }
-  if (url.pathname === "/rest/v1/rpc/get_public_listing_store_by_slug") return json(res, 200, payload.p_shop_slug === "listing-test" && publicProjection ? [publicProjection] : []);
+  if (url.pathname === "/rest/v1/rpc/get_public_listing_store_by_slug") return json(res, 200, payload.p_shop_slug === publicProjection?.shop_slug ? [publicProjection] : []);
   if (url.pathname === "/rest/v1/rpc/get_public_partner_listing_banner") return json(res, 200, payload.p_asset_id === bannerId && publicProjection?.banner_asset_id === bannerId ? [{ object_key: `listing-stores/${storeId}/55555555-5555-4555-8555-555555555555.png`, content_type: "image/png" }] : []);
-  if (url.pathname.startsWith("/wp-json/wp/v2/shop")) return json(res, 200, []);
+  if (url.pathname.startsWith("/wp-json/wp/v2/shop")) {
+    if (url.searchParams.get("slug") === "existing-test") return json(res, 200, [{
+      id: 901,
+      status: "publish",
+      date: "2026-10-14T00:00:00",
+      modified: "2026-10-14T00:00:00",
+      slug: "existing-test",
+      link: `${baseUrl}/shops/existing-test/`,
+      title: { rendered: "既存テスト店舗" },
+      content: { rendered: "既存の WordPress 紹介文" },
+      excerpt: { rendered: "" },
+      acf: { official_url: "https://legacy.example.invalid/" },
+      _embedded: { "wp:term": [[]] },
+    }]);
+    return json(res, 200, []);
+  }
   if (url.pathname.includes("/wp/v2/area")) return json(res, 200, []);
   return json(res, 404, {});
 });
@@ -66,6 +81,8 @@ try {
   await partner.goto(`${baseUrl}/partner/listing/`, { waitUntil: "domcontentloaded" }); await partner.getByText("紹介文を具体化してください。").waitFor(); await partner.getByRole("textbox", { name: "紹介文" }).fill("差し戻し後に修正した紹介文"); await partner.getByRole("button", { name: "下書きを保存" }).click(); await partner.getByRole("button", { name: "変更を申請する" }).click();
   await operator.reload({ waitUntil: "domcontentloaded" }); await operator.locator("table").getByText("差し戻し後に修正した紹介文").waitFor(); operator.once("dialog", (dialog) => dialog.accept("確認済み")); await operator.getByRole("button", { name: "承認して公開" }).first().click(); await operator.getByText("確認待ちの本人編集はありません。").waitFor();
   const publicPage = await browser.newPage({ viewport: { width: 390, height: 844 } }); assert.equal((await publicPage.goto(`${baseUrl}/shops/listing-test/`, { waitUntil: "domcontentloaded" }))?.status(), 200); await publicPage.getByText("差し戻し後に修正した紹介文").waitFor(); assert.equal(await publicPage.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "SP public page must not overflow"); if (screenshotDir) await publicPage.screenshot({ path: `${screenshotDir}/partner-listing-390.png`, fullPage: true }); await publicPage.setViewportSize({ width: 1280, height: 900 }); assert.equal(await publicPage.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "PC public page must not overflow"); if (screenshotDir) await publicPage.screenshot({ path: `${screenshotDir}/partner-listing-1280.png`, fullPage: true }); assert.equal((await publicPage.goto(`${baseUrl}/api/partner/listing/banner/${bannerId}/`))?.status(), 200, "approved banner must be public");
+  publicProjection = { shop_slug: "existing-test", canonical_url: `${baseUrl}/shops/existing-test/`, shop_name: "既存テスト店舗", area: "大阪市北区", website_url: "https://overlay.example.invalid/", introduction: "既存店舗の承認済み紹介文", banner_asset_id: null, approved_revision: 7 };
+  const existingPublic = await browser.newPage({ viewport: { width: 1280, height: 900 } }); assert.equal((await existingPublic.goto(`${baseUrl}/shops/existing-test/`, { waitUntil: "domcontentloaded" }))?.status(), 200); await existingPublic.getByText("既存店舗の承認済み紹介文").waitFor(); assert.equal(await existingPublic.getByRole("link", { name: "公式サイトを見る" }).getAttribute("href"), "https://overlay.example.invalid/", "approved Partner fields must overlay the original WordPress slug");
   const other = await browser.newPage(); await other.context().addCookies([{ name: "eskomi_partner_access_token", value: "partner-b-session-token", domain: "127.0.0.1", path: "/" }]); await other.goto(`${baseUrl}/partner/listing/`); assert.equal(await other.evaluate(async () => (await fetch("/api/partner/listing/")).status), 403, "other store must be denied"); assert.equal(await operator.evaluate(async () => (await fetch("/api/dashboard/partner-listing-revisions/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storeId: "33333333-3333-4333-8333-333333333333", revision: 2, decision: "approved" }) })).status), 409, "stale approval must be denied");
-  await Promise.all([anon.close(), partner.close(), operator.close(), publicPage.close(), other.close()]); console.log("partner listing editor browser E2E: PASS");
+  await Promise.all([anon.close(), partner.close(), operator.close(), publicPage.close(), existingPublic.close(), other.close()]); console.log("partner listing editor browser E2E: PASS");
 } finally { await browser.close(); await stop(next); await new Promise((resolve) => mock.close(resolve)); }
