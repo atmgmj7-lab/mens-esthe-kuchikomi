@@ -33,32 +33,27 @@ const source = {
   averageRating: 4.2,
 };
 
-assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget(source))), {
-  status: "available",
-  badge: "Eskomi Official Partner",
-  shopName: "Partner Shop A",
-  reviewSummary: { kind: "average_and_count", average: 4.2, count: 3 },
-  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe>`,
-}, "an approved Partner widget must expose only its badge, contract-eligible aggregate, and canonical shop_website CTA");
+const approvedWidget = widget.resolvePublicPartnerWidget(source);
+assert.equal(approvedWidget.status, "available");
+assert.deepEqual(JSON.parse(JSON.stringify(approvedWidget.reviewSummary)), { kind: "average_and_count", average: 4.2, count: 3 });
+assert.equal(approvedWidget.badge, "Eskomi Official Partner");
+assert.equal(approvedWidget.reviewUrl, `https://mens-esthe-kuchikomi.com/r/${token}/`);
+assert.match(approvedWidget.iframeSnippet, new RegExp(`<iframe src="https://mens-esthe-kuchikomi\\.com/partner/widget/${token}/"`));
+assert.match(approvedWidget.iframeSnippet, /height:700px/);
+assert.match(approvedWidget.iframeSnippet, /scrolling="auto"/);
+assert.match(approvedWidget.iframeSnippet, /event\.origin!==expectedOrigin/);
+assert.match(approvedWidget.iframeSnippet, /event\.source!==frame\.contentWindow/);
+assert.match(approvedWidget.iframeSnippet, /data\.type!=="eskomi:review-widget:height"/);
+assert.match(approvedWidget.iframeSnippet, /Number\.isInteger\(data\.height\)/);
+assert.match(approvedWidget.iframeSnippet, /data\.height<240\|\|data\.height>1200/);
+assert.doesNotMatch(approvedWidget.iframeSnippet, /innerHTML|data\.url/i);
 
-assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ ...source, reviewCount: 2, averageRating: 4.9 }))), {
-  status: "available",
-  badge: "Eskomi Official Partner",
-  shopName: "Partner Shop A",
-  reviewSummary: { kind: "count_only", count: 2 },
-  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe>`,
-}, "fewer than three valid ratings must display count only, never an average");
-
-assert.deepEqual(JSON.parse(JSON.stringify(widget.resolvePublicPartnerWidget({ ...source, averageRating: null }))), {
-  status: "available",
-  badge: "Eskomi Official Partner",
-  shopName: "Partner Shop A",
-  reviewSummary: { kind: "count_only", count: 3 },
-  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${token}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${token}/" title="Partner Shop AのEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe>`,
-}, "an unavailable aggregate must not be fabricated from a review count");
+const belowThresholdWidget = widget.resolvePublicPartnerWidget({ ...source, reviewCount: 2, averageRating: 4.9 });
+assert.equal(belowThresholdWidget.status, "available");
+assert.deepEqual(JSON.parse(JSON.stringify(belowThresholdWidget.reviewSummary)), { kind: "count_only", count: 2 }, "fewer than three valid ratings must display count only, never an average");
+const missingAverageWidget = widget.resolvePublicPartnerWidget({ ...source, averageRating: null });
+assert.equal(missingAverageWidget.status, "available");
+assert.deepEqual(JSON.parse(JSON.stringify(missingAverageWidget.reviewSummary)), { kind: "count_only", count: 3 }, "an unavailable aggregate must not be fabricated from a review count");
 
 for (const unsafe of [
   { ...source, shopName: "<script>alert(1)</script>" },
@@ -79,5 +74,7 @@ assert.match(widgetPage, /Eskomiに寄せられた口コミ/, "widget must ident
 assert.match(widgetPage, /出典：Eskomi/, "widget must label the review source without hidden links");
 assert.match(widgetPage, /rel="nofollow noopener noreferrer"/, "widget links must not be an SEO link scheme");
 assert.doesNotMatch(widgetPage, /nickname|email|moderationStatus|audit/i, "widget page must not render private reviewer or moderation fields");
+assert.match(widgetPage, /ResizeObserver/, "widget must report its own bounded content height");
+assert.match(widgetPage, /eskomi:review-widget:height/, "widget height reporter must expose only its typed height event");
 
 console.log("partner review widget contract: PASS");

@@ -22,6 +22,11 @@ function formatDate(value: string | null): string | null {
   return Number.isNaN(date.getTime()) ? null : new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium" }).format(date);
 }
 
+function WidgetHeightReporter() {
+  const code = `(()=>{let lastHeight=0,queued=false;const report=()=>{queued=false;const height=Math.max(240,Math.min(1200,Math.ceil(document.documentElement.scrollHeight)));if(Math.abs(height-lastHeight)<2)return;lastHeight=height;let origin="*";try{if(document.referrer)origin=new URL(document.referrer).origin;}catch{}window.parent.postMessage({type:"eskomi:review-widget:height",height},origin);};const queue=()=>{if(queued)return;queued=true;requestAnimationFrame(report);};addEventListener("load",queue,{once:true});new ResizeObserver(queue).observe(document.body);queue();})();`;
+  return <script dangerouslySetInnerHTML={{ __html: code }} />;
+}
+
 export default async function PartnerReviewWidgetPage({ params }: Readonly<{ params: Promise<{ token: string }> }>) {
   await connection();
   const token = (await params).token;
@@ -40,7 +45,7 @@ export default async function PartnerReviewWidgetPage({ params }: Readonly<{ par
   });
   if (widget.status !== "available") notFound();
 
-  return <main className="hl-partner-widget" aria-label={`${widget.shopName}のEskomi口コミ`}>
+  return <><main className="hl-partner-widget" aria-label={`${widget.shopName}のEskomi口コミ`}>
     <p className="hl-partner-widget__badge">{widget.badge}</p>
     <p className="hl-partner-widget__shop">{widget.shopName}</p>
     <p>{widget.reviewSummary.kind === "average_and_count"
@@ -55,5 +60,5 @@ export default async function PartnerReviewWidgetPage({ params }: Readonly<{ par
       </li>)}
     </ul>}
     <p className="hl-partner-widget__actions"><a href={campaign.canonicalUrl} target="_blank" rel="nofollow noopener noreferrer">Eskomiで口コミをもっと見る</a><a href={widget.reviewUrl} target="_blank" rel="nofollow noopener noreferrer">口コミを書く</a></p>
-  </main>;
+  </main><WidgetHeightReporter /></>;
 }

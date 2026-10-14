@@ -109,7 +109,7 @@ export default async function PartnerDashboardPage() {
             <section className="hl-partner-home__asset" aria-labelledby="partner-widget-heading">
               <h3 id="partner-widget-heading">店舗サイトの口コミ表示</h3>
               <p>設置は任意です。</p>
-              {widgetAsset?.status === "available" && widgetEmbed ? <><p><a className="hl-partner-home__text-link" href={widgetAsset.value} target="_blank" rel="noreferrer">表示内容を確認</a></p><p><code className="hl-partner-growth-kit__value">{widgetEmbed}</code></p><PartnerCopyButton label="設置用コード" value={widgetEmbed} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(widgetAsset)}</p>}
+              {widgetAsset?.status === "available" && widgetEmbed ? <><p><a className="hl-partner-home__text-link" href={widgetAsset.value} target="_blank" rel="noreferrer">表示内容を確認</a></p><p><code className="hl-partner-growth-kit__value">{widgetEmbed}</code></p><PartnerCopyButton label="設置用コード" value={widgetEmbed} /><p className="hl-partner-home__hint">scriptを貼れないCMSではiframeだけを使えます。高さは700px固定で、内容が多い場合は枠内をスクロールします。</p></> : <p className="hl-partner-home__unavailable">{unavailableMessage(widgetAsset)}</p>}
             </section>
           </div>
         </section>

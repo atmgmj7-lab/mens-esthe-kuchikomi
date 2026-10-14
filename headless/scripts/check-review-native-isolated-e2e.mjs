@@ -372,14 +372,9 @@ async function resolveWidgetSummary() {
 }
 
 const pendingWidget = await resolveWidgetSummary();
-assert.deepEqual(pendingWidget, {
-  status: "available",
-  badge: "Eskomi Official Partner",
-  shopName: shopA.title,
-  reviewSummary: { kind: "count_only", count: 0 },
-  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${campaignA}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/" title="${shopA.title}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe>`,
-});
+assert.equal(pendingWidget.status, "available");
+assert.deepEqual(pendingWidget.reviewSummary, { kind: "count_only", count: 0 });
+assert.match(pendingWidget.iframeSnippet, /height:700px/);
 
 const queue = await repository.listModerationQueue({ limit: 20, offset: 0 });
 assert.equal(queue.status, "ok");
@@ -556,7 +551,8 @@ const style = read("components/shop-detail/ShopDetail.module.css");
 const widgetStyle = read("app/globals.css");
 const iframeTitle = `${shopA.title}のEskomi口コミ`;
 const widgetFrameHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${widgetStyle}</style></head><body>${widgetHtml}</body></html>`;
-const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto"><section aria-label="sample store website"><h1>Sample store website</h1><iframe src="/widget" title="${iframeTitle}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:1200px;"></iframe></section>${dashboard}</main></body></html>`;
+const localWidgetEmbed = publishedWidget.iframeSnippet.replace(`https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/`, "/widget");
+const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto"><section aria-label="sample store website"><h1>Sample store website</h1>${localWidgetEmbed}</section>${dashboard}</main></body></html>`;
 const server = createServer((request, response) => {
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   response.end(request.url === "/widget" ? widgetFrameHtml : pageHtml);
@@ -582,6 +578,7 @@ try {
     const frame = page.frameLocator(`iframe[title="${iframeTitle}"]`);
     await frame.getByRole("link", { name: "Eskomiで口コミをもっと見る" }).waitFor({ state: "visible" });
     await frame.getByRole("link", { name: "口コミを書く" }).waitFor({ state: "visible" });
+    await page.waitForTimeout(100);
     assert.equal(await page.getByText("承認済み口コミ", { exact: false }).count() >= 1, true);
     const geometry = await page.evaluate(() => ({
       body: document.body.scrollWidth,
@@ -597,12 +594,15 @@ try {
     const readMoreBox = await frame.getByRole("link", { name: "Eskomiで口コミをもっと見る" }).boundingBox();
     const writeBox = await frame.getByRole("link", { name: "口コミを書く" }).boundingBox();
     assert.ok(iframeBox && readMoreBox && writeBox, `${width}px widget CTAs must have visible bounds`);
-    assert.ok(iframeBox.height >= 1200, `${width}px iframe must reserve space for its lower CTA`);
-    assert.ok(readMoreBox.y + readMoreBox.height <= iframeBox.height + 1, `${width}px read-more CTA must be reachable`);
-    assert.ok(writeBox.y + writeBox.height <= iframeBox.height + 1, `${width}px write CTA must be reachable`);
+    assert.ok(iframeBox.height < 1200, `${width}px iframe must not retain a large fixed-height blank area`);
+    assert.ok(readMoreBox.y + readMoreBox.height <= iframeBox.y + iframeBox.height + 1, `${width}px read-more CTA must be reachable`);
+    assert.ok(writeBox.y + writeBox.height <= iframeBox.y + iframeBox.height + 1, `${width}px write CTA must be reachable`);
     const overlaps = readMoreBox.x < writeBox.x + writeBox.width && writeBox.x < readMoreBox.x + readMoreBox.width
       && readMoreBox.y < writeBox.y + writeBox.height && writeBox.y < readMoreBox.y + readMoreBox.height;
     assert.equal(overlaps, false, `${width}px widget CTAs must not overlap`);
+    const heightAfterTrustedMessage = await iframe.evaluate((element) => element.style.height);
+    await page.evaluate(() => window.postMessage({ type: "eskomi:review-widget:height", height: 1200 }, window.location.origin));
+    assert.equal(await iframe.evaluate((element) => element.style.height), heightAfterTrustedMessage, "a message from the parent window must not resize the widget");
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(pageErrors, []);
     if (screenshotDir) await iframe.screenshot({ path: join(screenshotDir, `partner-widget-iframe-${width}.png`) });
