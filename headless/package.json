@@ -46,6 +46,7 @@
     "test:partner-listing-editor": "node scripts/check-partner-listing-editor-contract.mjs",
     "test:partner-listing-editor-ui": "node scripts/check-partner-listing-editor-ui.mjs",
     "qa:partner-listing-editor": "npm run build && node scripts/check-partner-listing-editor-browser.mjs",
+    "qa:partner-listing-editor-local-supabase": "npm run build && node scripts/check-partner-listing-editor-local-supabase-browser.mjs",
     "test:partner-listing-editor-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_listing_editor.sql",
     "qa:listing-application-local": "node scripts/check-listing-application-browser.mjs",
     "test:free-partner-foundation": "node scripts/check-free-partner-foundation.mjs",
