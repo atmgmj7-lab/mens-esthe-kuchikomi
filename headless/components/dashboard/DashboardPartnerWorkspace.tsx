@@ -134,13 +134,16 @@ export function DashboardPartnerWorkspace({ shops, reviews }: { shops: ShopOptio
       </section>
 
       {reviews.filter((review) => review.status === "approved" && (review.workspaceState === "free_official_partner" || review.workspaceState === "active_partner")).map((review) => {
-        const activeCampaigns = CAMPAIGN_CHANNELS.map(({ channel, label }) => ({ label, campaign: review.campaigns.find((campaign) => campaign.channel === channel && campaign.isActive) }));
-        if (!activeCampaigns.every(({ campaign }) => campaign)) return null;
+        const activeCampaigns = CAMPAIGN_CHANNELS.flatMap(({ channel, label }) => {
+          const campaign = review.campaigns.find((item) => item.channel === channel && item.isActive);
+          return campaign ? [{ label, campaign }] : [];
+        });
+        if (activeCampaigns.length === 0) return null;
         return <section className="hl-partner-growth-kit" aria-labelledby={`partner-kit-${review.submissionId}`} key={review.submissionId}>
           <h2 id={`partner-kit-${review.submissionId}`}>{review.shop.title} のGrowth Kit</h2>
           <p className="hl-partner-growth-kit__copy">率直な口コミにご協力ください</p>
-          <p>承認済みの4チャネルです。公開用リンクとQRは運営用の操作画面からのみ取得できます。</p>
-          <ul>{activeCampaigns.map(({ label, campaign }) => campaign ? <li key={campaign.id}><strong>{label}</strong><button type="button" onClick={() => copyCampaignUrl(campaign.token)}>公開用リンクをコピー</button><a href={`/api/dashboard/partners/qr/?token=${encodeURIComponent(campaign.token)}`} target="_blank" rel="noreferrer">QRを開く</a></li> : null)}</ul>
+          <p>有効なチャネルだけを表示しています。公開用リンクとQRは運営用の操作画面からのみ取得できます。</p>
+          <ul>{activeCampaigns.map(({ label, campaign }) => <li key={campaign.id}><strong>{label}</strong><button type="button" onClick={() => copyCampaignUrl(campaign.token)}>公開用リンクをコピー</button><a href={`/api/dashboard/partners/qr/?token=${encodeURIComponent(campaign.token)}`} target="_blank" rel="noreferrer">QRを開く</a></li>)}</ul>
         </section>;
       })}
     </section>
