@@ -1,4 +1,4 @@
--- STEP1 local-only schema. Do not apply to production without separate review.
+-- Private listing-application schema. Production application is gated by release review.
 create type private.listing_application_kind as enum ('new_listing', 'existing_change');
 create type private.listing_edit_preference as enum ('operator', 'shop');
 create type private.listing_application_state as enum ('received', 'identity_review', 'content_review', 'changes_requested', 'approved_candidate', 'rejected');
@@ -49,4 +49,5 @@ grant select, insert, update on table private.listing_applications, private.list
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('listing-application-private', 'listing-application-private', false, 5242880, array['image/png','image/jpeg','image/webp'])
 on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
-revoke all on storage.objects from anon, authenticated;
+-- Storage object RLS already denies browser roles without a bucket-specific policy.
+-- Do not alter global storage.objects grants: other buckets may rely on them.
