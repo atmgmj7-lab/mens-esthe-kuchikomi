@@ -332,17 +332,15 @@ assert.match(
 );
 assert.match(
   workflow,
-  /- name: Verify critical Area build artifacts[\s\S]*?npm run verify:critical-area-build-artifacts/,
-  "workflow must reject fallback/not-found critical Area artifacts"
+  /- name: Verify critical Area validation artifacts[\s\S]*?npm run verify:critical-area-build-artifacts/,
+  "workflow must reject fallback/not-found critical Area validation artifacts before remote deployment"
 );
 
 const requiredReleaseSteps = [
   "Critical WordPress build preflight",
   "Build (CI validation)",
   "Verify critical Area validation artifacts",
-  "Vercel build (prebuilt)",
-  "Verify critical Area build artifacts",
-  "Create staged Vercel production deployment",
+  "Create staged Vercel remote-build deployment",
   "Verify exact staged deployment",
   "Record staged release gate result"
 ];
@@ -357,14 +355,15 @@ assert.deepEqual(
   "critical preflight and artifact guards must run before Vercel deployment"
 );
 
-const vercelArtifactGuardStep = workflow.match(
-  /- name: Verify critical Area build artifacts([\s\S]*?)(?=\n\s+- name:)/
+const remoteBuildDeployStep = workflow.match(
+  /- name: Create staged Vercel remote-build deployment([\s\S]*?)(?=\n\s+- name:)/
 )?.[1];
-assert.ok(vercelArtifactGuardStep, "Vercel artifact guard step must exist");
-assert.match(
-  vercelArtifactGuardStep,
-  /npm run verify:critical-area-build-artifacts -- --vercel/,
-  "the post-Vercel-build guard must inspect the Vercel output"
+assert.ok(remoteBuildDeployStep, "remote-build deployment step must exist");
+assert.match(remoteBuildDeployStep, /vercel deploy/, "remote-build deployment must invoke Vercel");
+assert.doesNotMatch(
+  remoteBuildDeployStep,
+  /--prebuilt/,
+  "remote-build deployment must not accidentally restore the obsolete local prebuilt path"
 );
 
 console.log("WordPress critical build fail-closed contract checks passed");

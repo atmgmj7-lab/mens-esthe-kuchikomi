@@ -50,7 +50,11 @@ assert.match(nextSource, /status:\s*["']available["']/);
 assert.match(nextSource, /status:\s*["']unavailable["']/);
 
 assert.match(shopPageSource, /Promise\.all\s*\(/);
-assert.match(shopPageSource, /publicReviewAdapter\.getShopReviews\(\s*shop\s*,\s*1\s*,\s*3\s*\)/);
+assert.match(
+  shopPageSource,
+  /publicReviewAdapter\.getShopReviews\(\s*approvedShop\s*,\s*1\s*,\s*3\s*\)/,
+  "the shop detail review request must use the approved public listing overlay",
+);
 assert.doesNotMatch(shopPageSource, /getAreaById|getParentArea/);
 assert.match(shopDetailSource, /reviewResult:\s*PublicShopReviewResult/);
 assert.doesNotMatch(shopDetailSource, /extractShopUserReviewItems/);
