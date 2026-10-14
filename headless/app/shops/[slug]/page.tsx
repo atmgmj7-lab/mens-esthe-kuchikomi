@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ShopDetail } from "@/components/ShopDetail";
 import { getAreas } from "@/lib/wp/areas";
 import { makeDescription, pageMetadata } from "@/lib/seo";
@@ -14,6 +15,7 @@ import { PublicPartnerListing } from "@/components/partner/PublicPartnerListing"
 type Props = {
   params: Promise<{ slug: string }>;
 };
+export const instant = false;
 
 export async function generateStaticParams() {
   return getStaticParamsOrFallback(
@@ -50,6 +52,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ShopPage({ params }: Props) {
+  await connection();
   const { slug } = await params;
   const [shop, partner] = await Promise.all([withWpBuildFallback(`shop page ${slug}`, () => getShopBySlug(slug), null), getPublicPartnerListing(slug)]);
   if (!shop && !partner) notFound();
