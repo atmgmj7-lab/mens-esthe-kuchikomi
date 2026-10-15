@@ -248,7 +248,7 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   try {
     while (page <= totalPages) {
       const { data, pagination } = await wpFetchPaginated<WpShop[]>(
-        `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_fields=slug,modified`
+        `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_fields=id,slug,modified`
       );
       entries.push(...data.map((shop) => ({ id: shop.id, slug: shop.slug, modified: shop.modified })));
       totalPages = pagination.totalPages;
