@@ -13,12 +13,14 @@ const compiled = ts.transpileModule(readFileSync(sourcePath, "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
 }).outputText;
 const loaded = { exports: {} };
+let paginatedReader = async () => { throw new Error("unexpected default reader"); };
+let directoryState = { publications: [], suppressions: [] };
 vm.runInNewContext(compiled, {
   module: loaded,
   exports: loaded.exports,
   require: (id) => ({
     crypto: { createHash: () => ({ update: () => ({ digest: () => "fixture" }) }) },
-    "@/lib/wp/client": { wpFetch: async () => [], wpFetchPaginated: async () => { throw new Error("unexpected default reader"); } },
+    "@/lib/wp/client": { wpFetch: async () => [], wpFetchPaginated: (path) => paginatedReader(path) },
     "next/cache": { cacheLife: () => undefined, cacheTag: () => undefined },
     "@/lib/wp/normalize": { normalizeShop: (shop) => shop },
     "@/lib/wp/build-resilience": { logWpBuildFallback: () => undefined },
@@ -26,7 +28,7 @@ vm.runInNewContext(compiled, {
     "@/lib/managed-shop-source": {
       composeManagedShopDirectory: async (shops) => shops,
       findPublishedManagedShopBySlug: async () => null,
-      getManagedShopDirectoryState: async () => ({ publications: [], suppressions: [] }),
+      getManagedShopDirectoryState: async () => directoryState,
       isManagedShopDirectoryUnavailableError: () => false,
       isManagedShopLegacySuppressedBySlug: async () => false,
     },
@@ -34,8 +36,9 @@ vm.runInNewContext(compiled, {
   console,
 }, { filename: "lib/wp/shops.ts.cjs" });
 
-const { fetchCompleteWordPressShopList } = loaded.exports;
+const { fetchCompleteWordPressShopList, getShopsForSitemap } = loaded.exports;
 assert.equal(typeof fetchCompleteWordPressShopList, "function", "shop enumeration must expose the completeness guard");
+assert.equal(typeof getShopsForSitemap, "function", "sitemap reader must be available");
 
 const page = (ids, total = 200) => ({
   data: ids.map((id) => ({ id })),
@@ -70,5 +73,21 @@ await assert.rejects(
   /incomplete WordPress shop page/i,
   "short pages must be rejected instead of being rendered as a smaller public directory",
 );
+
+const sitemapPaths = [];
+paginatedReader = async (path) => {
+  sitemapPaths.push(path);
+  return {
+    data: [{ id: 1272, slug: "%e3%81%af%e3%81%aa%e3%81%ae%e6%b9%af", modified: "2026-10-15T00:00:00" }],
+    pagination: { total: 1, totalPages: 1 },
+  };
+};
+directoryState = {
+  publications: [],
+  suppressions: [{ existing_wp_shop_id: 1272, shop_slug: "%e3%81%af%e3%81%aa%e3%81%ae%e6%b9%af" }],
+};
+assert.equal(JSON.stringify(await getShopsForSitemap()), "[]", "an unlisted legacy shop must be removed from the sitemap");
+const sitemapRequest = new URL(`https://example.test${sitemapPaths.at(-1)}`);
+assert.equal(sitemapRequest.searchParams.get("_fields"), "id,slug,modified", "sitemap entries must request the legacy WordPress id used by the unlisting suppression");
 
 console.log("WordPress shop pagination completeness: PASS");
