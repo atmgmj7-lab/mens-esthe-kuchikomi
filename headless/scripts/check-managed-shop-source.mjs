@@ -14,7 +14,7 @@ const source = readFileSync(filename, "utf8")
 const output = ts.transpileModule(source, { fileName: filename, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const module = { exports: {} };
 vm.runInNewContext(output, { module, exports: module.exports, process: { env: {} } });
-const { composeManagedShopPublications } = module.exports;
+const { composeManagedShopPublications, composeManagedShopPublicationsForArea } = module.exports;
 
 const legacy = {
   id: 768, publicationStatus: "publish", slug: "legacy-shop", link: "https://mens-esthe-kuchikomi.com/shops/legacy-shop/", title: "旧店舗",
@@ -49,5 +49,32 @@ const unlisted = composeManagedShopPublications([legacy], [], [{ existing_wp_sho
 assert.equal(unlisted.length, 0, "an approved legacy shop explicitly unlisted by the operator must not fall back to WordPress");
 const suppressionMismatch = composeManagedShopPublications([legacy], [], [{ existing_wp_shop_id: 768, shop_slug: "different-slug" }]);
 assert.equal(suppressionMismatch.length, 1, "a mismatched unlist identity must not hide a WordPress shop");
+
+assert.equal(typeof composeManagedShopPublicationsForArea, "function", "managed area composition must preserve multi-area legacy membership");
+const multiAreaLegacy = {
+  ...legacy,
+  id: 769,
+  slug: "multi-area-legacy",
+  areaSlug: "other-area",
+  terms: [{ id: 13, slug: "target-area", name: "対象" }, { id: 99, slug: "other-area", name: "別エリア" }],
+};
+const movedOutLegacy = { ...legacy, id: 770, slug: "moved-out-legacy", areaSlug: "target-area" };
+const movedInLegacy = { ...legacy, id: 771, slug: "moved-in-legacy", areaSlug: "other-area" };
+const movedOut = { ...overlay, existing_wp_shop_id: 770, shop_slug: "moved-out-legacy", area_slug: "other-area" };
+const movedIn = { ...overlay, existing_wp_shop_id: 771, shop_slug: "moved-in-legacy", area_slug: "target-area" };
+const targetNew = { ...created, area_slug: "target-area" };
+const targetArea = composeManagedShopPublicationsForArea(
+  "target-area",
+  [multiAreaLegacy, movedOutLegacy],
+  [movedInLegacy],
+  [movedOut, movedIn, targetNew],
+);
+assert.deepEqual(
+  Array.from(targetArea, (shop) => shop.id),
+  [769, 771, targetNew.directory_id],
+  "managed area composition must retain legacy taxonomy members, move approved legacy records once, and append approved new stores",
+);
+assert.equal(targetArea[0].slug, "multi-area-legacy", "a legacy secondary taxonomy membership must remain visible without an approved move");
+assert.equal(targetArea[1].areaSlug, "target-area", "an approved move must appear only in its approved target area");
 
 console.log("managed-shop public source composition: PASS");

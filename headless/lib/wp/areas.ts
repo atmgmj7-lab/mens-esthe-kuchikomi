@@ -4,9 +4,13 @@ import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getAreaShopOrderIndex, fetchAreaShopsInOrder } from "@/lib/wp/area-shop-order";
 import { applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
-import { composeManagedShopDirectory, isManagedShopDirectoryUnavailableError } from "@/lib/managed-shop-source";
+import {
+  composeManagedShopPublicationsForArea,
+  getManagedShopDirectoryState,
+  isManagedShopDirectoryUnavailableError,
+} from "@/lib/managed-shop-source";
 import { useSupabaseManagedShopDirectory } from "@/lib/supabase/managed-shop-directory";
-import { getAllWordPressShops } from "@/lib/wp/shops";
+import { getWordPressShopById } from "@/lib/wp/shops";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
@@ -107,6 +111,29 @@ export type GetAreaShopsOptions = {
   perPage?: number;
 };
 
+async function getManagedAreaShops(area: AreaView): Promise<ShopView[]> {
+  const [entries, state] = await Promise.all([
+    getAreaShopOrderIndex(area.id),
+    getManagedShopDirectoryState(),
+  ]);
+  const legacyAreaShops = (await fetchAreaShopsInOrder(area.id, entries)).map(normalizeShop);
+  const directLegacyIds = new Set(legacyAreaShops.map((shop) => shop.id));
+  const movedInLegacyShops = (await Promise.all(
+    state.publications
+      .filter((publication) => publication.existing_wp_shop_id !== null
+        && publication.area_slug === area.slug
+        && !directLegacyIds.has(publication.existing_wp_shop_id))
+      .map((publication) => getWordPressShopById(publication.existing_wp_shop_id as number)),
+  )).filter((shop): shop is ShopView => shop !== null);
+  return composeManagedShopPublicationsForArea(
+    area.slug,
+    legacyAreaShops,
+    movedInLegacyShops,
+    state.publications,
+    state.suppressions,
+  );
+}
+
 export async function getAreaShops(
   areaId: number,
   page = 1,
@@ -131,12 +158,11 @@ export async function getAreaShops(
       const shops = await fetchAreaShopsInOrder(areaId, entries);
       return { shops: await applyManagedShopFactsToList(shops.map(normalizeShop)), totalPages };
     }
-    const [area, shops] = await Promise.all([getAreaById(areaId), getAllWordPressShops()]);
+    const area = await getAreaById(areaId);
     if (!area) return { shops: [], totalPages: 1 };
-    const composed = await composeManagedShopDirectory(shops);
-    const scoped = composed.filter((shop) => shop.areaSlug === area.slug);
-    const totalPages = Math.max(1, Math.ceil(scoped.length / perPage));
-    return { shops: await applyManagedShopFactsToList(scoped.slice((page - 1) * perPage, page * perPage)), totalPages };
+    const managedShops = await getManagedAreaShops(area);
+    const totalPages = Math.max(1, Math.ceil(managedShops.length / perPage));
+    return { shops: await applyManagedShopFactsToList(managedShops.slice((page - 1) * perPage, page * perPage)), totalPages };
   } catch (error) {
     if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`area shops ${areaId}`, error);
@@ -160,7 +186,7 @@ export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
     }
     const area = await getAreaById(areaId);
     if (!area) return [];
-    return applyManagedShopFactsToList((await composeManagedShopDirectory(await getAllWordPressShops())).filter((shop) => shop.areaSlug === area.slug));
+    return applyManagedShopFactsToList(await getManagedAreaShops(area));
   } catch (error) {
     if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`area ranking shops ${areaId}`, error);

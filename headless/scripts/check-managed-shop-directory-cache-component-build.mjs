@@ -1,6 +1,32 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
+import { createServer as createNetServer } from "node:net";
+
+async function reservePort() {
+  const reservation = createNetServer();
+  await new Promise((resolve) => reservation.listen(0, "127.0.0.1", resolve));
+  const address = reservation.address();
+  assert.ok(address && typeof address !== "string");
+  const port = address.port;
+  await new Promise((resolve, reject) => reservation.close((error) => error ? reject(error) : resolve()));
+  return port;
+}
+
+async function waitForResponse(url) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw lastError ?? new Error("Next server did not become ready");
+}
 
 const server = createServer((request, response) => {
   if (request.method !== "POST" || !request.url?.startsWith("/rest/v1/rpc/")) {
@@ -44,6 +70,27 @@ try {
     child.once("exit", (code, signal) => resolve({ code, signal }));
   });
   assert.deepEqual(result, { code: 0, signal: null }, "successful managed-source RPC reads must remain inside cache boundaries during the production build");
+  const port = await reservePort();
+  const nextServer = spawn("./node_modules/.bin/next", ["start", "-p", String(port)], {
+    env: {
+      ...process.env,
+      SHOP_DIRECTORY_SOURCE: "supabase",
+      SHOP_MANAGEMENT_SOURCE: "supabase",
+      RANKUP_NATIVE_REVIEW_READ_SOURCE: "supabase",
+      SUPABASE_URL: `http://127.0.0.1:${address.port}`,
+      SUPABASE_SECRET_KEY: "fixture-service-secret",
+    },
+    stdio: "ignore",
+  });
+  try {
+    for (const [slug, expected] of [["shinosaka", 58], ["sakai", 25]]) {
+      const response = await waitForResponse(`http://127.0.0.1:${port}/area/${slug}/`);
+      const html = await response.text();
+      assert.equal((html.match(/data-area-shop-card="true"/g) ?? []).length, expected, `${slug} must retain every WordPress taxonomy member when the managed directory source is enabled`);
+    }
+  } finally {
+    nextServer.kill();
+  }
 } finally {
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 }
