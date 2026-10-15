@@ -59,7 +59,7 @@ assert.match(factsAdapter, /Content-Profile": "api"/);
 assert.doesNotMatch(factsAdapter, /rest\/v1\/private/i, "browser/public経路からprivate schemaを直接公開してはならない");
 
 const presentation = readFileSync(join(root, "components/dashboard/OperatorShops.tsx"), "utf8");
-for (const label of ["公開情報", "店舗アカウント", "口コミ", "口コミの案内", "店頭・店舗サイトで使うもの", "掲載対象外"]) {
+for (const label of ["公開情報", "店舗アカウント", "口コミ", "口コミの案内", "店頭・店舗サイトで使うもの", "掲載を停止・再開"]) {
   assert.match(presentation, new RegExp(label));
 }
 assert.doesNotMatch(presentation, /contactEmail|contactName|confirmationDetails|service.?role/i, "Operator Shop統合表示は連絡先PII・service権限を投影しない");

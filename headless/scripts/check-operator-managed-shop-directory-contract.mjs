@@ -9,6 +9,7 @@ const visibilityMigration = join(root, "../supabase/migrations/20261015033805_op
 const workflowApiMigration = join(root, "../supabase/migrations/20261015034000_operator_managed_shop_workflow_api.sql");
 const assetVisibilityMigration = join(root, "../supabase/migrations/20261015034200_operator_managed_shop_asset_visibility.sql");
 const suppressionMigration = join(root, "../supabase/migrations/20261015041913_managed_shop_unlisted_legacy_suppression.sql");
+const directPublishMigration = join(root, "../supabase/migrations/20261015100707_operator_direct_publish_and_unlist.sql");
 const fixture = join(root, "../supabase/tests/verify_operator_managed_shop_directory.sql");
 
 assert.ok(existsSync(migration), "managed-shop migration is required");
@@ -19,6 +20,8 @@ const visibilitySql = readFileSync(visibilityMigration, "utf8");
 const workflowApiSql = readFileSync(workflowApiMigration, "utf8");
 const assetVisibilitySql = readFileSync(assetVisibilityMigration, "utf8");
 const suppressionSql = readFileSync(suppressionMigration, "utf8");
+assert.ok(existsSync(directPublishMigration), "operator direct-publish migration is required");
+const directPublishSql = readFileSync(directPublishMigration, "utf8");
 const testSql = readFileSync(fixture, "utf8");
 
 for (const token of [
@@ -55,6 +58,15 @@ for (const rpc of ["import_managed_shop_from_legacy", "create_managed_shop", "sa
   assert.doesNotMatch(workflowApiSql, new RegExp(`grant\\s+execute\\s+on\\s+function\\s+api\\.${rpc}.*\\s+to\\s+(anon|authenticated)`, "i"), `${rpc} wrapper must remain service-only`);
 }
 
+for (const rpc of ["create_and_publish_managed_shop", "import_and_publish_managed_shop_from_legacy", "save_and_publish_managed_shop"]) {
+  assert.match(directPublishSql, new RegExp(`api\\.${rpc}`), `${rpc} needs an API wrapper`);
+  assert.doesNotMatch(directPublishSql, new RegExp(`grant\\s+execute\\s+on\\s+function\\s+api\\.${rpc}.*\\s+to\\s+(anon|authenticated)`, "i"), `${rpc} wrapper must remain service-only`);
+}
+assert.match(directPublishSql, /private\.publish_managed_shop_revision/, "direct publish must preserve revision history through one private publication path");
+assert.match(directPublishSql, /revoke all on function private\.create_and_publish_managed_shop/, "direct publish internals must not be public");
+assert.match(directPublishSql, /v_state not in \('draft','changes_requested','approved'\)/, "direct operators need private asset staging from an approved revision");
+assert.doesNotMatch(directPublishSql, /grant\s+execute\s+on\s+function\s+private\.attach_managed_shop_asset.*\s+to\s+(anon|authenticated)/i, "direct asset staging must remain service-only");
+
 for (const token of [
   "legacy slug identity mismatch",
   "draft leaked to managed public projection",
@@ -64,6 +76,13 @@ for (const token of [
   "republished managed publication is unavailable",
   "legacy-compatible managed draft rejected a missing official URL",
   "anonymous_role_can_read_managed_directory",
+  "direct managed creation was not published",
+  "direct managed edit did not update publication",
+  "direct managed approved revision could not stage a private asset",
+  "direct managed private asset was not published",
+  "direct legacy unlist did not suppress the original identity",
+  "direct legacy restore changed immutable identity",
+  "anonymous_role_can_execute_direct_publish",
 ]) assert.match(testSql, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `fixture must cover ${token}`);
 
 console.log("operator managed-shop directory source contract: PASS");

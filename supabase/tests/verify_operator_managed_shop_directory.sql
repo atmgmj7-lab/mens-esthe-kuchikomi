@@ -6,6 +6,7 @@ do $$
 declare
   legacy_store uuid;
   new_store uuid;
+  asset_id uuid;
   result text;
 begin
   if to_regclass('private.managed_shops') is null
@@ -15,6 +16,11 @@ begin
     or to_regprocedure('private.submit_managed_shop_revision(uuid,integer,text)') is null
     or to_regprocedure('private.review_managed_shop_revision(uuid,integer,text,text,text)') is null then
     raise exception 'managed directory migration is not applied';
+  end if;
+  if to_regprocedure('private.create_and_publish_managed_shop(text,jsonb,text)') is null
+    or to_regprocedure('private.import_and_publish_managed_shop_from_legacy(bigint,text,jsonb,text)') is null
+    or to_regprocedure('private.save_and_publish_managed_shop(uuid,integer,jsonb,text)') is null then
+    raise exception 'managed directory direct publication migration is not applied';
   end if;
   if to_regprocedure('api.attach_managed_shop_asset(uuid,uuid,text,text,text,integer,integer,integer,text)') is null
     or to_regprocedure('api.get_published_managed_shop_asset(uuid)') is null
@@ -93,6 +99,75 @@ begin
   if new_store is null or exists (select 1 from private.managed_shops where id=new_store and existing_wp_shop_id is not null) then
     raise exception 'new managed store identity was not isolated from WordPress';
   end if;
+
+  new_store := private.create_and_publish_managed_shop('direct-managed-shop', jsonb_build_object(
+    'shop_name','直接公開店舗','area_slug','osaka','area_name','大阪市',
+    'official_url',null,'introduction','運営が直接公開'
+  ), 'operator-local');
+  if not exists (select 1 from private.managed_shops s join private.managed_shop_revisions r on r.managed_shop_id=s.id and r.revision=s.current_revision where s.id=new_store and s.publication_state='published' and r.state='approved')
+    or not exists (select 1 from api.list_published_managed_shops() where managed_shop_id=new_store) then
+    raise exception 'direct managed creation was not published';
+  end if;
+  result := private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
+    'shop_name','直接公開店舗 更新','area_slug','osaka','area_name','大阪市',
+    'official_url',null,'introduction','運営が直接更新'
+  ), 'operator-local');
+  if result <> 'ok'
+    or not exists (select 1 from private.managed_shop_publications where managed_shop_id=new_store and approved_revision=2 and shop_name='直接公開店舗 更新') then
+    raise exception 'direct managed edit did not update publication';
+  end if;
+  if private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
+    'shop_name','古い更新','area_slug','osaka','area_name','大阪市','official_url',null
+  ), 'operator-local') <> 'conflict' then raise exception 'direct managed stale revision was accepted'; end if;
+
+  new_store := private.create_managed_shop('submitted-direct-recovery', jsonb_build_object(
+    'shop_name','申請済み運営店舗','area_slug','osaka','area_name','大阪市',
+    'official_url','https://example.test/submitted','introduction','申請済みの旧改訂'
+  ), 'operator-local');
+  if private.submit_managed_shop_revision(new_store, 1, 'partner-local') <> 'ok' then
+    raise exception 'submitted recovery fixture could not submit its original revision';
+  end if;
+  if private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
+    'shop_name','申請済み運営店舗 更新','area_slug','osaka','area_name','大阪市',
+    'official_url','https://example.test/submitted','introduction','運営が直接公開した新改訂'
+  ), 'operator-local') <> 'ok' then raise exception 'submitted revision could not be recovered for direct publication'; end if;
+  if not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and revision=1 and state='changes_requested' and submitted_at is not null)
+    or not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and revision=2 and state='approved')
+    or not exists (select 1 from private.managed_shop_reviews where managed_shop_id=new_store and revision=1 and decision='submitted')
+    or not exists (select 1 from private.managed_shop_reviews where managed_shop_id=new_store and revision=1 and decision='changes_requested' and note='運営の直接編集へ移行（申請済み改訂は履歴として保持）')
+    or not exists (select 1 from private.managed_shop_publications where managed_shop_id=new_store and approved_revision=2 and shop_name='申請済み運営店舗 更新') then
+    raise exception 'submitted recovery did not preserve history and publish a new operator revision';
+  end if;
+  asset_id := gen_random_uuid();
+  if private.attach_managed_shop_asset(new_store, asset_id, 'managed-shops/' || new_store::text || '/' || asset_id::text || '.png', repeat('b',64), 'image/png', 1, 1, 1, 'operator-local') <> asset_id then
+    raise exception 'direct managed approved revision could not stage a private asset';
+  end if;
+  if private.save_and_publish_managed_shop(new_store, 2, jsonb_build_object(
+    'shop_name','直接公開店舗 更新','area_slug','osaka','area_name','大阪市',
+    'official_url',null,'introduction','運営が画像を直接公開','banner_asset_id',asset_id,'gallery_asset_ids',jsonb_build_array(asset_id)
+  ), 'operator-local') <> 'ok' then
+    raise exception 'direct managed private asset save failed';
+  end if;
+  if not exists (select 1 from private.managed_shop_publications where managed_shop_id=new_store and approved_revision=3 and banner_asset_id=asset_id) then
+    raise exception 'direct managed private asset was not published';
+  end if;
+
+  legacy_store := private.import_and_publish_managed_shop_from_legacy(
+    8400000000000000202,
+    'legacy-direct-unlist',
+    jsonb_build_object('shop_name','直接非掲載既存店','area_slug','osaka','area_name','大阪市','official_url','https://example.test/direct-unlist'),
+    'operator-local'
+  );
+  if private.set_managed_shop_visibility(legacy_store, 1, 'unlisted', 'operator-local') <> 'ok'
+    or exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store)
+    or not exists (select 1 from api.list_unlisted_managed_shop_legacy_identities() where existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist') then
+    raise exception 'direct legacy unlist did not suppress the original identity';
+  end if;
+  if private.set_managed_shop_visibility(legacy_store, 1, 'published', 'operator-local') <> 'ok'
+    or not exists (select 1 from private.managed_shops where id=legacy_store and existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist')
+    or not exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store and existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist') then
+    raise exception 'direct legacy restore changed immutable identity';
+  end if;
   if not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and official_url is null) then
     raise exception 'legacy-compatible managed draft rejected a missing official URL';
   end if;
@@ -105,4 +180,5 @@ end;
 $$;
 
 select 1 / case when not has_table_privilege('anon', 'private.managed_shops', 'select') then 1 else 0 end as anonymous_role_can_read_managed_directory;
+select 1 / case when not has_function_privilege('anon', 'api.create_and_publish_managed_shop(text,jsonb,text)', 'execute') then 1 else 0 end as anonymous_role_can_execute_direct_publish;
 rollback;

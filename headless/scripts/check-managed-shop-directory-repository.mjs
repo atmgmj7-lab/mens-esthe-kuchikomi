@@ -37,7 +37,9 @@ const repository = createManagedShopDirectoryRepository({
     if (method === "list_published_managed_shops") return new Response(JSON.stringify([publication]), { status: 200 });
     if (method === "list_unlisted_managed_shop_legacy_identities") return new Response(JSON.stringify([{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]), { status: 200 });
     if (method === "import_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
+    if (method === "create_and_publish_managed_shop" || method === "import_and_publish_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
     if (method === "save_managed_shop_draft") return new Response(JSON.stringify("conflict"), { status: 200 });
+    if (method === "save_and_publish_managed_shop") return new Response(JSON.stringify("ok"), { status: 200 });
     return new Response(JSON.stringify("ok"), { status: 200 });
   },
 });
@@ -45,14 +47,20 @@ const repository = createManagedShopDirectoryRepository({
 assert.deepEqual(JSON.parse(JSON.stringify(await repository.listPublished())), [publication]);
 assert.equal(await repository.importLegacy({ wpShopId: 768, slug: "managed-rank-up", payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "11111111-1111-4111-8111-111111111111");
 assert.equal(await repository.saveDraft({ managedShopId: "11111111-1111-4111-8111-111111111111", expectedRevision: 3, payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "conflict");
-assert.equal(calls.length, 3);
+assert.equal(await repository.createAndPublish({ slug: "managed-rank-up", payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "11111111-1111-4111-8111-111111111111");
+assert.equal(await repository.importAndPublishLegacy({ wpShopId: 768, slug: "managed-rank-up", payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "11111111-1111-4111-8111-111111111111");
+assert.equal(await repository.saveAndPublish({ managedShopId: "11111111-1111-4111-8111-111111111111", expectedRevision: 3, payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "ok");
+assert.equal(calls.length, 6);
 assert.ok(calls.every(({ init }) => init.headers.Authorization === "Bearer fixture-service"), "service secret must remain server-only RPC auth");
 assert.equal(calls[0].init.cache, "force-cache", "published directory reads must remain cacheable inside Next use-cache boundaries");
 assert.equal(calls[1].init.cache, "no-store", "operator mutations must not share a public directory cache");
 assert.equal(calls[2].init.cache, "no-store", "draft writes must stay uncached");
+assert.equal(calls[3].init.cache, "no-store", "direct publication must stay uncached");
+assert.equal(calls[4].init.cache, "no-store", "legacy direct publication must stay uncached");
+assert.equal(calls[5].init.cache, "no-store", "direct edit publication must stay uncached");
 assert.equal((await repository.listPublished()).length, 1);
 assert.deepEqual(JSON.parse(JSON.stringify(await repository.listUnlistedLegacySuppressions())), [{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]);
-assert.equal(calls[3].init.cache, "force-cache", "repeated published directory reads must remain cacheable");
-assert.equal(calls[4].init.cache, "force-cache", "unlisted directory reads must remain cacheable inside Next use-cache boundaries");
+assert.equal(calls[6].init.cache, "force-cache", "repeated published directory reads must remain cacheable");
+assert.equal(calls[7].init.cache, "force-cache", "unlisted directory reads must remain cacheable inside Next use-cache boundaries");
 
 console.log("managed-shop directory repository: PASS");

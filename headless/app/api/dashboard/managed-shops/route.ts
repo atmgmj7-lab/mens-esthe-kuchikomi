@@ -30,6 +30,13 @@ function payload(value: unknown): ManagedShopPayload | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as ManagedShopPayload : null;
 }
 
+function currentRevision(detail: Record<string, unknown> | null): number | null {
+  const revision = detail?.current_revision;
+  return revision && typeof revision === "object" && !Array.isArray(revision)
+    && Number.isSafeInteger((revision as Record<string, unknown>).revision)
+    ? (revision as Record<string, unknown>).revision as number : null;
+}
+
 function legacyPayload(shop: NonNullable<Awaited<ReturnType<typeof getWordPressShopById>>>): ManagedShopPayload | null {
   const primary = shop.primaryArea ?? shop.terms.find((term) => term.slug === shop.areaSlug) ?? shop.terms[0];
   const areaSlug = primary?.slug ?? shop.areaSlug;
@@ -84,8 +91,70 @@ export async function POST(request: NextRequest) {
     return id ? NextResponse.json({ ok: true, managedShopId: id }, { headers }) : fail("新規店舗を下書きとして作成できませんでした。", 400);
   }
 
+  if (body.action === "create_and_publish") {
+    const slug = typeof body.slug === "string" ? body.slug.trim() : "";
+    const value = payload(body.payload);
+    const id = value ? await managedShopDirectoryRepository.createAndPublish({ slug, payload: value, actorLabel }) : null;
+    if (!id) return fail("新規店舗を公開できませんでした。", 400);
+    await revalidateManagedShop(id);
+    return NextResponse.json({ ok: true, managedShopId: id }, { headers });
+  }
+
+  if (body.action === "import_and_publish") {
+    const wpShopId = Number(body.wpShopId);
+    if (!Number.isSafeInteger(wpShopId) || wpShopId < 1) return fail("既存店舗を確認してください。", 400);
+    const shop = await getWordPressShopById(wpShopId);
+    if (!shop) return fail("既存店舗を確認できません。", 404);
+    const initial = legacyPayload(shop);
+    if (!initial) return fail("既存店舗のエリアを確認してから管理対象にしてください。", 409);
+    const id = await managedShopDirectoryRepository.importAndPublishLegacy({ wpShopId, slug: shop.slug, payload: initial, actorLabel });
+    if (!id) return fail("既存店舗を公開管理へ移せませんでした。保留中の申請を確認してください。", 409);
+    await revalidateManagedShop(id);
+    return NextResponse.json({ ok: true, managedShopId: id }, { headers });
+  }
+
+  if (body.action === "unlist") {
+    const confirmedShopName = typeof body.confirmedShopName === "string" ? body.confirmedShopName : "";
+    const existingManagedShopId = typeof body.managedShopId === "string" ? body.managedShopId : "";
+    let id = existingManagedShopId;
+    let detail = id ? await managedShopDirectoryRepository.getDetail(id) : null;
+    if (id) {
+      const current = detail?.current_revision;
+      const actualShopName = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>).shop_name : null;
+      if (typeof actualShopName !== "string") return fail("掲載を停止する店舗を確認できません。", 404);
+      if (confirmedShopName !== actualShopName) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
+    } else {
+      const wpShopId = Number(body.wpShopId);
+      if (!Number.isSafeInteger(wpShopId) || wpShopId < 1) return fail("掲載を停止する店舗を確認してください。", 400);
+      const shop = await getWordPressShopById(wpShopId);
+      if (!shop) return fail("掲載を停止する店舗を確認できません。", 404);
+      if (confirmedShopName !== shop.title) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
+      const initial = legacyPayload(shop);
+      if (!initial) return fail("既存店舗のエリアを確認してから掲載を停止してください。", 409);
+      id = await managedShopDirectoryRepository.importAndPublishLegacy({ wpShopId, slug: shop.slug, payload: initial, actorLabel }) ?? "";
+      if (!id) return fail("掲載停止の対象を準備できませんでした。保留中の申請を確認してください。", 409);
+      detail = await managedShopDirectoryRepository.getDetail(id);
+    }
+    const revision = currentRevision(detail);
+    const result = revision ? await managedShopDirectoryRepository.setVisibility({ managedShopId: id, expectedRevision: revision, visibility: "unlisted", actorLabel }) : null;
+    if (result === "ok") {
+      await revalidateManagedShop(id);
+      return NextResponse.json({ ok: true, managedShopId: id, state: result }, { headers });
+    }
+    return fail(result === "conflict" ? "掲載状態が更新されています。再読込してからやり直してください。" : "掲載を停止できませんでした。", result === "conflict" ? 409 : 400);
+  }
+
   const managedShopId = typeof body.managedShopId === "string" ? body.managedShopId : "";
   const expectedRevision = Number(body.expectedRevision);
+  if (body.action === "save_and_publish") {
+    const value = payload(body.payload);
+    const result = value ? await managedShopDirectoryRepository.saveAndPublish({ managedShopId, expectedRevision, payload: value, actorLabel }) : null;
+    if (result === "ok") {
+      await revalidateManagedShop(managedShopId);
+      return NextResponse.json({ ok: true, state: result }, { headers });
+    }
+    return fail(result === "conflict" ? "他の変更があります。再読込してからやり直してください。" : "店舗情報を公開できませんでした。", result === "conflict" ? 409 : 400);
+  }
   if (body.action === "save") {
     const value = payload(body.payload);
     const result = value ? await managedShopDirectoryRepository.saveDraft({ managedShopId, expectedRevision, payload: value, actorLabel }) : null;
@@ -107,14 +176,13 @@ export async function POST(request: NextRequest) {
     }
     return fail(result === "conflict" ? "対象の下書きが更新されています。再読込してください。" : "審査結果を保存できませんでした。", result === "conflict" ? 409 : 400);
   }
-  if (body.action === "visibility") {
-    const visibility = body.visibility === "published" || body.visibility === "unlisted" ? body.visibility : null;
-    const result = visibility ? await managedShopDirectoryRepository.setVisibility({ managedShopId, expectedRevision, visibility, actorLabel }) : null;
+  if (body.action === "restore") {
+    const result = await managedShopDirectoryRepository.setVisibility({ managedShopId, expectedRevision, visibility: "published", actorLabel });
     if (result === "ok") {
       await revalidateManagedShop(managedShopId);
       return NextResponse.json({ ok: true, state: result }, { headers });
     }
-    return fail(result === "conflict" ? "公開状態が更新されています。再読込してください。" : "公開状態を変更できませんでした。", result === "conflict" ? 409 : 400);
+    return fail(result === "conflict" ? "掲載状態が更新されています。再読込してからやり直してください。" : "再掲載できませんでした。", result === "conflict" ? 409 : 400);
   }
   return fail("操作を確認してください。", 400);
 }

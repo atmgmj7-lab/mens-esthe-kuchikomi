@@ -155,9 +155,26 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
       const result = await rpc("create_managed_shop", { p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
       return typeof result === "string" && UUID.test(result) ? result : null;
     },
+    async createAndPublish(input: Readonly<{ slug: string; payload: ManagedShopPayload; actorLabel: string }>): Promise<string | null> {
+      if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(input.slug) || !payload(input.payload) || !actor(input.actorLabel)) return null;
+      const result = await rpc("create_and_publish_managed_shop", { p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
+      return typeof result === "string" && UUID.test(result) ? result : null;
+    },
+    async importAndPublishLegacy(input: Readonly<{ wpShopId: number; slug: string; payload: ManagedShopPayload; actorLabel: string }>): Promise<string | null> {
+      if (!Number.isSafeInteger(input.wpShopId) || input.wpShopId < 1 || !input.slug || !payload(input.payload) || !actor(input.actorLabel)) return null;
+      const result = await rpc("import_and_publish_managed_shop_from_legacy", {
+        p_wp_shop_id: input.wpShopId, p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel),
+      });
+      return typeof result === "string" && UUID.test(result) ? result : null;
+    },
     async saveDraft(input: Readonly<{ managedShopId: string; expectedRevision: number; payload: ManagedShopPayload; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
       if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !payload(input.payload) || !actor(input.actorLabel)) return null;
       const result = await rpc("save_managed_shop_draft", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
+    async saveAndPublish(input: Readonly<{ managedShopId: string; expectedRevision: number; payload: ManagedShopPayload; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !payload(input.payload) || !actor(input.actorLabel)) return null;
+      const result = await rpc("save_and_publish_managed_shop", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
       return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
     },
     async submit(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | null> {
