@@ -3,7 +3,8 @@ import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
-import { applyManagedShopFacts, applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
+import { applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
+import { composeManagedShopDirectory, findPublishedManagedShopBySlug, getManagedShopDirectoryState, isManagedShopDirectoryUnavailableError, isManagedShopLegacySuppressedBySlug } from "@/lib/managed-shop-source";
 import type { ShopView, WpShop } from "@/lib/wp/types";
 
 function safeDecodeURIComponent(value: string): string {
@@ -51,6 +52,17 @@ function getSlugQueryVariants(slug: string): string[] {
   return variants;
 }
 
+async function applyPublicShopSources(shops: readonly ShopView[], includeNew = false): Promise<ShopView[]> {
+  const composed = await composeManagedShopDirectory(shops);
+  const legacyIds = new Set(shops.map((shop) => shop.id));
+  return applyManagedShopFactsToList(includeNew ? composed : composed.filter((shop) => legacyIds.has(shop.id)));
+}
+
+async function applyPublicShopSource(shop: ShopView): Promise<ShopView | null> {
+  const composed = await applyPublicShopSources([shop]);
+  return composed[0] ?? null;
+}
+
 async function findShopViaSearchOrListing(slug: string): Promise<WpShop | null> {
   const needle = slug.toLowerCase();
   const searchResults = await wpFetch<WpShop[]>(
@@ -96,9 +108,9 @@ export async function getLatestShops(limit = 6): Promise<ShopView[]> {
   cacheTag("wp", "shops", `shops:list:${limit}`);
   try {
     const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?per_page=${limit}&_embed=1`);
-    return applyManagedShopFactsToList(shops.map(normalizeShop));
+    return applyPublicShopSources(shops.map(normalizeShop));
   } catch (error) {
-    if (isManagedShopSourceUnavailableError(error)) throw error;
+    if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`latest shops ${limit}`, error);
     return [];
   }
@@ -109,23 +121,24 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
   cacheLife("hours");
   cacheTag("wp", "shops", shopSlugCacheTag(slug));
 
+  if (await isManagedShopLegacySuppressedBySlug(slug)) return null;
+  const managedOnly = await findPublishedManagedShopBySlug(slug);
+  if (managedOnly) return managedOnly;
   try {
     for (const variant of getSlugQueryVariants(slug)) {
       const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?slug=${variant}&_embed=1`);
       if (shops[0]) {
-        return applyManagedShopFacts(normalizeShop(shops[0]));
+        return applyPublicShopSource(normalizeShop(shops[0]));
       }
     }
 
     const match = await findShopViaSearchOrListing(slug);
-    if (!match) {
-      return null;
-    }
+    if (!match) return findPublishedManagedShopBySlug(slug);
 
     cacheTag("wp", "shops", shopSlugCacheTag(match.slug));
-    return applyManagedShopFacts(normalizeShop(match));
+    return applyPublicShopSource(normalizeShop(match));
   } catch (error) {
-    if (isManagedShopSourceUnavailableError(error)) throw error;
+    if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`shop ${slug}`, error);
     return null;
   }
@@ -137,7 +150,7 @@ export async function getShopById(id: number): Promise<ShopView | null> {
   cacheTag("wp", "shops", shopIdCacheTag(id));
 
   const shop = await getWordPressShopById(id);
-  return shop ? applyManagedShopFacts(shop) : null;
+  return shop ? applyPublicShopSource(shop) : null;
 }
 
 /** Server-only management bootstrap reader. It never applies the public source overlay. */
@@ -151,7 +164,7 @@ export async function getWordPressShopById(id: number): Promise<ShopView | null>
     const shop = await wpFetch<WpShop>(`/wp/v2/shop/${id}?_embed=1`);
     return shop.id === id ? normalizeShop(shop) : null;
   } catch (error) {
-    if (isManagedShopSourceUnavailableError(error)) throw error;
+    if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`shop id ${id}`, error);
     return null;
   }
@@ -168,7 +181,7 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   cacheTag("wp", "shops", "shops:sitemap");
 
   const perPage = 100;
-  const entries: SitemapEntry[] = [];
+  const entries: Array<SitemapEntry & { id: number }> = [];
   let page = 1;
   let totalPages = 1;
 
@@ -177,7 +190,7 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
       const { data, pagination } = await wpFetchPaginated<WpShop[]>(
         `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_fields=slug,modified`
       );
-      entries.push(...data.map((shop) => ({ slug: shop.slug, modified: shop.modified })));
+      entries.push(...data.map((shop) => ({ id: shop.id, slug: shop.slug, modified: shop.modified })));
       totalPages = pagination.totalPages;
       page += 1;
     }
@@ -185,10 +198,16 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
     logWpBuildFallback("shops sitemap", error);
   }
 
-  return entries;
+  const { publications, suppressions } = await getManagedShopDirectoryState();
+  const publishedNewShops = publications
+    .filter((publication) => publication.existing_wp_shop_id === null)
+    .map((publication) => ({ slug: publication.shop_slug, modified: new Date().toISOString() }));
+  const visibleEntries = entries.filter((entry) => !suppressions.some((suppression) => suppression.existing_wp_shop_id === entry.id && slugsMatch(suppression.shop_slug, entry.slug)));
+  const existingSlugs = new Set(visibleEntries.map((entry) => entry.slug.toLowerCase()));
+  return [...visibleEntries.map(({ slug, modified }) => ({ slug, modified })), ...publishedNewShops.filter((entry) => !existingSlugs.has(entry.slug.toLowerCase()))];
 }
 
-export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
+export async function getAllWordPressShops(maxShops = Number.MAX_SAFE_INTEGER): Promise<ShopView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", "shops:listing-all");
@@ -208,11 +227,15 @@ export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]>
       page += 1;
     }
   } catch (error) {
-    if (isManagedShopSourceUnavailableError(error)) throw error;
+    if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`shops listing ${maxShops}`, error);
   }
 
-    return applyManagedShopFactsToList(shops.slice(0, maxShops));
+  return shops.slice(0, maxShops);
+}
+
+export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
+  return applyPublicShopSources(await getAllWordPressShops(maxShops), true);
 }
 
 export async function getShopCount(): Promise<number> {
@@ -221,7 +244,8 @@ export async function getShopCount(): Promise<number> {
   cacheTag("wp", "shops", "shops:count");
   try {
     const { pagination } = await wpFetchPaginated<WpShop[]>("/wp/v2/shop?per_page=1");
-    return pagination.total;
+    const { publications, suppressions } = await getManagedShopDirectoryState();
+    return pagination.total - suppressions.length + publications.filter((publication) => publication.existing_wp_shop_id === null).length;
   } catch (error) {
     logWpBuildFallback("shop count", error);
     return 0;

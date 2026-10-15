@@ -4,6 +4,9 @@ import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getAreaShopOrderIndex, fetchAreaShopsInOrder } from "@/lib/wp/area-shop-order";
 import { applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
+import { composeManagedShopDirectory, isManagedShopDirectoryUnavailableError } from "@/lib/managed-shop-source";
+import { useSupabaseManagedShopDirectory } from "@/lib/supabase/managed-shop-directory";
+import { getAllWordPressShops } from "@/lib/wp/shops";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
@@ -121,13 +124,21 @@ export async function getAreaShops(
   );
   try {
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 100) throw new Error("Invalid area page request");
-    const index = await getAreaShopOrderIndex(areaId);
-    const totalPages = Math.max(1, Math.ceil(index.length / perPage));
-    const entries = index.slice((page - 1) * perPage, page * perPage);
-    const shops = await fetchAreaShopsInOrder(areaId, entries);
-    return { shops: await applyManagedShopFactsToList(shops.map(normalizeShop)), totalPages };
+    if (!useSupabaseManagedShopDirectory()) {
+      const index = await getAreaShopOrderIndex(areaId);
+      const totalPages = Math.max(1, Math.ceil(index.length / perPage));
+      const entries = index.slice((page - 1) * perPage, page * perPage);
+      const shops = await fetchAreaShopsInOrder(areaId, entries);
+      return { shops: await applyManagedShopFactsToList(shops.map(normalizeShop)), totalPages };
+    }
+    const [area, shops] = await Promise.all([getAreaById(areaId), getAllWordPressShops()]);
+    if (!area) return { shops: [], totalPages: 1 };
+    const composed = await composeManagedShopDirectory(shops);
+    const scoped = composed.filter((shop) => shop.areaSlug === area.slug);
+    const totalPages = Math.max(1, Math.ceil(scoped.length / perPage));
+    return { shops: await applyManagedShopFactsToList(scoped.slice((page - 1) * perPage, page * perPage)), totalPages };
   } catch (error) {
-    if (isManagedShopSourceUnavailableError(error)) throw error;
+    if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`area shops ${areaId}`, error);
     return {
       shops: [],
@@ -142,11 +153,16 @@ export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
   cacheLife("minutes");
   cacheTag("wp", "shops", `area:shops:${areaId}`, `area:shops:${areaId}:ranking`);
   try {
-    const index = await getAreaShopOrderIndex(areaId);
-    const shops = await fetchAreaShopsInOrder(areaId, index);
-    return applyManagedShopFactsToList(shops.map(normalizeShop));
+    if (!useSupabaseManagedShopDirectory()) {
+      const index = await getAreaShopOrderIndex(areaId);
+      const shops = await fetchAreaShopsInOrder(areaId, index);
+      return applyManagedShopFactsToList(shops.map(normalizeShop));
+    }
+    const area = await getAreaById(areaId);
+    if (!area) return [];
+    return applyManagedShopFactsToList((await composeManagedShopDirectory(await getAllWordPressShops())).filter((shop) => shop.areaSlug === area.slug));
   } catch (error) {
-    if (isManagedShopSourceUnavailableError(error)) throw error;
+    if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`area ranking shops ${areaId}`, error);
     return [];
   }

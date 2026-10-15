@@ -45,6 +45,17 @@ function loadShopModule({ cacheTags, wpRequests }) {
     }
     if (specifier === "@/lib/wp/normalize") return { normalizeShop: (shop) => shop };
     if (specifier === "@/lib/wp/build-resilience") return { logWpBuildFallback: () => undefined };
+    if (specifier === "@/lib/shop-management-source") return {
+      applyManagedShopFactsToList: async (shops) => shops,
+      isManagedShopSourceUnavailableError: () => false,
+    };
+    if (specifier === "@/lib/managed-shop-source") return {
+      composeManagedShopDirectory: async (shops) => shops,
+      findPublishedManagedShopBySlug: async () => null,
+      getManagedShopDirectoryState: async () => ({ publications: [], suppressions: [] }),
+      isManagedShopDirectoryUnavailableError: () => false,
+      isManagedShopLegacySuppressedBySlug: async () => false,
+    };
     throw new Error(`Unexpected shop adapter import: ${specifier}`);
   };
   new Function("require", "module", "exports", result.outputText)(
