@@ -14,6 +14,7 @@ export function revalidateOperatorShopPublicCaches(
 ): void {
   cache.revalidateTag("wp", { expire: 0 });
   cache.revalidatePath(`/shops/${slug}`);
+  cache.revalidatePath(`/shops/${slug}/reviews`);
   cache.revalidatePath("/sitemap.xml");
 }
 

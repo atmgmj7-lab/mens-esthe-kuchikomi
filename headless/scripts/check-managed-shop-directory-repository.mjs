@@ -52,7 +52,7 @@ assert.equal(await repository.importAndPublishLegacy({ wpShopId: 768, slug: "man
 assert.equal(await repository.saveAndPublish({ managedShopId: "11111111-1111-4111-8111-111111111111", expectedRevision: 3, payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "ok");
 assert.equal(calls.length, 6);
 assert.ok(calls.every(({ init }) => init.headers.Authorization === "Bearer fixture-service"), "service secret must remain server-only RPC auth");
-assert.equal(calls[0].init.cache, "force-cache", "published directory reads must remain cacheable inside Next use-cache boundaries");
+assert.equal(calls[0].init.cache, "no-store", "publication-state reads must refresh after an operator visibility change");
 assert.equal(calls[1].init.cache, "no-store", "operator mutations must not share a public directory cache");
 assert.equal(calls[2].init.cache, "no-store", "draft writes must stay uncached");
 assert.equal(calls[3].init.cache, "no-store", "direct publication must stay uncached");
@@ -60,7 +60,7 @@ assert.equal(calls[4].init.cache, "no-store", "legacy direct publication must st
 assert.equal(calls[5].init.cache, "no-store", "direct edit publication must stay uncached");
 assert.equal((await repository.listPublished()).length, 1);
 assert.deepEqual(JSON.parse(JSON.stringify(await repository.listUnlistedLegacySuppressions())), [{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]);
-assert.equal(calls[6].init.cache, "force-cache", "repeated published directory reads must remain cacheable");
-assert.equal(calls[7].init.cache, "force-cache", "unlisted directory reads must remain cacheable inside Next use-cache boundaries");
+assert.equal(calls[6].init.cache, "no-store", "published directory reads must not retain a stale visibility state");
+assert.equal(calls[7].init.cache, "no-store", "unlisted directory reads must refresh after tag invalidation");
 
 console.log("managed-shop directory repository: PASS");
