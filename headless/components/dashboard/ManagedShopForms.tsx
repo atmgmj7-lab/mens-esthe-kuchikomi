@@ -58,9 +58,10 @@ export function UnlistLegacyShopButton({ wpShopId, shopName }: { wpShopId: numbe
   return <UnlistShopForm shopName={shopName} body={{ wpShopId }} />;
 }
 
-export function ManagedShopEditorForm({ managedShopId, revision, initial, publicationState }: { managedShopId: string; revision: number; initial: Payload; publicationState: "published" | "unlisted" }) {
+export function ManagedShopEditorForm({ managedShopId, revision, initial, publicationState, currentState }: { managedShopId: string; revision: number; initial: Payload; publicationState: "published" | "unlisted"; currentState: string }) {
   const [message, setMessage] = useState(""); const [assetId, setAssetId] = useState(typeof initial.banner_asset_id === "string" ? initial.banner_asset_id : ""); const [galleryAssetIds, setGalleryAssetIds] = useState(Array.isArray(initial.gallery_asset_ids) ? initial.gallery_asset_ids.filter((id): id is string => typeof id === "string" && UUID.test(id)) : []);
   const shopName = typeof initial.shop_name === "string" ? initial.shop_name : "";
+  const canSetVisibility = currentState === "approved";
   async function action(next: "save_and_publish" | "restore", form?: HTMLFormElement) {
     if (next === "save_and_publish" && !form) return; setMessage("処理しています…");
     const base = { managedShopId, expectedRevision: revision };
@@ -79,10 +80,10 @@ export function ManagedShopEditorForm({ managedShopId, revision, initial, public
       setMessage("private画像を追加しました。続けて保存して公開してください。");
     } else setMessage(body.message || "画像を追加できませんでした。");
   }
-  return <section className={styles.formPanel}><p className={styles.eyebrow}>運営編集</p><h2>店舗情報を編集して公開</h2><p className={styles.note}>運営の保存はすぐ公開されます。削除は行わず、掲載停止に切り替えるため、ID・slug・口コミ・改訂履歴を保持したまま再掲載できます。</p><ShopForm initial={initial} bannerAssetId={assetId} galleryAssetIds={galleryAssetIds} onSubmit={(event) => { event.preventDefault(); void action("save_and_publish", event.currentTarget); }} submitLabel="保存して公開する" message={message} />
-    <form className={styles.form} onSubmit={upload}><label>画像の用途<select name="asset_role" defaultValue="banner"><option value="banner">バナー</option><option value="gallery">ギャラリー</option></select></label><label>バナー・ギャラリー画像<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required /></label><button type="submit">画像をprivate保存する</button></form>
+  return <section className={styles.formPanel}><p className={styles.eyebrow}>運営編集</p><h2>店舗情報を編集して公開</h2><p className={styles.note}>運営の保存はすぐ公開されます。削除は行わず、掲載停止に切り替えるため、ID・slug・口コミ・改訂履歴を保持したまま再掲載できます。</p>{currentState === "submitted" ? <p className={styles.note}>この申請済み改訂を保存すると、申請履歴は保持したまま新しい運営改訂として直接公開します。</p> : null}<ShopForm initial={initial} bannerAssetId={assetId} galleryAssetIds={galleryAssetIds} onSubmit={(event) => { event.preventDefault(); void action("save_and_publish", event.currentTarget); }} submitLabel="保存して公開する" message={message} />
+    {canSetVisibility ? <><form className={styles.form} onSubmit={upload}><label>画像の用途<select name="asset_role" defaultValue="banner"><option value="banner">バナー</option><option value="gallery">ギャラリー</option></select></label><label>バナー・ギャラリー画像<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required /></label><button type="submit">画像をprivate保存する</button></form>
     {galleryAssetIds.length ? <div className={styles.saveGate}><p>ギャラリー画像 {galleryAssetIds.length} / 10</p>{galleryAssetIds.map((id, index) => <p key={id}>画像 {index + 1} <button type="button" onClick={() => setGalleryAssetIds((current) => current.filter((asset) => asset !== id))}>下書きから外す</button></p>)}</div> : null}
-    {publicationState === "published" ? <UnlistShopForm shopName={shopName} body={{ managedShopId }} /> : <div className={styles.saveGate}><p>この店舗は掲載停止中です。店舗情報・口コミ・URLは保持したまま再掲載できます。</p><button type="button" onClick={() => void action("restore")}>再掲載する</button></div>}
+    {publicationState === "published" ? <UnlistShopForm shopName={shopName} body={{ managedShopId }} /> : <div className={styles.saveGate}><p>この店舗は掲載停止中です。店舗情報・口コミ・URLは保持したまま再掲載できます。</p><button type="button" onClick={() => void action("restore")}>再掲載する</button></div>}</> : <p className={styles.note}>画像の追加、掲載停止・再掲載は、保存して公開した後に利用できます。</p>}
   </section>;
 }
 

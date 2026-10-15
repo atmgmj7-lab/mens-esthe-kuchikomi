@@ -201,6 +201,8 @@ try {
   assert.equal((await publicPage.goto(`${baseUrl}/api/managed-shops/assets/${asset[0]}/`))?.status(), 200, "approved managed image must be served through the public proxy");
   console.log("operator managed shop E2E: approved public shop and image verified");
 
+  const legacyVisibilityBypass = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "visibility", managedShopId, expectedRevision: 2, visibility: "unlisted" }) });
+  assert.equal(legacyVisibilityBypass.status, 400, "legacy visibility action must not bypass exact-name unlisting");
   const mismatchedUnlist = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "unlist", managedShopId, confirmedShopName: "別の店舗" }) });
   assert.equal(mismatchedUnlist.status, 409, "unlist must reject a mismatched exact-name confirmation");
   await operator.reload({ waitUntil: "domcontentloaded" });

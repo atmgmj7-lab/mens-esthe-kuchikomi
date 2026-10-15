@@ -119,6 +119,25 @@ begin
   if private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
     'shop_name','古い更新','area_slug','osaka','area_name','大阪市','official_url',null
   ), 'operator-local') <> 'conflict' then raise exception 'direct managed stale revision was accepted'; end if;
+
+  new_store := private.create_managed_shop('submitted-direct-recovery', jsonb_build_object(
+    'shop_name','申請済み運営店舗','area_slug','osaka','area_name','大阪市',
+    'official_url','https://example.test/submitted','introduction','申請済みの旧改訂'
+  ), 'operator-local');
+  if private.submit_managed_shop_revision(new_store, 1, 'partner-local') <> 'ok' then
+    raise exception 'submitted recovery fixture could not submit its original revision';
+  end if;
+  if private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
+    'shop_name','申請済み運営店舗 更新','area_slug','osaka','area_name','大阪市',
+    'official_url','https://example.test/submitted','introduction','運営が直接公開した新改訂'
+  ), 'operator-local') <> 'ok' then raise exception 'submitted revision could not be recovered for direct publication'; end if;
+  if not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and revision=1 and state='changes_requested' and submitted_at is not null)
+    or not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and revision=2 and state='approved')
+    or not exists (select 1 from private.managed_shop_reviews where managed_shop_id=new_store and revision=1 and decision='submitted')
+    or not exists (select 1 from private.managed_shop_reviews where managed_shop_id=new_store and revision=1 and decision='changes_requested' and note='運営の直接編集へ移行（申請済み改訂は履歴として保持）')
+    or not exists (select 1 from private.managed_shop_publications where managed_shop_id=new_store and approved_revision=2 and shop_name='申請済み運営店舗 更新') then
+    raise exception 'submitted recovery did not preserve history and publish a new operator revision';
+  end if;
   asset_id := gen_random_uuid();
   if private.attach_managed_shop_asset(new_store, asset_id, 'managed-shops/' || new_store::text || '/' || asset_id::text || '.png', repeat('b',64), 'image/png', 1, 1, 1, 'operator-local') <> asset_id then
     raise exception 'direct managed approved revision could not stage a private asset';

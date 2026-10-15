@@ -13,6 +13,7 @@ assert.match(forms, /action: "unlist"/, "operator UI must provide reversible unl
 assert.match(forms, /action: "restore"/, "operator UI must provide restoration");
 assert.match(forms, /confirmedShopName/, "unlisting UI must send exact-name confirmation");
 assert.match(forms, /店舗名を正確に入力/, "unlisting UI must explain exact-name confirmation");
+assert.match(forms, /申請済み改訂を保存すると/, "previously submitted operator revisions must have a direct-publication recovery path");
 assert.doesNotMatch(forms, /審査へ提出する|承認して公開する|差し戻す（理由必須）/, "operator editor must not expose an approval workflow");
 assert.match(shops, /UnlistLegacyShopButton/, "dashboard listing must expose a clear unlist entrance");
 assert.match(shops, /掲載を停止する/, "dashboard must label reversible removal clearly");

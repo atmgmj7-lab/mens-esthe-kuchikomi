@@ -25,5 +25,5 @@ export default async function ManagedShopPage({ params }: { params: Promise<{ id
     banner_asset_id: nullable(current.banner_asset_id), gallery_asset_ids: uuidList(current.gallery_asset_ids),
   };
   const publicationState = shop.publication_state === "published" ? "published" : "unlisted";
-  return <><p><a href="/dashboard/shops/">← 店舗一覧へ戻る</a></p><ManagedShopEditorForm managedShopId={id} revision={current.revision as number} initial={initial} publicationState={publicationState} /></>;
+  return <><p><a href="/dashboard/shops/">← 店舗一覧へ戻る</a></p><ManagedShopEditorForm managedShopId={id} revision={current.revision as number} initial={initial} publicationState={publicationState} currentState={text(current.state)} /></>;
 }

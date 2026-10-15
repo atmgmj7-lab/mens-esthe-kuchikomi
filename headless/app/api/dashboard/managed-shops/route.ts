@@ -176,15 +176,6 @@ export async function POST(request: NextRequest) {
     }
     return fail(result === "conflict" ? "対象の下書きが更新されています。再読込してください。" : "審査結果を保存できませんでした。", result === "conflict" ? 409 : 400);
   }
-  if (body.action === "visibility") {
-    const visibility = body.visibility === "published" || body.visibility === "unlisted" ? body.visibility : null;
-    const result = visibility ? await managedShopDirectoryRepository.setVisibility({ managedShopId, expectedRevision, visibility, actorLabel }) : null;
-    if (result === "ok") {
-      await revalidateManagedShop(managedShopId);
-      return NextResponse.json({ ok: true, state: result }, { headers });
-    }
-    return fail(result === "conflict" ? "公開状態が更新されています。再読込してください。" : "公開状態を変更できませんでした。", result === "conflict" ? 409 : 400);
-  }
   if (body.action === "restore") {
     const result = await managedShopDirectoryRepository.setVisibility({ managedShopId, expectedRevision, visibility: "published", actorLabel });
     if (result === "ok") {

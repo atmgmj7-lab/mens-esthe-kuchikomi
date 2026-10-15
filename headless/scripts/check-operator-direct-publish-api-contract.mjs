@@ -10,6 +10,7 @@ for (const action of ["create_and_publish", "import_and_publish", "save_and_publ
   assert.match(operatorRoute, new RegExp(`body\\.action === ["']${action}["']`), `dashboard route must handle ${action}`);
 }
 assert.match(operatorRoute, /confirmedShopName/, "unlist must require an exact store-name confirmation");
+assert.doesNotMatch(operatorRoute, /body\.action === ["']visibility["']/, "legacy visibility action would bypass confirmed unlisting");
 assert.match(operatorRoute, /authorizeDashboardRequest/, "direct publication must stay inside the dashboard authorization boundary");
 assert.match(operatorRoute, /result === "conflict"/, "direct publication must surface stale-write conflicts");
 for (const rpc of ["createAndPublish", "importAndPublishLegacy", "saveAndPublish"]) {

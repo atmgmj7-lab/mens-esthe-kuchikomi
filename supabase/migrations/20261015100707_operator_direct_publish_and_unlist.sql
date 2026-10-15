@@ -75,8 +75,21 @@ $$;
 create or replace function private.save_and_publish_managed_shop(
   p_managed_shop_id uuid,p_expected_revision integer,p_payload jsonb,p_actor_label text
 ) returns text language plpgsql security definer set search_path=private,pg_temp as $$
-declare v_saved text; v_next integer;
+declare v_saved text; v_next integer; v_state text;
 begin
+  -- Old operator-managed records may still have a Partner-era submitted
+  -- revision. Preserve that revision and its submission audit, then start a
+  -- new operator-owned draft instead of mutating the submitted content.
+  select r.state into v_state
+  from private.managed_shops s join private.managed_shop_revisions r
+    on r.managed_shop_id=s.id and r.revision=s.current_revision
+  where s.id=p_managed_shop_id and s.current_revision=p_expected_revision;
+  if v_state='submitted' then
+    if private.review_managed_shop_revision(
+      p_managed_shop_id,p_expected_revision,'changes_requested',p_actor_label,
+      '運営の直接編集へ移行（申請済み改訂は履歴として保持）'
+    ) <> 'ok' then return 'conflict'; end if;
+  end if;
   v_saved := private.save_managed_shop_draft(p_managed_shop_id,p_expected_revision,p_payload,p_actor_label);
   if v_saved <> 'ok' then return v_saved; end if;
   select current_revision into v_next from private.managed_shops where id=p_managed_shop_id;
