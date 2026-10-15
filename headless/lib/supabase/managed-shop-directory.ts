@@ -109,7 +109,7 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
   const secret = resolveSupabaseServerSecret(environment)?.value ?? null;
   const fetchImpl = configuration.fetchImpl ?? fetch;
 
-  async function rpc(name: string, body: Record<string, unknown>): Promise<unknown | null> {
+  async function rpc(name: string, body: Record<string, unknown>, cache: RequestCache = "no-store"): Promise<unknown | null> {
     if (!endpoint || !secret) return null;
     try {
       const response = await fetchImpl(`${endpoint}/rest/v1/rpc/${name}`, {
@@ -118,7 +118,7 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
           "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api",
         }),
         body: JSON.stringify(body),
-        cache: "no-store",
+        cache,
       });
       return response.ok ? await response.json() : null;
     } catch { return null; }
@@ -127,13 +127,13 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
   return {
     configured(): boolean { return Boolean(endpoint && secret); },
     async listPublished(): Promise<readonly PublishedManagedShop[]> {
-      const response = await rpc("list_published_managed_shops", {});
+      const response = await rpc("list_published_managed_shops", {}, "force-cache");
       if (!Array.isArray(response)) return [];
       const parsed = response.map(publication);
       return parsed.every((item): item is PublishedManagedShop => item !== null) ? Object.freeze(parsed) : [];
     },
     async listUnlistedLegacySuppressions(): Promise<readonly ManagedShopLegacySuppression[]> {
-      const response = await rpc("list_unlisted_managed_shop_legacy_identities", {});
+      const response = await rpc("list_unlisted_managed_shop_legacy_identities", {}, "force-cache");
       if (!Array.isArray(response)) return [];
       const parsed = response.map(legacySuppression);
       return parsed.every((item): item is ManagedShopLegacySuppression => item !== null) ? Object.freeze(parsed) : [];

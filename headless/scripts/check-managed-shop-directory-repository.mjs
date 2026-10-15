@@ -47,7 +47,12 @@ assert.equal(await repository.importLegacy({ wpShopId: 768, slug: "managed-rank-
 assert.equal(await repository.saveDraft({ managedShopId: "11111111-1111-4111-8111-111111111111", expectedRevision: 3, payload: { shop_name: "管理済み店舗" }, actorLabel: "operator" }), "conflict");
 assert.equal(calls.length, 3);
 assert.ok(calls.every(({ init }) => init.headers.Authorization === "Bearer fixture-service"), "service secret must remain server-only RPC auth");
+assert.equal(calls[0].init.cache, "force-cache", "published directory reads must remain cacheable inside Next use-cache boundaries");
+assert.equal(calls[1].init.cache, "no-store", "operator mutations must not share a public directory cache");
+assert.equal(calls[2].init.cache, "no-store", "draft writes must stay uncached");
 assert.equal((await repository.listPublished()).length, 1);
 assert.deepEqual(JSON.parse(JSON.stringify(await repository.listUnlistedLegacySuppressions())), [{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]);
+assert.equal(calls[3].init.cache, "force-cache", "repeated published directory reads must remain cacheable");
+assert.equal(calls[4].init.cache, "force-cache", "unlisted directory reads must remain cacheable inside Next use-cache boundaries");
 
 console.log("managed-shop directory repository: PASS");
