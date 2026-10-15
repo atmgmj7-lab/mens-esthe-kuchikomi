@@ -43,6 +43,10 @@ function compileModule(file, requireMap = {}) {
 
 const unavailable = Object.freeze({ status: "unavailable", source: "wordpress", reason: "request-failed" });
 const loader = compileModule("lib/priority-area-hub.ts", {
+  "next/cache": {
+    cacheLife: () => undefined,
+    cacheTag: () => undefined,
+  },
   "@/lib/priority-area-precision": {
     isPriorityAreaPrecisionTarget: (area) => [17, 13, 7, 46, 4].includes(area.id),
   },
