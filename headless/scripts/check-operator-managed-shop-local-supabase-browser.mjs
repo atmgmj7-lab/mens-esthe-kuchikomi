@@ -213,11 +213,25 @@ try {
   const unlistedText = await publicPage.locator("body").innerText();
   assert.match(unlistedText, /ページが見つかりません/, "unlisted managed shop must render as not found");
   assert.doesNotMatch(unlistedText, /実接続の新規管理店舗/, "unlisted managed shop content must not be public");
+  const robots = await publicPage.locator('meta[name="robots"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute("content") ?? "").join(","));
+  assert.match(robots, /noindex/i, "unlisted managed shop must be noindex even when PPR streams the not-found shell as HTTP 200");
+  assert.doesNotMatch(await publicPage.locator("title").innerText(), /実接続の新規管理店舗/, "unlisted managed shop metadata must not retain the store name");
+  const jsonLd = await publicPage.locator('script[type="application/ld+json"]').allTextContents();
+  assert.doesNotMatch(jsonLd.join("\n"), /実接続の新規管理店舗/, "unlisted managed shop JSON-LD must not retain store data");
+  const publicList = await browser.newPage();
+  assert.equal((await publicList.goto(`${baseUrl}/shops/`, { waitUntil: "domcontentloaded" }))?.status(), 200, "public shop listing must remain available");
+  assert.doesNotMatch(await publicList.locator("body").innerText(), /実接続の新規管理店舗/, "unlisted managed shop must be absent from the shop listing");
+  const areaList = await browser.newPage();
+  assert.ok((await areaList.goto(`${baseUrl}/area/osaka/`, { waitUntil: "domcontentloaded" }))?.status(), "area route must respond");
+  assert.doesNotMatch(await areaList.locator("body").innerText(), /実接続の新規管理店舗/, "unlisted managed shop must be absent from its area route");
+  const sitemap = await fetch(`${baseUrl}/sitemap.xml`);
+  assert.equal(sitemap.status, 200, "sitemap must remain available");
+  assert.doesNotMatch(await sitemap.text(), new RegExp(slug), "unlisted managed shop must be absent from sitemap");
   await operator.reload({ waitUntil: "domcontentloaded" });
   await operator.getByRole("button", { name: "公開する", exact: true }).click();
   await operator.getByText("保存しました。画面を再読込して最新状態を確認してください。").waitFor();
   assert.equal((await publicPage.goto(`${baseUrl}/shops/${slug}/?visibility-check=republished`, { waitUntil: "domcontentloaded" }))?.status(), 200, "republished managed shop must return to its stable public URL");
-  await Promise.all([anonymous.close(), operator.close(), publicPage.close()]);
+  await Promise.all([anonymous.close(), operator.close(), publicPage.close(), publicList.close(), areaList.close()]);
   console.log("operator managed shop local Supabase browser E2E: PASS");
 } catch (error) {
   console.log(`operator managed shop E2E failure: ${error instanceof Error ? error.stack : String(error)}`);

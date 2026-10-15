@@ -11,15 +11,12 @@ const popPage = read("app/partner/growth/pop/page.tsx");
 const popImage = read("app/partner/growth/pop/preview.svg/route.ts");
 const growthCenter = read("app/partner/growth/page.tsx");
 
-for (const href of ["/contact/#contact-form-heading", "/shops/", "/partner/login/"]) {
-  assert.match(listing, new RegExp(`href="${href.replace(/[/.]/g, "\\$&")}"`), `listing guide needs ${href}`);
-}
-assert.match(listing, /相互リンクは任意です。掲載順位や審査結果には影響しません。/);
-assert.match(listing, /正式な相互リンク用バナー画像の受領・確認後/);
-assert.match(listing, /配布できる画像はまだありません/);
-assert.match(listing, /const reciprocalLinkTargetUrl = "https:\/\/mens-esthe-kuchikomi\.com\/"/);
-assert.match(listing, /const reciprocalBanners: ReadonlyArray/);
-assert.doesNotMatch(listing, /eskomi-link-banner-728x90/, "unreviewed legacy banner files must not be offered as reciprocal-link downloads");
+assert.match(listing, /const banners = \[/, "listing guide needs the approved banner choices");
+assert.match(listing, /HTMLをコピー/, "listing guide needs copyable official-banner HTML");
+assert.match(listing, /画像をダウンロード/, "listing guide needs free official-banner downloads");
+assert.match(listing, /action: "create"|\/api\/listing-applications\//, "listing guide needs the controlled listing-application submission route");
+assert.match(listing, /この申請で店舗の所有権や編集権限が付与されることはありません/, "listing application must not grant ownership");
+assert.match(listing, /公開前に運営が確認します/, "listing application must explain the approval gate");
 assert.match(listing, /rel="noopener noreferrer"/);
 assert.doesNotMatch(listing, /<script/i, "copyable HTML must not inject script");
 assert.match(guide, /店舗担当者/);
