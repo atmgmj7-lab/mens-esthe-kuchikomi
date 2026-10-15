@@ -4,7 +4,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import { applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
-import { composeManagedShopDirectory, findPublishedManagedShopBySlug, getPublishedManagedShopDirectory, isManagedShopDirectoryUnavailableError } from "@/lib/managed-shop-source";
+import { composeManagedShopDirectory, findPublishedManagedShopBySlug, getManagedShopDirectoryState, isManagedShopDirectoryUnavailableError, isManagedShopLegacySuppressedBySlug } from "@/lib/managed-shop-source";
 import type { ShopView, WpShop } from "@/lib/wp/types";
 
 function safeDecodeURIComponent(value: string): string {
@@ -121,6 +121,7 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
   cacheLife("hours");
   cacheTag("wp", "shops", shopSlugCacheTag(slug));
 
+  if (await isManagedShopLegacySuppressedBySlug(slug)) return null;
   const managedOnly = await findPublishedManagedShopBySlug(slug);
   if (managedOnly) return managedOnly;
   try {
@@ -180,7 +181,7 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   cacheTag("wp", "shops", "shops:sitemap");
 
   const perPage = 100;
-  const entries: SitemapEntry[] = [];
+  const entries: Array<SitemapEntry & { id: number }> = [];
   let page = 1;
   let totalPages = 1;
 
@@ -189,7 +190,7 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
       const { data, pagination } = await wpFetchPaginated<WpShop[]>(
         `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_fields=slug,modified`
       );
-      entries.push(...data.map((shop) => ({ slug: shop.slug, modified: shop.modified })));
+      entries.push(...data.map((shop) => ({ id: shop.id, slug: shop.slug, modified: shop.modified })));
       totalPages = pagination.totalPages;
       page += 1;
     }
@@ -197,15 +198,16 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
     logWpBuildFallback("shops sitemap", error);
   }
 
-  const publications = await getPublishedManagedShopDirectory();
+  const { publications, suppressions } = await getManagedShopDirectoryState();
   const publishedNewShops = publications
     .filter((publication) => publication.existing_wp_shop_id === null)
     .map((publication) => ({ slug: publication.shop_slug, modified: new Date().toISOString() }));
-  const existingSlugs = new Set(entries.map((entry) => entry.slug.toLowerCase()));
-  return [...entries, ...publishedNewShops.filter((entry) => !existingSlugs.has(entry.slug.toLowerCase()))];
+  const visibleEntries = entries.filter((entry) => !suppressions.some((suppression) => suppression.existing_wp_shop_id === entry.id && slugsMatch(suppression.shop_slug, entry.slug)));
+  const existingSlugs = new Set(visibleEntries.map((entry) => entry.slug.toLowerCase()));
+  return [...visibleEntries.map(({ slug, modified }) => ({ slug, modified })), ...publishedNewShops.filter((entry) => !existingSlugs.has(entry.slug.toLowerCase()))];
 }
 
-export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
+export async function getAllWordPressShops(maxShops = Number.MAX_SAFE_INTEGER): Promise<ShopView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", "shops:listing-all");
@@ -229,7 +231,11 @@ export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]>
     logWpBuildFallback(`shops listing ${maxShops}`, error);
   }
 
-  return applyPublicShopSources(shops.slice(0, maxShops), true);
+  return shops.slice(0, maxShops);
+}
+
+export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
+  return applyPublicShopSources(await getAllWordPressShops(maxShops), true);
 }
 
 export async function getShopCount(): Promise<number> {
@@ -238,8 +244,8 @@ export async function getShopCount(): Promise<number> {
   cacheTag("wp", "shops", "shops:count");
   try {
     const { pagination } = await wpFetchPaginated<WpShop[]>("/wp/v2/shop?per_page=1");
-    const publications = await getPublishedManagedShopDirectory();
-    return pagination.total + publications.filter((publication) => publication.existing_wp_shop_id === null).length;
+    const { publications, suppressions } = await getManagedShopDirectoryState();
+    return pagination.total - suppressions.length + publications.filter((publication) => publication.existing_wp_shop_id === null).length;
   } catch (error) {
     logWpBuildFallback("shop count", error);
     return 0;

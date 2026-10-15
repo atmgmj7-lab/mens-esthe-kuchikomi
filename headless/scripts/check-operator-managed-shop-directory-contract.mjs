@@ -8,6 +8,7 @@ const assetApiMigration = join(root, "../supabase/migrations/20261015033500_oper
 const visibilityMigration = join(root, "../supabase/migrations/20261015033805_operator_managed_shop_visibility_and_nullable_fields.sql");
 const workflowApiMigration = join(root, "../supabase/migrations/20261015034000_operator_managed_shop_workflow_api.sql");
 const assetVisibilityMigration = join(root, "../supabase/migrations/20261015034200_operator_managed_shop_asset_visibility.sql");
+const suppressionMigration = join(root, "../supabase/migrations/20261015041913_managed_shop_unlisted_legacy_suppression.sql");
 const fixture = join(root, "../supabase/tests/verify_operator_managed_shop_directory.sql");
 
 assert.ok(existsSync(migration), "managed-shop migration is required");
@@ -17,6 +18,7 @@ const assetApiSql = readFileSync(assetApiMigration, "utf8");
 const visibilitySql = readFileSync(visibilityMigration, "utf8");
 const workflowApiSql = readFileSync(workflowApiMigration, "utf8");
 const assetVisibilitySql = readFileSync(assetVisibilityMigration, "utf8");
+const suppressionSql = readFileSync(suppressionMigration, "utf8");
 const testSql = readFileSync(fixture, "utf8");
 
 for (const token of [
@@ -42,6 +44,8 @@ assert.doesNotMatch(sql, /grant\s+execute\s+on\s+function\s+api\.(?:create|save|
 assert.match(assetApiSql, /api\.get_published_managed_shop_asset/, "asset getter must verify an approved publication");
 assert.doesNotMatch(assetApiSql, /grant\s+execute\s+on\s+function\s+api\.(?:attach|get_published)_managed_shop_asset.*\s+to\s+(anon|authenticated)/i, "asset RPCs must remain service-only");
 assert.match(assetVisibilitySql, /s\.publication_state='published'/, "unlisted managed stores must not expose private image objects through the proxy");
+assert.match(suppressionSql, /api\.list_unlisted_managed_shop_legacy_identities/, "unlisted legacy identities must be available to the server composition");
+assert.doesNotMatch(suppressionSql, /grant\s+execute\s+on\s+function\s+api\.list_unlisted_managed_shop_legacy_identities.*\s+to\s+(anon|authenticated)/i, "unlisted identities must remain service-only");
 assert.match(visibilitySql, /publication_state text not null default 'unlisted'/, "new directory records must start non-public");
 assert.match(visibilitySql, /private\.set_managed_shop_visibility/, "visibility must use a controlled operator workflow");
 assert.match(visibilitySql, /where s\.publication_state='published'/, "public list must exclude unlisted stores");

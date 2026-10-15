@@ -45,4 +45,9 @@ const mismatch = composeManagedShopPublications([legacy], [{ ...overlay, shop_sl
 assert.equal(mismatch.length, 1, "legacy identity mismatch must not override or append a duplicate");
 assert.equal(mismatch[0].title, "旧店舗");
 
+const unlisted = composeManagedShopPublications([legacy], [], [{ existing_wp_shop_id: 768, shop_slug: "legacy-shop" }]);
+assert.equal(unlisted.length, 0, "an approved legacy shop explicitly unlisted by the operator must not fall back to WordPress");
+const suppressionMismatch = composeManagedShopPublications([legacy], [], [{ existing_wp_shop_id: 768, shop_slug: "different-slug" }]);
+assert.equal(suppressionMismatch.length, 1, "a mismatched unlist identity must not hide a WordPress shop");
+
 console.log("managed-shop public source composition: PASS");

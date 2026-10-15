@@ -9,6 +9,7 @@ import { publicReviewAdapter } from "@/lib/reviews/public-adapter";
 import { toShopRouteParam } from "@/lib/shop-route-param";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
+import { isManagedShopLegacySuppressedBySlug } from "@/lib/managed-shop-source";
 import { getPublicPartnerListing } from "@/lib/partner/public-listing";
 import { PublicPartnerListing } from "@/components/partner/PublicPartnerListing";
 
@@ -56,6 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ShopPage({ params }: Props) {
   await connection();
   const { slug } = await params;
+  if (await isManagedShopLegacySuppressedBySlug(slug)) notFound();
   const [shop, partner] = await Promise.all([withWpBuildFallback(`shop page ${slug}`, () => getShopBySlug(slug), null), getPublicPartnerListing(slug)]);
   if (!shop && !partner) notFound();
   if (!shop && partner) return <PublicPartnerListing listing={partner} />;

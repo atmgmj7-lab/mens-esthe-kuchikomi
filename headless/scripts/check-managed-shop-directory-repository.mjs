@@ -35,6 +35,7 @@ const repository = createManagedShopDirectoryRepository({
     calls.push({ url, init });
     const method = new URL(url).pathname.split("/").at(-1);
     if (method === "list_published_managed_shops") return new Response(JSON.stringify([publication]), { status: 200 });
+    if (method === "list_unlisted_managed_shop_legacy_identities") return new Response(JSON.stringify([{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]), { status: 200 });
     if (method === "import_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
     if (method === "save_managed_shop_draft") return new Response(JSON.stringify("conflict"), { status: 200 });
     return new Response(JSON.stringify("ok"), { status: 200 });
@@ -47,5 +48,6 @@ assert.equal(await repository.saveDraft({ managedShopId: "11111111-1111-4111-811
 assert.equal(calls.length, 3);
 assert.ok(calls.every(({ init }) => init.headers.Authorization === "Bearer fixture-service"), "service secret must remain server-only RPC auth");
 assert.equal((await repository.listPublished()).length, 1);
+assert.deepEqual(JSON.parse(JSON.stringify(await repository.listUnlistedLegacySuppressions())), [{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]);
 
 console.log("managed-shop directory repository: PASS");

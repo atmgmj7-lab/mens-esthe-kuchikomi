@@ -30,6 +30,7 @@ export type PublishedManagedShop = Readonly<{
   banner_asset_id: string | null;
   gallery_asset_ids: readonly string[];
 }>;
+export type ManagedShopLegacySuppression = Readonly<{ existing_wp_shop_id: number; shop_slug: string }>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -81,6 +82,10 @@ function publication(value: unknown): PublishedManagedShop | null {
     gallery_asset_ids: Object.freeze([...value.gallery_asset_ids] as string[]),
   };
 }
+function legacySuppression(value: unknown): ManagedShopLegacySuppression | null {
+  if (!record(value) || !Number.isSafeInteger(value.existing_wp_shop_id) || (value.existing_wp_shop_id as number) < 1 || !string(value.shop_slug)) return null;
+  return Object.freeze({ existing_wp_shop_id: value.existing_wp_shop_id as number, shop_slug: value.shop_slug as string });
+}
 
 function actor(value: string): string | null {
   const normalized = value.trim();
@@ -126,6 +131,12 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
       if (!Array.isArray(response)) return [];
       const parsed = response.map(publication);
       return parsed.every((item): item is PublishedManagedShop => item !== null) ? Object.freeze(parsed) : [];
+    },
+    async listUnlistedLegacySuppressions(): Promise<readonly ManagedShopLegacySuppression[]> {
+      const response = await rpc("list_unlisted_managed_shop_legacy_identities", {});
+      if (!Array.isArray(response)) return [];
+      const parsed = response.map(legacySuppression);
+      return parsed.every((item): item is ManagedShopLegacySuppression => item !== null) ? Object.freeze(parsed) : [];
     },
     async getDetail(managedShopId: string): Promise<ManagedShopDetail | null> {
       if (!UUID.test(managedShopId)) return null;

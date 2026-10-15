@@ -1,6 +1,7 @@
 import "server-only";
+import { cacheLife, cacheTag } from "next/cache";
 
-import { managedShopDirectoryRepository, useSupabaseManagedShopDirectory, type PublishedManagedShop } from "@/lib/supabase/managed-shop-directory";
+import { managedShopDirectoryRepository, useSupabaseManagedShopDirectory, type ManagedShopLegacySuppression, type PublishedManagedShop } from "@/lib/supabase/managed-shop-directory";
 import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
 import type { ShopView } from "@/lib/wp/types";
@@ -95,6 +96,7 @@ function createManagedShop(publication: PublishedManagedShop): ShopView {
 export function composeManagedShopPublications(
   legacyShops: readonly ShopView[],
   publications: readonly PublishedManagedShop[],
+  suppressions: readonly ManagedShopLegacySuppression[] = [],
 ): ShopView[] {
   const byLegacyId = new Map<number, PublishedManagedShop>();
   const newPublications: PublishedManagedShop[] = [];
@@ -102,11 +104,16 @@ export function composeManagedShopPublications(
     if (publication.existing_wp_shop_id === null) newPublications.push(publication);
     else byLegacyId.set(publication.existing_wp_shop_id, publication);
   }
-  const composed = legacyShops.map((shop) => {
+  const suppressedByLegacyId = new Map(suppressions.map((suppression) => [suppression.existing_wp_shop_id, suppression]));
+  const visibleLegacyShops = legacyShops.filter((shop) => {
+    const suppression = suppressedByLegacyId.get(shop.id);
+    return !suppression || !sameSlug(shop.slug, suppression.shop_slug);
+  });
+  const composed = visibleLegacyShops.map((shop) => {
     const publication = byLegacyId.get(shop.id);
     return publication && sameSlug(shop.slug, publication.shop_slug) ? overlayLegacyShop(shop, publication) : shop;
   });
-  const legacyIds = new Set(legacyShops.map((shop) => shop.id));
+  const legacyIds = new Set(visibleLegacyShops.map((shop) => shop.id));
   for (const publication of newPublications) {
     if (!legacyIds.has(publication.directory_id) && !legacyShops.some((shop) => sameSlug(shop.slug, publication.shop_slug))) {
       composed.push(createManagedShop(publication));
@@ -121,12 +128,28 @@ export async function getPublishedManagedShopDirectory(): Promise<readonly Publi
   return managedShopDirectoryRepository.listPublished();
 }
 
+export async function getManagedShopDirectoryState(): Promise<Readonly<{ publications: readonly PublishedManagedShop[]; suppressions: readonly ManagedShopLegacySuppression[] }>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("wp", "shops", "managed-shop-directory");
+  if (!useSupabaseManagedShopDirectory()) return Object.freeze({ publications: [], suppressions: [] });
+  if (!managedShopDirectoryRepository.configured()) throw new ManagedShopDirectoryUnavailableError();
+  const [publications, suppressions] = await Promise.all([managedShopDirectoryRepository.listPublished(), managedShopDirectoryRepository.listUnlistedLegacySuppressions()]);
+  return Object.freeze({ publications, suppressions });
+}
+
 export async function composeManagedShopDirectory(legacyShops: readonly ShopView[]): Promise<ShopView[]> {
-  return composeManagedShopPublications(legacyShops, await getPublishedManagedShopDirectory());
+  const { publications, suppressions } = await getManagedShopDirectoryState();
+  return composeManagedShopPublications(legacyShops, publications, suppressions);
 }
 
 export async function findPublishedManagedShopBySlug(slug: string): Promise<ShopView | null> {
   const publications = await getPublishedManagedShopDirectory();
   const publication = publications.find((item) => sameSlug(item.shop_slug, slug));
   return publication && publication.existing_wp_shop_id === null ? createManagedShop(publication) : null;
+}
+
+export async function isManagedShopLegacySuppressedBySlug(slug: string): Promise<boolean> {
+  const { suppressions } = await getManagedShopDirectoryState();
+  return suppressions.some((suppression) => sameSlug(suppression.shop_slug, slug));
 }

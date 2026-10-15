@@ -37,7 +37,11 @@ function resolveAbsoluteHttpUrl(value: string | undefined, fallback: string): st
 
 function resolveAbsoluteHttpsUrl(value: string | undefined, fallback: string): string {
   const resolved = resolveAbsoluteHttpUrl(value, fallback);
-  return resolved.startsWith("https://") ? resolved : fallback;
+  // Production hosts remain HTTPS-only. Loopback is accepted so the isolated
+  // local WordPress mock can exercise import/overlay behavior without a TLS
+  // certificate or network access.
+  const localMock = /^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?(?:\/|$)/i.test(resolved);
+  return resolved.startsWith("https://") || localMock ? resolved : fallback;
 }
 
 export const wpApiBase = resolveAbsoluteHttpsUrl(process.env.WP_API_BASE_URL, DEFAULT_WP_API_BASE);

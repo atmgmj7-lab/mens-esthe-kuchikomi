@@ -19,7 +19,8 @@ begin
   if to_regprocedure('api.attach_managed_shop_asset(uuid,uuid,text,text,text,integer,integer,integer,text)') is null
     or to_regprocedure('api.get_published_managed_shop_asset(uuid)') is null
     or to_regprocedure('api.set_managed_shop_visibility(uuid,integer,text,text)') is null
-    or to_regprocedure('api.create_managed_shop(text,jsonb,text)') is null then
+    or to_regprocedure('api.create_managed_shop(text,jsonb,text)') is null
+    or to_regprocedure('api.list_unlisted_managed_shop_legacy_identities()') is null then
     raise exception 'managed directory asset API migration is not applied';
   end if;
 
@@ -73,6 +74,9 @@ begin
   if private.set_managed_shop_visibility(legacy_store, 3, 'unlisted', 'operator-local') <> 'ok'
     or exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store) then
     raise exception 'unlisted managed publication remained publicly listed';
+  end if;
+  if not exists (select 1 from api.list_unlisted_managed_shop_legacy_identities() where existing_wp_shop_id=8400000000000000201 and shop_slug='legacy-managed-shop') then
+    raise exception 'unlisted legacy identity was unavailable for public suppression';
   end if;
   if private.set_managed_shop_visibility(legacy_store, 3, 'published', 'operator-local') <> 'ok'
     or not exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store) then
