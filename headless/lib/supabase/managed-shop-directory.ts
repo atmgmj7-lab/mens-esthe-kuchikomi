@@ -31,6 +31,11 @@ export type PublishedManagedShop = Readonly<{
   gallery_asset_ids: readonly string[];
 }>;
 export type ManagedShopLegacySuppression = Readonly<{ existing_wp_shop_id: number; shop_slug: string }>;
+export type ManagedShopLegacyListingState = Readonly<{
+  existing_wp_shop_id: number;
+  shop_slug: string;
+  publication_state: "unlisted" | "deleted";
+}>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -86,6 +91,15 @@ function legacySuppression(value: unknown): ManagedShopLegacySuppression | null 
   if (!record(value) || !Number.isSafeInteger(value.existing_wp_shop_id) || (value.existing_wp_shop_id as number) < 1 || !string(value.shop_slug)) return null;
   return Object.freeze({ existing_wp_shop_id: value.existing_wp_shop_id as number, shop_slug: value.shop_slug as string });
 }
+function legacyListingState(value: unknown): ManagedShopLegacyListingState | null {
+  if (!record(value) || !Number.isSafeInteger(value.existing_wp_shop_id) || (value.existing_wp_shop_id as number) < 1
+    || !string(value.shop_slug) || (value.publication_state !== "unlisted" && value.publication_state !== "deleted")) return null;
+  return Object.freeze({
+    existing_wp_shop_id: value.existing_wp_shop_id as number,
+    shop_slug: value.shop_slug as string,
+    publication_state: value.publication_state,
+  });
+}
 
 function actor(value: string): string | null {
   const normalized = value.trim();
@@ -137,6 +151,12 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
       if (!Array.isArray(response)) return [];
       const parsed = response.map(legacySuppression);
       return parsed.every((item): item is ManagedShopLegacySuppression => item !== null) ? Object.freeze(parsed) : [];
+    },
+    async listLegacyListingStates(): Promise<readonly ManagedShopLegacyListingState[]> {
+      const response = await rpc("list_managed_shop_legacy_listing_states", {}, "no-store");
+      if (!Array.isArray(response)) return [];
+      const parsed = response.map(legacyListingState);
+      return parsed.every((item): item is ManagedShopLegacyListingState => item !== null) ? Object.freeze(parsed) : [];
     },
     async getDetail(managedShopId: string): Promise<ManagedShopDetail | null> {
       if (!UUID.test(managedShopId)) return null;
@@ -193,6 +213,16 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
         || (input.visibility !== "published" && input.visibility !== "unlisted")) return null;
       const result = await rpc("set_managed_shop_visibility", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_visibility: input.visibility, p_actor_label: actor(input.actorLabel) });
       return result === "ok" || result === "conflict" ? result : null;
+    },
+    async archive(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
+      const result = await rpc("archive_managed_shop", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
+    async restoreArchiveToUnlisted(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
+      const result = await rpc("restore_archived_managed_shop_to_unlisted", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
     },
     async attachAsset(input: Readonly<{ managedShopId: string; assetId: string; objectKey: string; sha256: string; contentType: "image/png" | "image/jpeg" | "image/webp"; byteSize: number; width: number; height: number; actorLabel: string }>): Promise<string | null> {
       if (!UUID.test(input.managedShopId) || !UUID.test(input.assetId) || !/^managed-shops\/[0-9a-f-]+\/[0-9a-f-]+\.(?:png|jpe?g|webp)$/i.test(input.objectKey)

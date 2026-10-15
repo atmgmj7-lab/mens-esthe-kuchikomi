@@ -23,6 +23,7 @@ function loadProjection() {
         listPartnerRegistrationReviews: async () => [],
       };
       if (specifier === "@/lib/supabase/partner-workspace") return { partnerReviewGrowthRepository: {} };
+      if (specifier === "@/lib/supabase/managed-shop-directory") return { managedShopDirectoryRepository: { listLegacyListingStates: async () => [] } };
       if (specifier === "@/lib/supabase/partner-shop-facts") return {
         partnerShopFactsRepository: { get: async () => null, importFromWordPress: async () => null },
         useSupabaseShopManagement: () => false,
@@ -63,11 +64,16 @@ const registration = {
 };
 const metrics = { workspaceId: registration.workspaceId, shopId: 768, submittedReviews: 3, pendingReviews: 1, publicReviews: 2, campaigns: [] };
 const overrides = {
-  listShops: async () => [shop], getShop: async () => shop, listRegistrations: async () => [registration], getMetrics: async () => metrics,
+  listPublicShops: async () => [shop], listWordPressShops: async () => [shop], listLegacyListingStates: async () => [],
+  getShop: async () => shop, listRegistrations: async () => [registration], getMetrics: async () => metrics,
 };
 
 const page = await getOperatorShopPage({}, overrides);
 assert.equal(page.total, 1);
+assert.equal(page.records[0].publicShop.listingStatus, "listed", "public listing state must be projected separately from partner readiness");
+assert.equal(page.listingCounts.listed, 1);
+assert.equal(page.listingCounts.unlisted, 0);
+assert.equal(page.listingCounts.deleted, 0);
 assert.equal(page.records[0].partner.status, "available");
 assert.equal(page.records[0].partner.workspaceState, "active_partner");
 assert.equal(page.records[0].partner.membershipStatus, "not_available", "membership PII must not be projected");
@@ -78,6 +84,26 @@ assert.doesNotMatch(JSON.stringify(page.records[0]), /workspaceId|token-not-proj
 const absent = await getOperatorShopDetail(768, { ...overrides, listRegistrations: async () => [] });
 assert.equal(absent?.partner.status, "not_observed", "absence from the safe projection must not claim that no workspace exists");
 assert.equal(absent?.reviews.submitted, null);
+
+const unlistedShop = { ...shop, id: 1272, title: "はなの湯", slug: "%e3%81%af%e3%81%aa%e3%81%ae%e6%b9%af" };
+const statefulPage = await getOperatorShopPage({ listing: "unlisted" }, {
+  ...overrides,
+  listPublicShops: async () => [shop],
+  listWordPressShops: async () => [shop, unlistedShop],
+  listLegacyListingStates: async () => [{ existing_wp_shop_id: 1272, shop_slug: "%e3%81%af%e3%81%aa%e3%81%ae%e6%b9%af", publication_state: "unlisted" }],
+});
+assert.equal(statefulPage.total, 1, "unlisted stores must be visible to operators but absent from the public listing source");
+assert.equal(statefulPage.records[0].publicShop.title, "はなの湯");
+assert.equal(statefulPage.records[0].publicShop.listingStatus, "unlisted");
+assert.deepEqual(JSON.parse(JSON.stringify(statefulPage.listingCounts)), { listed: 1, unlisted: 1, deleted: 0 });
+
+const deletedPage = await getOperatorShopPage({ listing: "deleted" }, {
+  ...overrides,
+  listPublicShops: async () => [shop],
+  listWordPressShops: async () => [shop, unlistedShop],
+  listLegacyListingStates: async () => [{ existing_wp_shop_id: 1272, shop_slug: "%e3%81%af%e3%81%aa%e3%81%ae%e6%b9%af", publication_state: "deleted" }],
+});
+assert.equal(deletedPage.records[0].publicShop.listingStatus, "deleted", "archived records must not be shown as a temporary unlist");
 
 const mismatch = await getOperatorShopDetail(768, { ...overrides, getMetrics: async () => ({ ...metrics, shopId: 999 }) });
 assert.equal(mismatch?.partner.status, "identity_mismatch", "a metric/shop mismatch must deny operational projection");

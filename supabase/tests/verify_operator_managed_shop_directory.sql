@@ -22,6 +22,11 @@ begin
     or to_regprocedure('private.save_and_publish_managed_shop(uuid,integer,jsonb,text)') is null then
     raise exception 'managed directory direct publication migration is not applied';
   end if;
+  if to_regprocedure('private.archive_managed_shop(uuid,integer,text)') is null
+    or to_regprocedure('private.restore_archived_managed_shop_to_unlisted(uuid,integer,text)') is null
+    or to_regprocedure('api.list_managed_shop_legacy_listing_states()') is null then
+    raise exception 'managed directory archive migration is not applied';
+  end if;
   if to_regprocedure('api.attach_managed_shop_asset(uuid,uuid,text,text,text,integer,integer,integer,text)') is null
     or to_regprocedure('api.get_published_managed_shop_asset(uuid)') is null
     or to_regprocedure('api.set_managed_shop_visibility(uuid,integer,text,text)') is null
@@ -168,6 +173,17 @@ begin
     or not exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store and existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist') then
     raise exception 'direct legacy restore changed immutable identity';
   end if;
+  if private.archive_managed_shop(legacy_store, 1, 'operator-local') <> 'ok' then raise exception 'managed archive transition failed'; end if;
+  if exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store) then raise exception 'archived managed publication remained publicly listed'; end if;
+  if not exists (select 1 from private.managed_shops where id=legacy_store and publication_state='deleted') then raise exception 'managed archive state was not stored'; end if;
+  if not exists (select 1 from api.list_unlisted_managed_shop_legacy_identities() where existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist') then raise exception 'archived legacy identity was not suppressed'; end if;
+  if not exists (select 1 from api.list_managed_shop_legacy_listing_states() where existing_wp_shop_id=8400000000000000202 and publication_state='deleted') then raise exception 'managed archive state was unavailable to the operator list'; end if;
+  if private.set_managed_shop_visibility(legacy_store, 1, 'published', 'operator-local') <> 'conflict' then
+    raise exception 'deleted archive was republished by generic visibility';
+  end if;
+  if private.restore_archived_managed_shop_to_unlisted(legacy_store, 1, 'operator-local') <> 'ok' then raise exception 'managed archive restore transition failed'; end if;
+  if exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store) then raise exception 'archive restore republished the store'; end if;
+  if not exists (select 1 from private.managed_shops where id=legacy_store and publication_state='unlisted') then raise exception 'managed archive restore did not return to unlisted'; end if;
   if not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and official_url is null) then
     raise exception 'legacy-compatible managed draft rejected a missing official URL';
   end if;
@@ -181,4 +197,5 @@ $$;
 
 select 1 / case when not has_table_privilege('anon', 'private.managed_shops', 'select') then 1 else 0 end as anonymous_role_can_read_managed_directory;
 select 1 / case when not has_function_privilege('anon', 'api.create_and_publish_managed_shop(text,jsonb,text)', 'execute') then 1 else 0 end as anonymous_role_can_execute_direct_publish;
+select 1 / case when not has_function_privilege('anon', 'api.archive_managed_shop(uuid,integer,text)', 'execute') then 1 else 0 end as anonymous_role_can_execute_archive;
 rollback;

@@ -24,6 +24,6 @@ export default async function ManagedShopPage({ params }: { params: Promise<{ id
     line_url: nullable(current.line_url), booking_url: nullable(current.booking_url), basic_price: nullable(current.basic_price), price_90: nullable(current.price_90),
     banner_asset_id: nullable(current.banner_asset_id), gallery_asset_ids: uuidList(current.gallery_asset_ids),
   };
-  const publicationState = shop.publication_state === "published" ? "published" : "unlisted";
+  const publicationState = shop.publication_state === "published" || shop.publication_state === "deleted" ? shop.publication_state : "unlisted";
   return <><p><a href="/dashboard/shops/">← 店舗一覧へ戻る</a></p><ManagedShopEditorForm managedShopId={id} revision={current.revision as number} initial={initial} publicationState={publicationState} currentState={text(current.state)} /></>;
 }

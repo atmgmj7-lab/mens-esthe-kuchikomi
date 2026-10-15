@@ -36,6 +36,7 @@ const repository = createManagedShopDirectoryRepository({
     const method = new URL(url).pathname.split("/").at(-1);
     if (method === "list_published_managed_shops") return new Response(JSON.stringify([publication]), { status: 200 });
     if (method === "list_unlisted_managed_shop_legacy_identities") return new Response(JSON.stringify([{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]), { status: 200 });
+    if (method === "list_managed_shop_legacy_listing_states") return new Response(JSON.stringify([{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop", publication_state: "deleted" }]), { status: 200 });
     if (method === "import_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
     if (method === "create_and_publish_managed_shop" || method === "import_and_publish_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
     if (method === "save_managed_shop_draft") return new Response(JSON.stringify("conflict"), { status: 200 });
@@ -60,7 +61,13 @@ assert.equal(calls[4].init.cache, "no-store", "legacy direct publication must st
 assert.equal(calls[5].init.cache, "no-store", "direct edit publication must stay uncached");
 assert.equal((await repository.listPublished()).length, 1);
 assert.deepEqual(JSON.parse(JSON.stringify(await repository.listUnlistedLegacySuppressions())), [{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop" }]);
+assert.deepEqual(JSON.parse(JSON.stringify(await repository.listLegacyListingStates())), [{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop", publication_state: "deleted" }]);
+assert.equal(await repository.archive({ managedShopId: "11111111-1111-4111-8111-111111111111", expectedRevision: 3, actorLabel: "operator" }), "ok");
+assert.equal(await repository.restoreArchiveToUnlisted({ managedShopId: "11111111-1111-4111-8111-111111111111", expectedRevision: 3, actorLabel: "operator" }), "ok");
 assert.equal(calls[6].init.cache, "force-cache", "repeated published directory reads must remain cacheable");
 assert.equal(calls[7].init.cache, "force-cache", "unlisted directory reads must remain cacheable inside Next use-cache boundaries");
+assert.equal(calls[8].init.cache, "no-store", "operator listing-state reads must not share a public cache");
+assert.equal(calls[9].init.cache, "no-store", "archive writes must stay uncached");
+assert.equal(calls[10].init.cache, "no-store", "archive restore writes must stay uncached");
 
 console.log("managed-shop directory repository: PASS");

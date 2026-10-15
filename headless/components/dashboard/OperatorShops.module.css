@@ -122,23 +122,37 @@
 .back a { color: var(--mep-navy, #143d4d); font-weight: 700; }
 .empty { margin: 0; padding: 28px; border: 1px dashed #b9c6c8; color: #596675; background: #fffdf8; }
 
+.listingTabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.listingTab { display: inline-flex; min-height: 40px; align-items: center; gap: 7px; padding: 8px 12px; border: 1px solid #c9d0d2; border-radius: 999px; color: #40505a; font-size: 13px; font-weight: 800; text-decoration: none; }
+.listingTab span { display: inline-grid; min-width: 1.5rem; min-height: 1.5rem; place-items: center; border-radius: 999px; background: #eef1f2; color: #465765; font-size: 12px; }
+.listingTabActive { border-color: var(--mep-navy, #143d4d); background: var(--mep-navy, #143d4d); color: #fff; }
+.listingTabActive span { background: rgba(255,255,255,.18); color: inherit; }
+.listingTab:focus-visible { outline: 3px solid var(--es-gold, #d4af37); outline-offset: 3px; }
+
 .tableRegion { overflow-x: auto; border: 1px solid #e3dfd6; border-radius: 10px; }
 .table { width: 100%; min-width: 910px; border-collapse: collapse; }
 .table th,
 .table td { padding: 14px; border-bottom: 1px solid #eeeae1; text-align: left; vertical-align: top; }
 .table th { color: #697781; background: #faf7f0; font-size: 11px; letter-spacing: 0.08em; }
+.table th span { display: inline-block; margin-top: 3px; color: #7d8589; font-size: 10px; font-weight: 600; letter-spacing: normal; }
 .table td > strong,
 .table td > span { display: block; overflow-wrap: anywhere; }
 .table td > span { margin-top: 5px; color: #6a7782; font-size: 12px; }
 .muted { color: #75808a !important; }
 .statusReady { color: #1c7259; }
 .statusPending { color: #9a6b13; }
+.listingLine { display: flex !important; align-items: center; flex-wrap: wrap; gap: 6px; }
+.listingBadge { display: inline-flex; width: fit-content; align-items: center; padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 800; line-height: 1.4; white-space: nowrap; }
+.listingPublished { background: #e7f5ed; color: #176447; }
+.listingUnlisted { background: #fff3dd; color: #8a5d13; }
+.listingDeleted { background: #f2eded; color: #755c5c; }
 
 .assetSummary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin: 0; }
 .assetSummary div { display: flex; justify-content: space-between; gap: 8px; }
 .assetSummary dt { color: #6a7782; font-size: 12px; }
 .assetSummary dd { margin: 0; font-size: 12px; font-weight: 700; }
 .cards { display: none; }
+.cardAssist { color: #6a7782; font-size: 12px; line-height: 1.5; }
 
 .pagination { display: flex; align-items: center; justify-content: center; gap: 18px; color: #596675; }
 .pagination a { color: var(--mep-navy, #143d4d); font-weight: 700; text-decoration: none; }
@@ -173,6 +187,13 @@
 .saveGate button { min-height: 44px; padding: 9px 14px; border: 1px solid var(--mep-navy, #143d4d); border-radius: 8px; background: var(--mep-navy, #143d4d); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
 .saveGate button:disabled { border-color: #8b9398; background: #8b9398; cursor: not-allowed; }
 .saveGate button:focus-visible { outline: 3px solid var(--es-gold, #d4af37); outline-offset: 3px; }
+.archiveGate { margin-top: 14px; padding: 14px; border: 1px solid #d9b9b9; border-radius: 10px; background: #fff8f8; }
+.archiveGate p { margin: 0 0 10px; color: #684e4e; line-height: 1.6; }
+.archiveGate label { display: grid; gap: 7px; margin: 12px 0; color: #5f4747; font-size: 13px; font-weight: 700; }
+.archiveGate input { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #d1bcbc; border-radius: 8px; background: #fff; color: #3f2828; font: inherit; }
+.archiveGate button { min-height: 44px; padding: 9px 14px; border: 1px solid #7a4141; border-radius: 8px; background: #7a4141; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.archiveGate button:disabled { border-color: #9a8c8c; background: #9a8c8c; cursor: not-allowed; }
+.archiveGate button:focus-visible { outline: 3px solid var(--es-gold, #d4af37); outline-offset: 3px; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (max-width: 1100px) {
