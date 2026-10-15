@@ -7,7 +7,7 @@ import {
   type PartnerReviewGrowthMetrics,
 } from "@/lib/partner/provisioning-service";
 import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
-import { managedShopDirectoryRepository, type ManagedShopLegacyListingState } from "@/lib/supabase/managed-shop-directory";
+import { managedShopDirectoryRepository, type ManagedShopLegacyListingState, type ManagedShopNonPublicListingState } from "@/lib/supabase/managed-shop-directory";
 import { getAllShopsForListing, getAllWordPressShops, getWordPressShopById } from "@/lib/wp/shops";
 import { createOperatorShopFactSnapshot, type OperatorShopFactSnapshot } from "@/lib/dashboard/operator-shop-fact-dry-run";
 import { partnerShopFactsRepository, useSupabaseShopManagement } from "@/lib/supabase/partner-shop-facts";
@@ -26,6 +26,7 @@ export type OperatorShopRecord = Readonly<{
     title: string;
     slug: string;
     canonicalUrl: string;
+    managedShopId: string | null;
     officialUrl: string;
     areaName: string | null;
     publicationStatus: string | null;
@@ -74,6 +75,7 @@ type OperatorProjectionDependencies = Readonly<{
   listRegistrations: () => Promise<PartnerRegistrationReview[]>;
   getMetrics: (workspaceId: string) => Promise<PartnerReviewGrowthMetrics | null>;
   listLegacyListingStates: () => Promise<readonly ManagedShopLegacyListingState[]>;
+  listNonPublicListingStates: () => Promise<readonly ManagedShopNonPublicListingState[]>;
 }>;
 
 const dependencies: OperatorProjectionDependencies = {
@@ -83,18 +85,22 @@ const dependencies: OperatorProjectionDependencies = {
   listRegistrations: () => listPartnerRegistrationReviews(partnerReviewGrowthRepository),
   getMetrics: (workspaceId) => getPartnerReviewGrowthMetrics(workspaceId, partnerReviewGrowthRepository),
   listLegacyListingStates: () => managedShopDirectoryRepository.listLegacyListingStates(),
+  listNonPublicListingStates: () => managedShopDirectoryRepository.listNonPublicListingStates(),
 };
 
-function canonicalUrl(shop: Pick<ShopView, "slug">): string {
+type OperatorProjectionShop = Pick<ShopView, "id" | "publicationStatus" | "slug" | "title" | "officialUrl" | "primaryArea"> & Readonly<{ managedShopId?: string | null }>;
+
+function canonicalUrl(shop: Pick<OperatorProjectionShop, "slug">): string {
   return `https://mens-esthe-kuchikomi.com/shops/${shop.slug}/`;
 }
 
-function publicShop(shop: ShopView, listingStatus: OperatorListingStatus): OperatorShopRecord["publicShop"] {
+function publicShop(shop: OperatorProjectionShop, listingStatus: OperatorListingStatus): OperatorShopRecord["publicShop"] {
   return {
     wpShopId: shop.id,
     title: shop.title,
     slug: shop.slug,
     canonicalUrl: canonicalUrl(shop),
+    managedShopId: shop.managedShopId ?? null,
     officialUrl: shop.officialUrl,
     areaName: shop.primaryArea?.name ?? null,
     publicationStatus: shop.publicationStatus ?? null,
@@ -107,7 +113,7 @@ function normalizedSlug(value: string): string {
 }
 
 function listingStatusForShop(
-  shop: ShopView,
+  shop: OperatorProjectionShop,
   listingStates: readonly ManagedShopLegacyListingState[],
 ): OperatorListingStatus {
   const match = listingStates.find((listingState) => listingState.existing_wp_shop_id === shop.id
@@ -115,28 +121,47 @@ function listingStatusForShop(
   return match?.publication_state ?? "listed";
 }
 
-type OperatorListingShop = Readonly<{ shop: ShopView; listingStatus: OperatorListingStatus }>;
+type OperatorListingShop = Readonly<{ shop: OperatorProjectionShop; listingStatus: OperatorListingStatus }>;
+
+function nonPublicManagedShop(state: ManagedShopNonPublicListingState): OperatorProjectionShop {
+  return {
+    id: state.existing_wp_shop_id ?? state.directory_id,
+    managedShopId: state.managed_shop_id,
+    publicationStatus: "publish",
+    slug: state.shop_slug,
+    title: state.shop_name,
+    officialUrl: state.official_url ?? "",
+    primaryArea: { id: 0, slug: state.area_slug, name: state.area_name },
+  };
+}
 
 function operatorListingShops(
   publicShops: readonly ShopView[],
   wordPressShops: readonly ShopView[],
   listingStates: readonly ManagedShopLegacyListingState[],
+  nonPublicListingStates: readonly ManagedShopNonPublicListingState[],
 ): OperatorListingShop[] {
   const publicIds = new Set(publicShops.map((shop) => shop.id));
   const visible = publicShops.map((shop) => ({ shop, listingStatus: "listed" as const }));
-  const nonPublic = wordPressShops
+  const statefulLegacyIds = new Set(nonPublicListingStates.map((state) => state.existing_wp_shop_id).filter((id): id is number => id !== null));
+  const legacyNonPublic = wordPressShops
     .filter((shop) => !publicIds.has(shop.id))
+    .filter((shop) => !statefulLegacyIds.has(shop.id))
     .map((shop) => ({ shop, listingStatus: listingStatusForShop(shop, listingStates) }))
     .filter(({ listingStatus }) => listingStatus !== "listed");
-  return [...visible, ...nonPublic];
+  const managedNonPublic = nonPublicListingStates.map((state) => {
+    const legacy = state.existing_wp_shop_id === null ? null : wordPressShops.find((shop) => shop.id === state.existing_wp_shop_id && normalizedSlug(shop.slug) === normalizedSlug(state.shop_slug));
+    return { shop: legacy ?? nonPublicManagedShop(state), listingStatus: state.publication_state };
+  });
+  return [...visible, ...legacyNonPublic, ...managedNonPublic];
 }
 
-function registrationFor(shop: ShopView, registrations: PartnerRegistrationReview[]): PartnerRegistrationReview | null {
+function registrationFor(shop: OperatorProjectionShop, registrations: PartnerRegistrationReview[]): PartnerRegistrationReview | null {
   return registrations.find((registration) => registration.shop.id === shop.id) ?? null;
 }
 
 function hasSameShopIdentity(
-  shop: ShopView,
+  shop: OperatorProjectionShop,
   registration: PartnerRegistrationReview,
   metrics: PartnerReviewGrowthMetrics | null,
 ): boolean {
@@ -147,7 +172,7 @@ function hasSameShopIdentity(
 }
 
 function unavailableRecord(
-  shop: ShopView,
+  shop: OperatorProjectionShop,
   listingStatus: OperatorListingStatus,
   status: Exclude<OperatorProjectionStatus, "available">,
 ): OperatorShopRecord {
@@ -176,7 +201,7 @@ function assetStatus(activeChannels: ReadonlySet<string>, channel: string): Oper
 }
 
 function projectShop(
-  shop: ShopView,
+  shop: OperatorProjectionShop,
   listingStatus: OperatorListingStatus,
   registrations: PartnerRegistrationReview[],
   metrics: PartnerReviewGrowthMetrics | null,
@@ -235,7 +260,7 @@ function normalizeListingFilter(value: string | undefined): OperatorListingFilte
 
 async function metricsByWorkspace(
   registrations: PartnerRegistrationReview[],
-  shops: ShopView[],
+  shops: OperatorProjectionShop[],
   getMetrics: OperatorProjectionDependencies["getMetrics"],
 ): Promise<Map<string, PartnerReviewGrowthMetrics | null>> {
   const relevant = registrations.filter((registration) => shops.some((shop) => shop.id === registration.shop.id));
@@ -251,12 +276,12 @@ export async function getOperatorShopPage(
   overrides: Partial<OperatorProjectionDependencies> = {},
 ): Promise<OperatorShopPage> {
   const services = { ...dependencies, ...overrides };
-  const [publicShops, wordPressShops, registrations, listingStates] = await Promise.all([
-    services.listPublicShops(), services.listWordPressShops(), services.listRegistrations(), services.listLegacyListingStates(),
+  const [publicShops, wordPressShops, registrations, listingStates, nonPublicListingStates] = await Promise.all([
+    services.listPublicShops(), services.listWordPressShops(), services.listRegistrations(), services.listLegacyListingStates(), services.listNonPublicListingStates(),
   ]);
   const query = normalizeQuery(input.query);
   const needle = query.toLocaleLowerCase("ja-JP");
-  const queryMatching = operatorListingShops(publicShops, wordPressShops, listingStates)
+  const queryMatching = operatorListingShops(publicShops, wordPressShops, listingStates, nonPublicListingStates)
     .filter(({ shop }) => !needle || `${shop.title} ${shop.slug} ${shop.primaryArea?.name ?? ""}`.toLocaleLowerCase("ja-JP").includes(needle));
   const listingFilter = normalizeListingFilter(input.listing);
   const listingCounts = {

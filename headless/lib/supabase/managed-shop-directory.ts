@@ -36,6 +36,10 @@ export type ManagedShopLegacyListingState = Readonly<{
   shop_slug: string;
   publication_state: "unlisted" | "deleted";
 }>;
+export type ManagedShopNonPublicListingState = Readonly<Pick<PublishedManagedShop,
+  "managed_shop_id" | "directory_id" | "existing_wp_shop_id" | "shop_slug" | "canonical_url" | "approved_revision"
+  | "shop_name" | "area_slug" | "area_name" | "official_url"
+> & { publication_state: "unlisted" | "deleted" }>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -100,6 +104,19 @@ function legacyListingState(value: unknown): ManagedShopLegacyListingState | nul
     publication_state: value.publication_state,
   });
 }
+function nonPublicListingState(value: unknown): ManagedShopNonPublicListingState | null {
+  const parsed = publication({
+    ...(record(value) ? value : {}), introduction: null, address: null, business_hours: null, phone: null,
+    line_url: null, booking_url: null, basic_price: null, price_90: null, banner_asset_id: null, gallery_asset_ids: [],
+  });
+  if (!parsed || !record(value) || (value.publication_state !== "unlisted" && value.publication_state !== "deleted")) return null;
+  return Object.freeze({
+    managed_shop_id: parsed.managed_shop_id, directory_id: parsed.directory_id, existing_wp_shop_id: parsed.existing_wp_shop_id,
+    shop_slug: parsed.shop_slug, canonical_url: parsed.canonical_url, approved_revision: parsed.approved_revision,
+    shop_name: parsed.shop_name, area_slug: parsed.area_slug, area_name: parsed.area_name, official_url: parsed.official_url,
+    publication_state: value.publication_state,
+  });
+}
 
 function actor(value: string): string | null {
   const normalized = value.trim();
@@ -160,6 +177,12 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
       if (!Array.isArray(response)) return [];
       const parsed = response.map(legacyListingState);
       return parsed.every((item): item is ManagedShopLegacyListingState => item !== null) ? Object.freeze(parsed) : [];
+    },
+    async listNonPublicListingStates(): Promise<readonly ManagedShopNonPublicListingState[]> {
+      const response = await rpc("list_managed_shop_nonpublic_listing_states", {}, "no-store");
+      if (!Array.isArray(response)) return [];
+      const parsed = response.map(nonPublicListingState);
+      return parsed.every((item): item is ManagedShopNonPublicListingState => item !== null) ? Object.freeze(parsed) : [];
     },
     async getDetail(managedShopId: string): Promise<ManagedShopDetail | null> {
       if (!UUID.test(managedShopId)) return null;

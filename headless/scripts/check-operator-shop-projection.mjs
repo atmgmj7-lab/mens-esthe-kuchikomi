@@ -23,7 +23,7 @@ function loadProjection() {
         listPartnerRegistrationReviews: async () => [],
       };
       if (specifier === "@/lib/supabase/partner-workspace") return { partnerReviewGrowthRepository: {} };
-      if (specifier === "@/lib/supabase/managed-shop-directory") return { managedShopDirectoryRepository: { listLegacyListingStates: async () => [] } };
+      if (specifier === "@/lib/supabase/managed-shop-directory") return { managedShopDirectoryRepository: { listLegacyListingStates: async () => [], listNonPublicListingStates: async () => [] } };
       if (specifier === "@/lib/supabase/partner-shop-facts") return {
         partnerShopFactsRepository: { get: async () => null, importFromWordPress: async () => null },
         useSupabaseShopManagement: () => false,
@@ -64,7 +64,7 @@ const registration = {
 };
 const metrics = { workspaceId: registration.workspaceId, shopId: 768, submittedReviews: 3, pendingReviews: 1, publicReviews: 2, campaigns: [] };
 const overrides = {
-  listPublicShops: async () => [shop], listWordPressShops: async () => [shop], listLegacyListingStates: async () => [],
+  listPublicShops: async () => [shop], listWordPressShops: async () => [shop], listLegacyListingStates: async () => [], listNonPublicListingStates: async () => [],
   getShop: async () => shop, listRegistrations: async () => [registration], getMetrics: async () => metrics,
 };
 
@@ -104,6 +104,22 @@ const deletedPage = await getOperatorShopPage({ listing: "deleted" }, {
   listLegacyListingStates: async () => [{ existing_wp_shop_id: 1272, shop_slug: "%e3%81%af%e3%81%aa%e3%81%ae%e6%b9%af", publication_state: "deleted" }],
 });
 assert.equal(deletedPage.records[0].publicShop.listingStatus, "deleted", "archived records must not be shown as a temporary unlist");
+
+const archivedManagedPage = await getOperatorShopPage({ listing: "deleted", query: "運営追加" }, {
+  ...overrides,
+  listPublicShops: async () => [],
+  listWordPressShops: async () => [],
+  listLegacyListingStates: async () => [],
+  listNonPublicListingStates: async () => [{
+    managed_shop_id: "55555555-5555-4555-8555-555555555555", directory_id: 1_000_000_555, existing_wp_shop_id: null,
+    shop_slug: "operator-added-shop", canonical_url: "https://mens-esthe-kuchikomi.com/shops/operator-added-shop/", approved_revision: 2,
+    shop_name: "運営追加の削除済み店舗", area_slug: "osaka", area_name: "大阪市", official_url: null, publication_state: "deleted",
+  }],
+});
+assert.equal(archivedManagedPage.total, 1, "an archived operator-added shop must remain discoverable without a WordPress identity");
+assert.equal(archivedManagedPage.records[0].publicShop.listingStatus, "deleted");
+assert.equal(archivedManagedPage.records[0].publicShop.title, "運営追加の削除済み店舗");
+assert.equal(archivedManagedPage.records[0].publicShop.managedShopId, "55555555-5555-4555-8555-555555555555", "an archived operator-added shop must retain its Web management route identity");
 
 const mismatch = await getOperatorShopDetail(768, { ...overrides, getMetrics: async () => ({ ...metrics, shopId: 999 }) });
 assert.equal(mismatch?.partner.status, "identity_mismatch", "a metric/shop mismatch must deny operational projection");

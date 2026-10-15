@@ -56,6 +56,12 @@ function ListingBadge({ status }: { status: OperatorListingStatus }) {
   return <span className={`${styles.listingBadge} ${listingClass(status)}`}>{listingLabel[status]}</span>;
 }
 
+function detailHref(record: OperatorShopRecord): string {
+  return record.publicShop.managedShopId
+    ? `/dashboard/shops/managed/${record.publicShop.managedShopId}/`
+    : `/dashboard/shops/${record.publicShop.wpShopId}/`;
+}
+
 function AssetSummary({ record }: { record: OperatorShopRecord }) {
   return (
     <dl className={styles.assetSummary} aria-label="口コミ導線の状態">
@@ -109,7 +115,7 @@ export function OperatorShopsList({ data }: { data: OperatorShopPage }) {
                   <td><strong className={statusClass(record.partner.status)}>{partnerLabel(record)}</strong><span>{partnerNote(record)}</span></td>
                   <td><strong>投稿 {metric(record.reviews.submitted, record.reviews.status)}</strong><span>審査中 {metric(record.reviews.pending, record.reviews.status)} / 公開 {metric(record.reviews.published, record.reviews.status)}</span></td>
                   <td><AssetSummary record={record} /></td>
-                  <td><Link href={`/dashboard/shops/${record.publicShop.wpShopId}/`} className={styles.rowLink}>詳細</Link></td>
+                  <td><Link href={detailHref(record)} className={styles.rowLink}>詳細</Link></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -121,7 +127,7 @@ export function OperatorShopsList({ data }: { data: OperatorShopPage }) {
               <p><strong className={statusClass(record.partner.status)}>{partnerLabel(record)}</strong><br /><span className={styles.cardAssist}>{partnerNote(record)}</span></p>
               <p>口コミ: 投稿 {metric(record.reviews.submitted, record.reviews.status)} / 審査中 {metric(record.reviews.pending, record.reviews.status)} / 公開 {metric(record.reviews.published, record.reviews.status)}</p>
               <AssetSummary record={record} />
-              <Link href={`/dashboard/shops/${record.publicShop.wpShopId}/`} className={styles.rowLink}>店舗詳細を開く</Link>
+              <Link href={detailHref(record)} className={styles.rowLink}>店舗詳細を開く</Link>
             </article>
           ))}</div>
         </>
