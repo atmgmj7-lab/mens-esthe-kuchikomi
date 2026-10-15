@@ -52,6 +52,7 @@
     "test:operator-managed-shop-directory": "node scripts/check-operator-managed-shop-directory-contract.mjs",
     "test:managed-shop-directory-repository": "node scripts/check-managed-shop-directory-repository.mjs",
     "test:managed-shop-source": "node scripts/check-managed-shop-source.mjs",
+    "test:managed-shop-directory-cache-component-build": "node scripts/check-managed-shop-directory-cache-component-build.mjs",
     "test:operator-managed-shop-directory-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_operator_managed_shop_directory.sql",
     "qa:operator-managed-shop-directory-local-supabase": "npm run build && node scripts/check-operator-managed-shop-local-supabase-browser.mjs",
     "qa:listing-application-local": "node scripts/check-listing-application-browser.mjs",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import { HomePageContent } from "@/components/HomePageContent";
 import { publicReviewAdapter, type PublicGlobalReviewResult } from "@/lib/reviews/public-adapter";
 import { organizationJsonLd, pageMetadata, websiteJsonLd } from "@/lib/seo";
@@ -19,6 +20,13 @@ function settledValue<T>(result: PromiseSettledResult<T>, fallback: T): T {
   return result.status === "fulfilled" ? result.value : fallback;
 }
 
+async function getCachedHomeReviews(): Promise<PublicGlobalReviewResult> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("reviews", "home-reviews");
+  return publicReviewAdapter.getGlobalReviews(1, 12);
+}
+
 export default async function HomePage() {
   const [shopCountResult, shopsResult, areasResult, postsResult, areaFeaturesResult, reviewsResult] = await Promise.allSettled([
     getShopCount(),
@@ -26,7 +34,7 @@ export default async function HomePage() {
     getAreas(),
     getLatestPosts(6),
     getHomeFeaturedAreas(),
-    publicReviewAdapter.getGlobalReviews(1, 12),
+    getCachedHomeReviews(),
   ]);
   const shopCount = settledValue(shopCountResult, 0);
   const shops = settledValue(shopsResult, []);
