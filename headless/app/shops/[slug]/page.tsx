@@ -33,7 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [shop, partner] = await Promise.all([withWpBuildFallback(`shop metadata ${slug}`, () => getShopBySlug(slug), null), getPublicPartnerListing(slug)]);
   if (!shop) {
     if (partner) return pageMetadata({ title: `${partner.shop_name}の店舗情報`, description: partner.introduction || `${partner.shop_name}の承認済み店舗情報`, path: `/shops/${partner.shop_slug}/` });
-    return {};
+    // Metadata resolves before the PPR shell. This preserves an HTTP 404 for
+    // unpublished managed shops instead of only showing the not-found UI.
+    notFound();
   }
 
   const primaryAreaName = shop.primaryArea?.name ?? "";

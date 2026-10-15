@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { OperatorShopPage, OperatorShopRecord } from "@/lib/dashboard/operator-shop-projection";
+import { ManageLegacyShopButton } from "./ManagedShopForms";
 import styles from "./OperatorShops.module.css";
 
 const partnerStateLabel: Record<string, string> = {
@@ -51,9 +52,9 @@ export function OperatorShopsList({ data }: { data: OperatorShopPage }) {
         <div>
           <p className={styles.eyebrow}>運営用の確認画面</p>
           <h2 id="operator-shops-heading">店舗管理</h2>
-          <p>公開中の掲載情報と、店舗アカウント・口コミ案内の準備状況を確認します。ここから新しい店舗を追加したり、公開内容を直接変更したりすることはできません。</p>
+          <p>公開中の掲載情報と、店舗アカウント・口コミ案内の準備状況を確認します。既存店舗はWeb管理用の下書きに取り込み、新規店舗は下書きから追加できます。</p>
         </div>
-        <p className={styles.note}>新規掲載の相談は公開サイトのお問い合わせ窓口から受け付けます。</p>
+        <Link href="/dashboard/shops/new/" className={styles.primaryLink}>新規店舗を追加</Link>
       </div>
 
       <form className={styles.search} method="get" action="/dashboard/shops/">
@@ -120,6 +121,7 @@ export function OperatorShopDetail({ record }: { record: OperatorShopRecord }) {
           <div><dt>公式URL</dt><dd>{publicShop.officialUrl ? <a href={publicShop.officialUrl} target="_blank" rel="noreferrer">公式サイト ↗</a> : "未入力"}</dd></div>
           <div><dt>公開状態</dt><dd>{publicShop.publicationStatus ?? "確認不可"}</dd></div>
         </dl></section>
+        <section className={styles.panel}><h3>Web管理</h3><p>WordPress管理画面を開かず、現在の公開情報を読み込んで管理用下書きにします。公開中のページは承認まで変わりません。</p><ManageLegacyShopButton wpShopId={publicShop.wpShopId} /></section>
         <section className={styles.panel}><h3>店舗アカウント</h3><dl className={styles.detailList}>
           <div><dt>準備状況</dt><dd>{partnerLabel(record)}</dd></div>
           <div><dt>担当者情報</dt><dd>{partner.membershipStatus === "not_available" ? "個人情報を含むため、この一覧には表示しません" : "確認中"}</dd></div>

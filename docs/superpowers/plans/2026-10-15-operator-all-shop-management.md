@@ -1,0 +1,9 @@
+# Implementation plan — operator all-shop management
+
+1. **Complete** — Added schema/repository/source contracts for immutable legacy identity, draft/public separation, revision conflict, cross-store assets, service-only RPC access, visibility, and source composition.
+2. **Complete locally** — Added additive managed-directory migrations with RLS/revokes, private asset metadata, controlled visibility, and API-schema service-role wrappers. No production migration was applied.
+3. **Complete** — Implemented the server-only repository and composed `ShopView` adapter. It preserves matching WordPress IDs/slugs/reviews, appends approved new records, and rejects identity mismatches.
+4. **Complete** — Implemented dashboard new-store creation, legacy import-on-edit, bounded draft form, private image upload, submit/review/approve/return, and reversible publish/unpublish controls.
+5. **Complete behind an opt-in flag** — Wired shop detail, list, area routes, sitemap, and count to the approved composition when `SHOP_DIRECTORY_SOURCE=supabase`; the default production source remains unchanged.
+6. **Complete locally** — Local migration, transaction contracts, and real Chromium → Next → Supabase/private Storage E2E passed: anonymous/CSRF denial, stale-review 409, private image denial, approval, public rendering, unlisting, and republishing. With cache-components/PPR the unlisted URL renders the framework not-found UI as a streamed 200 shell; it contains no store content and the image proxy returns 404.
+7. **Complete local gates / pending review** — Typecheck, lint, build, source/repository contracts, Partner editor regression, and E2E passed. Before a draft PR, perform one final diff review and commit only the feature files; do not deploy or alter production configuration without approval.
