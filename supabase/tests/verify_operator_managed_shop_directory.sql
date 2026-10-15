@@ -16,6 +16,11 @@ begin
     or to_regprocedure('private.review_managed_shop_revision(uuid,integer,text,text,text)') is null then
     raise exception 'managed directory migration is not applied';
   end if;
+  if to_regprocedure('private.create_and_publish_managed_shop(text,jsonb,text)') is null
+    or to_regprocedure('private.import_and_publish_managed_shop_from_legacy(bigint,text,jsonb,text)') is null
+    or to_regprocedure('private.save_and_publish_managed_shop(uuid,integer,jsonb,text)') is null then
+    raise exception 'managed directory direct publication migration is not applied';
+  end if;
   if to_regprocedure('api.attach_managed_shop_asset(uuid,uuid,text,text,text,integer,integer,integer,text)') is null
     or to_regprocedure('api.get_published_managed_shop_asset(uuid)') is null
     or to_regprocedure('api.set_managed_shop_visibility(uuid,integer,text,text)') is null
@@ -93,6 +98,43 @@ begin
   if new_store is null or exists (select 1 from private.managed_shops where id=new_store and existing_wp_shop_id is not null) then
     raise exception 'new managed store identity was not isolated from WordPress';
   end if;
+
+  new_store := private.create_and_publish_managed_shop('direct-managed-shop', jsonb_build_object(
+    'shop_name','直接公開店舗','area_slug','osaka','area_name','大阪市',
+    'official_url',null,'introduction','運営が直接公開'
+  ), 'operator-local');
+  if not exists (select 1 from private.managed_shops s join private.managed_shop_revisions r on r.managed_shop_id=s.id and r.revision=s.current_revision where s.id=new_store and s.publication_state='published' and r.state='approved')
+    or not exists (select 1 from api.list_published_managed_shops() where managed_shop_id=new_store) then
+    raise exception 'direct managed creation was not published';
+  end if;
+  result := private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
+    'shop_name','直接公開店舗 更新','area_slug','osaka','area_name','大阪市',
+    'official_url',null,'introduction','運営が直接更新'
+  ), 'operator-local');
+  if result <> 'ok'
+    or not exists (select 1 from private.managed_shop_publications where managed_shop_id=new_store and approved_revision=2 and shop_name='直接公開店舗 更新') then
+    raise exception 'direct managed edit did not update publication';
+  end if;
+  if private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
+    'shop_name','古い更新','area_slug','osaka','area_name','大阪市','official_url',null
+  ), 'operator-local') <> 'conflict' then raise exception 'direct managed stale revision was accepted'; end if;
+
+  legacy_store := private.import_and_publish_managed_shop_from_legacy(
+    8400000000000000202,
+    'legacy-direct-unlist',
+    jsonb_build_object('shop_name','直接非掲載既存店','area_slug','osaka','area_name','大阪市','official_url','https://example.test/direct-unlist'),
+    'operator-local'
+  );
+  if private.set_managed_shop_visibility(legacy_store, 1, 'unlisted', 'operator-local') <> 'ok'
+    or exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store)
+    or not exists (select 1 from api.list_unlisted_managed_shop_legacy_identities() where existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist') then
+    raise exception 'direct legacy unlist did not suppress the original identity';
+  end if;
+  if private.set_managed_shop_visibility(legacy_store, 1, 'published', 'operator-local') <> 'ok'
+    or not exists (select 1 from private.managed_shops where id=legacy_store and existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist')
+    or not exists (select 1 from api.list_published_managed_shops() where managed_shop_id=legacy_store and existing_wp_shop_id=8400000000000000202 and shop_slug='legacy-direct-unlist') then
+    raise exception 'direct legacy restore changed immutable identity';
+  end if;
   if not exists (select 1 from private.managed_shop_revisions where managed_shop_id=new_store and official_url is null) then
     raise exception 'legacy-compatible managed draft rejected a missing official URL';
   end if;
@@ -105,4 +147,5 @@ end;
 $$;
 
 select 1 / case when not has_table_privilege('anon', 'private.managed_shops', 'select') then 1 else 0 end as anonymous_role_can_read_managed_directory;
+select 1 / case when not has_function_privilege('anon', 'api.create_and_publish_managed_shop(text,jsonb,text)', 'execute') then 1 else 0 end as anonymous_role_can_execute_direct_publish;
 rollback;
