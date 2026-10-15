@@ -58,16 +58,16 @@ export function UnlistLegacyShopButton({ wpShopId, shopName }: { wpShopId: numbe
   return <UnlistShopForm shopName={shopName} body={{ wpShopId }} />;
 }
 
-export function ManagedShopEditorForm({ managedShopId, revision, initial, publicationState, currentState }: { managedShopId: string; revision: number; initial: Payload; publicationState: "published" | "unlisted"; currentState: string }) {
+export function ManagedShopEditorForm({ managedShopId, revision, initial, publicationState, currentState }: { managedShopId: string; revision: number; initial: Payload; publicationState: "published" | "unlisted" | "deleted"; currentState: string }) {
   const [message, setMessage] = useState(""); const [assetId, setAssetId] = useState(typeof initial.banner_asset_id === "string" ? initial.banner_asset_id : ""); const [galleryAssetIds, setGalleryAssetIds] = useState(Array.isArray(initial.gallery_asset_ids) ? initial.gallery_asset_ids.filter((id): id is string => typeof id === "string" && UUID.test(id)) : []);
   const shopName = typeof initial.shop_name === "string" ? initial.shop_name : "";
   const canSetVisibility = currentState === "approved";
-  async function action(next: "save_and_publish" | "restore", form?: HTMLFormElement) {
+  async function action(next: "save_and_publish" | "restore" | "restore_archive", form?: HTMLFormElement) {
     if (next === "save_and_publish" && !form) return; setMessage("処理しています…");
     const base = { managedShopId, expectedRevision: revision };
     const result = next === "save_and_publish" ? await post({ action: "save_and_publish", ...base, payload: { ...value(form as HTMLFormElement), banner_asset_id: assetId || null, gallery_asset_ids: galleryAssetIds } })
-      : await post({ action: "restore", ...base });
-    setMessage(result.ok ? (next === "restore" ? "再掲載しました。画面を再読込して最新状態を確認してください。" : "保存して公開しました。画面を再読込して最新状態を確認してください。") : result.message || "処理できませんでした。");
+      : await post({ action: next, ...base });
+    setMessage(result.ok ? (next === "restore" ? "再掲載しました。画面を再読込して最新状態を確認してください。" : next === "restore_archive" ? "掲載停止へ復元しました。再掲載は別操作で行ってください。" : "保存して公開しました。画面を再読込して最新状態を確認してください。") : result.message || "処理できませんでした。");
   }
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = event.currentTarget; setMessage("画像をアップロードしています…");
@@ -80,10 +80,11 @@ export function ManagedShopEditorForm({ managedShopId, revision, initial, public
       setMessage("private画像を追加しました。続けて保存して公開してください。");
     } else setMessage(body.message || "画像を追加できませんでした。");
   }
-  return <section className={styles.formPanel}><p className={styles.eyebrow}>運営編集</p><h2>店舗情報を編集して公開</h2><p className={styles.note}>運営の保存はすぐ公開されます。削除は行わず、掲載停止に切り替えるため、ID・slug・口コミ・改訂履歴を保持したまま再掲載できます。</p>{currentState === "submitted" ? <p className={styles.note}>この申請済み改訂を保存すると、申請履歴は保持したまま新しい運営改訂として直接公開します。</p> : null}<ShopForm initial={initial} bannerAssetId={assetId} galleryAssetIds={galleryAssetIds} onSubmit={(event) => { event.preventDefault(); void action("save_and_publish", event.currentTarget); }} submitLabel="保存して公開する" message={message} />
+  if (publicationState === "deleted") return <section className={styles.formPanel}><p className={styles.eyebrow}>削除済み</p><h2>削除済みとして保管中</h2><p className={styles.note}>公開一覧・検索・サイトマップには表示しません。店舗ID・URL・口コミ・改訂履歴・private画像は保持しています。復元後も掲載停止のままで、再掲載は行いません。</p>{canSetVisibility ? <ArchiveRestoreForm shopName={shopName} onRestore={() => void action("restore_archive")} message={message} /> : <p className={styles.note}>この改訂の状態では復元できません。</p>}</section>;
+  return <section className={styles.formPanel}><p className={styles.eyebrow}>運営編集</p><h2>店舗情報を編集して公開</h2><p className={styles.note}>運営の保存はすぐ公開されます。掲載停止・削除済みへの移動は、ID・slug・口コミ・改訂履歴を保持したまま行います。</p>{currentState === "submitted" ? <p className={styles.note}>この申請済み改訂を保存すると、申請履歴は保持したまま新しい運営改訂として直接公開します。</p> : null}<ShopForm initial={initial} bannerAssetId={assetId} galleryAssetIds={galleryAssetIds} onSubmit={(event) => { event.preventDefault(); void action("save_and_publish", event.currentTarget); }} submitLabel="保存して公開する" message={message} />
     {canSetVisibility ? <><form className={styles.form} onSubmit={upload}><label>画像の用途<select name="asset_role" defaultValue="banner"><option value="banner">バナー</option><option value="gallery">ギャラリー</option></select></label><label>バナー・ギャラリー画像<input name="image" type="file" accept="image/png,image/jpeg,image/webp" required /></label><button type="submit">画像をprivate保存する</button></form>
     {galleryAssetIds.length ? <div className={styles.saveGate}><p>ギャラリー画像 {galleryAssetIds.length} / 10</p>{galleryAssetIds.map((id, index) => <p key={id}>画像 {index + 1} <button type="button" onClick={() => setGalleryAssetIds((current) => current.filter((asset) => asset !== id))}>下書きから外す</button></p>)}</div> : null}
-    {publicationState === "published" ? <UnlistShopForm shopName={shopName} body={{ managedShopId }} /> : <div className={styles.saveGate}><p>この店舗は掲載停止中です。店舗情報・口コミ・URLは保持したまま再掲載できます。</p><button type="button" onClick={() => void action("restore")}>再掲載する</button></div>}</> : <p className={styles.note}>画像の追加、掲載停止・再掲載は、保存して公開した後に利用できます。</p>}
+    {publicationState === "published" ? <UnlistShopForm shopName={shopName} body={{ managedShopId }} /> : <><div className={styles.saveGate}><p>この店舗は掲載停止中です。店舗情報・口コミ・URLは保持したまま、明示操作で再掲載できます。</p><button type="button" onClick={() => void action("restore")}>再掲載する</button></div><ArchiveShopForm shopName={shopName} managedShopId={managedShopId} revision={revision} /></>}</> : <p className={styles.note}>画像の追加、掲載停止・再掲載は、保存して公開した後に利用できます。</p>}
   </section>;
 }
 
@@ -97,6 +98,22 @@ function UnlistShopForm({ shopName, body }: { shopName: string; body: Record<str
     setMessage(result.message || "掲載を停止できませんでした。");
   }
   return <form className={styles.saveGate} onSubmit={submit}><p><strong>掲載を停止する</strong><br />公開一覧・エリア・検索・サイトマップ・詳細ページから外します。店舗ID・slug・口コミ・改訂履歴・private画像は削除されず、あとで再掲載できます。</p><label>確認のため「{shopName}」を店舗名を正確に入力<input aria-label="掲載停止する店舗名" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" /></label><button type="submit" disabled={confirmation !== shopName}>「{shopName}」を掲載停止する</button>{message ? <p role="status">{message}</p> : null}</form>;
+}
+
+function ArchiveShopForm({ shopName, managedShopId, revision }: { shopName: string; managedShopId: string; revision: number }) {
+  const [confirmation, setConfirmation] = useState("");
+  const [message, setMessage] = useState("");
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setMessage("削除済みに移動しています…");
+    const result = await post({ action: "archive", managedShopId, expectedRevision: revision, confirmedShopName: confirmation });
+    setMessage(result.ok ? "削除済みに移動しました。公開は再開されません。" : result.message || "削除済みに移動できませんでした。");
+    if (result.ok) window.location.reload();
+  }
+  return <form className={styles.archiveGate} onSubmit={submit}><p><strong>削除済みに移動する</strong><br />通常一覧から外して保管します。データ・画像・口コミは物理削除されず、復元すると掲載停止へ戻ります。</p><label>確認のため「{shopName}」を店舗名を正確に入力<input aria-label="削除済みに移動する店舗名" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} autoComplete="off" /></label><button type="submit" disabled={confirmation !== shopName}>「{shopName}」を削除済みに移動する</button>{message ? <p role="status">{message}</p> : null}</form>;
+}
+
+function ArchiveRestoreForm({ shopName, onRestore, message }: { shopName: string; onRestore: () => void; message: string }) {
+  return <div className={styles.saveGate}><p><strong>復元先: 掲載停止</strong><br />「{shopName}」を復元しても公開されません。掲載停止の画面で、必要な場合だけ再掲載してください。</p><button type="button" onClick={onRestore}>掲載停止へ復元する</button>{message ? <p role="status">{message}</p> : null}</div>;
 }
 
 function ShopForm({ initial = {}, onSubmit, submitLabel, message, includeSlug = false, bannerAssetId, galleryAssetIds }: { initial?: Payload; onSubmit: (event: FormEvent<HTMLFormElement>) => void; submitLabel: string; message: string; includeSlug?: boolean; bannerAssetId?: string; galleryAssetIds?: readonly string[] }) {

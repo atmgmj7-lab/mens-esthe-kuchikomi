@@ -63,6 +63,7 @@ let browser;
 let managedShopId = null;
 let importedManagedShopId = null;
 let objectKey = null;
+let asset = null;
 
 async function cleanup() {
   const ids = [managedShopId, importedManagedShopId].filter(Boolean);
@@ -165,6 +166,7 @@ try {
   assert.equal(psql(database, `select r.state || '|' || s.publication_state from private.managed_shops s join private.managed_shop_revisions r on r.managed_shop_id=s.id and r.revision=s.current_revision where s.id=${quote(managedShopId)}::uuid;`), "approved|published", "new operator shop must publish without review");
   console.log("operator managed shop E2E: direct publication created");
 
+  if (!process.env.OPERATOR_E2E_SKIP_PRIVATE_ASSET) {
   await operator.locator('input[type="file"]').setInputFiles({ name: "managed-banner.png", mimeType: "image/png", buffer: png });
   const [upload] = await Promise.all([
     operator.waitForResponse((response) => response.url().includes(`/api/dashboard/managed-shops/${managedShopId}/asset/`) && response.request().method() === "POST"),
@@ -180,7 +182,7 @@ try {
   ]);
   assert.equal(galleryUpload.status(), 200, `private gallery upload failed: ${await galleryUpload.text()}`);
   await operator.getByText("ギャラリー画像 1 / 10").waitFor();
-  const asset = psql(database, `select id || '|' || object_key from private.managed_shop_assets where managed_shop_id=${quote(managedShopId)}::uuid order by created_at desc limit 1;`).split("|");
+  asset = psql(database, `select id || '|' || object_key from private.managed_shop_assets where managed_shop_id=${quote(managedShopId)}::uuid order by created_at desc limit 1;`).split("|");
   assert.match(asset[0] ?? "", /^[0-9a-f-]{36}$/i, "managed banner must have an asset record");
   objectKey = asset[1] ?? null;
   const privateRead = await fetch(`${apiUrl}/storage/v1/object/listing-application-private/${objectKey}`, { headers: { apikey: local.PUBLISHABLE_KEY } });
@@ -192,16 +194,23 @@ try {
   assert.equal(saved, "実接続の新規管理店舗|https://example.test/operator-official|大阪府大阪市テスト町1-2-3|10:00-翌2:00|06-9999-0000|https://line.me/R/test|https://example.test/operator-booking|12000|15000|1", "all editable fields and gallery selection must persist in the direct publication");
   assert.equal(psql(database, `select r.state || '|' || s.publication_state || '|' || p.approved_revision from private.managed_shops s join private.managed_shop_revisions r on r.managed_shop_id=s.id and r.revision=s.current_revision join private.managed_shop_publications p on p.managed_shop_id=s.id where s.id=${quote(managedShopId)}::uuid;`), "approved|published|2", "private image edit must create a new approved public revision");
   console.log("operator managed shop E2E: private image and direct edit publication completed");
+  }
+
+  if (!asset) {
+    await operator.getByRole("button", { name: "保存して公開する" }).click();
+    await operator.getByText("保存して公開しました。画面を再読込して最新状態を確認してください。").waitFor();
+  }
 
   const stale = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "save_and_publish", managedShopId, expectedRevision: 1, payload: { shop_name: "古い運営更新", area_slug: "osaka", area_name: "大阪市", official_url: null, introduction: null, address: null, business_hours: null, phone: null, line_url: null, booking_url: null, basic_price: null, price_90: null, banner_asset_id: null, gallery_asset_ids: [] } }) });
   assert.equal(stale.status, 409, "stale operator direct edit must be rejected");
   const publicPage = await browser.newPage();
   assert.equal((await publicPage.goto(`${baseUrl}/shops/${slug}/`, { waitUntil: "domcontentloaded" }))?.status(), 200, "approved managed shop must have a stable public URL");
   await publicPage.getByRole("heading", { name: "実接続の新規管理店舗" }).waitFor();
-  assert.equal((await publicPage.goto(`${baseUrl}/api/managed-shops/assets/${asset[0]}/`))?.status(), 200, "approved managed image must be served through the public proxy");
-  console.log("operator managed shop E2E: approved public shop and image verified");
 
-  const legacyVisibilityBypass = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "visibility", managedShopId, expectedRevision: 2, visibility: "unlisted" }) });
+  const expectedRevision = 2;
+  if (asset) assert.equal((await publicPage.goto(`${baseUrl}/api/managed-shops/assets/${asset[0]}/`))?.status(), 200, "approved managed image must be served through the public proxy");
+  console.log("operator managed shop E2E: approved public shop and image visibility verified");
+  const legacyVisibilityBypass = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "visibility", managedShopId, expectedRevision, visibility: "unlisted" }) });
   assert.equal(legacyVisibilityBypass.status, 400, "legacy visibility action must not bypass exact-name unlisting");
   const mismatchedUnlist = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "unlist", managedShopId, confirmedShopName: "別の店舗" }) });
   assert.equal(mismatchedUnlist.status, 409, "unlist must reject a mismatched exact-name confirmation");
@@ -213,7 +222,7 @@ try {
   ]);
   assert.equal(unlistResponse.status(), 200, "exact-name operator unlist must succeed");
   await operator.getByText("この店舗は掲載停止中です").waitFor();
-  assert.equal((await fetch(`${baseUrl}/api/managed-shops/assets/${asset[0]}/`)).status, 404, "unlisted managed image must no longer be public");
+  if (asset) assert.equal((await fetch(`${baseUrl}/api/managed-shops/assets/${asset[0]}/`)).status, 404, "unlisted managed image must no longer be public");
   const unlistedResponse = await publicPage.goto(`${baseUrl}/shops/${slug}/?visibility-check=unlisted`, { waitUntil: "domcontentloaded" });
   assert.ok(unlistedResponse && (unlistedResponse.status() === 200 || unlistedResponse.status() === 404), "unlisted managed shop must return a valid page response");
   const unlistedText = await publicPage.locator("body").innerText();
@@ -233,6 +242,42 @@ try {
   const sitemap = await fetch(`${baseUrl}/sitemap.xml`);
   assert.equal(sitemap.status, 200, "sitemap must remain available");
   assert.doesNotMatch(await sitemap.text(), new RegExp(slug), "unlisted managed shop must be absent from sitemap");
+  const staleArchive = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "archive", managedShopId, expectedRevision: expectedRevision - 1, confirmedShopName: "実接続の新規管理店舗" }) });
+  assert.equal(staleArchive.status, 409, "stale archive revision must be rejected");
+  const mismatchedArchive = await fetch(`${baseUrl}/api/dashboard/managed-shops/`, { method: "POST", headers: { Authorization: basic(), "Content-Type": "application/json", "X-ESKOMI-CSRF": "managed-shop-write", Origin: baseUrl }, body: JSON.stringify({ action: "archive", managedShopId, expectedRevision, confirmedShopName: "別の店舗" }) });
+  assert.equal(mismatchedArchive.status, 409, "archive must reject a mismatched exact-name confirmation");
+  await operator.getByLabel("削除済みに移動する店舗名").fill("実接続の新規管理店舗");
+  const [archiveResponse] = await Promise.all([
+    operator.waitForResponse((response) => response.url().endsWith("/api/dashboard/managed-shops/") && response.request().method() === "POST"),
+    operator.getByRole("button", { name: "「実接続の新規管理店舗」を削除済みに移動する" }).click(),
+  ]);
+  assert.equal(archiveResponse.status(), 200, "exact-name archive must succeed");
+  await operator.getByRole("heading", { name: "削除済みとして保管中" }).waitFor();
+  assert.equal(psql(database, `select publication_state from private.managed_shops where id=${quote(managedShopId)}::uuid;`), "deleted", "archive must retain the managed record as deleted");
+  if (asset) assert.equal((await fetch(`${baseUrl}/api/managed-shops/assets/${asset[0]}/`)).status, 404, "archived managed image must remain non-public");
+  const archivedResponse = await publicPage.goto(`${baseUrl}/shops/${slug}/?visibility-check=archived`, { waitUntil: "domcontentloaded" });
+  assert.ok(archivedResponse && (archivedResponse.status() === 200 || archivedResponse.status() === 404), "archived managed shop must return a valid page response");
+  assert.doesNotMatch(await publicPage.locator("body").innerText(), /実接続の新規管理店舗/, "archived managed shop content must not be public");
+  await operator.goto(`${baseUrl}/dashboard/shops/?listing=deleted&q=${encodeURIComponent("実接続の新規管理店舗")}`, { waitUntil: "domcontentloaded" });
+  await operator.getByText("削除済み 1 店舗中 1 件を表示").waitFor();
+  await operator.getByLabel("店舗一覧", { exact: true }).getByText("実接続の新規管理店舗", { exact: true }).waitFor();
+  await operator.getByRole("link", { name: /削除済み\s+1/ }).waitFor();
+  await operator.getByLabel("店舗一覧", { exact: true }).getByRole("link", { name: "詳細" }).click();
+  await operator.waitForURL(new RegExp(`/dashboard/shops/managed/${managedShopId}/$`));
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await mobile.context().setHTTPCredentials({ username: "operator", password: "fixture-password" });
+  await mobile.goto(`${baseUrl}/dashboard/shops/?listing=deleted&q=${encodeURIComponent("実接続の新規管理店舗")}`, { waitUntil: "domcontentloaded" });
+  await mobile.getByLabel("店舗一覧（モバイル）", { exact: true }).getByText("実接続の新規管理店舗", { exact: true }).waitFor();
+  assert.equal(await mobile.locator("html").evaluate((node) => node.scrollWidth <= node.clientWidth), true, "mobile archived listing must not overflow horizontally");
+  await mobile.close();
+  await operator.getByRole("button", { name: "掲載停止へ復元する" }).click();
+  await operator.getByText("掲載停止へ復元しました。再掲載は別操作で行ってください。").waitFor();
+  assert.equal(psql(database, `select publication_state from private.managed_shops where id=${quote(managedShopId)}::uuid;`), "unlisted", "archive restoration must return to unlisted");
+  await publicPage.goto(`${baseUrl}/shops/${slug}/?visibility-check=restored`, { waitUntil: "domcontentloaded" });
+  assert.doesNotMatch(await publicPage.locator("body").innerText(), /実接続の新規管理店舗/, "archive restoration must not republish the store");
+  await operator.goto(`${baseUrl}/dashboard/shops/?listing=unlisted&q=${encodeURIComponent("実接続の新規管理店舗")}`, { waitUntil: "domcontentloaded" });
+  await operator.getByText("掲載停止 1 店舗中 1 件を表示").waitFor();
+  await operator.goto(`${baseUrl}/dashboard/shops/managed/${managedShopId}/`, { waitUntil: "domcontentloaded" });
   await operator.getByRole("button", { name: "再掲載する", exact: true }).click();
   await operator.getByText("再掲載しました。画面を再読込して最新状態を確認してください。").waitFor();
   assert.equal((await publicPage.goto(`${baseUrl}/shops/${slug}/?visibility-check=republished`, { waitUntil: "domcontentloaded" }))?.status(), 200, "republished managed shop must return to its stable public URL");

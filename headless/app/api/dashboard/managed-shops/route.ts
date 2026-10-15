@@ -146,6 +146,28 @@ export async function POST(request: NextRequest) {
 
   const managedShopId = typeof body.managedShopId === "string" ? body.managedShopId : "";
   const expectedRevision = Number(body.expectedRevision);
+  if (body.action === "archive") {
+    const confirmedShopName = typeof body.confirmedShopName === "string" ? body.confirmedShopName : "";
+    const detail = await managedShopDirectoryRepository.getDetail(managedShopId);
+    const current = detail?.current_revision;
+    const actualShopName = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>).shop_name : null;
+    if (typeof actualShopName !== "string") return fail("削除済みに移動する店舗を確認できません。", 404);
+    if (confirmedShopName !== actualShopName) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
+    const result = await managedShopDirectoryRepository.archive({ managedShopId, expectedRevision, actorLabel });
+    if (result === "ok") {
+      await revalidateManagedShop(managedShopId);
+      return NextResponse.json({ ok: true, state: result }, { headers });
+    }
+    return fail(result === "conflict" ? "掲載状態が更新されています。再読込してからやり直してください。" : "削除済みに移動できませんでした。", result === "conflict" ? 409 : 400);
+  }
+  if (body.action === "restore_archive") {
+    const result = await managedShopDirectoryRepository.restoreArchiveToUnlisted({ managedShopId, expectedRevision, actorLabel });
+    if (result === "ok") {
+      await revalidateManagedShop(managedShopId);
+      return NextResponse.json({ ok: true, state: result }, { headers });
+    }
+    return fail(result === "conflict" ? "掲載状態が更新されています。再読込してからやり直してください。" : "掲載停止へ復元できませんでした。", result === "conflict" ? 409 : 400);
+  }
   if (body.action === "save_and_publish") {
     const value = payload(body.payload);
     const result = value ? await managedShopDirectoryRepository.saveAndPublish({ managedShopId, expectedRevision, payload: value, actorLabel }) : null;
