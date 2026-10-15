@@ -6,6 +6,7 @@ do $$
 declare
   legacy_store uuid;
   new_store uuid;
+  asset_id uuid;
   result text;
 begin
   if to_regclass('private.managed_shops') is null
@@ -118,6 +119,19 @@ begin
   if private.save_and_publish_managed_shop(new_store, 1, jsonb_build_object(
     'shop_name','古い更新','area_slug','osaka','area_name','大阪市','official_url',null
   ), 'operator-local') <> 'conflict' then raise exception 'direct managed stale revision was accepted'; end if;
+  asset_id := gen_random_uuid();
+  if private.attach_managed_shop_asset(new_store, asset_id, 'managed-shops/' || new_store::text || '/' || asset_id::text || '.png', repeat('b',64), 'image/png', 1, 1, 1, 'operator-local') <> asset_id then
+    raise exception 'direct managed approved revision could not stage a private asset';
+  end if;
+  if private.save_and_publish_managed_shop(new_store, 2, jsonb_build_object(
+    'shop_name','直接公開店舗 更新','area_slug','osaka','area_name','大阪市',
+    'official_url',null,'introduction','運営が画像を直接公開','banner_asset_id',asset_id,'gallery_asset_ids',jsonb_build_array(asset_id)
+  ), 'operator-local') <> 'ok' then
+    raise exception 'direct managed private asset save failed';
+  end if;
+  if not exists (select 1 from private.managed_shop_publications where managed_shop_id=new_store and approved_revision=3 and banner_asset_id=asset_id) then
+    raise exception 'direct managed private asset was not published';
+  end if;
 
   legacy_store := private.import_and_publish_managed_shop_from_legacy(
     8400000000000000202,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { OperatorShopPage, OperatorShopRecord } from "@/lib/dashboard/operator-shop-projection";
-import { ManageLegacyShopButton } from "./ManagedShopForms";
+import { ManageLegacyShopButton, UnlistLegacyShopButton } from "./ManagedShopForms";
 import styles from "./OperatorShops.module.css";
 
 const partnerStateLabel: Record<string, string> = {
@@ -52,7 +52,7 @@ export function OperatorShopsList({ data }: { data: OperatorShopPage }) {
         <div>
           <p className={styles.eyebrow}>運営用の確認画面</p>
           <h2 id="operator-shops-heading">店舗管理</h2>
-          <p>公開中の掲載情報と、店舗アカウント・口コミ案内の準備状況を確認します。既存店舗はWeb管理用の下書きに取り込み、新規店舗は下書きから追加できます。</p>
+          <p>公開中の掲載情報と、店舗アカウント・口コミ案内の準備状況を確認します。運営は新規追加・既存店編集をそのまま公開でき、掲載停止は確認画面からいつでも取り消せます。</p>
         </div>
         <Link href="/dashboard/shops/new/" className={styles.primaryLink}>新規店舗を追加</Link>
       </div>
@@ -121,7 +121,7 @@ export function OperatorShopDetail({ record }: { record: OperatorShopRecord }) {
           <div><dt>公式URL</dt><dd>{publicShop.officialUrl ? <a href={publicShop.officialUrl} target="_blank" rel="noreferrer">公式サイト ↗</a> : "未入力"}</dd></div>
           <div><dt>公開状態</dt><dd>{publicShop.publicationStatus ?? "確認不可"}</dd></div>
         </dl></section>
-        <section className={styles.panel}><h3>Web管理</h3><p>WordPress管理画面を開かず、現在の公開情報を読み込んで管理用下書きにします。公開中のページは承認まで変わりません。</p><ManageLegacyShopButton wpShopId={publicShop.wpShopId} /></section>
+        <section className={styles.panel}><h3>Web管理</h3><p>WordPress管理画面を開かず、現在の公開情報を読み込んで運営用のWeb管理を開始します。保存した内容はすぐに公開されます。</p><ManageLegacyShopButton wpShopId={publicShop.wpShopId} /></section>
         <section className={styles.panel}><h3>店舗アカウント</h3><dl className={styles.detailList}>
           <div><dt>準備状況</dt><dd>{partnerLabel(record)}</dd></div>
           <div><dt>担当者情報</dt><dd>{partner.membershipStatus === "not_available" ? "個人情報を含むため、この一覧には表示しません" : "確認中"}</dd></div>
@@ -135,7 +135,7 @@ export function OperatorShopDetail({ record }: { record: OperatorShopRecord }) {
           <div><dt>使える案内</dt><dd>{campaigns.activeChannels.length ? campaigns.activeChannels.join(" / ") : "未準備"}</dd></div>
         </dl><p className={styles.note}>個別のリンクやQRの値は、この画面には表示しません。</p></section>
         <section className={styles.panel}><h3>店頭・店舗サイトで使うもの</h3><AssetSummary record={record} /><p className={styles.note}>利用可のものだけを表示します。個別の内容は、店舗用メニューで確認します。</p></section>
-        <section className={styles.panel}><h3>掲載対象外</h3><p>通常の削除は行いません。この画面では候補を確認するだけで、掲載内容は変わりません。</p><Link href={`/dashboard/shops/${publicShop.wpShopId}/edit/#listing-exclusion`} className={styles.secondaryLink}>掲載対象外の確認を開く</Link></section>
+        <section className={styles.panel}><h3>掲載を停止・再開</h3><p>通常の削除は行いません。掲載を停止すると公開一覧・検索・詳細から外れますが、店舗ID・slug・口コミ・改訂履歴を保持したまま再掲載できます。</p><UnlistLegacyShopButton wpShopId={publicShop.wpShopId} shopName={publicShop.title} /></section>
       </div>
     </section>
   );

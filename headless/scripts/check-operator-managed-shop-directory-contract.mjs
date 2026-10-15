@@ -64,6 +64,8 @@ for (const rpc of ["create_and_publish_managed_shop", "import_and_publish_manage
 }
 assert.match(directPublishSql, /private\.publish_managed_shop_revision/, "direct publish must preserve revision history through one private publication path");
 assert.match(directPublishSql, /revoke all on function private\.create_and_publish_managed_shop/, "direct publish internals must not be public");
+assert.match(directPublishSql, /v_state not in \('draft','changes_requested','approved'\)/, "direct operators need private asset staging from an approved revision");
+assert.doesNotMatch(directPublishSql, /grant\s+execute\s+on\s+function\s+private\.attach_managed_shop_asset.*\s+to\s+(anon|authenticated)/i, "direct asset staging must remain service-only");
 
 for (const token of [
   "legacy slug identity mismatch",
@@ -76,6 +78,8 @@ for (const token of [
   "anonymous_role_can_read_managed_directory",
   "direct managed creation was not published",
   "direct managed edit did not update publication",
+  "direct managed approved revision could not stage a private asset",
+  "direct managed private asset was not published",
   "direct legacy unlist did not suppress the original identity",
   "direct legacy restore changed immutable identity",
   "anonymous_role_can_execute_direct_publish",

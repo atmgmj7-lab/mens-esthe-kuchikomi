@@ -84,6 +84,30 @@ begin
 end;
 $$;
 
+-- Operator-direct edits begin from an approved revision. A private image may
+-- be staged there before save_and_publish creates the next approved revision.
+-- Browser roles remain excluded; this function is service-role only.
+create or replace function private.attach_managed_shop_asset(
+  p_managed_shop_id uuid,p_asset_id uuid,p_object_key text,p_sha256 text,p_content_type text,p_byte_size integer,p_width integer,p_height integer,p_actor_label text
+) returns uuid language plpgsql security definer set search_path=private,pg_temp as $$
+declare v_state text; v_extension text;
+begin
+  select r.state into v_state from private.managed_shops s
+  join private.managed_shop_revisions r on r.managed_shop_id=s.id and r.revision=s.current_revision
+  where s.id=p_managed_shop_id for update;
+  if not found or v_state not in ('draft','changes_requested','approved') then raise exception 'managed shop asset unavailable' using errcode='42501'; end if;
+  v_extension := case p_content_type when 'image/png' then 'png' when 'image/jpeg' then 'jpg' when 'image/webp' then 'webp' else null end;
+  if p_asset_id is null or p_object_key <> format('managed-shops/%s/%s.%s',p_managed_shop_id,p_asset_id,v_extension)
+    or p_sha256 !~ '^[0-9a-f]{64}$' or p_byte_size not between 1 and 5242880 or p_width not between 1 and 8000 or p_height not between 1 and 8000
+    or char_length(trim(p_actor_label)) not between 1 and 120 then
+    raise exception 'managed shop asset rejected' using errcode='42501';
+  end if;
+  insert into private.managed_shop_assets(id,managed_shop_id,object_key,sha256,content_type,byte_size,width,height)
+  values(p_asset_id,p_managed_shop_id,p_object_key,p_sha256,p_content_type,p_byte_size,p_width,p_height);
+  return p_asset_id;
+end;
+$$;
+
 create or replace function api.create_and_publish_managed_shop(
   p_shop_slug text,p_payload jsonb,p_actor_label text
 ) returns uuid language sql security invoker set search_path=private,pg_temp as $$
@@ -106,6 +130,7 @@ revoke all on function private.publish_managed_shop_revision(uuid,integer,text,t
 revoke all on function private.create_and_publish_managed_shop(text,jsonb,text) from public,anon,authenticated;
 revoke all on function private.import_and_publish_managed_shop_from_legacy(bigint,text,jsonb,text) from public,anon,authenticated;
 revoke all on function private.save_and_publish_managed_shop(uuid,integer,jsonb,text) from public,anon,authenticated;
+revoke all on function private.attach_managed_shop_asset(uuid,uuid,text,text,text,integer,integer,integer,text) from public,anon,authenticated;
 revoke all on function api.create_and_publish_managed_shop(text,jsonb,text) from public,anon,authenticated;
 revoke all on function api.import_and_publish_managed_shop_from_legacy(bigint,text,jsonb,text) from public,anon,authenticated;
 revoke all on function api.save_and_publish_managed_shop(uuid,integer,jsonb,text) from public,anon,authenticated;
@@ -113,6 +138,7 @@ grant execute on function private.publish_managed_shop_revision(uuid,integer,tex
 grant execute on function private.create_and_publish_managed_shop(text,jsonb,text) to service_role;
 grant execute on function private.import_and_publish_managed_shop_from_legacy(bigint,text,jsonb,text) to service_role;
 grant execute on function private.save_and_publish_managed_shop(uuid,integer,jsonb,text) to service_role;
+grant execute on function private.attach_managed_shop_asset(uuid,uuid,text,text,text,integer,integer,integer,text) to service_role;
 grant execute on function api.create_and_publish_managed_shop(text,jsonb,text) to service_role;
 grant execute on function api.import_and_publish_managed_shop_from_legacy(bigint,text,jsonb,text) to service_role;
 grant execute on function api.save_and_publish_managed_shop(uuid,integer,jsonb,text) to service_role;

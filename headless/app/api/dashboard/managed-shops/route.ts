@@ -114,17 +114,28 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.action === "unlist") {
-    const wpShopId = Number(body.wpShopId);
     const confirmedShopName = typeof body.confirmedShopName === "string" ? body.confirmedShopName : "";
-    if (!Number.isSafeInteger(wpShopId) || wpShopId < 1) return fail("掲載を停止する店舗を確認してください。", 400);
-    const shop = await getWordPressShopById(wpShopId);
-    if (!shop) return fail("掲載を停止する店舗を確認できません。", 404);
-    if (confirmedShopName !== shop.title) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
-    const initial = legacyPayload(shop);
-    if (!initial) return fail("既存店舗のエリアを確認してから掲載を停止してください。", 409);
-    const id = await managedShopDirectoryRepository.importAndPublishLegacy({ wpShopId, slug: shop.slug, payload: initial, actorLabel });
-    if (!id) return fail("掲載停止の対象を準備できませんでした。保留中の申請を確認してください。", 409);
-    const revision = currentRevision(await managedShopDirectoryRepository.getDetail(id));
+    const existingManagedShopId = typeof body.managedShopId === "string" ? body.managedShopId : "";
+    let id = existingManagedShopId;
+    let detail = id ? await managedShopDirectoryRepository.getDetail(id) : null;
+    if (id) {
+      const current = detail?.current_revision;
+      const actualShopName = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>).shop_name : null;
+      if (typeof actualShopName !== "string") return fail("掲載を停止する店舗を確認できません。", 404);
+      if (confirmedShopName !== actualShopName) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
+    } else {
+      const wpShopId = Number(body.wpShopId);
+      if (!Number.isSafeInteger(wpShopId) || wpShopId < 1) return fail("掲載を停止する店舗を確認してください。", 400);
+      const shop = await getWordPressShopById(wpShopId);
+      if (!shop) return fail("掲載を停止する店舗を確認できません。", 404);
+      if (confirmedShopName !== shop.title) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
+      const initial = legacyPayload(shop);
+      if (!initial) return fail("既存店舗のエリアを確認してから掲載を停止してください。", 409);
+      id = await managedShopDirectoryRepository.importAndPublishLegacy({ wpShopId, slug: shop.slug, payload: initial, actorLabel }) ?? "";
+      if (!id) return fail("掲載停止の対象を準備できませんでした。保留中の申請を確認してください。", 409);
+      detail = await managedShopDirectoryRepository.getDetail(id);
+    }
+    const revision = currentRevision(detail);
     const result = revision ? await managedShopDirectoryRepository.setVisibility({ managedShopId: id, expectedRevision: revision, visibility: "unlisted", actorLabel }) : null;
     if (result === "ok") {
       await revalidateManagedShop(id);
