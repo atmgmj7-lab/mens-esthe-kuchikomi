@@ -34,6 +34,7 @@ assert.equal(typeof loaded.exports.revalidateOfficialFactsPublicCaches, "functio
 assert.deepEqual(calls, [
   ["tag", "wp", { expire: 0 }],
   ["path", "/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89"],
+  ["path", "/shops/mrs-rank-up%ef%bc%88fixture%ef%bc%89/reviews"],
   ["path", "/sitemap.xml"],
 ]);
 

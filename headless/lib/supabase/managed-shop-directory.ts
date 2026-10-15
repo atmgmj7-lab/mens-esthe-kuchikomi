@@ -127,13 +127,16 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
   return {
     configured(): boolean { return Boolean(endpoint && secret); },
     async listPublished(): Promise<readonly PublishedManagedShop[]> {
-      const response = await rpc("list_published_managed_shops", {}, "force-cache");
+      // The outer directory projection is tagged and invalidated when an
+      // operator changes visibility. Do not retain an older RPC response here,
+      // or an unlisted legacy store can be composed back into public pages.
+      const response = await rpc("list_published_managed_shops", {}, "no-store");
       if (!Array.isArray(response)) return [];
       const parsed = response.map(publication);
       return parsed.every((item): item is PublishedManagedShop => item !== null) ? Object.freeze(parsed) : [];
     },
     async listUnlistedLegacySuppressions(): Promise<readonly ManagedShopLegacySuppression[]> {
-      const response = await rpc("list_unlisted_managed_shop_legacy_identities", {}, "force-cache");
+      const response = await rpc("list_unlisted_managed_shop_legacy_identities", {}, "no-store");
       if (!Array.isArray(response)) return [];
       const parsed = response.map(legacySuppression);
       return parsed.every((item): item is ManagedShopLegacySuppression => item !== null) ? Object.freeze(parsed) : [];
