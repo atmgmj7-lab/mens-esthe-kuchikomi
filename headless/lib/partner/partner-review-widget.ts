@@ -53,7 +53,9 @@ export function buildPartnerWidgetIframeSnippet(input: Readonly<{ shopName: stri
   if (!UUID_RE.test(token)
     || !isSafeUrl(input.widgetUrl, `/partner/widget/${token.toLowerCase()}/`)
     || input.shopName.trim().length === 0 || input.shopName.length > 120 || /[<>&"]/u.test(input.shopName)) return null;
-  return `<iframe src="${input.widgetUrl}" title="${input.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`;
+  // The inline listener owns only the iframe immediately before it. It accepts
+  // only a bounded numeric height from that iframe's resolved origin/source.
+  return `<iframe src="${input.widgetUrl}" title="${input.shopName}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" scrolling="auto" style="width:100%;max-width:100%;height:700px;border:0;overflow:auto;"></iframe><script>(function(){var frame=document.currentScript&&document.currentScript.previousElementSibling;if(!frame||frame.tagName!=="IFRAME")return;var expectedOrigin=new URL(frame.src,window.location.href).origin;var lastHeight=0;window.addEventListener("message",function(event){var data=event.data;if(event.origin!==expectedOrigin||event.source!==frame.contentWindow||!data||data.type!=="eskomi:review-widget:height"||!Number.isInteger(data.height)||data.height<240||data.height>1200||Math.abs(data.height-lastHeight)<2)return;lastHeight=data.height;frame.style.height=data.height+"px";},false);}());</script>`;
 }
 
 export function resolvePublicPartnerWidget(source: PublicPartnerWidgetSource): PublicPartnerWidget {

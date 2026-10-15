@@ -15,7 +15,7 @@ type Props = Readonly<{
 
 function intentLabel(intent: string | null): string {
   if (intent === "operator_initial") return "初期設定";
-  if (intent === "operator_change_requested") return "Operatorからの変更依頼";
+  if (intent === "operator_change_requested") return "運営側の変更依頼";
   if (intent === "partner_change_requested") return "店舗からの変更依頼";
   return "未設定";
 }
@@ -50,10 +50,10 @@ export function OperatorPartnerLoginEmail({ shopId, hasActiveMembership, initial
   const unavailable = initial.status === "unavailable" || initial.status === "identity_mismatch";
   return <section className={styles.panel} aria-labelledby="operator-login-email-heading">
     <h3 id="operator-login-email-heading">ログインメール</h3>
-    <p>ログイン先の初期設定または変更依頼だけを記録します。ここからAuthユーザー、Membership、Workspaceは変更しません。</p>
+    <p>ログイン先の初期設定または変更依頼だけを記録します。この画面からアカウントを作成したり、ログインできる担当者を変更したりはしません。</p>
     <dl className={styles.detailList}>
       <div><dt>設定メール</dt><dd>{initial.email ?? "未設定"}</dd></div>
-      <div><dt>状態</dt><dd>{unavailable ? "canonical照合またはサービスを確認してください" : intentLabel(initial.intent)}</dd></div>
+      <div><dt>状態</dt><dd>{unavailable ? "店舗情報の照合または接続状況を確認してください" : intentLabel(initial.intent)}</dd></div>
     </dl>
     {!unavailable ? <form className={styles.form} onSubmit={submit}>
       <label htmlFor="operator-login-email">ログインメール<input id="operator-login-email" type="email" autoComplete="off" required maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} /></label>

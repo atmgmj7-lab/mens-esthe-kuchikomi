@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import React from "react";
 import * as jsxRuntime from "react/jsx-runtime";
@@ -12,6 +12,8 @@ import { chromium } from "@playwright/test";
 
 const headlessRoot = resolve(import.meta.dirname, "..");
 const repositoryRoot = resolve(headlessRoot, "..");
+// Keep retries isolated from the local rate-limit window of a previous E2E run.
+const fixtureIpSeed = 20 + (Date.now() % 200);
 const supabaseWorkdir = process.env.E2E_SUPABASE_WORKDIR
   ? resolve(process.env.E2E_SUPABASE_WORKDIR)
   : repositoryRoot;
@@ -277,9 +279,13 @@ where k.key_hash = '${keyHash}';
 function reviewInput(index, rating, campaignToken = null) {
   return {
     idempotencyKey: randomUUID(),
-    body: `Synthetic isolated Review ${index} validates the complete native workflow without Production data.`,
+    body: index === 1
+      ? "接客は落ち着いた雰囲気で、説明も分かりやすく安心して利用できました。料金や予約時の案内についても丁寧で、次回も都合が合えば利用したいです。混雑する時間帯の目安も事前に分かると、さらに予定を立てやすいと感じました。受付から案内までの流れも穏やかで、初めて利用する人にも分かりやすいと感じます。設備や室内について気になった点を質問した際も、急かされずに説明を受けられました。"
+      : index === 2
+        ? "予約から利用後まで、必要な案内が簡潔で分かりやすかったです。店内も清潔に保たれていました。"
+        : "利用後に感じた点を率直に投稿するための、隔離環境専用のテスト口コミです。",
     rating,
-    ip: `198.51.100.${20 + index}`,
+    ip: `198.51.100.${fixtureIpSeed + index}`,
     campaignToken,
   };
 }
@@ -368,14 +374,9 @@ async function resolveWidgetSummary() {
 }
 
 const pendingWidget = await resolveWidgetSummary();
-assert.deepEqual(pendingWidget, {
-  status: "available",
-  badge: "Eskomi Official Partner",
-  shopName: shopA.title,
-  reviewSummary: { kind: "count_only", count: 0 },
-  reviewUrl: `https://mens-esthe-kuchikomi.com/r/${campaignA}/`,
-  iframeSnippet: `<iframe src="https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/" title="${shopA.title}のEskomi口コミ" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" style="width:100%;max-width:100%;border:0;min-height:180px;"></iframe>`,
-});
+assert.equal(pendingWidget.status, "available");
+assert.deepEqual(pendingWidget.reviewSummary, { kind: "count_only", count: 0 });
+assert.match(pendingWidget.iframeSnippet, /height:700px/);
 
 const queue = await repository.listModerationQueue({ limit: 20, offset: 0 });
 assert.equal(queue.status, "ok");
@@ -525,7 +526,7 @@ const dashboard = renderToStaticMarkup(React.createElement(
 ));
 assert.match(dashboard, /承認済み口コミ/);
 assert.match(dashboard, /aria-label="承認済み口コミの評価グラフ"/);
-assert.match(dashboard, /Synthetic isolated Review/);
+assert.match(dashboard, /隔離環境専用のテスト口コミ/);
 
 const widgetPageModule = loadTypeScript("app/partner/widget/[token]/page.tsx", {
   "next/navigation": { notFound: () => { throw new Error("widget must be available for the canonical fixture"); } },
@@ -541,20 +542,31 @@ const widgetPage = await widgetPageModule.default({ params: Promise.resolve({ to
 const widgetHtml = renderToStaticMarkup(widgetPage);
 assert.match(widgetHtml, new RegExp(`href="https://mens-esthe-kuchikomi\\.com/r/${campaignA}/"`));
 assert.match(widgetHtml, /評価 3\.3 \/ 5（3件）/);
+assert.match(widgetHtml, /接客は落ち着いた雰囲気/);
+assert.match(widgetHtml, /…/);
+assert.match(widgetHtml, /評価 1 \/ 5/);
+assert.equal((widgetHtml.match(/出典：Eskomi/g) ?? []).length, 3);
 assert.doesNotMatch(widgetHtml, /Synthetic E2E Reviewer|private\.partner|service_role/i);
+assert.doesNotMatch(widgetHtml, new RegExp(shopB.title));
 
 const style = read("components/shop-detail/ShopDetail.module.css");
-const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto">${dashboard}${widgetHtml}</main></body></html>`;
-const server = createServer((_request, response) => {
+const widgetStyle = read("app/globals.css");
+const iframeTitle = `${shopA.title}のEskomi口コミ`;
+const widgetFrameHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${widgetStyle}</style></head><body>${widgetHtml}</body></html>`;
+const localWidgetEmbed = publishedWidget.iframeSnippet.replace(`https://mens-esthe-kuchikomi.com/partner/widget/${campaignA}/`, "/widget");
+const pageHtml = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${style}</style></head><body><main style="max-width:900px;margin:auto"><p data-fixture-label="true">隔離fixture表示：実店舗・実口コミではありません</p><section aria-label="sample store website"><h1>Sample store website</h1>${localWidgetEmbed}</section>${dashboard}</main></body></html>`;
+const server = createServer((request, response) => {
   response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-  response.end(pageHtml);
+  response.end(request.url === "/widget" ? widgetFrameHtml : pageHtml);
 });
 await new Promise((resolveServer) => server.listen(0, "127.0.0.1", resolveServer));
 const address = server.address();
 assert.ok(address && typeof address !== "string");
 const browser = await chromium.launch({ headless: true });
 try {
-  for (const width of [390, 1280]) {
+  const screenshotDir = process.env.REVIEW_NATIVE_E2E_QA_SCREENSHOT_DIR;
+  if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
+  for (const width of [320, 390, 768, 1280]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     const consoleErrors = [];
     const pageErrors = [];
@@ -563,16 +575,39 @@ try {
     const response = await page.goto(`http://127.0.0.1:${address.port}/`, { waitUntil: "domcontentloaded" });
     assert.equal(response?.status(), 200);
     await page.locator('[aria-label="承認済み口コミの評価グラフ"]').waitFor({ state: "visible" });
-    await page.locator(`[aria-label="${shopA.title}のEskomi口コミ"]`).waitFor({ state: "visible" });
-    await page.getByRole("link", { name: "Eskomiで口コミを投稿" }).waitFor({ state: "visible" });
+    const iframe = page.locator(`iframe[title="${iframeTitle}"]`);
+    await iframe.waitFor({ state: "visible" });
+    const frame = page.frameLocator(`iframe[title="${iframeTitle}"]`);
+    await frame.getByRole("link", { name: "Eskomiで口コミをもっと見る" }).waitFor({ state: "visible" });
+    await frame.getByRole("link", { name: "口コミを書く" }).waitFor({ state: "visible" });
+    await page.waitForTimeout(100);
     assert.equal(await page.getByText("承認済み口コミ", { exact: false }).count() >= 1, true);
     const geometry = await page.evaluate(() => ({
       body: document.body.scrollWidth,
       viewport: document.documentElement.clientWidth,
     }));
     assert.ok(geometry.body <= geometry.viewport + 1, `${width}px UI must not overflow`);
+    const iframeGeometry = await frame.locator("body").evaluate(() => ({
+      body: document.body.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }));
+    assert.ok(iframeGeometry.body <= iframeGeometry.viewport + 1, `${width}px iframe must not overflow`);
+    const iframeBox = await iframe.boundingBox();
+    const readMoreBox = await frame.getByRole("link", { name: "Eskomiで口コミをもっと見る" }).boundingBox();
+    const writeBox = await frame.getByRole("link", { name: "口コミを書く" }).boundingBox();
+    assert.ok(iframeBox && readMoreBox && writeBox, `${width}px widget CTAs must have visible bounds`);
+    assert.ok(iframeBox.height < 1200, `${width}px iframe must not retain a large fixed-height blank area`);
+    assert.ok(readMoreBox.y + readMoreBox.height <= iframeBox.y + iframeBox.height + 1, `${width}px read-more CTA must be reachable`);
+    assert.ok(writeBox.y + writeBox.height <= iframeBox.y + iframeBox.height + 1, `${width}px write CTA must be reachable`);
+    const overlaps = readMoreBox.x < writeBox.x + writeBox.width && writeBox.x < readMoreBox.x + readMoreBox.width
+      && readMoreBox.y < writeBox.y + writeBox.height && writeBox.y < readMoreBox.y + readMoreBox.height;
+    assert.equal(overlaps, false, `${width}px widget CTAs must not overlap`);
+    const heightAfterTrustedMessage = await iframe.evaluate((element) => element.style.height);
+    await page.evaluate(() => window.postMessage({ type: "eskomi:review-widget:height", height: 1200 }, window.location.origin));
+    assert.equal(await iframe.evaluate((element) => element.style.height), heightAfterTrustedMessage, "a message from the parent window must not resize the widget");
     assert.deepEqual(consoleErrors, []);
     assert.deepEqual(pageErrors, []);
+    if (screenshotDir) await iframe.screenshot({ path: join(screenshotDir, `partner-widget-iframe-${width}.png`) });
     await page.close();
   }
 } finally {
@@ -601,6 +636,6 @@ console.log(JSON.stringify({
   belowThreeGraph: false,
   atLeastThreeGraph: true,
   aggregateRating: schema.aggregateRating,
-  viewports: [390, 1280],
+  viewports: [320, 390, 768, 1280],
   productionWrite: 0,
 }, null, 2));

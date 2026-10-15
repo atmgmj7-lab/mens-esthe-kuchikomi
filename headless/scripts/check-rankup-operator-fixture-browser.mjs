@@ -191,31 +191,29 @@ try {
     await edit.goto(`${baseUrl}/dashboard/shops/768/edit/`, { waitUntil: "domcontentloaded" });
     await edit.getByRole("heading", { name: "公開情報を確認・修正候補にする" }).waitFor({ state: "visible" });
     assert.equal(await edit.locator('input[name="basic_price"][value="12000"]').count(), 1, "fixture edit screen must read the existing basic price");
-    await edit.getByRole("button", { name: /変更候補を確認する/ }).click();
+    await edit.getByRole("button", { name: /変更内容を確認する/ }).click();
     await edit.getByRole("status").getByText(/変更はありません/).waitFor({ state: "visible" });
     if (supabaseFactsMode) {
       await edit.locator('input[name="price_90"]').fill("16000");
-      await edit.getByRole("button", { name: /変更候補を確認する/ }).click();
+      await edit.getByRole("button", { name: /変更内容を確認する/ }).click();
       await edit.getByText("基本料金").last().waitFor({ state: "visible" });
-      await edit.getByLabel("差分と保存先を確認しました。").check();
-      await edit.getByRole("button", { name: "Supabaseへ保存して再読込" }).click();
+      await edit.getByLabel("変更内容と、公開ページが変わらないことを確認しました。").check();
+      await edit.getByRole("button", { name: "確認用の内容を保存して、表示を確かめる" }).click();
       await edit.getByText("Supabaseの検証用正本へ保存し、再読込用snapshotを取得しました。").waitFor({ state: "visible" });
       await edit.reload({ waitUntil: "domcontentloaded" });
       assert.equal(await edit.locator('input[name="price_90"]').inputValue(), "16000", "Supabase save must be reloaded into the edit form");
-      await edit.getByText(/revision 2/).waitFor({ state: "visible" });
       const publicPage = await context.newPage();
       publicPage.setDefaultTimeout(8_000);
       await publicPage.goto(`${baseUrl}/shops/${shop.slug}/`, { waitUntil: "domcontentloaded" });
       await publicPage.getByText("16,000円〜").waitFor({ state: "visible" });
       await publicPage.close();
       await edit.locator('input[name="price_90"]').fill("17000");
-      await edit.getByRole("button", { name: /変更候補を確認する/ }).click();
-      await edit.getByLabel("差分と保存先を確認しました。").check();
+      await edit.getByRole("button", { name: /変更内容を確認する/ }).click();
+      await edit.getByLabel("変更内容と、公開ページが変わらないことを確認しました。").check();
       forceNextFactConflict = true;
-      await edit.getByRole("button", { name: "Supabaseへ保存して再読込" }).click();
+      await edit.getByRole("button", { name: "確認用の内容を保存して、表示を確かめる" }).click();
       await edit.getByText("店舗情報が更新されています。再読込して差分を確認してください。").waitFor({ state: "visible" });
       assert.equal(await edit.locator('input[name="price_90"]').inputValue(), "16500", "conflict response must replace the stale browser value");
-      await edit.getByText(/revision 3/).waitFor({ state: "visible" });
     }
     await noOverflow(edit, `${viewport.width}px Rank edit`);
     if (screenshotDir) await edit.screenshot({ path: `${screenshotDir}/rankup-edit-${viewport.width}.png`, fullPage: true });

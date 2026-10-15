@@ -1,62 +1,24 @@
-import Link from "next/link";
+"use client";
 
-const banners = [
-  { label: "横長 728 × 90", href: "/downloads/eskomi-link-banner-728x90.svg", width: 728, height: 90 },
-  { label: "横長 468 × 60", href: "/downloads/eskomi-link-banner-468x60.svg", width: 468, height: 60 },
-  { label: "レクタングル 300 × 250", href: "/downloads/eskomi-link-banner-300x250.svg", width: 300, height: 250 },
-] as const;
+import { useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from "react";
+import type { ShopOwnerRequestInitial } from "@/lib/shop-owner-request-links";
 
-export function StoreListingGuide() {
-  return (
-    <section id="listing-actions" className="hl-listing-guide" aria-labelledby="listing-actions-heading">
-      <div className="hl-listing-guide__heading">
-        <p className="hl-static-page-kicker">FOR STORE OWNERS</p>
-        <h2 id="listing-actions-heading" className="hl-contact-heading">状況に合う窓口を選ぶ</h2>
-        <p>掲載・修正・口コミ対応は、それぞれ確認できる操作だけを分けてご案内します。申請内容や口コミが自動で公開されることはありません。</p>
-      </div>
+const rootUrl = "https://mens-esthe-kuchikomi.com/";
+const banners = [{ label: "320 × 50", href: "/images/partner/official-banners/eskomi_banner_320x50.png", width: 320, height: 50 }, { label: "200 × 40", href: "/images/partner/official-banners/eskomi_banner_200x40.png", width: 200, height: 40 }, { label: "88 × 31", href: "/images/partner/official-banners/eskomi_banner_88x31.png", width: 88, height: 31 }] as const;
+type Kind = "new_listing" | "existing_change";
+type Status = "idle" | "submitting" | "success" | "error";
 
-      <div className="hl-listing-guide__actions">
-        <article className="hl-listing-guide__action">
-          <p className="hl-listing-guide__number">01</p>
-          <h3>新しく掲載を希望する</h3>
-          <p>店舗名や公式情報を添えて、掲載希望・情報修正フォームからご相談ください。掲載可否や内容は運営が確認します。</p>
-          <Link href="/contact/#contact-form-heading" className="hl-listing-guide__button">掲載希望を問い合わせる</Link>
-        </article>
-        <article className="hl-listing-guide__action">
-          <p className="hl-listing-guide__number">02</p>
-          <h3>掲載中の情報を確認・更新する</h3>
-          <p>まず店舗一覧から対象ページを開き、「掲載情報を登録・修正する」を選んでください。対象店舗を確認できた場合だけ申請フォームを表示します。</p>
-          <Link href="/shops/" className="hl-listing-guide__button">掲載中の店舗を探す</Link>
-        </article>
-        <article className="hl-listing-guide__action">
-          <p className="hl-listing-guide__number">03</p>
-          <h3>招待済みの担当者</h3>
-          <p>登録済みメールアドレスへログイン用リンクを送信し、口コミURL・QR・掲載情報の確認導線を利用できます。</p>
-          <Link href="/partner/login/" className="hl-listing-guide__button">パートナーログインへ</Link>
-        </article>
-      </div>
-
-      <section className="hl-listing-guide__banner" aria-labelledby="listing-banner-heading">
-        <div>
-          <p className="hl-static-page-kicker">OPTIONAL LINK BANNER</p>
-          <h3 id="listing-banner-heading">サイト紹介用バナー</h3>
-          <p>相互リンクは任意です。掲載順位や審査結果には影響しません。ご自身で管理するページにだけ設置してください。</p>
-        </div>
-        <ul className="hl-listing-guide__banner-list">
-          {banners.map((banner) => (
-            <li key={banner.href}>
-              <a href={banner.href} download>{banner.label}をダウンロード</a>
-            </li>
-          ))}
-        </ul>
-        <details className="hl-listing-guide__html">
-          <summary>安全なHTML設置例を見る</summary>
-          <p>画像のURLとリンク先は Eskomi の正規URLです。JavaScript、計測用パラメータ、隠しリンクは含みません。</p>
-          <pre><code>{`<a href="https://mens-esthe-kuchikomi.com/storelisting/" target="_blank" rel="noopener noreferrer">
-  <img src="https://mens-esthe-kuchikomi.com/downloads/eskomi-link-banner-${banners[0].width}x${banners[0].height}.svg" width="${banners[0].width}" height="${banners[0].height}" alt="Eskomi（エスコミ）｜関西メンズエステの店舗情報・口コミ">
-</a>`}</code></pre>
-        </details>
-      </section>
-    </section>
-  );
+export function StoreListingGuide({ existingInitial }: { existingInitial?: ShopOwnerRequestInitial }) {
+  const [selected, setSelected] = useState(0); const [copied, setCopied] = useState(false); const banner = banners[selected];
+  const snippet = useMemo(() => `<a href="${rootUrl}" target="_blank" rel="noopener noreferrer">\n  <img src="${rootUrl.slice(0, -1)}${banner.href}" width="${banner.width}" height="${banner.height}" alt="Eskomi（エスコミ）｜関西メンズエステの店舗情報・口コミ">\n</a>`, [banner]);
+  async function copy() { try { await navigator.clipboard.writeText(snippet); setCopied(true); window.setTimeout(() => setCopied(false), 1800); } catch { setCopied(false); } }
+  return <section id="listing-actions" className="hl-listing-guide" aria-labelledby="listing-actions-heading"><div className="hl-listing-guide__heading"><p className="hl-static-page-kicker">FOR STORE OWNERS</p><h2 id="listing-actions-heading" className="hl-contact-heading">掲載を整える、無料の窓口</h2><p>新しく掲載したい店舗も、掲載中の情報を更新したい店舗も、同じフォームからご相談いただけます。内容は運営の確認が完了するまで公開されません。</p></div><section className="hl-listing-banner-tool" aria-labelledby="listing-banner-heading"><div><p className="hl-static-page-kicker">ESKOMI INTRODUCTION BANNER</p><h3 id="listing-banner-heading">Eskomi紹介バナー</h3><p>店舗サイトやSNSで使える公式バナーです。設置は任意で、未掲載の店舗でも無料でダウンロードできます。</p></div><div className="hl-listing-banner-tool__choices" role="radiogroup" aria-label="バナーサイズ">{banners.map((item, index) => <button type="button" role="radio" aria-checked={selected === index} data-selected={selected === index} onClick={() => setSelected(index)} key={item.href}><strong>{item.label}</strong><span>{item.width} × {item.height}px</span></button>)}</div><div className="hl-listing-banner-tool__preview"><img src={banner.href} width={banner.width} height={banner.height} alt="Eskomi紹介バナーのプレビュー" /><p>原寸 {banner.width} × {banner.height}px</p></div><div className="hl-listing-banner-tool__code"><label htmlFor="listing-banner-code">設置用HTML</label><textarea id="listing-banner-code" readOnly value={snippet} rows={5} /><div><button type="button" onClick={copy}>{copied ? "コピーしました" : "HTMLをコピー"}</button><a href={banner.href} download>画像をダウンロード</a></div></div></section><ListingApplicationForm initial={existingInitial} /></section>;
 }
+
+function ListingApplicationForm({ initial }: { initial?: ShopOwnerRequestInitial }) {
+  const hasExisting = Boolean(initial?.shopId && initial.shopSlug && initial.shopName && initial.targetUrl); const [kind, setKind] = useState<Kind>(hasExisting ? "existing_change" : "new_listing"); const [status, setStatus] = useState<Status>("idle"); const [message, setMessage] = useState(""); const key = useRef(typeof crypto !== "undefined" ? crypto.randomUUID() : "00000000-0000-4000-8000-000000000000");
+  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (status === "submitting") return; setStatus("submitting"); setMessage(""); const form = new FormData(event.currentTarget); const payload = { idempotencyKey: key.current, kind, existingWpShopId: kind === "existing_change" ? initial?.shopId : undefined, existingShopSlug: kind === "existing_change" ? initial?.shopSlug : undefined, shopName: form.get("shopName"), area: form.get("area"), websiteUrl: form.get("websiteUrl"), introduction: form.get("introduction"), contactName: form.get("contactName"), contactEmail: form.get("contactEmail"), contactRole: form.get("contactRole"), editPreference: form.get("editPreference"), consentPrivacy: form.get("consentPrivacy") === "on", consentAccuracy: form.get("consentAccuracy") === "on", consentImageRights: form.get("consentImageRights") === "on" }; try { const submitted = await fetch("/api/listing-applications/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); const result = await submitted.json() as { ok?: boolean; message?: string; applicationId?: string; uploadToken?: string }; if (!submitted.ok || !result.ok || !result.applicationId || !result.uploadToken) throw new Error(result.message || "申請を受け付けできませんでした。"); const image = form.get("banner"); if (image instanceof File && image.size > 0) { const upload = new FormData(); upload.set("banner", image); upload.set("uploadToken", result.uploadToken); const stored = await fetch(`/api/listing-applications/${result.applicationId}/asset/`, { method: "POST", body: upload }); const storedResult = await stored.json() as { ok?: boolean; message?: string }; if (!stored.ok || !storedResult.ok) throw new Error(storedResult.message || "画像を保存できませんでした。申請完了とはなっていません。"); } setStatus("success"); setMessage("申請を受け付けました。公開前に運営が確認します。"); } catch (error) { setStatus("error"); setMessage(error instanceof Error ? error.message : "申請を受け付けできませんでした。"); } }
+  if (status === "success") return <section id="shop-owner-request" className="hl-contact-section hl-owner-request-section"><div className="hl-contact-success" role="status"><p className="hl-contact-success-title">申請を受け付けました</p><p>{message}</p></div></section>;
+  return <section id="shop-owner-request" className="hl-contact-section hl-owner-request-section" aria-labelledby="shop-owner-request-heading"><p className="hl-static-page-kicker">LISTING APPLICATION</p><h2 id="shop-owner-request-heading" className="hl-contact-heading">掲載・情報修正を申請する</h2><p className="hl-owner-request-intro">連絡先は運営確認だけに使用し、公開しません。掲載済みの店舗を選択しても、この申請で店舗の所有権や編集権限が付与されることはありません。</p><form className="hl-contact-form hl-listing-application-form" onSubmit={submit} noValidate><fieldset className="hl-listing-kind"><legend>申請の種類 <span className="hl-contact-required">必須</span></legend><label data-selected={kind === "new_listing"}><input type="radio" name="kind" checked={kind === "new_listing"} onChange={() => setKind("new_listing")} /><strong>新しく掲載を希望する</strong><span>未掲載の店舗情報を確認して、公開候補として登録します。</span></label><label data-selected={kind === "existing_change"}><input type="radio" name="kind" checked={kind === "existing_change"} onChange={() => setKind("existing_change")} disabled={!hasExisting} /><strong>掲載中の情報を修正する</strong><span>{hasExisting ? `${initial?.shopName} を対象にします。` : "対象店舗のページにある「掲載情報を登録・修正」からお進みください。"}</span></label></fieldset>{kind === "existing_change" && hasExisting ? <div className="hl-owner-request-prefill"><span>対象店舗（確認用）</span><strong>{initial?.shopName}</strong><small>{initial?.targetUrl}</small></div> : null}<Field label="店舗名" name="shopName" required maxLength={120} defaultValue={kind === "existing_change" ? initial?.shopName : ""} /><Field label="地域" name="area" required maxLength={120} placeholder="例：大阪市中央区" /><Field label="公式URL" name="websiteUrl" required type="url" maxLength={2048} placeholder="https://" /><div className="hl-contact-field"><label htmlFor="listing-introduction">紹介文（任意）</label><textarea id="listing-introduction" name="introduction" rows={6} maxLength={5000} /></div><div className="hl-contact-field"><label htmlFor="listing-banner">店舗バナー（任意）</label><input id="listing-banner" name="banner" type="file" accept="image/png,image/jpeg,image/webp" /><p className="hl-owner-request-help">PNG・JPEG・WebP、5MB以下、最大8000px。公開前に運営が確認します。</p></div><Field label="お名前・ご担当者名" name="contactName" required maxLength={80} autoComplete="name" /><Field label="確認用メールアドレス" name="contactEmail" required type="email" maxLength={254} autoComplete="email" /><div className="hl-contact-field"><label htmlFor="listing-contact-role">店舗との関係 <span className="hl-contact-required">必須</span></label><select id="listing-contact-role" name="contactRole" required defaultValue=""><option value="" disabled>選択してください</option><option value="owner">オーナー</option><option value="manager">店舗責任者</option><option value="staff">店舗スタッフ</option><option value="authorized-agency">正規代理担当者</option></select></div><fieldset className="hl-listing-preference"><legend>掲載後の編集について <span className="hl-contact-required">必須</span></legend><label><input type="radio" name="editPreference" value="operator" required defaultChecked /><span><strong>運営におまかせ</strong>内容の確認・編集は運営が行います。</span></label><label><input type="radio" name="editPreference" value="shop" /><span><strong>店舗で編集を希望</strong>運営の確認後にご案内する方法で更新します。</span></label></fieldset>{[["consentPrivacy","個人情報の取り扱いに同意します。"],["consentAccuracy","入力内容が正確であることを確認しました。"],["consentImageRights","画像を申請する場合、掲載権限を保有しています。"]].map(([name,label]) => <div className="hl-contact-consent" key={name}><label><input type="checkbox" name={name} required /><span>{label}<span className="hl-contact-required"> 必須</span></span></label></div>)}{status === "error" ? <p className="hl-contact-error" role="alert">{message}</p> : null}<div className="hl-contact-actions"><button type="submit" className="hl-contact-submit" disabled={status === "submitting"}>{status === "submitting" ? "送信中…" : "申請内容を送信する"}</button></div></form></section>;
+}
+function Field({ label, name, required, ...props }: { label: string; name: string; required?: boolean } & InputHTMLAttributes<HTMLInputElement>) { const id = `listing-${name}`; return <div className="hl-contact-field"><label htmlFor={id}>{label} {required ? <span className="hl-contact-required">必須</span> : null}</label><input id={id} name={name} required={required} {...props} /></div>; }

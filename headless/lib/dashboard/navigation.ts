@@ -18,6 +18,11 @@ export const DASHBOARD_NAV_GROUPS = [
         label: "Partner運用",
         description: "申請・workspace・モデレーション",
       },
+      {
+        href: "/dashboard/listing-applications/",
+        label: "掲載申請",
+        description: "新規掲載・情報修正の確認と承認",
+      },
     ],
   },
   {

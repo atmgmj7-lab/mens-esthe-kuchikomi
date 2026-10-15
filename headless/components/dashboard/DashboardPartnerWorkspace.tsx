@@ -76,7 +76,7 @@ export function DashboardPartnerWorkspace({ shops, reviews }: { shops: ShopOptio
       });
       const payload = await response.json() as { ok?: boolean; message?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.message || "判断を保存できませんでした。");
-      setReviewMessage("判断を保存しました。最新のGrowth Kitを表示します。");
+      setReviewMessage("判断を保存しました。最新の口コミ案内を表示します。");
       window.location.reload();
     } catch (error) {
       setReviewMessage(error instanceof Error ? error.message : "判断を保存できませんでした。");
@@ -97,20 +97,20 @@ export function DashboardPartnerWorkspace({ shops, reviews }: { shops: ShopOptio
 
   return (
     <section className="hl-partner-panel" aria-labelledby="partner-workspace-heading">
-      <h1 id="partner-workspace-heading">Free Official Partner</h1>
-      <p>公開情報はWordPressを正本として維持します。ここでは非公開のPartner workspaceだけを初期化します。</p>
+      <h1 id="partner-workspace-heading">店舗アカウントの受付</h1>
+      <p>公開中の掲載情報は変えずに、招待と口コミ案内の準備状況を確認します。ここで作業を始めても、掲載内容や口コミは公開されません。</p>
       <form onSubmit={initialize} className="hl-partner-form">
         <label htmlFor="partner-shop-search">既存店舗を検索</label>
-        <input id="partner-shop-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="店舗名またはslug" />
+        <input id="partner-shop-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="店舗名" />
         <label htmlFor="partner-shop-select">対象店舗</label>
         <select id="partner-shop-select" value={shopSlug} onChange={(event) => setShopSlug(event.target.value)} required>
           <option value="" disabled>店舗を選択してください</option>
           {filtered.map((shop) => <option value={shop.slug} key={shop.id}>{shop.title}</option>)}
         </select>
-        <button type="submit" disabled={submitting}>{submitting ? "初期化中…" : "Partner workspaceを初期化"}</button>
+        <button type="submit" disabled={submitting}>{submitting ? "準備中…" : "店舗用の準備を開始"}</button>
       </form>
       {message ? <p role="alert">{message}</p> : null}
-      {result ? <div className="hl-partner-status" role="status"><p>現在状態: <strong>{result.state}</strong></p><p>{result.initialized ? "新しいworkspaceを初期化しました。" : "既存workspaceを確認しました。"}</p><p>次アクション: {result.nextAction}</p></div> : null}
+      {result ? <div className="hl-partner-status" role="status"><p>準備状況を確認しました。</p><p>{result.initialized ? "店舗用の準備を開始しました。" : "この店舗はすでに準備済みです。"}</p><p>次に行うこと: {result.nextAction}</p></div> : null}
 
       <section className="hl-partner-review-list" aria-labelledby="partner-review-heading">
         <h2 id="partner-review-heading">申請の確認</h2>
@@ -125,7 +125,7 @@ export function DashboardPartnerWorkspace({ shops, reviews }: { shops: ShopOptio
               <label htmlFor={`partner-review-reason-${review.submissionId}`}>判断理由</label>
               <textarea id={`partner-review-reason-${review.submissionId}`} name="reason" required />
               <div className="hl-partner-review-actions">
-                <button type="submit" name="decision" value="approved" disabled={reviewSubmitting === review.submissionId}>Free Official Partnerとして承認</button>
+                <button type="submit" name="decision" value="approved" disabled={reviewSubmitting === review.submissionId}>店舗アカウントとして承認</button>
                 <button type="submit" name="decision" value="rejected" className="hl-partner-review-reject" disabled={reviewSubmitting === review.submissionId}>却下</button>
               </div>
             </form>
@@ -134,13 +134,16 @@ export function DashboardPartnerWorkspace({ shops, reviews }: { shops: ShopOptio
       </section>
 
       {reviews.filter((review) => review.status === "approved" && (review.workspaceState === "free_official_partner" || review.workspaceState === "active_partner")).map((review) => {
-        const activeCampaigns = CAMPAIGN_CHANNELS.map(({ channel, label }) => ({ label, campaign: review.campaigns.find((campaign) => campaign.channel === channel && campaign.isActive) }));
-        if (!activeCampaigns.every(({ campaign }) => campaign)) return null;
+        const activeCampaigns = CAMPAIGN_CHANNELS.flatMap(({ channel, label }) => {
+          const campaign = review.campaigns.find((item) => item.channel === channel && item.isActive);
+          return campaign ? [{ label, campaign }] : [];
+        });
+        if (activeCampaigns.length === 0) return null;
         return <section className="hl-partner-growth-kit" aria-labelledby={`partner-kit-${review.submissionId}`} key={review.submissionId}>
-          <h2 id={`partner-kit-${review.submissionId}`}>{review.shop.title} のGrowth Kit</h2>
+          <h2 id={`partner-kit-${review.submissionId}`}>{review.shop.title} の口コミ案内</h2>
           <p className="hl-partner-growth-kit__copy">率直な口コミにご協力ください</p>
-          <p>承認済みの4チャネルです。公開用リンクとQRは運営用の操作画面からのみ取得できます。</p>
-          <ul>{activeCampaigns.map(({ label, campaign }) => campaign ? <li key={campaign.id}><strong>{label}</strong><button type="button" onClick={() => copyCampaignUrl(campaign.token)}>公開用リンクをコピー</button><a href={`/api/dashboard/partners/qr/?token=${encodeURIComponent(campaign.token)}`} target="_blank" rel="noreferrer">QRを開く</a></li> : null)}</ul>
+          <p>現在利用できる案内だけを表示しています。公開用リンクとQRは、この確認画面からのみ取得できます。</p>
+          <ul>{activeCampaigns.map(({ label, campaign }) => <li key={campaign.id}><strong>{label}</strong><button type="button" onClick={() => copyCampaignUrl(campaign.token)}>公開用リンクをコピー</button><a href={`/api/dashboard/partners/qr/?token=${encodeURIComponent(campaign.token)}`} target="_blank" rel="noreferrer">QRを開く</a></li>)}</ul>
         </section>;
       })}
     </section>

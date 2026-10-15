@@ -62,11 +62,11 @@ assert.equal(readback.values.shop_hours, changed.shop_hours, "fixture readback m
 
 const form = readFileSync(join(root, "components/dashboard/OperatorShopForms.tsx"), "utf8");
 const editPage = readFileSync(join(root, "app/dashboard/shops/[id]/edit/page.tsx"), "utf8");
-assert.match(form, /dry-run・書込みなし/);
+assert.match(form, /変更内容を確認する（保存しない）/);
 assert.match(form, /disabled=\{!available\}/);
 assert.match(form, /official-facts-write/, "the browser may only ask the server to check gated save conditions");
-assert.match(form, /canonical・監査情報/, "browser input must not be treated as writer provenance");
-assert.match(form, /Supabaseへ保存して再読込/);
+assert.match(form, /確認済みの公式情報と別の承認手続き/, "browser input must not be treated as writer provenance");
+assert.match(form, /確認用の内容を保存して、表示を確かめる/);
 assert.match(form, /response\.status === 409/, "a conflict response must replace the stale browser snapshot");
 assert.match(editPage, /getOperatorShopFactSnapshot/);
 assert.doesNotMatch(editPage, /publicationState|officialUrl:\s*record/, "the legacy partial edit projection must not be used");

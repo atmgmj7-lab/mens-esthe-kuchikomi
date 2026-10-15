@@ -37,7 +37,7 @@ export function PartnerLoginEmailSettings({ currentEmail, pendingEmail, pendingI
   return <section className="hl-partner-home__section" aria-labelledby="partner-login-email-heading">
     <p className="hl-partner-home__eyebrow">Account</p>
     <h1 id="partner-login-email-heading">ログインメール</h1>
-    <p>ログインに使うメールアドレスを確認・変更できます。店舗情報、口コミ、Campaignは変更されません。</p>
+    <p>ログインに使うメールアドレスを確認・変更できます。店舗情報、口コミ、口コミのご案内は変更されません。</p>
     <dl className="hl-partner-login-email__summary">
       <div><dt>現在のログインメール</dt><dd>{currentEmail ?? "確認できません"}</dd></div>
       <div><dt>変更状況</dt><dd>{pendingEmail ? `${pendingEmail}（確認待ち）` : pendingIntent ? "変更依頼を確認中です" : "変更依頼はありません"}</dd></div>
@@ -45,7 +45,7 @@ export function PartnerLoginEmailSettings({ currentEmail, pendingEmail, pendingI
     <form className="hl-partner-login-email__form" onSubmit={submit}>
       <label htmlFor="partner-login-email">新しいログインメール</label>
       <input id="partner-login-email" name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required maxLength={254} />
-      <p>確認が必要な場合は、Supabase Authの既存確認フローに従います。</p>
+      <p>確認が必要な場合は、画面の案内に沿って手続きを進めてください。</p>
       <button className="hl-partner-home__primary-action" type="submit" disabled={submitting}>{submitting ? "送信中…" : "変更を依頼する"}</button>
     </form>
     {message ? <p role="status" className="hl-partner-home__unavailable">{message}</p> : null}

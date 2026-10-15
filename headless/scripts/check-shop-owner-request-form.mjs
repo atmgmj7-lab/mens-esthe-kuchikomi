@@ -301,17 +301,19 @@ assert.match(
 
 assert.match(staticPage, /slug === "storelisting"/);
 assert.match(staticPage, /hasOwnerRequestTarget/);
-assert.match(staticPage, /ShopOwnerRequestForm/);
 assert.match(
   staticPage,
-  /slug === "storelisting" && hasOwnerRequestTarget[\s\S]*<section[\s\S]*id="shop-owner-request"[\s\S]*className="hl-contact-section hl-owner-request-section"/,
-  "owner form must render only after a canonical target is confirmed",
+  /<StoreListingGuide existingInitial=\{hasOwnerRequestTarget \? ownerRequestInitial : undefined\} \/>/,
+  "the unified listing form must retain a canonical existing-shop prefill only when available",
 );
-assert.match(staticPage, /slug === "storelisting" \? <StoreListingGuide \/> : null/);
-assert.match(listingGuide, /href="\/contact\/#contact-form-heading"/);
-assert.match(listingGuide, /href="\/shops\/"/);
-assert.match(listingGuide, /href="\/partner\/login\/"/);
-assert.doesNotMatch(listingGuide, /<form/);
+assert.match(listingGuide, /new_listing/);
+assert.match(listingGuide, /existing_change/);
+assert.match(listingGuide, /uploadToken/);
+assert.match(listingGuide, /type="file"/);
+assert.match(listingGuide, /申請完了とはなっていません/);
+assert.match(listingGuide, /掲載済みの店舗を選択しても/);
+assert.match(listingGuide, /HTMLをコピー/);
+assert.match(listingGuide, /320 × 50/);
 assert.match(route, /searchParams/);
 assert.match(route, /ownerRequestInitial=\{parseShopOwnerRequestInitial\(query\)\}/);
 assert.match(route, /import \{ Suspense \} from "react"/);

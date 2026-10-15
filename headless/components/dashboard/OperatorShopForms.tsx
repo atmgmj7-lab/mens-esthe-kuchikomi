@@ -68,29 +68,29 @@ export function OperatorShopFactEditForm({ snapshot }: { snapshot: OperatorShopF
     }
   }
   return <section className={styles.formPanel} aria-labelledby="operator-shop-form-heading">
-    <p className={styles.eyebrow}>{currentSnapshot.source === "supabase" ? "Supabase verification source" : "WordPress public source"}</p>
+    <p className={styles.eyebrow}>掲載内容の確認</p>
     <h2 id="operator-shop-form-heading">公開情報を確認・修正候補にする</h2>
-    <p className={styles.note}>{currentSnapshot.source === "supabase" ? "検証用Supabaseの保存済み情報を読み込みました。既存の限定Writerと同じ10項目だけを扱います。タイトル・エリア・公開状態・taxonomy・新規作成は対象外で、保存できるようには表示しません。" : "現在のWordPress公開情報を読み込みました。既存の限定Writerが対応する10項目だけを確認できます。タイトル・エリア・公開状態・taxonomy・新規作成は今回の対象外で、保存できるようには表示しません。"}</p>
-    <p className={styles.note}>WP ID {currentSnapshot.wpShopId} / slug {currentSnapshot.slug}{currentSnapshot.source === "supabase" ? ` / revision ${currentSnapshot.revision ?? 0}` : ""}。{currentSnapshot.source === "supabase" ? "この検証モードの保存先は非公開Supabaseのみで、WordPressと公開サイトは更新しません。" : "この画面の確認操作は、WordPress・Supabase・公開サイトへ書き込みません。"}</p>
+    <p className={styles.note}>{currentSnapshot.source === "supabase" ? "公開前の確認用データを読み込みました。確認できるのは既存の10項目です。店舗名・エリア・掲載の公開状態・分類・新規店舗の追加は、この画面では扱いません。" : "現在の掲載内容を読み込みました。確認できるのは既存の10項目です。店舗名・エリア・掲載の公開状態・分類・新規店舗の追加は、この画面では扱いません。"}</p>
+    <p className={styles.note}>{currentSnapshot.source === "supabase" ? "この画面で保存した内容は、公開前の確認用データだけに反映されます。公開ページの内容は変わりません。" : "この画面では内容を確認するだけで、保存や公開ページの変更はできません。"}</p>
     <form className={styles.form} onSubmit={submit} noValidate>
       {OPERATOR_WRITER_FIELDS.map((field) => {
         const value = currentSnapshot.values[field];
         const available = value !== null;
         return <label key={field}>{OPERATOR_WRITER_FIELD_LABELS[field]}
           <input key={`${field}-${currentSnapshot.revision ?? 0}-${value ?? "missing"}`} name={field} type={field.endsWith("url") || field === "shop_line" ? "url" : "text"} inputMode={field === "basic_price" || field === "price_90" ? "numeric" : undefined} defaultValue={value ?? ""} disabled={!available} aria-describedby={!available ? `${field}-unavailable` : undefined} />
-          {!available ? <small id={`${field}-unavailable`}>公開REST値で正確に読めないため、この項目は編集対象外です。</small> : null}
+          {!available ? <small id={`${field}-unavailable`}>公開情報を正確に確認できないため、この項目は変更できません。</small> : null}
         </label>;
       })}
-      <button type="submit">変更候補を確認する（dry-run・書込みなし）</button>
+      <button type="submit">変更内容を確認する（保存しない）</button>
     </form>
     {result ? <div className={styles.formMessage} role="status">
       <p>{result.message}</p>
       {result.state === "ready" ? <>
         <dl className={styles.diffList}>{result.changes.map((change) => <div key={change.field}><dt>{OPERATOR_WRITER_FIELD_LABELS[change.field]}</dt><dd><s>{change.before ?? "未設定"}</s><span aria-hidden="true"> → </span><strong>{change.after}</strong></dd></div>)}</dl>
-        <label className={styles.confirmation}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />差分と保存先を確認しました。</label>
+        <label className={styles.confirmation}><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />変更内容と、公開ページが変わらないことを確認しました。</label>
         {confirmed ? <div className={styles.saveGate}>
-          <p>{currentSnapshot.source === "supabase" ? "保存は非公開検証用Supabaseに限定し、revisionの再照合で競合を止めます。WordPressと公開サイトへの書込みは行いません。" : "保存には、対応項目ごとの確認済み公式根拠・canonical・監査情報と、最新snapshotの再照合が必要です。ブラウザ入力から根拠を作成することはありません。"}</p>
-          <button type="button" onClick={requestSaveApproval}>{currentSnapshot.source === "supabase" ? "Supabaseへ保存して再読込" : "保存前の承認条件を確認する"}</button>
+          <p>{currentSnapshot.source === "supabase" ? "保存すると、公開前の確認用データだけが更新されます。公開中の掲載内容は変わりません。" : "この画面から保存はできません。公開内容の変更には、確認済みの公式情報と別の承認手続きが必要です。画面に入力した内容から公開内容の根拠を作成することはありません。"}</p>
+          <button type="button" onClick={requestSaveApproval}>{currentSnapshot.source === "supabase" ? "確認用の内容を保存して、表示を確かめる" : "保存できない理由を確認する"}</button>
           {saveMessage ? <p role="status">{saveMessage}</p> : null}
         </div> : null}
       </> : null}
@@ -105,14 +105,14 @@ export function OperatorListingExclusionForm({ wpShopId }: { wpShopId: number })
     event.preventDefault();
     const value = new FormData(event.currentTarget).get("reason");
     const intent = createListingExclusionIntent(wpShopId, value as ListingExclusionReason);
-    setMessage("message" in intent ? intent.message : "可逆の掲載対象外 intent を検証しました。履歴を保持するWordPress Writerと個別Production承認が必要なため、ここからは書き込みません。");
+    setMessage("message" in intent ? intent.message : "内容を確認しました。この画面から掲載を非表示にはしません。実際の変更には、理由を残す別の承認手続きが必要です。");
   }
   return <section id="listing-exclusion" className={styles.exclusion} aria-labelledby="listing-exclusion-heading">
     <h2 id="listing-exclusion-heading">掲載対象外にする</h2>
-    <p>通常の削除ではありません。公開一覧・エリア一覧・サイトマップへの将来反映は、履歴を保持した可逆契約で扱います。</p>
+    <p>この画面では、掲載を非表示にする候補を確認するだけです。まだ公開一覧や店舗ページは変わりません。</p>
     <form className={styles.form} onSubmit={submit}>
       <label>理由<select name="reason" required defaultValue=""><option value="" disabled>理由を選択</option>{LISTING_EXCLUSION_REASONS.map((reason) => <option key={reason} value={reason}>{exclusionLabels[reason]}</option>)}</select></label>
-      <button type="submit">対象外化を検証する（書込みなし）</button>
+      <button type="submit">内容を確認する（掲載は変わりません）</button>
     </form>
     {message ? <p className={styles.formMessage} role="status">{message}</p> : null}
   </section>;

@@ -1,0 +1,4 @@
+import Link from "next/link";
+import type { PublicPartnerListing } from "@/lib/partner/public-listing";
+import styles from "./PublicPartnerListing.module.css";
+export function PublicPartnerListing({ listing }: { listing: PublicPartnerListing }) { return <main id="main_content" className={styles.page}><article className={styles.card}><p className={styles.kicker}>SHOP PROFILE · {listing.area}</p><h1>{listing.shop_name}</h1>{listing.banner_asset_id ? <img className={styles.banner} src={`/api/partner/listing/banner/${listing.banner_asset_id}/`} alt={`${listing.shop_name} の掲載画像`} width="1200" height="630" /> : null}<section><h2>店舗紹介</h2><p>{listing.introduction || "承認済みの店舗情報を掲載しています。"}</p></section><a className={styles.official} href={listing.website_url} target="_blank" rel="noreferrer sponsored">公式サイトを見る ↗</a><Link href="/shops/">店舗一覧へ戻る</Link></article></main>; }

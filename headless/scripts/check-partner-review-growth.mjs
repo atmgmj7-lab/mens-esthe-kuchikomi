@@ -132,13 +132,15 @@ function verifySourceContract() {
   assert.doesNotMatch(dashboardPage, /contactName|contactEmail|confirmationDetails/);
   assert.match(dashboardWorkspace, /pendingReviews/);
   assert.match(dashboardWorkspace, /review\.status === "received"/);
-  assert.match(dashboardWorkspace, /Free Official Partnerとして承認/);
+  assert.match(dashboardWorkspace, /店舗アカウントとして承認/);
   assert.match(dashboardWorkspace, /却下/);
   assert.match(dashboardWorkspace, /率直な口コミにご協力ください/);
   assert.match(dashboardWorkspace, /counter_qr/);
   assert.match(dashboardWorkspace, /line_after_visit/);
   assert.match(dashboardWorkspace, /shop_website/);
   assert.match(dashboardWorkspace, /eskomi_shop_page/);
+  assert.match(dashboardWorkspace, /activeCampaigns\.length === 0/, "an approved workspace with only a counter QR must still expose its available asset");
+  assert.doesNotMatch(dashboardWorkspace, /activeCampaigns\.every/, "the operator Growth Kit must not require all channels before exposing a valid counter QR");
   assert.doesNotMatch(dashboardWorkspace, /SUPABASE_SERVICE_ROLE_KEY|process\.env|contactName|contactEmail|confirmationDetails/);
 }
 

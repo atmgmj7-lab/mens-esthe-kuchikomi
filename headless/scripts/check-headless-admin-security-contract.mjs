@@ -134,6 +134,7 @@ const secretModule = compileCommonJs(secretSource, "secure-secret.ts", {
 });
 const authModule = compileCommonJs(authSource, "content-admin-auth.ts", {
   "server-only": {},
+  "node:crypto": await import("node:crypto"),
   "@/lib/server/secure-secret": secretModule,
 });
 
@@ -216,6 +217,26 @@ assert.equal(
   }).status,
   503,
   "a partial official pair must not silently fall back to legacy variables",
+);
+
+assert.equal(authModule.dashboardSessionCookieName(), "eskomi_dashboard_session");
+assert.equal(authModule.createDashboardSessionValue({}, Date.now()), null);
+const session = authModule.createDashboardSessionValue(officialEnvironment, Date.now());
+assert.equal(typeof session, "string", "a configured dashboard must issue a signed session");
+assert.equal(
+  authModule.authorizeListingDashboardRequest(null, session, officialEnvironment).status,
+  200,
+  "a valid signed dashboard session must authorize the listing dashboard",
+);
+assert.equal(
+  authModule.authorizeListingDashboardRequest(null, `${session}tampered`, officialEnvironment).status,
+  401,
+  "a tampered dashboard session must fail closed",
+);
+assert.equal(
+  authModule.authorizeListingDashboardRequest(null, "1.invalid", officialEnvironment).status,
+  401,
+  "an expired dashboard session must fail closed",
 );
 
 function compileRevalidateRoute(revalidateTag, routeEnvironment = {}) {

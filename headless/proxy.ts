@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   authorizeDashboardRequest,
+  authorizeListingDashboardRequest,
+  createDashboardSessionValue,
+  dashboardSessionCookieName,
   isDashboardProtectedPath,
 } from "@/lib/dashboard/content-admin-auth";
 
@@ -13,7 +16,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authorization = authorizeDashboardRequest(
+  const isListingApi = pathname.startsWith("/api/dashboard/listing-applications");
+  const authorization = isListingApi
+    ? authorizeListingDashboardRequest(request.headers.get("authorization"), request.cookies.get(dashboardSessionCookieName())?.value, process.env)
+    : authorizeDashboardRequest(
     request.headers.get("authorization"),
     process.env,
   );
@@ -36,7 +42,10 @@ export function proxy(request: NextRequest) {
     return secureDashboardResponse(NextResponse.redirect(redirectTo));
   }
 
-  return continueDashboardRequest(request.headers);
+  const response = continueDashboardRequest(request.headers);
+  const session = createDashboardSessionValue(process.env);
+  if (session) response.cookies.set(dashboardSessionCookieName(), session, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 30 * 60 });
+  return response;
 }
 
 function continueDashboardRequest(headers: Headers): NextResponse {

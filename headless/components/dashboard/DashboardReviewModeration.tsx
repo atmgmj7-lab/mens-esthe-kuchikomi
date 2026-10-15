@@ -45,6 +45,18 @@ function formatDate(value: string | null) {
     .format(new Date(value));
 }
 
+function reviewStateLabel(value: QueueReview["moderationStatus"]) {
+  return { pending: "審査待ち", approved: "承認済み", rejected: "却下", spam: "スパム" }[value];
+}
+
+function publicationStateLabel(value: QueueReview["publicationStatus"]) {
+  return { draft: "公開待ち", published: "公開済み", archived: "公開終了" }[value];
+}
+
+function auditStateLabel(value: string) {
+  return ({ pending: "審査待ち", approved: "承認済み", rejected: "却下", spam: "スパム", draft: "公開待ち", published: "公開済み", archived: "公開終了" } as Record<string, string>)[value] ?? "未設定";
+}
+
 export function DashboardReviewModeration({
   reviews,
   sourceStatus,
@@ -128,12 +140,12 @@ export function DashboardReviewModeration({
   return (
     <section className="hl-partner-review-list" aria-labelledby="native-review-moderation-heading">
       <h2 id="native-review-moderation-heading">口コミ審査キュー</h2>
-      <p>{shopName}（WP {wpShopId}）の要対応口コミだけを表示します。口コミ本文・評価は変更せず、審査と公開を別々に判断します。理由は非公開の監査履歴へ保存されます。</p>
-      <p>既存キューをサーバー側でページ走査してから対象店舗へ絞り込んでいます。公開済み・却下・スパムを含む履歴検索は、このキューに混在させません。</p>
+      <p>{shopName}の対応が必要な口コミだけを表示します。口コミ本文・評価は変更せず、審査と公開を別々に判断します。判断理由は運営内の記録に保存されます。</p>
+      <p>公開済み・却下・スパムを含む過去の記録は、この一覧には混在させません。</p>
       {message ? <p role="status">{message}</p> : null}
       {sourceStatus === "error" ? <p role="alert">口コミ審査一覧を取得できませんでした。</p> : null}
       {sourceStatus !== "error" && reviews.length > 0 ? <div className="hl-partner-review-filters" aria-label="口コミ審査キューを絞り込む">
-        <p>対象店舗: {shopName}（WP {wpShopId}）</p>
+        <p>対象店舗: {shopName}</p>
         <label>状態<select value={status} onChange={(event) => setStatus(event.target.value as typeof status)}>
           <option value="all">すべての要対応</option><option value="pending">審査待ち</option><option value="approved_ready">承認済み・公開待ち</option>
         </select></label>
@@ -146,7 +158,7 @@ export function DashboardReviewModeration({
           <p>投稿日: {formatDate(review.submittedAt)}</p>
           <p>総合評価: {review.rating ?? "未回答"}</p>
           <p>{review.body}</p>
-          <p>審査: {review.moderationStatus} / 公開: {review.publicationStatus}</p>
+          <p>審査: {reviewStateLabel(review.moderationStatus)} / 公開: {publicationStateLabel(review.publicationStatus)}</p>
           <button type="button" onClick={() => loadDetail(review.reviewId)} disabled={loadingId === review.reviewId}>
             {loadingId === review.reviewId ? "読込中…" : "詳細を確認"}
           </button>
@@ -170,17 +182,17 @@ export function DashboardReviewModeration({
       {detail ? (
         <section className="hl-partner-status" aria-labelledby="native-review-detail-heading">
           <h3 id="native-review-detail-heading">口コミ詳細</h3>
-          <p>店舗: {detail.review.shop.name}（WP {detail.review.shop.wpShopId}）</p>
+          <p>店舗: {detail.review.shop.name}</p>
           <p>投稿者: {detail.review.nickname}</p>
           <p>メール: {detail.review.email || "未入力"}</p>
           <p>利用時期: {detail.review.visitPeriod || "未入力"}</p>
           <p>再訪意向: {detail.review.revisitIntent || "未入力"}</p>
           <p>評価: 総合 {detail.review.rating ?? "—"} / 料金 {detail.review.ratingPrice ?? "—"} / 接客 {detail.review.ratingService ?? "—"} / 清潔感 {detail.review.ratingCleanliness ?? "—"}</p>
           <p>本文: {detail.review.body}</p>
-          <h4>監査履歴</h4>
-          {detail.audit.length === 0 ? <p>監査履歴はまだありません。</p> : (
+          <h4>判断の記録</h4>
+          {detail.audit.length === 0 ? <p>判断の記録はまだありません。</p> : (
             <ol>{detail.audit.map((event) => (
-              <li key={event.eventId}>{formatDate(event.createdAt)}: {event.fromState} → {event.toState}（{event.reason}）</li>
+              <li key={event.eventId}>{formatDate(event.createdAt)}: {auditStateLabel(event.fromState)} → {auditStateLabel(event.toState)}（{event.reason}）</li>
             ))}</ol>
           )}
         </section>

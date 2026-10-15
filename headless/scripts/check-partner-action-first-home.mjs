@@ -106,7 +106,7 @@ const noCampaignHome = dashboard.resolvePartnerActionFirstHome(identity, {
 assert.deepEqual(JSON.parse(JSON.stringify(noCampaignHome.action)), {
   kind: "growth_kit_unavailable",
   title: "口コミ導線は準備中です",
-  description: "有効な口コミCampaignを確認できないため、口コミURLはまだ利用できません。",
+  description: "現在使える口コミのご案内を確認できないため、口コミURLはまだ利用できません。",
   primaryAction: { label: "公開店舗ページを確認する", href: "https://mens-esthe-kuchikomi.com/shops/shop-a/" },
 }, "no-campaign state must name its prerequisite and retain one safe primary action without fabricating a URL");
 assert.deepEqual(JSON.parse(JSON.stringify(noCampaignHome.performance)), {
