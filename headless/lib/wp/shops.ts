@@ -175,6 +175,66 @@ export type SitemapEntry = {
   modified: string;
 };
 
+const WORDPRESS_SHOP_PAGE_SIZE = 100;
+const WORDPRESS_SHOP_ENUMERATION_ATTEMPTS = 2;
+
+type WordPressShopPage = Readonly<{
+  data: WpShop[];
+  pagination: Readonly<{ total: number; totalPages: number }>;
+}>;
+
+/**
+ * A directory must be complete or unavailable: returning the pages fetched
+ * before a transient WordPress failure would silently publish a smaller list.
+ */
+export async function fetchCompleteWordPressShopList(
+  requestPage: (path: string) => Promise<WordPressShopPage> = (path) => wpFetchPaginated<WpShop[]>(path),
+  maxShops = Number.MAX_SAFE_INTEGER,
+): Promise<WpShop[]> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= WORDPRESS_SHOP_ENUMERATION_ATTEMPTS; attempt += 1) {
+    try {
+      const shops: WpShop[] = [];
+      let expectedTotal: number | null = null;
+      let totalPages = 1;
+      for (let page = 1; page <= totalPages && shops.length < maxShops; page += 1) {
+        const { data, pagination } = await requestPage(
+          `/wp/v2/shop?per_page=${WORDPRESS_SHOP_PAGE_SIZE}&page=${page}&orderby=modified&order=desc&_embed=1`,
+        );
+        if (!Number.isSafeInteger(pagination.total) || pagination.total < 0
+          || !Number.isSafeInteger(pagination.totalPages) || pagination.totalPages < 1) {
+          throw new Error("Invalid WordPress shop pagination metadata");
+        }
+        const reportedPages = Math.max(1, Math.ceil(pagination.total / WORDPRESS_SHOP_PAGE_SIZE));
+        if (pagination.totalPages !== reportedPages) {
+          throw new Error("Inconsistent WordPress shop pagination metadata");
+        }
+        if (expectedTotal !== null && pagination.total !== expectedTotal) {
+          throw new Error("WordPress shop pagination changed during enumeration");
+        }
+        expectedTotal = pagination.total;
+        totalPages = reportedPages;
+        const expectedPageLength = Math.min(
+          WORDPRESS_SHOP_PAGE_SIZE,
+          Math.max(0, pagination.total - (page - 1) * WORDPRESS_SHOP_PAGE_SIZE),
+        );
+        if (!Array.isArray(data) || data.length !== expectedPageLength) {
+          throw new Error("Incomplete WordPress shop page");
+        }
+        shops.push(...data);
+      }
+      if (expectedTotal === null || (shops.length < maxShops && shops.length !== expectedTotal)) {
+        throw new Error("Incomplete WordPress shop list");
+      }
+      return shops.slice(0, maxShops);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  const message = lastError instanceof Error ? lastError.message : String(lastError);
+  throw new Error(`Unable to fetch a complete WordPress shop list after ${WORDPRESS_SHOP_ENUMERATION_ATTEMPTS} attempts: ${message}`);
+}
+
 export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   "use cache";
   cacheLife("hours");
@@ -212,26 +272,13 @@ export async function getAllWordPressShops(maxShops = Number.MAX_SAFE_INTEGER): 
   cacheLife("minutes");
   cacheTag("wp", "shops", "shops:listing-all");
 
-  const perPage = 100;
-  const shops: ShopView[] = [];
-  let page = 1;
-  let totalPages = 1;
-
   try {
-    while (page <= totalPages && shops.length < maxShops) {
-      const { data, pagination } = await wpFetchPaginated<WpShop[]>(
-        `/wp/v2/shop?per_page=${perPage}&page=${page}&orderby=modified&order=desc&_embed=1`
-      );
-      shops.push(...data.map(normalizeShop));
-      totalPages = pagination.totalPages;
-      page += 1;
-    }
+    return (await fetchCompleteWordPressShopList(undefined, maxShops)).map(normalizeShop);
   } catch (error) {
     if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`shops listing ${maxShops}`, error);
+    return [];
   }
-
-  return shops.slice(0, maxShops);
 }
 
 export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
