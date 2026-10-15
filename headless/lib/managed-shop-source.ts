@@ -122,6 +122,47 @@ export function composeManagedShopPublications(
   return composed;
 }
 
+/**
+ * Keep WordPress taxonomy membership as the legacy area source of truth until
+ * an approved managed publication explicitly moves that legacy shop. New
+ * managed publications are appended after the legacy order.
+ */
+export function composeManagedShopPublicationsForArea(
+  areaSlug: string,
+  legacyAreaShops: readonly ShopView[],
+  movedInLegacyShops: readonly ShopView[],
+  publications: readonly PublishedManagedShop[],
+  suppressions: readonly ManagedShopLegacySuppression[] = [],
+): ShopView[] {
+  const directLegacyIds = new Set(legacyAreaShops.map((shop) => shop.id));
+  const baseline = [...legacyAreaShops];
+  for (const shop of movedInLegacyShops) {
+    if (!directLegacyIds.has(shop.id) && !baseline.some((candidate) => candidate.id === shop.id)) baseline.push(shop);
+  }
+  const baselineById = new Map(baseline.map((shop) => [shop.id, shop]));
+  const eligiblePublications = publications.filter((publication) => {
+    if (publication.existing_wp_shop_id === null) return publication.area_slug === areaSlug;
+    const legacy = baselineById.get(publication.existing_wp_shop_id);
+    return Boolean(legacy && sameSlug(legacy.slug, publication.shop_slug));
+  });
+  const managedLegacyAreas = new Map(
+    eligiblePublications
+      .filter((publication) => publication.existing_wp_shop_id !== null)
+      .map((publication) => [publication.existing_wp_shop_id as number, publication.area_slug]),
+  );
+  const newDirectoryIds = new Set(
+    eligiblePublications
+      .filter((publication) => publication.existing_wp_shop_id === null)
+      .map((publication) => publication.directory_id),
+  );
+  return composeManagedShopPublications(baseline, eligiblePublications, suppressions).filter((shop) => {
+    const managedArea = managedLegacyAreas.get(shop.id);
+    if (managedArea !== undefined) return managedArea === areaSlug;
+    if (newDirectoryIds.has(shop.id)) return shop.areaSlug === areaSlug;
+    return directLegacyIds.has(shop.id);
+  });
+}
+
 export async function getPublishedManagedShopDirectory(): Promise<readonly PublishedManagedShop[]> {
   if (!useSupabaseManagedShopDirectory()) return [];
   if (!managedShopDirectoryRepository.configured()) throw new ManagedShopDirectoryUnavailableError();
