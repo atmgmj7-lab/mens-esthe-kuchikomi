@@ -12,6 +12,8 @@ Keep Eskomi's existing ivory dashboard treatment while making analytics text leg
 
 - Use the established dashboard ink and navy palette for page text, headings, explanatory copy, filter links, and the details disclosure.
 - Preserve selected tabs as white text on navy; add distinct hover, visible keyboard focus, and disabled appearances for filter links.
+- Keep editorial headings in the existing serif treatment while rendering dashboard dates, KPI values, table numbers, and comparison values in the dashboard sans-serif stack with tabular figures and stable line height. KPI figures do not wrap mid-number.
+- Keep metric inputs as decimal ratios and label percentage deltas in percentage points (`pt`), without changing collection or calculations.
 - Leave KPI card and table layout unchanged.
 - Lock the sRGB contrast rule in `headless/tests/analytics/dashboard-ui.test.mjs`: ordinary text and state labels are at least 4.5:1, and the focus indicator is at least 3:1.
 
@@ -20,6 +22,7 @@ Keep Eskomi's existing ivory dashboard treatment while making analytics text leg
 - Production desktop inspection showed the pre-change Analytics Snapshot label (`#91bfc2`), non-selected tabs (`#cbd8e3`), GA4 section heading (`#dbe6ee`), and notice disclosure (`#b8c9d6`) on the ivory surface.
 - Production desktop inspection of the public top page, dashboard shop list, and dashboard shop detail found the established dark ink/navy treatment rather than this residual dark-theme module palette.
 - Focused analytics test: 6/6 passed after the change.
+- Numeric-display regression tests cover zero, grouped large counts, decimal percentages, negative values, and percentage-point deltas; Analytics UI tests and render tests pass 11/11.
 - `npm run lint`, `npm run typecheck`, and `npm run build` passed. The build generated 72/72 routes; network-isolated WordPress reads used their existing fallbacks.
 - The existing headless browser layout run visited Analytics Dashboard at 1440, 1280, 1024, 768, 500, 390, 375, 320, responsive boundaries, and phone landscape. Its aggregate result is not a pass: network-isolated WordPress fallback data causes unrelated public card/review fixture mismatches (6,001 assertions).
 - A dedicated in-memory fixture rendered the production `AnalyticsDashboardView` and its CSS module (not a loading/503 route) at 1440px and 390px. The resulting visual evidence is saved at `headless/docs/technical/artifacts/analytics-qa-desktop-1440.png` and `headless/docs/technical/artifacts/analytics-qa-mobile-390.png`.

@@ -15,13 +15,36 @@ test("dashboard parsing defaults only absent filters and rejects unknown, duplic
 
 test("dashboard formatting preserves actual zero and distinguishes unavailable values and position semantics", () => {
   assert.equal(formatMetric(0, "count"), "0");
+  assert.equal(formatMetric(12345678, "count"), "12,345,678");
   assert.equal(formatMetric(0, "percent"), "0.0%");
+  assert.equal(formatMetric(0.581, "percent"), "58.1%");
   assert.equal(formatMetric(null, "count"), "—");
   assert.equal(formatDelta(0, "count"), "+0");
+  assert.equal(formatDelta(0, "percent"), "+0.0pt");
+  assert.equal(formatDelta(0.071, "percent"), "+7.1pt");
+  assert.equal(formatDelta(-0.018, "percent"), "−1.8pt");
   assert.equal(formatDelta(-2, "position"), "2.0 改善");
   assert.equal(formatDelta(2, "position"), "2.0 悪化");
   assert.equal(sourceStateLabel("not_configured"), "未設定");
   assert.equal(sourceStateLabel("no_data"), "対象期間にデータなし");
+});
+
+test("dashboard metric, date, and table numbers use stable sans-serif tabular figures", async () => {
+  const css = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.module.css", import.meta.url), "utf8");
+  const rule = (selector) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return css.match(new RegExp(`(?:^|[},])[^{}]*${escaped}[^{}]*\\{([^}]*)\\}`))?.[1] ?? "";
+  };
+  for (const selector of [".value", ".comparison", ".numeric", ".muted", ".dataText"]) {
+    const declaration = rule(selector);
+    assert.match(declaration, /font-family:\s*var\(--hl-sans\)/, `${selector} は定義済みの読みやすいゴシック体を使う必要があります`);
+    assert.match(declaration, /font-variant-numeric:\s*tabular-nums/, `${selector} はtabular-numsを使う必要があります`);
+  }
+  const value = css.match(/\.value\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(value, /line-height:\s*1\.15/, "KPI数値は行高を固定してカード内の揺れを防ぐ必要があります");
+  assert.match(value, /white-space:\s*nowrap/, "KPI数値は桁の途中で折り返さない必要があります");
+  const presentation = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.ts", import.meta.url), "utf8");
+  assert.ok((presentation.match(/className:\s*styles\.dataText/g) ?? []).length >= 4, "表内の日時とHTTP値には数値書式を適用する必要があります");
 });
 
 test("production page and API share the cached server boundary while presentation has no direct source fetch", async () => {
