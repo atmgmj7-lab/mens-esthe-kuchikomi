@@ -75,9 +75,22 @@ function contentHealth(snapshot: AnalyticsSnapshot, styles: AnalyticsDashboardSt
   return h("section", { className: styles.section }, h("h3", null, "地域コンテンツ健全性"), h("p", { className: styles.sectionLead }, `確認日の古さの閾値: ${data.staleAfterDays}日。個店・レビューの識別子は表示しません。`), tableRegion("地域コンテンツ健全性表", "公開済み店舗の確認済み情報と承認レビューの地域集計。", headers, rows, styles));
 }
 
+const exclusionMessages = {
+  snapshot_ga4_unsafe_landing_path: (count: number) => `GA4の一部ランディングページをページ別分析に使える形式へ変換できなかったため、${count}件をページ別集計から除外しました。全体のGA4集計には影響しません。`,
+  snapshot_gsc_unsafe_or_duplicate_page: (count: number) => `Search Consoleの一部ページURLをサイト内ページとして確定できなかったため、${count}件をページ別集計から除外しました。Search Console全体の集計には影響しません。`,
+  snapshot_gsc_unsafe_query_page: (count: number) => `Search Consoleの一部検索語とページの組み合わせを重点エリア分析に使える形式へ変換できなかったため、${count}件を除外しました。Search Console全体の集計には影響しません。`,
+} as const;
+
+function exclusions(snapshot: AnalyticsSnapshot, styles: AnalyticsDashboardStyles): ReactNode {
+  if (snapshot.excludedRows.length === 0) return null;
+  return h("section", { className: styles.details, "aria-labelledby": "analytics-exclusions-heading" }, h("h3", { id: "analytics-exclusions-heading" }, "ページ別分析から除外したデータ"), h("p", null, "入力検証を通らない行だけを除外しています。日本語を含む通常のサイト内URLは分析対象です。"), h("ul", { className: styles.warningList }, ...snapshot.excludedRows.map(({ code, count }) => h("li", { key: code }, exclusionMessages[code](count)))));
+}
+
 export default function AnalyticsDashboardView({ snapshot, view, styles }: Props): ReactNode {
   const requested = formatRange(snapshot.period.requested.current); const effective = formatRange(snapshot.sources.gsc.period?.effective.current ?? snapshot.period.effective.current);
   const body = view === "overview" ? overview(snapshot, styles) : view === "seo" ? seo(snapshot, styles) : view === "pages" ? pages(snapshot, styles) : view === "site-health" ? siteHealth(snapshot, styles) : contentHealth(snapshot, styles);
-  const warnings = snapshot.warnings.length ? h("details", { className: styles.details }, h("summary", null, `収集に関する注意 (${snapshot.warnings.length})`), h("ul", { className: styles.warningList }, ...snapshot.warnings.map((warning) => h("li", { key: warning.code }, `code=${warning.code}`)))) : null;
-  return h("div", { className: styles.page }, h("header", { className: styles.hero }, h("div", null, h("p", { className: styles.eyebrow }, `Analytics Snapshot v${snapshot.schemaVersion} · ${snapshot.timezone}`), h("h2", null, labels[view]), h("p", { className: styles.muted }, `要求期間: ${requested} ／ 生成: ${formatTimestamp(snapshot.generatedAt)}`, h("br"), `GSC有効期間: ${effective}`)), filterNav(snapshot.period.days, view, styles)), sourceStatus(snapshot, styles), body, warnings);
+  const excludedCodes = new Set<string>(snapshot.excludedRows.map(({ code }) => code));
+  const remainingWarnings = snapshot.warnings.filter((warning) => !excludedCodes.has(warning.code));
+  const warnings = remainingWarnings.length ? h("details", { className: styles.details }, h("summary", null, `収集に関する注意 (${remainingWarnings.length})`), h("ul", { className: styles.warningList }, ...remainingWarnings.map((warning) => h("li", { key: warning.code }, `code=${warning.code}`)))) : null;
+  return h("div", { className: styles.page }, h("header", { className: styles.hero }, h("div", null, h("p", { className: styles.eyebrow }, `Analytics Snapshot v${snapshot.schemaVersion} · ${snapshot.timezone}`), h("h2", null, labels[view]), h("p", { className: styles.muted }, `要求期間: ${requested} ／ 生成: ${formatTimestamp(snapshot.generatedAt)}`, h("br"), `GSC有効期間: ${effective}`)), filterNav(snapshot.period.days, view, styles)), sourceStatus(snapshot, styles), body, exclusions(snapshot, styles), warnings);
 }
