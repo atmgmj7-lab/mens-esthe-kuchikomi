@@ -21,9 +21,10 @@ export function registerServerOnly() {
         };
       }
       if (specifier.startsWith("@/")) {
+        const extension = specifier.endsWith(".mjs") ? "" : ".ts";
         return {
           shortCircuit: true,
-          url: new URL(`../../${specifier.slice(2)}.ts`, import.meta.url).href,
+          url: new URL(`../../${specifier.slice(2)}${extension}`, import.meta.url).href,
         };
       }
       if (specifier.startsWith(".") && !specifier.endsWith(".ts") && !specifier.endsWith(".mjs")) {
