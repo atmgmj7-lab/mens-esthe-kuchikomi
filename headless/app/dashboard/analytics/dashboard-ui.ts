@@ -54,6 +54,10 @@ export function formatMetric(value: number | null, kind: MetricKind): string {
 export function formatDelta(value: number | null, kind: MetricKind): string {
   if (value === null) return "—";
   if (kind === "position") return value === 0 ? "±0.0" : `${Math.abs(value).toLocaleString("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${value < 0 ? "改善" : "悪化"}`;
+  if (kind === "percent") {
+    const points = (Math.abs(value) * 100).toLocaleString("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return `${value >= 0 ? "+" : "−"}${points}pt`;
+  }
   const formatted = formatMetric(Math.abs(value), kind);
   return `${value >= 0 ? "+" : "−"}${formatted}`;
 }

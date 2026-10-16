@@ -16,10 +16,18 @@ const FOCUS_AREAS = [
   ["堺筋本町", "/area/sakaisujihonmachi/"],
   ["梅田", "/area/umeda/"],
 ] as const;
+const EXCLUSION_WARNING_CODES = [
+  "snapshot_ga4_unsafe_landing_path",
+  "snapshot_gsc_unsafe_or_duplicate_page",
+  "snapshot_gsc_unsafe_query_page",
+] as const;
 
 type NullableMetrics = { sessions: number | null; engagedSessions?: number | null; engagementRate?: number | null; keyEvents?: number | null };
 type NullableGsc = { clicks: number | null; impressions: number | null; ctr: number | null; position: number | null };
 type SnapshotWarning = AnalyticsWarning;
+type ExclusionWarningCode = typeof EXCLUSION_WARNING_CODES[number];
+
+export type SnapshotExcludedRows = Readonly<{ code: ExclusionWarningCode; count: number }>;
 
 export type AnalyticsSnapshot = Readonly<{
   schemaVersion: "1.0.0";
@@ -37,6 +45,7 @@ export type AnalyticsSnapshot = Readonly<{
   pages: readonly SnapshotPage[];
   siteHealth: SiteHealthData["targets"] | null;
   contentHealth: ContentHealthData | null;
+  excludedRows: readonly SnapshotExcludedRows[];
   warnings: readonly SnapshotWarning[];
 }>;
 
@@ -86,6 +95,20 @@ function value<T>(result: AnalyticsSourceResult<T>): T | null { return result.da
 function delta(current: number | null, previous: number | null): number | null { return current === null || previous === null ? null : current - previous; }
 function nullGsc(): NullableGsc { return { clicks: null, impressions: null, ctr: null, position: null }; }
 function gscMetric(metric: GscMetric | null): NullableGsc { return metric ? { clicks: metric.clicks, impressions: metric.impressions, ctr: metric.ctr, position: metric.position } : nullGsc(); }
+
+function excludedRows(warnings: readonly SnapshotWarning[]): readonly SnapshotExcludedRows[] {
+  const counts = new Map<ExclusionWarningCode, number>();
+  for (const warning of warnings) {
+    if ((EXCLUSION_WARNING_CODES as readonly string[]).includes(warning.code)) {
+      const code = warning.code as ExclusionWarningCode;
+      counts.set(code, (counts.get(code) ?? 0) + 1);
+    }
+  }
+  return EXCLUSION_WARNING_CODES.flatMap((code) => {
+    const count = counts.get(code) ?? 0;
+    return count > 0 ? [{ code, count }] : [];
+  });
+}
 
 function normalizePath(input: string, requireAbsolute = false): string | null {
   if (typeof input !== "string" || input.trim() !== input || input === "" || input.includes("\\")) return null;
@@ -230,6 +253,7 @@ export async function collectFreshAnalyticsSnapshot(options: CollectAnalyticsSna
     overview: { current: overviewCurrentOut, previous: overviewPreviousOut, deltas: { sessions: delta(overviewCurrentOut.sessions, overviewPreviousOut.sessions), activeUsers: delta(overviewCurrentOut.activeUsers, overviewPreviousOut.activeUsers), engagedSessions: delta(overviewCurrentOut.engagedSessions, overviewPreviousOut.engagedSessions), engagementRate: delta(overviewCurrentOut.engagementRate, overviewPreviousOut.engagementRate), keyEvents: delta(overviewCurrentOut.keyEvents, overviewPreviousOut.keyEvents), organicSessions: delta(overviewCurrentOut.organicSessions, overviewPreviousOut.organicSessions), clicks: delta(overviewCurrentOut.gsc.clicks, overviewPreviousOut.gsc.clicks), impressions: delta(overviewCurrentOut.gsc.impressions, overviewPreviousOut.gsc.impressions), ctr: delta(overviewCurrentOut.gsc.ctr, overviewPreviousOut.gsc.ctr), position: delta(overviewCurrentOut.gsc.position, overviewPreviousOut.gsc.position) } },
     seo: { focusAreas, topCounts: { top10: topCounts(10), top20: topCounts(20), top30: topCounts(30) } },
     pages, siteHealth: webData?.targets ?? null, contentHealth: contentData, warnings: [...warningMap.values()].sort((left, right) => left.code.localeCompare(right.code)),
+    excludedRows: excludedRows(snapshotWarnings),
   };
 }
 

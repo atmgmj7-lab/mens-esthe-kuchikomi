@@ -175,3 +175,34 @@ test("query/page normalized raw-URL collisions omit every focus candidate in eit
     assert.equal(result.warnings.some((warning) => warning.code === "snapshot_gsc_query_page_collision_omitted"), true);
   }
 });
+
+test("Japanese paths remain available while rejected detail rows expose only reason counts", async () => {
+  const sources = sourceData();
+  sources.ga4.data.landingPages.current.data = [
+    { landingPage: "/shops/%E6%97%A5%E6%9C%AC%E8%AA%9E/", sessions: 1, activeUsers: 1, engagedSessions: 1, engagementRate: 1, keyEvents: 0 },
+    { landingPage: "https://example.invalid/private-ga4", sessions: 9, activeUsers: 9, engagedSessions: 9, engagementRate: 1, keyEvents: 9 },
+  ];
+  sources.gsc.data.pages.current.data.rows = [
+    { keys: ["https://mens-esthe-kuchikomi.com/shops/%E6%97%A5%E6%9C%AC%E8%AA%9E/"], ...metric(2, 20, 0.1, 3) },
+    { keys: ["https://example.invalid/private-gsc-page"], ...metric(9, 90, 0.1, 9) },
+  ];
+  sources.gsc.data.queryPages.current.data.rows = [
+    { keys: ["堺東 メンズエステ", "https://mens-esthe-kuchikomi.com/area/sakai/"], ...metric(5, 50, 0.1, 8) },
+    { keys: ["private query", "https://example.invalid/private-query-page"], ...metric(9, 90, 0.1, 9) },
+  ];
+
+  const result = await collectAnalyticsSnapshot({ days: 7, now, sources: {
+    collectGa4: async () => sources.ga4, collectGsc: async () => sources.gsc,
+    collectSiteHealth: async () => sources.web, getContentHealth: async () => sources.content,
+  } });
+
+  const japanesePage = result.pages.find((page) => page.path === "/shops/日本語/");
+  assert.equal(japanesePage?.current.sessions, 1);
+  assert.equal(japanesePage?.current.gsc.clicks, 2);
+  assert.deepEqual(result.excludedRows, [
+    { code: "snapshot_ga4_unsafe_landing_path", count: 1 },
+    { code: "snapshot_gsc_unsafe_or_duplicate_page", count: 1 },
+    { code: "snapshot_gsc_unsafe_query_page", count: 1 },
+  ]);
+  assert.equal(JSON.stringify(result).includes("example.invalid"), false);
+});

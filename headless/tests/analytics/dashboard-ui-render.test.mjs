@@ -30,6 +30,7 @@ function snapshot() {
     pages: [{ path: "/area/sakai/", current: { sessions: 0, engagedSessions: 0, engagementRate: 0, keyEvents: 0, organicSessions: 0, gsc: metric(0) }, previous: { sessions: 2, engagedSessions: 1, engagementRate: 0.5, keyEvents: 1, organicSessions: 1, gsc: metric(1) } }],
     siteHealth: health,
     contentHealth: { staleAfterDays: 180, areas: [{ area: { id: 1, slug: "umeda", name: "梅田", parentId: 0, publishedShopCount: 0 }, publishedShops: 0, verifiedPriceCount: 0, verifiedHoursCount: 0, verifiedOfficialUrlCount: 0, verifiedAccessCount: 0, approvedReviewCount: 0, staleConfirmedDateShopCount: 0, missingRate: null }] },
+    excludedRows: [],
     warnings: [{ code: "synthetic_warning", message: "not rendered" }],
   };
 }
@@ -122,4 +123,31 @@ test("every production view shows all source states with real freshness and effe
 
   assert.match(render("overview", mixedStates), /class="value">—/);
   assert.match(render("overview", base), /class="value zero">0/);
+});
+
+test("production presentation explains normalized exclusions in Japanese with counts and no raw URLs", () => {
+  const html = render("overview", {
+    ...snapshot(),
+    excludedRows: [
+      { code: "snapshot_ga4_unsafe_landing_path", count: 2 },
+      { code: "snapshot_gsc_unsafe_or_duplicate_page", count: 1 },
+      { code: "snapshot_gsc_unsafe_query_page", count: 3 },
+    ],
+    warnings: [
+      { code: "snapshot_ga4_unsafe_landing_path", message: "code=snapshot_ga4_unsafe_landing_path" },
+      { code: "snapshot_gsc_unsafe_or_duplicate_page", message: "code=snapshot_gsc_unsafe_or_duplicate_page" },
+      { code: "snapshot_gsc_unsafe_query_page", message: "code=snapshot_gsc_unsafe_query_page" },
+    ],
+  });
+  for (const label of [
+    "ページ別分析から除外したデータ",
+    "GA4の一部ランディングページ",
+    "Search Consoleの一部ページURL",
+    "Search Consoleの一部検索語とページの組み合わせ",
+    "全体のGA4集計には影響しません",
+    "Search Console全体の集計には影響しません",
+    "2件",
+    "3件",
+  ]) assert.match(html, new RegExp(label));
+  assert.doesNotMatch(html, /snapshot_ga4_unsafe_landing_path|example\.invalid/);
 });

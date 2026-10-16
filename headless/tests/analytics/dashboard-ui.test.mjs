@@ -15,13 +15,36 @@ test("dashboard parsing defaults only absent filters and rejects unknown, duplic
 
 test("dashboard formatting preserves actual zero and distinguishes unavailable values and position semantics", () => {
   assert.equal(formatMetric(0, "count"), "0");
+  assert.equal(formatMetric(12345678, "count"), "12,345,678");
   assert.equal(formatMetric(0, "percent"), "0.0%");
+  assert.equal(formatMetric(0.581, "percent"), "58.1%");
   assert.equal(formatMetric(null, "count"), "—");
   assert.equal(formatDelta(0, "count"), "+0");
+  assert.equal(formatDelta(0, "percent"), "+0.0pt");
+  assert.equal(formatDelta(0.071, "percent"), "+7.1pt");
+  assert.equal(formatDelta(-0.018, "percent"), "−1.8pt");
   assert.equal(formatDelta(-2, "position"), "2.0 改善");
   assert.equal(formatDelta(2, "position"), "2.0 悪化");
   assert.equal(sourceStateLabel("not_configured"), "未設定");
   assert.equal(sourceStateLabel("no_data"), "対象期間にデータなし");
+});
+
+test("dashboard metric, date, and table numbers use stable sans-serif tabular figures", async () => {
+  const css = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.module.css", import.meta.url), "utf8");
+  const rule = (selector) => {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return css.match(new RegExp(`(?:^|[},])[^{}]*${escaped}[^{}]*\\{([^}]*)\\}`))?.[1] ?? "";
+  };
+  for (const selector of [".value", ".comparison", ".numeric", ".muted", ".dataText"]) {
+    const declaration = rule(selector);
+    assert.match(declaration, /font-family:\s*var\(--hl-sans\)/, `${selector} は定義済みの読みやすいゴシック体を使う必要があります`);
+    assert.match(declaration, /font-variant-numeric:\s*tabular-nums/, `${selector} はtabular-numsを使う必要があります`);
+  }
+  const value = css.match(/\.value\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(value, /line-height:\s*1\.15/, "KPI数値は行高を固定してカード内の揺れを防ぐ必要があります");
+  assert.match(value, /white-space:\s*nowrap/, "KPI数値は桁の途中で折り返さない必要があります");
+  const presentation = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.ts", import.meta.url), "utf8");
+  assert.ok((presentation.match(/className:\s*styles\.dataText/g) ?? []).length >= 4, "表内の日時とHTTP値には数値書式を適用する必要があります");
 });
 
 test("production page and API share the cached server boundary while presentation has no direct source fetch", async () => {
@@ -63,14 +86,17 @@ test("SEO and Pages retain every current/previous metric, visibly mark actual ze
   assert.match(presentation, /ページ別のデータはありません/);
 });
 
-test("dashboard text tokens keep readable contrast on the dark shell and white data surfaces", async () => {
+test("dashboard text tokens keep AA contrast on the ivory shell, cards, and navigation states", async () => {
   const css = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.module.css", import.meta.url), "utf8");
-  const ruleColor = (selector) => {
+  const view = await readFile(new URL("../../app/dashboard/analytics/AnalyticsDashboardView.ts", import.meta.url), "utf8");
+  const rule = (selector) => {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const body = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
-    const color = body.match(/(?:^|;)\s*color:\s*(#[0-9a-f]{6})/i)?.[1];
-    assert.ok(color, `${selector} に明示色が必要です`);
-    return color;
+    return css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+  };
+  const property = (selector, name) => {
+    const value = rule(selector).match(new RegExp(`(?:^|;)\\s*${name}:\\s*(#[0-9a-f]{6})`, "i"))?.[1];
+    assert.ok(value, `${selector} に ${name} の明示色が必要です`);
+    return value;
   };
   const luminance = (hex) => {
     const channels = [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16) / 255);
@@ -83,10 +109,19 @@ test("dashboard text tokens keep readable contrast on the dark shell and white d
     return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
   };
 
-  for (const selector of [".page", ".eyebrow", ".hero .muted", ".filterLink", ".section h3", ".sectionLead", ".details"]) {
-    assert.ok(contrast(ruleColor(selector), "#080d11") >= 4.5, `${selector} は暗背景上で4.5:1以上が必要です`);
+  for (const selector of [".page", ".eyebrow", ".hero .muted", ".filterLink", ".filterLink:hover", ".section h3", ".sectionLead", ".details"]) {
+    const color = property(selector, "color");
+    assert.ok(contrast(color, "#f7f4ee") >= 4.5, `${color} はアイボリー背景上で4.5:1以上が必要です`);
   }
   for (const selector of [".card", ".scrollRegion"]) {
-    assert.ok(contrast(ruleColor(selector), "#ffffff") >= 4.5, `${selector} は白背景上で4.5:1以上が必要です`);
+    const color = property(selector, "color");
+    assert.ok(contrast(color, "#ffffff") >= 4.5, `${color} は白背景上で4.5:1以上が必要です`);
   }
+  for (const [selector, foreground, background] of [[".filterLink:hover", property(".filterLink:hover", "color"), "#edf3f2"], [".filterLink[aria-current=\"page\"]", property(".filterLink[aria-current=\"page\"]", "color"), "#143d4d"], [".filterLink[aria-disabled=\"true\"]", property(".filterLink[aria-disabled=\"true\"]", "color"), "#efede7"], [".filterLink[aria-current=\"page\"][aria-disabled=\"true\"]", property(".filterLink[aria-current=\"page\"][aria-disabled=\"true\"]", "color"), "#143d4d"], [".stateOk", property(".stateOk", "color"), "#dff4e8"], [".statePartial", property(".statePartial", "color"), "#fff0c6"], [".stateError", property(".stateError", "color"), "#ffe1e1"], [".unavailable", property(".unavailable", "color"), "#fff8e6"]]) {
+    assert.ok(contrast(foreground, background) >= 4.5, `${selector}: ${foreground} は ${background} 上で4.5:1以上が必要です`);
+  }
+  const focusColor = rule(".filterLink:focus-visible, .scrollRegion:focus-visible, .details summary:focus-visible").match(/outline:\s*3px solid\s*(#[0-9a-f]{6})/i)?.[1];
+  assert.ok(focusColor, "キーボードフォーカスの輪郭色を明示する必要があります");
+  assert.ok(contrast(focusColor, "#f7f4ee") >= 3, "フォーカス輪郭はアイボリー背景上で3:1以上が必要です");
+  assert.match(view, /selected\s*\?\s*h\("span",\s*\{[^}]*"aria-disabled":\s*true/, "現在の表示条件は操作不能な現在地として出力する必要があります");
 });
