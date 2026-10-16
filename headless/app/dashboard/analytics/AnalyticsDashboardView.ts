@@ -16,9 +16,12 @@ function tableCell(value: number | null, kind: MetricKind, styles: AnalyticsDash
 function deltaCell(value: number | null, kind: MetricKind, styles: AnalyticsDashboardStyles): ReactNode { return h("td", { className: cx(styles.numeric, value === 0 ? styles.zero : undefined) }, formatDelta(value, kind)); }
 
 function filterNav(days: 7 | 28, view: DashboardView, styles: AnalyticsDashboardStyles): ReactNode {
+  const item = (label: string, href: string, selected: boolean, key: string | number): ReactNode => selected
+    ? h("span", { key, className: styles.filterLink, role: "link", "aria-current": "page", "aria-disabled": true }, label)
+    : h("a", { key, className: styles.filterLink, href }, label);
   return h("nav", { className: styles.filters, "aria-label": "Analytics表示条件" },
-    h("div", { className: styles.filterGroup, "aria-label": "期間" }, ...([7, 28] as const).map((period) => h("a", { key: period, className: styles.filterLink, "aria-current": period === days ? "page" : undefined, href: analyticsDashboardHref(period, view) }, `${period}日`))),
-    h("div", { className: styles.filterGroup, "aria-label": "ビュー" }, ...dashboardViews.map((item) => h("a", { key: item, className: styles.filterLink, "aria-current": item === view ? "page" : undefined, href: analyticsDashboardHref(days, item) }, labels[item]))),
+    h("div", { className: styles.filterGroup, "aria-label": "期間" }, ...([7, 28] as const).map((period) => item(`${period}日`, analyticsDashboardHref(period, view), period === days, period))),
+    h("div", { className: styles.filterGroup, "aria-label": "ビュー" }, ...dashboardViews.map((candidate) => item(labels[candidate], analyticsDashboardHref(days, candidate), candidate === view, candidate))),
   );
 }
 
