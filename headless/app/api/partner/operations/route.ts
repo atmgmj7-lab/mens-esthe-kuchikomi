@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     return Array.isArray(rows) && rows.length === 1 ? NextResponse.json({ ok: true, benefit: rows[0] }, { headers: partnerTherapistNoStore }) : fail("特典条件を保存できませんでした。再読み込みして確認してください。", 409);
   }
   if (input.action === "redeem" && typeof input.code === "string" && /^ESK-[0-9A-F]{32}$/.test(input.code)) {
-    const state = await rpc(c, "redeem_benefit_code", { p_workspace_id: c.workspaceId, p_code_hash: createHash("sha256").update(input.code).digest("hex") });
+    const state = await rpc(c, "redeem_benefit_code", { p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_code_hash: createHash("sha256").update(input.code).digest("hex") });
     return typeof state === "string" ? NextResponse.json({ ok: true, state }, { headers: partnerTherapistNoStore }) : fail("特典コードを確認できませんでした。", 409);
   }
   return fail("入力内容を確認してください。", 400);

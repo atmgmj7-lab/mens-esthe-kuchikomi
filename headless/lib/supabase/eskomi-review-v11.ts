@@ -43,8 +43,8 @@ export const eskomiReviewV11Repository = {
     const value = await rpc("open_review_edit_session", { p_receipt_hash: receiptHash, p_session_secret_hash: sessionHash, p_context_fingerprint: fingerprint });
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
-  async editable(sessionHash: string) {
-    const value = await rpc("get_review_editable_v11", { p_session_secret_hash: sessionHash });
+  async editable(sessionHash: string, experienceId: string) {
+    const value = await rpc("get_review_editable_v11", { p_session_secret_hash: sessionHash, p_experience_id: experienceId });
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
   async edit(values: Record<string, unknown>) {
@@ -52,11 +52,11 @@ export const eskomiReviewV11Repository = {
     return value && typeof value === "object" && !Array.isArray(value) && (value as Record<string, unknown>).__rpc_error === true
       ? value as Record<string, unknown> : Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
-  async withdraw(sessionHash: string, expectedRevision: number) {
-    return rpc("withdraw_review_experience_v11", { p_session_secret_hash: sessionHash, p_expected_revision: expectedRevision });
+  async withdraw(sessionHash: string, experienceId: string, expectedRevision: number) {
+    return rpc("withdraw_review_experience_v11", { p_session_secret_hash: sessionHash, p_experience_id: experienceId, p_expected_revision: expectedRevision });
   },
-  async appeal(sessionHash: string, expectedRevision: number, reason: string) {
-    const value = await rpc("create_review_appeal_v11", { p_session_secret_hash: sessionHash, p_expected_revision: expectedRevision, p_reason: reason });
+  async appeal(sessionHash: string, experienceId: string, expectedRevision: number, reason: string) {
+    const value = await rpc("create_review_appeal_v11", { p_session_secret_hash: sessionHash, p_experience_id: experienceId, p_expected_revision: expectedRevision, p_reason: reason });
     return value && typeof value === "object" && !Array.isArray(value) && (value as Record<string, unknown>).__rpc_error === true
       ? value as Record<string, unknown> : Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
