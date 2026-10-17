@@ -16,7 +16,7 @@ create temporary table v11_race_fixture(kind text primary key, workspace_id uuid
 do $$
 declare k text; s uuid; w uuid; u uuid;
 begin
-  foreach k in array array['revoked','role','workspace'] loop
+  foreach k in array array['benefit-revoked','benefit-role','benefit-workspace','therapist-revoked','therapist-role','therapist-workspace'] loop
     insert into app.shops(slug,canonical_path,name,publication_status,published_at)
       values('v11-race-'||k,'/shops/v11-race-'||k||'/','V11 race '||k,'published',now()) returning id into s;
     insert into private.partner_workspaces(wp_shop_id,app_shop_id,shop_slug,shop_name,canonical_url,state)
@@ -29,19 +29,25 @@ end $$;
 select kind||'|'||workspace_id||'|'||user_id from v11_race_fixture order by kind;
 SQL
 mapfile -t fixtures < <("${psql_exec[@]}" -A -t < "$fixture_sql")
-if [[ "${#fixtures[@]}" != "3" ]]; then
+if [[ "${#fixtures[@]}" != "6" ]]; then
   echo "v1.1 race fixture setup failed" >&2
   exit 1
 fi
 
 race() {
-  local kind="$1" workspace="$2" user="$3" update_sql
-  case "$kind" in
+  local kind="$1" workspace="$2" user="$3" update_sql mutation_sql change
+  change="${kind##*-}"
+  case "$change" in
     revoked) update_sql="update private.partner_memberships set status='revoked',revoked_at=now() where workspace_id='$workspace' and auth_user_id='$user'" ;;
     role) update_sql="update private.partner_memberships set role='manager' where workspace_id='$workspace' and auth_user_id='$user'" ;;
     workspace) update_sql="update private.partner_workspaces set state='normal_listing' where id='$workspace'" ;;
   esac
-  ( docker exec -i "$container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database" <<SQL
+  if [[ "$kind" == benefit-* ]]; then
+    mutation_sql="select * from private.save_partner_benefit_program_v11('$workspace','$user',0,'race','other',null,null,'fixture','Fixture','Fixture',now(),null,null,false);"
+  else
+    mutation_sql="select * from api.create_partner_review_entry_link('$workspace','$user',null::uuid,'email');"
+  fi
+  ( docker exec -i "$container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database" >/dev/null <<SQL
 begin;
 $update_sql;
 select pg_sleep(1.5);
@@ -51,7 +57,7 @@ SQL
   local changer_pid=$!
   sleep 0.2
   if docker exec -i "$container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database" >"$mutation_log" 2>&1 <<SQL
-select * from private.save_partner_benefit_program_v11('$workspace','$user',0,'race','other',null,null,'fixture','Fixture','Fixture',now(),null,null,false);
+$mutation_sql
 SQL
   then
     wait "$changer_pid" || true
@@ -65,4 +71,4 @@ for row in "${fixtures[@]}"; do
   IFS='|' read -r kind workspace user <<<"$row"
   race "$kind" "$workspace" "$user"
 done
-echo "Eskomi v1.1 two-connection membership/role/workspace mutation races: PASS"
+echo "Eskomi v1.1 two-connection benefit/therapist membership-role-workspace mutation races: PASS"

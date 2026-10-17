@@ -10,11 +10,12 @@ async function rpc(c: Awaited<ReturnType<typeof partnerTherapistRequestContext>>
 }
 export async function GET(request: NextRequest) {
   const c = await partnerTherapistRequestContext(request); if (c.status !== "allowed") return fail("この店舗の運用情報を確認できません。", c.status === "unavailable" ? 503 : c.status === "unauthenticated" ? 401 : 403);
-  const [benefits, reviews] = await Promise.all([
+  const [benefits, reviews, widget] = await Promise.all([
     rpc(c, "list_partner_benefit_operations_v11", { p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId }),
     rpc(c, "list_partner_replyable_reviews_v11", { p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId }),
+    rpc(c, "get_partner_review_widget_v11", { p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId }),
   ]);
-  return Array.isArray(benefits) && Array.isArray(reviews) ? NextResponse.json({ ok: true, benefits, reviews }, { headers: partnerTherapistNoStore }) : fail("運用情報を取得できませんでした。", 503);
+  return Array.isArray(benefits) && Array.isArray(reviews) && Array.isArray(widget) && widget.length === 1 ? NextResponse.json({ ok: true, benefits, reviews, widget: widget[0] }, { headers: partnerTherapistNoStore }) : fail("運用情報を取得できませんでした。", 503);
 }
 export async function POST(request: NextRequest) {
   if (!validPartnerMutation(request)) return fail("送信元を確認してください。", 403);

@@ -11,7 +11,9 @@ async function rpc(name: string, values: Record<string, unknown>) {
     const origin = process.env.SUPABASE_URL.replace(/\/$/, ""); const parsed = new URL(origin);
     const endpoint = ["127.0.0.1", "localhost"].includes(parsed.hostname) ? `${origin}/rpc/${name}` : `${origin}/rest/v1/rpc/${name}`;
     const response = await fetch(endpoint, { method: "POST", headers: createSupabaseServerHeaders(secret, { "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }), body: JSON.stringify(values), cache: "no-store" });
-    return response.ok ? await response.json() : null;
+    if (response.ok) return await response.json();
+    const error = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
+    return { __rpc_error: true, code: typeof error?.code === "string" ? error.code : null, message: typeof error?.message === "string" ? error.message : null };
   } catch { return null; }
 }
 
@@ -29,6 +31,7 @@ export const eskomiReviewV11Repository = {
   },
   async submit(values: Record<string, unknown>) {
     const value = await rpc("submit_review_experience_v11", values);
+    if (value && typeof value === "object" && !Array.isArray(value) && (value as Record<string, unknown>).__rpc_error === true) return value as Record<string, unknown>;
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
   async benefitReceipt(experienceId: string, sessionHash: string) {
@@ -39,6 +42,23 @@ export const eskomiReviewV11Repository = {
   async editSession(receiptHash: string, sessionHash: string, fingerprint: string) {
     const value = await rpc("open_review_edit_session", { p_receipt_hash: receiptHash, p_session_secret_hash: sessionHash, p_context_fingerprint: fingerprint });
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
+  },
+  async editable(sessionHash: string) {
+    const value = await rpc("get_review_editable_v11", { p_session_secret_hash: sessionHash });
+    return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
+  },
+  async edit(values: Record<string, unknown>) {
+    const value = await rpc("edit_review_experience_v11", values);
+    return value && typeof value === "object" && !Array.isArray(value) && (value as Record<string, unknown>).__rpc_error === true
+      ? value as Record<string, unknown> : Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
+  },
+  async withdraw(sessionHash: string, expectedRevision: number) {
+    return rpc("withdraw_review_experience_v11", { p_session_secret_hash: sessionHash, p_expected_revision: expectedRevision });
+  },
+  async appeal(sessionHash: string, expectedRevision: number, reason: string) {
+    const value = await rpc("create_review_appeal_v11", { p_session_secret_hash: sessionHash, p_expected_revision: expectedRevision, p_reason: reason });
+    return value && typeof value === "object" && !Array.isArray(value) && (value as Record<string, unknown>).__rpc_error === true
+      ? value as Record<string, unknown> : Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
   async recordIpBurst(ipEntryHash: string, idempotencyHash: string) {
     return rpc("record_review_ip_burst_signal", { p_ip_entry_hash: ipEntryHash, p_idempotency_hash: idempotencyHash });

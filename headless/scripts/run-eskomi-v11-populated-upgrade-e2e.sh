@@ -26,4 +26,5 @@ for migration in "$repo_root"/supabase/migrations/*.sql; do
   docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$migration"
 done
 docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/verify_eskomi_populated_upgrade.sql"
+docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/verify_eskomi_v11_rpc_contract.sql"
 echo "Eskomi populated bf46aa1-to-current upgrade: PASS"

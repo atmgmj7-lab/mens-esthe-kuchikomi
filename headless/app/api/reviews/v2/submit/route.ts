@@ -37,6 +37,10 @@ export async function POST(request: NextRequest) {
   const hmac = (value: string) => createHmac("sha256", secret).update(value).digest("hex"); const receipt = randomBytes(32).toString("base64url"); const benefitCode = `ESK-${randomBytes(16).toString("hex").toUpperCase()}`; const replay = encryptReplay(keyMaterial, receipt, benefitCode);
   const idempotencyHash = createHash("sha256").update(key).digest("hex"); const sessionHash = hmac(`guest|${session}`); const ipEntryHash = hmac(`ip-entry|${request.headers.get("x-vercel-forwarded-for") ?? "unavailable"}|${input.entryHandle}`);
   const result = await eskomiReviewV11Repository.submit({ p_entry_handle: input.entryHandle, p_session_secret_hash: sessionHash, p_idempotency_hash: idempotencyHash, p_request_fingerprint: createHash("sha256").update(JSON.stringify(input)).digest("hex"), p_receipt_hash: hmac(`receipt|${receipt}`), p_ip_shop_hash: sessionHash, p_shop_rating: input.shopRating, p_common_comment: input.commonComment, p_guest_display_name: input.displayName || null, p_therapist_rating: input.therapistRating, p_replay_ciphertext: replay.ciphertext, p_replay_nonce: replay.nonce, p_replay_key_version: "test-v1", p_benefit_code_hash: createHash("sha256").update(benefitCode).digest("hex") });
+  if (result && result.__rpc_error === true) {
+    const code = result.code === "P0002" || result.code === "23505" ? "TARGET_CHANGED" : result.code === "40001" ? "STALE_SUBMISSION" : "SUBMISSION_UNAVAILABLE";
+    return NextResponse.json({ ok: false, code }, { status: code === "SUBMISSION_UNAVAILABLE" ? 503 : 409, headers: { "Cache-Control": "no-store" } });
+  }
   if (!result || typeof result.experience_id !== "string") return NextResponse.json({ ok: false, code: "SUBMISSION_UNAVAILABLE" }, { status: 503 });
   void eskomiReviewV11Repository.recordIpBurst(ipEntryHash, idempotencyHash);
   let recovered: { receipt: string; benefitCode: string } | null = null;

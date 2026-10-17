@@ -95,6 +95,9 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
           setMessage("担当者の対象状態が変わりました。店舗のみの口コミとして内容を確認し直してください。");
           return;
         }
+        if (payload.code === "STALE_SUBMISSION") {
+          setStatus("input"); setDraft(null); setMessage("投稿条件が更新されました。内容を確認し直してください。"); return;
+        }
         throw new Error(payload.message || "送信できませんでした。");
       }
       const benefit = payload.benefit && typeof payload.benefit.status === "string" && typeof payload.benefit.terms === "object" && payload.benefit.terms !== null
@@ -113,7 +116,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     const title = typeof terms?.title === "string" ? terms.title : "特典";
     const conditions = typeof terms?.terms_text === "string" ? terms.terms_text : null;
     const expiry = receipt?.benefit?.expiresAt ? new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(receipt.benefit.expiresAt)) : null;
-    return <div className="hl-contact-success" role="status"><p className="hl-contact-success-title">受付完了</p><p>{message}</p>{receipt?.receipt ? <section><h2>編集控え</h2><p><code>{receipt.receipt}</code></p><PartnerCopyButton label="編集控え" value={receipt.receipt} /></section> : null}{receipt?.benefitCode ? <section><h2>発行された特典</h2><p><strong>{title}</strong></p><p><code>{receipt.benefitCode}</code></p><PartnerCopyButton label="特典コード" value={receipt.benefitCode} />{conditions ? <p>利用条件：{conditions}</p> : null}{expiry ? <p>利用期限：{expiry}</p> : null}<p>特典は有効な受付時の条件で発行されています。公開・取り下げや評価の高低で失効しません。</p></section> : null}</div>;
+    return <div className="hl-contact-success" role="status"><p className="hl-contact-success-title">受付完了</p><p>{message}</p>{receipt?.receipt ? <section><h2>編集控え</h2><p><code>{receipt.receipt}</code></p><PartnerCopyButton label="編集控え" value={receipt.receipt} /><p><a href="/reviews/edit/">口コミを編集・取り下げる</a></p></section> : null}{receipt?.benefitCode ? <section><h2>発行された特典</h2><p><strong>{title}</strong></p><p><code>{receipt.benefitCode}</code></p><PartnerCopyButton label="特典コード" value={receipt.benefitCode} />{conditions ? <p>利用条件：{conditions}</p> : null}{expiry ? <p>利用期限：{expiry}</p> : null}<p>特典は有効な受付時の条件で発行されています。公開・取り下げや評価の高低で失効しません。</p></section> : null}</div>;
   }
   if (draft) return <section className="hl-contact-section" aria-labelledby="review-entry-confirm-heading">
     <h2 id="review-entry-confirm-heading">入力内容の確認</h2>
