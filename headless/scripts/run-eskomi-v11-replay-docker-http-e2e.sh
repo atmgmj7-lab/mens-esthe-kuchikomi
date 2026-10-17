@@ -103,10 +103,24 @@ docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening'
 
 docker run -d --rm --name "$next_container" --network "$network_name" --network-alias next \
   --mount "type=bind,src=$headless_root,dst=/app" -w /app \
-  -e SUPABASE_URL="http://postgrest:3000" -e SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" -e ESKOMI_REVIEW_REPLAY_KEY="$replay_key" \
+  -e SUPABASE_URL="http://postgrest:3000" -e SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" -e ESKOMI_E2E_RAW_POSTGREST=1 -e ESKOMI_REVIEW_REPLAY_KEY="$replay_key" \
   node:24-bookworm-slim sh -c 'npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
 for _ in $(seq 1 90); do docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server' && break; sleep 1; done
 docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server'
+
+docker run --rm --network "$network_name" \
+  -e ESKOMI_E2E_ENTRY_HANDLE="$entry_handle" \
+  node:24-bookworm-slim node -e '
+    const body={entryHandle:process.env.ESKOMI_E2E_ENTRY_HANDLE,therapistAssignmentId:null};
+    fetch("http://next:57000/api/reviews/v2/context/",{method:"POST",headers:{"Content-Type":"application/json","X-ESKOMI-CSRF":"review-v2","Origin":"http://next:57000"},body:JSON.stringify(body)})
+      .then(async r=>{const json=await r.json();if(!r.ok||!json?.ok||typeof json.context?.entry_handle!=="string"||typeof json.replayCredential!=="string")throw new Error(`context status=${r.status} body=${JSON.stringify(json)}`);console.log("Next-to-PostgREST review context HTTP: PASS")})
+      .catch(error=>{console.error(error);process.exit(1)});
+  '
+
+if [[ "${ESKOMI_E2E_API_ONLY:-0}" == "1" ]]; then
+  echo "Eskomi v1.1 Docker-network Next-to-PostgREST API acceptance: PASS"
+  exit 0
+fi
 
 docker run -d --rm --name "$browser_container" --network "$network_name" --network-alias browser \
   --entrypoint /usr/bin/google-chrome browserless/chrome:latest \

@@ -4,6 +4,13 @@
 
 ## 試験根拠と環境制約
 
+### 2026-10-17 隔離 QA 実測
+
+- `c734af1` で fresh PostgreSQL 17 acceptance、mutation race、typecheck、lint、JST境界/unit/static contract は PASS。追加 migration `20261017174000_eskomi_access_context_abuse_and_report_integrity.sql` を含む。
+- host port 経路は `127.0.0.1:57001 connection refused` のまま。Docker host network、socket mount、OS/proxy設定変更は行わない。
+- internal Docker network では Next→raw PostgREST の review-context 実 HTTP が 200（entry context と replay credential を返却）まで到達した。raw PostgREST の internal DNS 名で `/rest/v1` を誤用していた runner 実装は `ESKOMI_E2E_RAW_POSTGREST=1` により `/rpc` へ修正した。
+- Chromium は同 network の CDP browser で試行したが、browser container が返す CDP address の環境 proxy 到達不能（`ENETUNREACH 172.31.0.189:8080`）および proxy connection failure で停止。ネットワーク制限の回避は行わない。review submit/replay、管理承認、widget、listing/coupon/access-report の browser E2E は未 PASS。
+
 実行済みは `npm --prefix headless run typecheck`、`npm --prefix headless run lint`、`node headless/scripts/check-partner-access-report-contract.mjs`、`ESKOMI_SQL_ONLY=1 bash headless/scripts/run-eskomi-v11-replay-e2e.sh`（fresh PG17/mutation race）、`bash headless/scripts/run-eskomi-v11-populated-upgrade-e2e.sh`（`bf46aa1` からの additive upgrade）である。`npm --prefix headless run build` は compile/typecheck まで到達するが、`.env.local` を置かない隔離環境では WordPress reader が connection refused となり既存 fallback を使う。これは公開 HTTP PASS ではない。
 
 - Docker の PG17/PostgREST16.4 は隔離 network で起動できるが、host `127.0.0.1:57001` は curl connection refused となる。よって replay E2E の Next/PostgREST HTTP 契約へ進めない。

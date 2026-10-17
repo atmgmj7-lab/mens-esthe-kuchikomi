@@ -109,8 +109,8 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T02 | canonical provision、通常登録→審査一覧→承認、session、growth/widget、公開 projection | 実行済 PASS | 実HTTP/Chromium は未試験 |
 | T03 | therapist selection と公開 snapshot | 実行済 PASS | 実写真/同名データはユーザー前提待ち |
 | T04 | ownership/expiry/membership RPC reject | 実行済 PASS | 実 Auth 失効イベントは未試験 |
-| T05 | review entry v2 acceptance | 実行済 PASS | 実入力画面は未試験 |
-| T06 | draft/confirmation contract | 実行済 PASS | 長文ブラウザ操作は未試験 |
+| T05 | review entry v2 acceptance | 実行済 PASS / 隔離 HTTP context 200 | Next→PostgREST の context 実HTTPは確認済み。実入力・送信 Chromium はCDP/proxy環境制約で未試験。 |
+| T06 | draft/confirmation contract | 実行済 PASS | 長文ブラウザ操作・送信/replay Chromium はCDP/proxy環境制約で未試験。 |
 | T07 | idempotency/race SQL | 実行済 PASS | 実ネットワーク中断は未試験 |
 | T08 | invite/permanent-link SQL | 実行済 PASS | 実 QR scan は未試験 |
 | T09 | replay/recovery contract | 実行済 PASS | browser abort は未試験 |

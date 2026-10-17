@@ -9,7 +9,10 @@ async function rpc(name: string, values: Record<string, unknown>) {
   if (!secret || !process.env.SUPABASE_URL) return null;
   try {
     const origin = process.env.SUPABASE_URL.replace(/\/$/, ""); const parsed = new URL(origin);
-    const endpoint = ["127.0.0.1", "localhost"].includes(parsed.hostname) ? `${origin}/rpc/${name}` : `${origin}/rest/v1/rpc/${name}`;
+    // Isolated Docker acceptance uses raw PostgREST on an internal DNS name;
+    // production Supabase remains on its normal /rest/v1 endpoint.
+    const rawPostgrest = process.env.ESKOMI_E2E_RAW_POSTGREST === "1" || ["127.0.0.1", "localhost"].includes(parsed.hostname);
+    const endpoint = rawPostgrest ? `${origin}/rpc/${name}` : `${origin}/rest/v1/rpc/${name}`;
     const response = await fetch(endpoint, { method: "POST", headers: createSupabaseServerHeaders(secret, { "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }), body: JSON.stringify(values), cache: "no-store" });
     if (response.ok) return await response.json();
     const error = await response.json().catch(() => null) as { code?: unknown; message?: unknown } | null;
