@@ -27,4 +27,7 @@ export const eskomiReviewV11Repository = {
     const value = await rpc("open_review_edit_session", { p_receipt_hash: receiptHash, p_session_secret_hash: sessionHash, p_context_fingerprint: fingerprint });
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
+  async recordIpBurst(ipEntryHash: string, idempotencyHash: string) {
+    return rpc("record_review_ip_burst_signal", { p_ip_entry_hash: ipEntryHash, p_idempotency_hash: idempotencyHash });
+  },
 };
