@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { eskomiReviewV11Repository } from "@/lib/supabase/eskomi-review-v11";
 import { resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
@@ -13,6 +13,18 @@ function parsed(value: unknown): Input | null {
   if (!UUID.test(entryHandle) || displayName.length > 30 || commonComment.length > 400 || (shopRating !== null && (shopRating < 1 || shopRating > 5)) || (therapistRating !== null && (therapistRating < 1 || therapistRating > 5)) || (shopRating === null && therapistRating === null && !commonComment)) return null;
   return { entryHandle, displayName, shopRating, commonComment, therapistRating };
 }
+function replayKey(): Buffer | null {
+  const value = process.env.ESKOMI_REVIEW_REPLAY_KEY;
+  if (!value) return null;
+  try { const key = Buffer.from(value, "base64"); return key.length === 32 ? key : null; } catch { return null; }
+}
+function encryptReceipt(key: Buffer, receipt: string) {
+  const nonce = randomBytes(12); const cipher = createCipheriv("aes-256-gcm", key, nonce); const ciphertext = Buffer.concat([cipher.update(JSON.stringify({ receipt }), "utf8"), cipher.final()]);
+  return { ciphertext: Buffer.concat([ciphertext, cipher.getAuthTag()]).toString("base64url"), nonce: nonce.toString("base64url") };
+}
+function decryptReceipt(key: Buffer, ciphertext: string, nonce: string): string | null {
+  try { const bytes = Buffer.from(ciphertext, "base64url"); const tag = bytes.subarray(-16); const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(nonce, "base64url")); decipher.setAuthTag(tag); const value = JSON.parse(Buffer.concat([decipher.update(bytes.subarray(0, -16)), decipher.final()]).toString("utf8")) as { receipt?: unknown }; return typeof value.receipt === "string" ? value.receipt : null; } catch { return null; }
+}
 export async function POST(request: NextRequest) {
   if (request.headers.get("origin") !== request.nextUrl.origin || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
   const secret = resolveSupabaseServerSecret()?.value; const key = request.headers.get("idempotency-key"); const session = request.cookies.get("eskomi_v11_guest")?.value;
@@ -24,5 +36,8 @@ export async function POST(request: NextRequest) {
   const result = await eskomiReviewV11Repository.submit({ p_entry_handle: input.entryHandle, p_session_secret_hash: sessionHash, p_idempotency_hash: idempotencyHash, p_request_fingerprint: createHash("sha256").update(JSON.stringify(input)).digest("hex"), p_receipt_hash: hmac(`receipt|${receipt}`), p_ip_shop_hash: sessionHash, p_shop_rating: input.shopRating, p_common_comment: input.commonComment, p_guest_display_name: input.displayName || null, p_therapist_rating: input.therapistRating });
   if (!result || typeof result.experience_id !== "string") return NextResponse.json({ ok: false, code: "SUBMISSION_UNAVAILABLE" }, { status: 503 });
   void eskomiReviewV11Repository.recordIpBurst(ipEntryHash, idempotencyHash);
-  return NextResponse.json({ ok: true, experienceId: result.experience_id, replayed: result.replayed === true, receipt: result.replayed === true ? null : receipt, receiptExpiresAt: result.receipt_expires_at }, { status: result.replayed === true ? 200 : 201, headers: { "Cache-Control": "no-store" } });
+  const keyMaterial = replayKey(); let recoveredReceipt: string | null = null;
+  if (result.replayed === true && keyMaterial) { const replay = await eskomiReviewV11Repository.fetchReplay(sessionHash, idempotencyHash); if (typeof replay?.ciphertext === "string" && typeof replay.nonce === "string" && replay.key_version === "test-v1") recoveredReceipt = decryptReceipt(keyMaterial, replay.ciphertext, replay.nonce); }
+  if (result.replayed !== true && keyMaterial) { const replay = encryptReceipt(keyMaterial, receipt); await eskomiReviewV11Repository.storeReplay(sessionHash, idempotencyHash, replay.ciphertext, replay.nonce); }
+  return NextResponse.json({ ok: true, experienceId: result.experience_id, replayed: result.replayed === true, receipt: result.replayed === true ? recoveredReceipt : receipt, receiptExpiresAt: result.receipt_expires_at }, { status: result.replayed === true ? 200 : 201, headers: { "Cache-Control": "no-store" } });
 }
