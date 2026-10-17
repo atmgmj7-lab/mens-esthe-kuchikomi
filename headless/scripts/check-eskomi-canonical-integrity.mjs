@@ -11,6 +11,14 @@ const verification = readFileSync(
   join(root, "..", "supabase", "tests", "verify_eskomi_canonical_integrity_fixes.sql"),
   "utf8",
 );
+const benefitIndependence = readFileSync(
+  join(root, "..", "supabase", "migrations", "20261017123000_eskomi_benefit_publication_independence.sql"),
+  "utf8",
+);
+const acceptanceSafety = readFileSync(
+  join(root, "..", "supabase", "migrations", "20261017124000_eskomi_review_entry_acceptance_safety.sql"),
+  "utf8",
+);
 
 assert.doesNotMatch(
   migration.match(/create or replace function api\.list_unlisted_managed_shop_legacy_identities\(\)[\s\S]*?\$\$;/)?.[0] ?? "",
@@ -36,6 +44,12 @@ assert.match(migration, /create or replace function api\.list_public_review_publ
   "public reads must omit withdrawn publications");
 assert.match(verification, /unpublished deleted tombstone was omitted/, "local regression must exercise tombstone suppression");
 assert.match(verification, /benefit program accepted a shop outside its workspace/, "local regression must exercise workspace/shop ownership");
-assert.match(verification, /approved withdrawal did not atomically remove public projection/, "local regression must exercise withdrawal projection removal");
+assert.match(benefitIndependence, /Deliberately do not mutate private\.benefit_codes here/, "withdrawal must not cancel an issued benefit");
+assert.doesNotMatch(benefitIndependence, /update private\.benefit_codes[\s\S]*state = 'void'/, "withdrawal cannot void issued benefits");
+assert.match(verification, /retaining the neutral benefit/, "local regression must preserve a neutral benefit after withdrawal");
+assert.match(acceptanceSafety, /publication_state = 'deleted'[\s\S]*managed_shop_archive_events/, "draft imports must be distinguished from archive tombstones");
+assert.match(acceptanceSafety, /shop\.publication_status = 'published'/, "entry, submission and public reads must require a published shop");
+assert.match(acceptanceSafety, /submit_review_experience_v2/, "accepted submission requires a separate v2 transaction");
+assert.match(acceptanceSafety, /eligibility_rule = 'accepted_submission'/, "benefits must be issued from accepted submission rather than publication");
 
 console.log("Eskomi canonical integrity contract: PASS");

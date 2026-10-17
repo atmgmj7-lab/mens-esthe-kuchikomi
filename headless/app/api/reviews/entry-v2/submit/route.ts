@@ -16,14 +16,13 @@ const CSRF_VALUE = "review-entry-v2";
 type EntrySubmission = {
   entryHandle: string;
   displayName: string;
-  shopRating: number;
-  shopBody: string;
+  shopRating: number | null;
+  commonComment: string;
   therapistRating: number | null;
-  therapistBody: string | null;
 };
 
-function response(ok: boolean, message: string, status: number) {
-  return NextResponse.json({ ok, message }, { status, headers: { "Cache-Control": "no-store" } });
+function response(ok: boolean, message: string, status: number, extra: Record<string, unknown> = {}) {
+  return NextResponse.json({ ok, message, ...extra }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
 function validOrigin(request: NextRequest): boolean {
@@ -36,34 +35,28 @@ function parseSubmission(value: unknown): EntrySubmission | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
   if (Object.keys(input).some((key) => ![
-    "entryHandle", "displayName", "shopRating", "shopBody", "therapistRating", "therapistBody",
+    "entryHandle", "displayName", "shopRating", "commonComment", "therapistRating",
   ].includes(key))) return null;
   const entryHandle = typeof input.entryHandle === "string" ? input.entryHandle.trim() : "";
   const displayName = typeof input.displayName === "string" ? input.displayName.trim() : "";
-  const shopBody = typeof input.shopBody === "string" ? input.shopBody.trim() : "";
+  const commonComment = typeof input.commonComment === "string" ? input.commonComment.trim() : "";
   const therapistRating = input.therapistRating === null
     ? null
     : typeof input.therapistRating === "number" && Number.isInteger(input.therapistRating)
       ? input.therapistRating
       : undefined;
-  const therapistBody = input.therapistBody === null
-    ? null
-    : typeof input.therapistBody === "string"
-      ? input.therapistBody.trim()
-      : undefined;
-  if (!UUID_RE.test(entryHandle) || displayName.length < 1 || displayName.length > 80
-    || !Number.isInteger(input.shopRating) || (input.shopRating as number) < 1 || (input.shopRating as number) > 5
-    || shopBody.length < 1 || shopBody.length > 4000) return null;
-  if (therapistRating === undefined || therapistBody === undefined || (therapistRating === null) !== (therapistBody === null)) return null;
-  if (therapistRating !== null && (therapistRating < 1 || therapistRating > 5
-    || therapistBody === null || therapistBody.length < 1 || therapistBody.length > 4000)) return null;
+  const shopRating = input.shopRating === null ? null : typeof input.shopRating === "number" && Number.isInteger(input.shopRating) ? input.shopRating : undefined;
+  if (!UUID_RE.test(entryHandle) || displayName.length > 30 || commonComment.length > 400
+    || shopRating === undefined || therapistRating === undefined
+    || (shopRating !== null && (shopRating < 1 || shopRating > 5))
+    || (therapistRating !== null && (therapistRating < 1 || therapistRating > 5))
+    || (shopRating === null && therapistRating === null && !commonComment)) return null;
   return {
     entryHandle,
     displayName,
-    shopRating: input.shopRating as number,
-    shopBody,
+    shopRating: shopRating as number | null,
+    commonComment,
     therapistRating: therapistRating as number | null,
-    therapistBody,
   };
 }
 
@@ -93,12 +86,14 @@ export async function POST(request: NextRequest) {
     deviceFingerprintHash: null,
     ipPrefixHash: hmac(`review-entry-v2|ip|${clientIp}|${input.entryHandle}`),
     shopRating: input.shopRating,
-    shopBody: input.shopBody,
+    commonComment: input.commonComment,
     therapistRating: input.therapistRating,
-    therapistBody: input.therapistBody,
   });
   if (!result) return response(false, "現在口コミを受け付けできません。時間をおいて再度お試しください。", 503);
   return response(true, result.replayed
     ? "受付済みの口コミです。運営確認後に掲載します。"
-    : "口コミを受け付けました。運営確認後に掲載します。", 200);
+    : "口コミを受け付けました。運営確認後に掲載します。", result.replayed ? 200 : 201, {
+      benefitCode: result.benefitCode,
+      benefitStatus: result.benefitStatus,
+    });
 }

@@ -6,9 +6,18 @@ import {
 } from "@/lib/partner/provisioning-service";
 import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
 import { getShopById } from "@/lib/wp/shops";
+import { eskomiReviewV2Repository } from "@/lib/supabase/eskomi-review-v2";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
+  const entry = await eskomiReviewV2Repository.resolveEntry(token);
+  if (entry) {
+    const target = new URL(`/reviews/entry/${encodeURIComponent(entry.entryHandle)}/`, request.nextUrl.origin);
+    const response = NextResponse.redirect(target, 307);
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  }
   const campaign = await openPartnerReviewCampaign(token, partnerReviewGrowthRepository);
   const shop = campaign ? await getShopById(campaign.id) : null;
   const recorded = shop?.publicationStatus === "publish"

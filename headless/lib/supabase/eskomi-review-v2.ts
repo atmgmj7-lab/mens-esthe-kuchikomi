@@ -20,17 +20,16 @@ export type EskomiReviewSubmission = Readonly<{
   editReceiptHash: string;
   deviceFingerprintHash: string | null;
   ipPrefixHash: string | null;
-  shopRating: number;
-  shopBody: string;
+  shopRating: number | null;
+  commonComment: string;
   therapistRating: number | null;
-  therapistBody: string | null;
 }>;
 
 export type EskomiPublicReview = Readonly<{
   publicHandle: string;
-  rating: number;
+  rating: number | null;
   body: string;
-  displayName: string;
+  displayName: string | null;
   therapistDisplayName: string | null;
   publishedAt: string;
 }>;
@@ -78,26 +77,25 @@ function validSubmission(value: EskomiReviewSubmission): boolean {
     && SHA256_RE.test(value.editReceiptHash)
     && (value.deviceFingerprintHash === null || SHA256_RE.test(value.deviceFingerprintHash))
     && (value.ipPrefixHash === null || SHA256_RE.test(value.ipPrefixHash))
-    && value.displayName.trim().length >= 1 && value.displayName.trim().length <= 80
-    && Number.isInteger(value.shopRating) && value.shopRating >= 1 && value.shopRating <= 5
-    && value.shopBody.trim().length >= 1 && value.shopBody.trim().length <= 4000
-    && ((value.therapistRating === null && value.therapistBody === null)
-      || (typeof value.therapistRating === "number" && Number.isInteger(value.therapistRating) && value.therapistRating >= 1 && value.therapistRating <= 5
-        && typeof value.therapistBody === "string" && value.therapistBody.trim().length >= 1 && value.therapistBody.trim().length <= 4000));
+    && value.displayName.trim().length <= 30
+    && (value.shopRating === null || (Number.isInteger(value.shopRating) && value.shopRating >= 1 && value.shopRating <= 5))
+    && value.commonComment.trim().length <= 400
+    && (value.therapistRating === null || (Number.isInteger(value.therapistRating) && value.therapistRating >= 1 && value.therapistRating <= 5))
+    && (value.shopRating !== null || value.therapistRating !== null || value.commonComment.trim().length > 0);
 }
 
 function parsePublicReview(value: unknown): EskomiPublicReview | null {
   if (!record(value) || !UUID_RE.test(String(value.public_handle ?? ""))
-    || !Number.isInteger(value.rating) || (value.rating as number) < 1 || (value.rating as number) > 5
-    || typeof value.body !== "string" || !value.body.trim()
-    || typeof value.display_name !== "string" || !value.display_name.trim()
+    || !(value.rating === null || (Number.isInteger(value.rating) && (value.rating as number) >= 1 && (value.rating as number) <= 5))
+    || typeof value.body !== "string" || value.body.length > 400
+    || !(typeof value.display_name === "string" || value.display_name === null)
     || !(typeof value.therapist_display_name === "string" || value.therapist_display_name === null)
     || typeof value.published_at !== "string" || Number.isNaN(Date.parse(value.published_at))) return null;
   return {
     publicHandle: value.public_handle as string,
-    rating: value.rating as number,
+    rating: value.rating as number | null,
     body: value.body,
-    displayName: value.display_name,
+    displayName: value.display_name as string | null,
     therapistDisplayName: value.therapist_display_name as string | null,
     publishedAt: value.published_at,
   };
@@ -134,9 +132,9 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
       const value = await rpc("resolve_review_entry_link", { p_entry_handle: entryHandle });
       return Array.isArray(value) && value.length === 1 ? parseEntry(value[0]) : null;
     },
-    async submit(value: EskomiReviewSubmission): Promise<{ experienceId: string; replayed: boolean } | null> {
+    async submit(value: EskomiReviewSubmission): Promise<{ experienceId: string; replayed: boolean; benefitCode: string | null; benefitStatus: string } | null> {
       if (!validSubmission(value)) return null;
-      const result = await rpc("submit_review_experience", {
+      const result = await rpc("submit_review_experience_v2", {
         p_entry_handle: value.entryHandle,
         p_idempotency_hash: value.idempotencyHash,
         p_request_fingerprint: value.requestFingerprint,
@@ -145,13 +143,14 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
         p_device_fingerprint_hash: value.deviceFingerprintHash,
         p_ip_prefix_hash: value.ipPrefixHash,
         p_shop_rating: value.shopRating,
-        p_shop_body: value.shopBody.trim(),
+        p_common_comment: value.commonComment.trim(),
         p_therapist_rating: value.therapistRating,
-        p_therapist_body: value.therapistBody?.trim() ?? null,
       });
       if (!Array.isArray(result) || result.length !== 1 || !record(result[0])
-        || !UUID_RE.test(String(result[0].experience_id ?? "")) || typeof result[0].replayed !== "boolean") return null;
-      return { experienceId: result[0].experience_id as string, replayed: result[0].replayed };
+        || !UUID_RE.test(String(result[0].experience_id ?? "")) || typeof result[0].replayed !== "boolean"
+        || !(typeof result[0].benefit_code === "string" || result[0].benefit_code === null)
+        || typeof result[0].benefit_status !== "string") return null;
+      return { experienceId: result[0].experience_id as string, replayed: result[0].replayed, benefitCode: result[0].benefit_code as string | null, benefitStatus: result[0].benefit_status as string };
     },
     async listPublications(shopSlug: string): Promise<readonly EskomiPublicReview[] | null> {
       if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(shopSlug)) return null;

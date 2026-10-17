@@ -90,9 +90,9 @@ begin
   end if;
   if private.moderate_review_experience(v_experience, 'withdrawn', 'local operator', 'guest withdrawal') <> 'withdrawn'
     or exists (select 1 from app.review_publications where shop_id = v_shop and archived_at is null)
-    or not exists (select 1 from private.benefit_codes where experience_id = v_experience and state = 'void')
+    or not exists (select 1 from private.benefit_codes where experience_id = v_experience and state = 'issued')
     or not exists (select 1 from private.review_outbox where aggregate_id = v_experience and event_type = 'review_withdrawn') then
-    raise exception 'approved withdrawal did not atomically remove public projection';
+    raise exception 'withdrawal did not remove only the public projection while retaining the neutral benefit';
   end if;
 end;
 $$;
