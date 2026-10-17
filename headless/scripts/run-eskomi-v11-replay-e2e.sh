@@ -51,10 +51,13 @@ for acceptance in \
   verify_eskomi_review_entry_therapist_selection.sql \
   verify_eskomi_partner_therapist_tools.sql \
   verify_eskomi_v11_acceptance_hardening.sql \
+  verify_eskomi_v11_operations.sql \
   verify_eskomi_v11_private_controls.sql \
   verify_eskomi_v11_vertical_slice.sql; do
   docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/$acceptance"
 done
+ESKOMI_PG17_CONTAINER="$database_container" ESKOMI_PG17_DATABASE="$database_name" \
+  "$headless_root/scripts/verify-eskomi-v11-mutation-races.sh"
 
 if [[ "${ESKOMI_SQL_ONLY:-0}" == "1" ]]; then
   echo "Eskomi v1.1 fresh PostgreSQL 17 acceptance: PASS"

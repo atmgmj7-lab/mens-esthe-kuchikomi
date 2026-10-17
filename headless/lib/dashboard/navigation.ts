@@ -23,6 +23,7 @@ export const DASHBOARD_NAV_GROUPS = [
         label: "掲載申請",
         description: "新規掲載・情報修正の確認と承認",
       },
+      { href: "/dashboard/reviews/", label: "口コミ審査", description: "v1.1の承認・公開・取り下げ" },
     ],
   },
   {

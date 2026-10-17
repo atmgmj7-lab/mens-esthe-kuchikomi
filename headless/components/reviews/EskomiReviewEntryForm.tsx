@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
 
 type Draft = Readonly<{
   displayName: string;
@@ -29,6 +30,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
   const [context, setContext] = useState<{ shopName: string; therapistName: string | null }>({ shopName, therapistName });
   const [therapists, setTherapists] = useState<Array<{ id: string; display_name: string }>>([]);
   const [selectedTherapistId, setSelectedTherapistId] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<{ receipt: string | null; benefitCode: string | null; benefit: { status: string; expiresAt: string | null; terms: Record<string, unknown> } | null } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -84,7 +86,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
         },
         body: JSON.stringify({ entryHandle, ...draft }),
       });
-      const payload = await response.json() as { ok?: boolean; code?: string; message?: string; receipt?: string | null; benefitCode?: string | null; benefitStatus?: string };
+      const payload = await response.json() as { ok?: boolean; code?: string; message?: string; receipt?: string | null; benefitCode?: string | null; benefitStatus?: string; benefit?: { status?: unknown; expiresAt?: unknown; terms?: unknown } | null };
       if (!response.ok || !payload.ok) {
         if (payload.code === "TARGET_CHANGED") {
           setStatus("input");
@@ -95,7 +97,10 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
         }
         throw new Error(payload.message || "送信できませんでした。");
       }
-      setMessage(payload.receipt ? `口コミを受け付けました。編集控え：${payload.receipt}${payload.benefitCode ? `　特典コード：${payload.benefitCode}` : ""}` : "口コミを受け付けました。運営確認後に掲載します。");
+      const benefit = payload.benefit && typeof payload.benefit.status === "string" && typeof payload.benefit.terms === "object" && payload.benefit.terms !== null
+        ? { status: payload.benefit.status, expiresAt: typeof payload.benefit.expiresAt === "string" ? payload.benefit.expiresAt : null, terms: payload.benefit.terms as Record<string, unknown> } : null;
+      setReceipt({ receipt: payload.receipt ?? null, benefitCode: payload.benefitCode ?? null, benefit });
+      setMessage(payload.receipt ? "口コミを受け付けました。運営確認後に掲載します。" : "口コミを受け付けました。運営確認後に掲載します。");
       setStatus("success");
     } catch (error) {
       setStatus("input");
@@ -103,7 +108,13 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     }
   }
 
-  if (status === "success") return <div className="hl-contact-success" role="status"><p className="hl-contact-success-title">受付完了</p><p>{message}</p></div>;
+  if (status === "success") {
+    const terms = receipt?.benefit?.terms;
+    const title = typeof terms?.title === "string" ? terms.title : "特典";
+    const conditions = typeof terms?.terms_text === "string" ? terms.terms_text : null;
+    const expiry = receipt?.benefit?.expiresAt ? new Intl.DateTimeFormat("ja-JP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(receipt.benefit.expiresAt)) : null;
+    return <div className="hl-contact-success" role="status"><p className="hl-contact-success-title">受付完了</p><p>{message}</p>{receipt?.receipt ? <section><h2>編集控え</h2><p><code>{receipt.receipt}</code></p><PartnerCopyButton label="編集控え" value={receipt.receipt} /></section> : null}{receipt?.benefitCode ? <section><h2>発行された特典</h2><p><strong>{title}</strong></p><p><code>{receipt.benefitCode}</code></p><PartnerCopyButton label="特典コード" value={receipt.benefitCode} />{conditions ? <p>利用条件：{conditions}</p> : null}{expiry ? <p>利用期限：{expiry}</p> : null}<p>特典は有効な受付時の条件で発行されています。公開・取り下げや評価の高低で失効しません。</p></section> : null}</div>;
+  }
   if (draft) return <section className="hl-contact-section" aria-labelledby="review-entry-confirm-heading">
     <h2 id="review-entry-confirm-heading">入力内容の確認</h2>
     <p>投稿先：<strong>{context.shopName}</strong></p>

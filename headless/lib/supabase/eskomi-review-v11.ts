@@ -31,6 +31,11 @@ export const eskomiReviewV11Repository = {
     const value = await rpc("submit_review_experience_v11", values);
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
   },
+  async benefitReceipt(experienceId: string, sessionHash: string) {
+    if (!UUID.test(experienceId)) return null;
+    const value = await rpc("get_review_benefit_receipt_v11", { p_experience_id: experienceId, p_session_secret_hash: sessionHash });
+    return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
+  },
   async editSession(receiptHash: string, sessionHash: string, fingerprint: string) {
     const value = await rpc("open_review_edit_session", { p_receipt_hash: receiptHash, p_session_secret_hash: sessionHash, p_context_fingerprint: fingerprint });
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;

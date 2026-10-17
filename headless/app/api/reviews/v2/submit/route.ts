@@ -42,5 +42,9 @@ export async function POST(request: NextRequest) {
   let recovered: { receipt: string; benefitCode: string } | null = null;
   if (result.replayed === true) { const stored = await eskomiReviewV11Repository.fetchReplay(sessionHash, idempotencyHash); if (typeof stored?.ciphertext === "string" && typeof stored.nonce === "string" && stored.key_version === "test-v1") recovered = decryptReplay(keyMaterial, stored.ciphertext, stored.nonce); }
   if (result.replayed === true && !recovered) return NextResponse.json({ ok: false, code: "SUBMISSION_UNAVAILABLE" }, { status: 503 });
-  return NextResponse.json({ ok: true, experienceId: result.experience_id, replayed: result.replayed === true, receipt: recovered?.receipt ?? receipt, benefitCode: result.benefit_status === "issued" || result.benefit_status === "already_issued" ? recovered?.benefitCode ?? benefitCode : null, benefitStatus: result.benefit_status, receiptExpiresAt: result.receipt_expires_at }, { status: result.replayed === true ? 200 : 201, headers: { "Cache-Control": "no-store" } });
+  const benefitReceipt = await eskomiReviewV11Repository.benefitReceipt(result.experience_id, sessionHash);
+  const benefit = benefitReceipt && typeof benefitReceipt.benefit_snapshot === "object" && benefitReceipt.benefit_snapshot !== null
+    ? { status: typeof benefitReceipt.benefit_status === "string" ? benefitReceipt.benefit_status : result.benefit_status, expiresAt: typeof benefitReceipt.expires_at === "string" ? benefitReceipt.expires_at : null, terms: benefitReceipt.benefit_snapshot }
+    : null;
+  return NextResponse.json({ ok: true, experienceId: result.experience_id, replayed: result.replayed === true, receipt: recovered?.receipt ?? receipt, benefitCode: result.benefit_status === "issued" || result.benefit_status === "already_issued" ? recovered?.benefitCode ?? benefitCode : null, benefitStatus: result.benefit_status, benefit, receiptExpiresAt: result.receipt_expires_at }, { status: result.replayed === true ? 200 : 201, headers: { "Cache-Control": "no-store" } });
 }
