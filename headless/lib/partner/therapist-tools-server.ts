@@ -22,6 +22,7 @@ export async function partnerTherapistRequestContext(request: NextRequest) {
     status: "allowed" as const,
     base,
     workspaceId: session.access.workspaceId,
+    authUserId: session.access.authUserId,
     headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "api" }),
   };
 }

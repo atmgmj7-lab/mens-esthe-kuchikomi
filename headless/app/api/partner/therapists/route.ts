@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { partnerTherapistNoStore, partnerTherapistRequestContext, partnerTherapistUuid } from "@/lib/partner/therapist-tools-server";
+import { validPartnerMutation } from "@/lib/partner/partner-mutation-security";
 
 const failure = (message: string, status: 400 | 401 | 403 | 409 | 503) =>
   NextResponse.json({ ok: false, message }, { status, headers: partnerTherapistNoStore });
@@ -30,13 +31,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!validPartnerMutation(request)) return failure("送信元を確認してください。", 403);
   const c = await partnerTherapistRequestContext(request);
   if (c.status !== "allowed") return failure("この店舗の担当者を登録できません。", unavailableStatus(c.status));
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return failure("登録内容を確認してください。", 400); }
   const entry = payload(body); if (!entry) return failure("公開名、写真、権利確認を確認してください。", 400);
   const response = await fetch(`${c.base}/rest/v1/rpc/create_partner_therapist_assignment`, {
     method: "POST", headers: c.headers,
-    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_display_name: entry.displayName, p_photo_asset_id: entry.photoAssetId, p_permission_policy_version: entry.permissionPolicyVersion, p_permission_confirmed: true }), cache: "no-store",
+    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_display_name: entry.displayName, p_photo_asset_id: entry.photoAssetId, p_permission_policy_version: entry.permissionPolicyVersion, p_permission_confirmed: true }), cache: "no-store",
   });
   const rows = response.ok ? await response.json() as unknown[] : null;
   return Array.isArray(rows) && rows.length === 1
@@ -45,6 +47,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  if (!validPartnerMutation(request)) return failure("送信元を確認してください。", 403);
   const c = await partnerTherapistRequestContext(request);
   if (c.status !== "allowed") return failure("この店舗の担当者を更新できません。", unavailableStatus(c.status));
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return failure("更新内容を確認してください。", 400); }
@@ -52,7 +55,7 @@ export async function PATCH(request: NextRequest) {
   if (!entry || !partnerTherapistUuid(assignmentId) || typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1) return failure("更新内容を確認してください。", 400);
   const response = await fetch(`${c.base}/rest/v1/rpc/update_partner_therapist_assignment`, {
     method: "POST", headers: c.headers,
-    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_assignment_id: assignmentId, p_expected_revision: revision, p_display_name: entry.displayName, p_photo_asset_id: entry.photoAssetId, p_permission_policy_version: entry.permissionPolicyVersion, p_permission_confirmed: true }), cache: "no-store",
+    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_assignment_id: assignmentId, p_expected_revision: revision, p_display_name: entry.displayName, p_photo_asset_id: entry.photoAssetId, p_permission_policy_version: entry.permissionPolicyVersion, p_permission_confirmed: true }), cache: "no-store",
   });
   const rows = response.ok ? await response.json() as unknown[] : null;
   return Array.isArray(rows) && rows.length === 1
@@ -61,6 +64,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  if (!validPartnerMutation(request)) return failure("送信元を確認してください。", 403);
   const c = await partnerTherapistRequestContext(request);
   if (c.status !== "allowed") return failure("この店舗の担当者を退店にできません。", unavailableStatus(c.status));
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return failure("対象を確認してください。", 400); }
@@ -68,7 +72,7 @@ export async function DELETE(request: NextRequest) {
   if (!partnerTherapistUuid(assignmentId) || typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 1) return failure("対象を確認してください。", 400);
   const response = await fetch(`${c.base}/rest/v1/rpc/end_partner_therapist_assignment`, {
     method: "POST", headers: c.headers,
-    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_assignment_id: assignmentId, p_expected_revision: revision }), cache: "no-store",
+    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_assignment_id: assignmentId, p_expected_revision: revision }), cache: "no-store",
   });
   const rows = response.ok ? await response.json() as unknown[] : null;
   return Array.isArray(rows) && rows.length === 1

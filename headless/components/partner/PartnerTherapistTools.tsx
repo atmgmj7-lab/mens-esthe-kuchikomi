@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
+const PARTNER_MUTATION_CSRF = "partner-mutation-v1";
 
 type Therapist = { assignment_id: string; display_name: string; photo_asset_id: string; lifecycle_state: "active" | "retired"; revision: number; permission_policy_version: string };
 type Preview = { subject: string | null; body: string; review_url: string; therapist_display_name: string | null };
@@ -34,7 +35,7 @@ export function PartnerTherapistTools() {
     if (!file) return;
     setNotice("写真を確認してアップロードしています…");
     const form = new FormData(); form.set("photo", file);
-    const result = await responseJson(await fetch("/api/partner/therapists/photo", { method: "POST", body: form }));
+    const result = await responseJson(await fetch("/api/partner/therapists/photo", { method: "POST", headers: { "X-ESKOMI-CSRF": PARTNER_MUTATION_CSRF }, body: form }));
     const assetId = (result.value as { assetId?: unknown } | null)?.assetId;
     if (result.ok && typeof assetId === "string") { setPhotoAssetId(assetId); setNotice("写真を登録しました。公開名と権利確認をして担当者を保存してください。"); }
     else setNotice(result.message);
@@ -43,24 +44,24 @@ export function PartnerTherapistTools() {
   const create = async (event: FormEvent) => {
     event.preventDefault(); setNotice(null);
     if (!photoAssetId || !rights) { setNotice("写真を登録し、掲載・利用権利を確認してください。"); return; }
-    const result = await responseJson(await fetch("/api/partner/therapists", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ displayName, photoAssetId, permissionPolicyVersion: RIGHTS_POLICY, permissionConfirmed: true }) }));
+    const result = await responseJson(await fetch("/api/partner/therapists", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": PARTNER_MUTATION_CSRF }, body: JSON.stringify({ displayName, photoAssetId, permissionPolicyVersion: RIGHTS_POLICY, permissionConfirmed: true }) }));
     if (!result.ok) { setNotice(result.message); return; }
     setDisplayName(""); setPhotoAssetId(null); setRights(false); setNotice("担当者を登録しました。"); await refresh();
   };
 
   const updateName = async (therapist: Therapist, value: string) => {
-    const result = await responseJson(await fetch("/api/partner/therapists", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assignmentId: therapist.assignment_id, revision: therapist.revision, displayName: value, photoAssetId: therapist.photo_asset_id, permissionPolicyVersion: therapist.permission_policy_version, permissionConfirmed: true }) }));
+    const result = await responseJson(await fetch("/api/partner/therapists", { method: "PATCH", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": PARTNER_MUTATION_CSRF }, body: JSON.stringify({ assignmentId: therapist.assignment_id, revision: therapist.revision, displayName: value, photoAssetId: therapist.photo_asset_id, permissionPolicyVersion: therapist.permission_policy_version, permissionConfirmed: true }) }));
     setNotice(result.ok ? "公開名を更新しました。" : result.message); if (result.ok) await refresh();
   };
 
   const end = async (therapist: Therapist) => {
     if (!window.confirm(`${therapist.display_name}さんを退店として扱います。既存の投稿リンクは店舗のみの投稿へ切り替わります。`)) return;
-    const result = await responseJson(await fetch("/api/partner/therapists", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assignmentId: therapist.assignment_id, revision: therapist.revision }) }));
+    const result = await responseJson(await fetch("/api/partner/therapists", { method: "DELETE", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": PARTNER_MUTATION_CSRF }, body: JSON.stringify({ assignmentId: therapist.assignment_id, revision: therapist.revision }) }));
     setNotice(result.ok ? "退店として保存しました。以後の案内文は店舗のみの投稿になります。" : result.message); if (result.ok) await refresh();
   };
 
   const makePreview = async (therapistAssignmentId: string | null, channel: "line" | "email") => {
-    const result = await responseJson(await fetch("/api/partner/review-request/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ therapistAssignmentId, channel, greetingVariant: "recent" }) }));
+    const result = await responseJson(await fetch("/api/partner/review-request/preview", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": PARTNER_MUTATION_CSRF }, body: JSON.stringify({ therapistAssignmentId, channel, greetingVariant: "recent" }) }));
     if (result.ok && (result.value as { preview?: Preview }).preview) { setPreview((result.value as { preview: Preview }).preview); setNotice("コピー用の案内文を作成しました。ここから自動送信はされません。"); }
     else setNotice(result.message);
   };

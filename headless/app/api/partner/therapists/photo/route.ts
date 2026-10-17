@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { inspectListingImage } from "@/lib/listing-application-image";
 import { partnerTherapistNoStore, partnerTherapistRequestContext } from "@/lib/partner/therapist-tools-server";
+import { validPartnerMutation } from "@/lib/partner/partner-mutation-security";
 import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const failure = (message: string, status: 400 | 401 | 403 | 503) =>
   NextResponse.json({ ok: false, message }, { status, headers: partnerTherapistNoStore });
 
 export async function POST(request: NextRequest) {
+  if (!validPartnerMutation(request, false)) return failure("送信元を確認してください。", 403);
   const c = await partnerTherapistRequestContext(request);
   if (c.status !== "allowed") return failure("この店舗の写真を登録できません。", c.status === "unavailable" ? 503 : c.status === "unauthenticated" ? 401 : 403);
   let form: FormData; try { form = await request.formData(); } catch { return failure("写真を選択してください。", 400); }

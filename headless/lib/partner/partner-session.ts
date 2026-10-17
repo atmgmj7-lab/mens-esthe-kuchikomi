@@ -37,7 +37,7 @@ export async function authorizePartnerTherapistSession(input: { accessToken: str
   if (!user) return { status: "unauthenticated" as const };
   const scope = await dependencies.getTherapistWorkspaceScope(user.id);
   if (!scope) return { status: "forbidden" as const };
-  return { status: "allowed" as const, access: scope };
+  return { status: "allowed" as const, access: { ...scope, authUserId: user.id } };
 }
 
 export async function authorizePartnerLoginCompletion(input: { accessToken: string; state: string }) {
