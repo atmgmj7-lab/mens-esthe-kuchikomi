@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const secret = resolveSupabaseServerSecret(); if (!secret) return failure("写真を保存できませんでした。", 503);
   const reserved = await fetch(`${c.base}/rest/v1/rpc/reserve_partner_therapist_photo_upload`, {
     method: "POST", headers: c.headers,
-    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_content_type: image.type }), cache: "no-store",
+    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_content_type: image.type }), cache: "no-store",
   });
   const objectKey = reserved.ok ? await reserved.json() as unknown : null;
   if (typeof objectKey !== "string" || !objectKey.startsWith(`therapists/${c.workspaceId}/`)) return failure("写真アップロードを開始できませんでした。", 403);
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   if (!stored.ok) return failure("写真を保存できませんでした。", 503);
   const attached = await fetch(`${c.base}/rest/v1/rpc/attach_partner_therapist_photo`, {
     method: "POST", headers: c.headers,
-    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_object_key: objectKey, p_sha256: image.sha256, p_content_type: image.type, p_byte_size: image.bytes.length, p_width: image.width, p_height: image.height }), cache: "no-store",
+    body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_object_key: objectKey, p_sha256: image.sha256, p_content_type: image.type, p_byte_size: image.bytes.length, p_width: image.width, p_height: image.height }), cache: "no-store",
   });
   const assetId = attached.ok ? await attached.json() as unknown : null;
   if (typeof assetId === "string") return NextResponse.json({ ok: true, assetId }, { headers: partnerTherapistNoStore });

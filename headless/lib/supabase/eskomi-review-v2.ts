@@ -154,7 +154,7 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
     },
     async listPublications(shopSlug: string): Promise<readonly EskomiPublicReview[] | null> {
       if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(shopSlug)) return null;
-      const result = await rpc("list_public_review_publications", { p_shop_slug: shopSlug, p_limit: 20, p_offset: 0 });
+      const result = await rpc("list_public_review_experience_publications", { p_shop_slug: shopSlug, p_limit: 20, p_offset: 0 });
       if (!Array.isArray(result)) return null;
       const publications = result.map(parsePublicReview);
       return publications.every((publication): publication is EskomiPublicReview => publication !== null) ? publications : null;
