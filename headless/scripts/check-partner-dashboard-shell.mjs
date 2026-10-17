@@ -60,16 +60,15 @@ assert.match(operatorPage, /robots:\s*\{\s*index:\s*false,\s*follow:\s*false\s*\
 assert.match(proxy, /["']\/dashboard\/:path\*["']/, "the existing Basic Auth proxy protects operator pages");
 assert.match(proxy, /["']\/api\/dashboard\/:path\*["']/, "the existing Basic Auth proxy protects operator APIs");
 assert.match(partnerPage, /authorizePartnerReviewGrowthSession/, "the Partner home retains its session-derived access path");
-assert.match(partnerPage, /buildShopOwnerRequestUrl/, "the Partner home may only link its authorized canonical shop to the existing correction-request flow");
-assert.match(partnerPage, /掲載情報の修正を申請/);
+assert.match(partnerPage, /掲載情報を編集・申請/, "the Partner home must route canonical stores to the authenticated revision workflow");
 assert.doesNotMatch(partnerPage, /DashboardPartnerWorkspace|DashboardReviewModeration|authorizeDashboardRequest/, "the Partner home must not import or invoke operator controls");
 
 const workspaceA = "11111111-1111-4111-8111-111111111111";
 const workspaceB = "22222222-2222-4222-8222-222222222222";
-const membershipA = { workspaceId: workspaceA, shopId: 101, shopSlug: "shop-a", role: "owner" };
+const membershipA = { workspaceId: workspaceA, appShopId: "33333333-3333-4333-8333-333333333333", shopSlug: "shop-a", role: "owner" };
 const ownIdentity = {
   workspaceId: workspaceA,
-  shopId: 101,
+  appShopId: membershipA.appShopId,
   shopSlug: "shop-a",
   shopName: "Partner Shop A",
   canonicalUrl: "https://mens-esthe-kuchikomi.com/shops/shop-a/",
@@ -77,7 +76,7 @@ const ownIdentity = {
 };
 
 async function resolve(identity) {
-  return dashboard.resolvePartnerDashboardIdentity(membershipA, {
+  return dashboard.resolvePartnerDashboardIdentity(membershipA, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", {
     async getWorkspaceIdentity() { return identity; },
   });
 }
@@ -95,7 +94,7 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  JSON.parse(JSON.stringify(await resolve({ ...ownIdentity, shopId: 202 }))),
+  JSON.parse(JSON.stringify(await resolve({ ...ownIdentity, appShopId: "44444444-4444-4444-8444-444444444444" }))),
   { status: "forbidden" },
   "a mismatched linked shop must fail closed instead of displaying an identity",
 );
@@ -121,7 +120,7 @@ const serverDependencies = server.createPartnerAuthDependencies({
   serverRequests.push({ url, options });
   return Response.json([{
     workspace_id: workspaceA,
-    wp_shop_id: 101,
+    app_shop_id: membershipA.appShopId,
     shop_slug: "shop-a",
     shop_name: "Partner Shop A",
     canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/",
@@ -134,13 +133,13 @@ assert.equal(
   `the existing server-only Partner Auth adapter must provide the service-role identity lookup; actual keys: ${Object.keys(serverDependencies ?? {}).join(",")}`,
 );
 assert.deepEqual(
-  JSON.parse(JSON.stringify(await serverDependencies.getWorkspaceIdentity(workspaceA))),
+  JSON.parse(JSON.stringify(await serverDependencies.getWorkspaceIdentity(workspaceA, "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"))),
   ownIdentity,
   "the server-only identity adapter must parse the canonical workspace projection",
 );
-assert.equal(serverRequests[0].url, "https://project.supabase.co/rest/v1/rpc/get_partner_workspace_identity");
+assert.equal(serverRequests[0].url, "https://project.supabase.co/rest/v1/rpc/get_partner_canonical_workspace_identity");
 assert.equal(serverRequests[0].options.headers.apikey, "service-role-fixture");
 assert.equal(serverRequests[0].options.headers.Authorization, undefined);
-assert.deepEqual(JSON.parse(serverRequests[0].options.body), { p_workspace_id: workspaceA });
+assert.deepEqual(JSON.parse(serverRequests[0].options.body), { p_workspace_id: workspaceA, p_auth_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
 
 console.log("partner dashboard shell identity contract: PASS");

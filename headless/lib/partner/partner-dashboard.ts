@@ -3,7 +3,7 @@ import type { PartnerReviewGrowthKit } from "@/lib/partner/partner-review-growth
 
 export type PartnerWorkspaceIdentity = Readonly<{
   workspaceId: string;
-  shopId: number;
+  appShopId: string;
   shopSlug: string;
   shopName: string;
   canonicalUrl: string;
@@ -11,7 +11,7 @@ export type PartnerWorkspaceIdentity = Readonly<{
 }>;
 
 export type PartnerDashboardIdentityDependencies = Readonly<{
-  getWorkspaceIdentity: (workspaceId: string) => Promise<PartnerWorkspaceIdentity | null>;
+  getWorkspaceIdentity: (workspaceId: string, authUserId: string) => Promise<PartnerWorkspaceIdentity | null>;
 }>;
 
 export type PartnerDashboardIdentityResult =
@@ -67,7 +67,7 @@ function isCanonicalIdentity(
 ): identity is PartnerWorkspaceIdentity {
   return identity !== null
     && identity.workspaceId === membership.workspaceId
-    && identity.shopId === membership.shopId
+    && identity.appShopId === membership.appShopId
     && identity.shopSlug === membership.shopSlug
     && identity.shopName.trim().length > 0
     && identity.canonicalUrl === `https://mens-esthe-kuchikomi.com/shops/${identity.shopSlug}/`
@@ -76,10 +76,11 @@ function isCanonicalIdentity(
 
 export async function resolvePartnerDashboardIdentity(
   membership: PartnerMembershipAccess,
+  authUserId: string,
   dependencies: PartnerDashboardIdentityDependencies,
 ): Promise<PartnerDashboardIdentityResult> {
   try {
-    const identity = await dependencies.getWorkspaceIdentity(membership.workspaceId);
+    const identity = await dependencies.getWorkspaceIdentity(membership.workspaceId, authUserId);
     return isCanonicalIdentity(membership, identity)
       ? { status: "allowed", identity }
       : { status: "forbidden" };

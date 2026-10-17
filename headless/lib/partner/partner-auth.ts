@@ -1,7 +1,7 @@
 export type PartnerAuthUser = Readonly<{ id: string; email: string | null }>;
 export type PartnerMembershipAccess = Readonly<{
   workspaceId: string;
-  shopId: number;
+  appShopId: string;
   shopSlug: string;
   role: "owner" | "manager";
 }>;
@@ -26,8 +26,7 @@ function validRequestedShopId(value: number | null): boolean {
 function validMembership(value: PartnerMembershipAccess | null): value is PartnerMembershipAccess {
   return value !== null
     && UUID_RE.test(value.workspaceId)
-    && Number.isSafeInteger(value.shopId)
-    && value.shopId > 0
+    && UUID_RE.test(value.appShopId)
     && value.shopSlug.length > 0
     && (value.role === "owner" || value.role === "manager");
 }
@@ -58,7 +57,7 @@ export async function authorizePartnerAccess(
   if (!validMembership(membership)) return { status: "forbidden" };
 
   if ((input.requestedWorkspaceId !== null && input.requestedWorkspaceId.toLowerCase() !== membership.workspaceId.toLowerCase())
-    || (input.requestedShopId !== null && input.requestedShopId !== membership.shopId)) {
+    || input.requestedShopId !== null) {
     return { status: "forbidden" };
   }
 

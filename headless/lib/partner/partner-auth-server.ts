@@ -40,10 +40,10 @@ function parseMembership(value: unknown): PartnerMembershipAccess | null {
   if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
   const row = value[0] as Record<string, unknown>;
   return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
-    && typeof row.wp_shop_id === "number" && Number.isSafeInteger(row.wp_shop_id) && row.wp_shop_id > 0
+    && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id)
     && typeof row.shop_slug === "string" && row.shop_slug.length > 0
     && (row.role === "owner" || row.role === "manager")
-    ? { workspaceId: row.workspace_id, shopId: row.wp_shop_id, shopSlug: row.shop_slug, role: row.role }
+    ? { workspaceId: row.workspace_id, appShopId: row.app_shop_id, shopSlug: row.shop_slug, role: row.role }
     : null;
 }
 
@@ -51,14 +51,14 @@ function parseWorkspaceIdentity(value: unknown): PartnerWorkspaceIdentity | null
   if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
   const row = value[0] as Record<string, unknown>;
   return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
-    && typeof row.wp_shop_id === "number" && Number.isSafeInteger(row.wp_shop_id) && row.wp_shop_id > 0
+    && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id)
     && typeof row.shop_slug === "string" && row.shop_slug.length > 0
     && typeof row.shop_name === "string" && row.shop_name.trim().length > 0
     && typeof row.canonical_url === "string" && row.canonical_url.length > 0
     && (row.state === "free_official_partner" || row.state === "active_partner")
     ? {
       workspaceId: row.workspace_id,
-      shopId: row.wp_shop_id,
+      appShopId: row.app_shop_id,
       shopSlug: row.shop_slug,
       shopName: row.shop_name,
       canonicalUrl: row.canonical_url,
@@ -143,7 +143,7 @@ export function createPartnerAuthDependencies(
     async getActiveMembership(authUserId: string): Promise<PartnerMembershipAccess | null> {
       if (typeof authUserId !== "string" || !UUID_RE.test(authUserId)) return null;
       try {
-        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_auth_membership`, {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_canonical_auth_membership`, {
           method: "POST",
           headers: serviceHeaders,
           body: JSON.stringify({ p_auth_user_id: authUserId }),
@@ -154,13 +154,13 @@ export function createPartnerAuthDependencies(
         return null;
       }
     },
-    async getWorkspaceIdentity(workspaceId: string): Promise<PartnerWorkspaceIdentity | null> {
-      if (typeof workspaceId !== "string" || !UUID_RE.test(workspaceId)) return null;
+    async getWorkspaceIdentity(workspaceId: string, authUserId: string): Promise<PartnerWorkspaceIdentity | null> {
+      if (typeof workspaceId !== "string" || !UUID_RE.test(workspaceId) || typeof authUserId !== "string" || !UUID_RE.test(authUserId)) return null;
       try {
-        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_workspace_identity`, {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_canonical_workspace_identity`, {
           method: "POST",
           headers: serviceHeaders,
-          body: JSON.stringify({ p_workspace_id: workspaceId }),
+          body: JSON.stringify({ p_workspace_id: workspaceId, p_auth_user_id: authUserId }),
           cache: "no-store",
         });
         return response.ok ? parseWorkspaceIdentity(await response.json()) : null;

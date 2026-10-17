@@ -15,6 +15,7 @@ import {
   type PartnerWorkspace,
   type PartnerWorkspaceRepository,
 } from "@/lib/partner/provisioning-service";
+import type { PartnerCanonicalGrowthMetrics } from "@/lib/partner/partner-review-growth-kit";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -82,6 +83,45 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function parseCanonicalGrowth(value: unknown): PartnerCanonicalGrowthMetrics | null {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "workspace_id", "app_shop_id", "review_handle", "widget_handle", "shop_name", "canonical_path", "submitted_reviews", "pending_reviews", "published_reviews",
+  ]) || typeof value.workspace_id !== "string" || !UUID_RE.test(value.workspace_id)
+    || typeof value.app_shop_id !== "string" || !UUID_RE.test(value.app_shop_id)
+    || typeof value.review_handle !== "string" || !UUID_RE.test(value.review_handle)
+    || typeof value.widget_handle !== "string" || !UUID_RE.test(value.widget_handle)
+    || !isNonNegativeInteger(value.submitted_reviews) || !isNonNegativeInteger(value.pending_reviews)
+    || !isNonNegativeInteger(value.published_reviews)
+    || value.pending_reviews > value.submitted_reviews || value.published_reviews > value.submitted_reviews) return null;
+  return {
+    workspaceId: value.workspace_id,
+    appShopId: value.app_shop_id,
+    reviewHandle: value.review_handle,
+    widgetHandle: value.widget_handle,
+    submittedReviews: value.submitted_reviews,
+    pendingReviews: value.pending_reviews,
+    publicReviews: value.published_reviews,
+  };
+}
+
+/** Canonical v1.1 Partner read: no WordPress store/review identifier crosses this boundary. */
+export async function getPartnerCanonicalGrowth(input: Readonly<{ workspaceId: string; authUserId: string }>): Promise<PartnerCanonicalGrowthMetrics | null> {
+  const baseUrl = supabaseUrl();
+  const headers = serviceHeaders();
+  if (!baseUrl || !headers || !UUID_RE.test(input.workspaceId) || !UUID_RE.test(input.authUserId)) return null;
+  try {
+    const response = await fetch(`${baseUrl}/rest/v1/rpc/get_partner_canonical_growth_v11`, {
+      method: "POST", headers,
+      body: JSON.stringify({ p_workspace_id: input.workspaceId, p_auth_user_id: input.authUserId }),
+      cache: "no-store",
+    });
+    const rows = response.ok ? await response.json() as unknown : null;
+    return Array.isArray(rows) && rows.length === 1 ? parseCanonicalGrowth(rows[0]) : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseCanonicalShop(value: unknown) {

@@ -62,7 +62,7 @@ const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const userB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const membershipA = {
   workspaceId: workspaceA,
-  shopId: 101,
+  appShopId: "33333333-3333-4333-8333-333333333333",
   shopSlug: "shop-a",
   role: "owner",
 };
@@ -98,13 +98,13 @@ await assertAuthorization(
 );
 
 await assertAuthorization(
-  { accessToken: "valid-a", requestedWorkspaceId: workspaceA, requestedShopId: 101 }, validDependencies,
+  { accessToken: "valid-a", requestedWorkspaceId: workspaceA, requestedShopId: null }, validDependencies,
   { status: "allowed", access: membershipA },
-  "a partner may access only its own active workspace and shop",
+  "a partner may access only its own active canonical workspace",
 );
 
 await assertAuthorization(
-  { accessToken: "valid-a", requestedWorkspaceId: workspaceB, requestedShopId: 101 }, validDependencies,
+  { accessToken: "valid-a", requestedWorkspaceId: workspaceB, requestedShopId: null }, validDependencies,
   { status: "forbidden" },
   "changing a workspace ID must not cross the membership boundary",
 );
@@ -144,7 +144,7 @@ const serverDependencies = server.createPartnerAuthDependencies({
   }
   return Response.json([{
     workspace_id: workspaceA,
-    wp_shop_id: 101,
+    app_shop_id: membershipA.appShopId,
     shop_slug: "shop-a",
     role: "owner",
   }]);
@@ -160,7 +160,7 @@ assert.equal(serverRequests[0].url, "https://project.supabase.co/auth/v1/user");
 assert.equal(serverRequests[0].options.headers.Authorization, "Bearer session-token");
 assert.equal(serverRequests[0].options.headers.apikey, "publishable-fixture");
 assert.notEqual(serverRequests[0].options.headers.Authorization, "Bearer service-role-fixture");
-assert.equal(serverRequests[1].url, "https://project.supabase.co/rest/v1/rpc/get_partner_auth_membership");
+assert.equal(serverRequests[1].url, "https://project.supabase.co/rest/v1/rpc/get_partner_canonical_auth_membership");
 assert.equal(serverRequests[1].options.headers.apikey, "service-role-fixture");
 assert.equal(serverRequests[1].options.headers.Authorization, undefined);
 

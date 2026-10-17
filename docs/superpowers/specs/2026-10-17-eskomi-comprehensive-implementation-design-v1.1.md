@@ -35,7 +35,7 @@
 | 区分 | 範囲 | 根拠 / 前提 |
 |---|---|---|
 | 実装・隔離SQL確認 | canonical管理店の作成、直接編集、公開/停止、削除済み/復元、`app.shops`公開gate、managed詳細・一覧・sitemap、地域Supabaseフォールバック、v1.1詳細/全体口コミ投影 | fresh PG17の専用SQLと既存vertical SQL。既存managed/WordPress行のUUID backfillは意図的に自動化しない。 |
-| 実装済み・外部前提 | Partnerの通常ホーム/掲載申請/案内/POP/widget は既存の招待済みPartner membership とAuth設定を前提にする。canonical-only workspaceは人物・運用APIへ接続済みだが、通常Partner画面のlegacy `wp_shop_id` 投影統一は未完了。 | 新規永続認証の作成は禁止。既存Auth/招待データを使う受入fixtureが必要。 |
+| 実装・隔離SQL確認 | Partner通常ホーム、掲載下書き/申請、運営承認投影、口コミ導線、QR POP、widget は `app_shop_id` のcanonical workspaceを正本にする。ログイン時と全mutationはactive membership・役割・workspace・公開中店舗をDB内で再検査し、停止/失効/別workspaceを拒否する。 | `verify_eskomi_canonical_partner_home_listing.sql` がWP IDなしで管理者作成→公開→店舗申請→承認公開→口コミ/widget→停止/復元→別user/失効拒否を一transactionで確認する。新規永続認証は作らず、fixtureの既存Auth ID相当を使う。 |
 | 実装済み・素材前提 | B01–B10の設定・スロット・CTA位置 | 設計は承認済み。画像ファイルのLibrary転送ネットワーク待ち。 |
 | 環境で未実行 | Next + PostgREST + Chromiumの実HTTP/browser E2E、実WordPressなしのHTTPレンダリング、`npm test`全体 | Docker公開port拒否とWordPress TLS拒否。隔離PHP 8.3 CLIでPHPを含む二つのnpm契約テストは実行済み。本番資格情報は使用しない。 |
 

@@ -53,6 +53,7 @@ done
 for acceptance in \
   verify_eskomi_canonical_foundation.sql \
   verify_eskomi_canonical_managed_directory_e2e.sql \
+  verify_eskomi_canonical_partner_home_listing.sql \
   verify_eskomi_canonical_integrity_fixes.sql \
   verify_eskomi_review_entry_v2.sql \
   verify_eskomi_review_entry_therapist_selection.sql \

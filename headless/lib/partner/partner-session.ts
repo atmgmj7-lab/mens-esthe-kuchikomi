@@ -5,8 +5,7 @@ import { partnerLoginStateMatchesEmail } from "@/lib/partner/partner-auth-login-
 import { resolvePartnerDashboardIdentity } from "@/lib/partner/partner-dashboard";
 import { createPartnerAuthDependencies } from "@/lib/partner/partner-auth-server";
 import { resolvePartnerReviewGrowthKit } from "@/lib/partner/partner-review-growth-kit";
-import { getPartnerReviewGrowthMetrics } from "@/lib/partner/provisioning-service";
-import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
+import { getPartnerCanonicalGrowth } from "@/lib/supabase/partner-workspace";
 
 export const PARTNER_SESSION_COOKIE = "eskomi_partner_access_token";
 export const PARTNER_LOGIN_STATE_COOKIE = "eskomi_partner_login_state";
@@ -47,7 +46,7 @@ export async function authorizePartnerLoginCompletion(input: { accessToken: stri
   if (!authUser || !partnerLoginStateMatchesEmail(input.state, authUser.email, process.env)) {
     return { status: "unauthenticated" as const };
   }
-  const legacy = await authorizePartnerAccess({
+  const access = await authorizePartnerAccess({
     accessToken: input.accessToken,
     requestedWorkspaceId: null,
     requestedShopId: null,
@@ -55,12 +54,7 @@ export async function authorizePartnerLoginCompletion(input: { accessToken: stri
     ...dependencies,
     getUser: async (accessToken) => accessToken === input.accessToken ? authUser : null,
   });
-  if (legacy.status === "allowed") return legacy;
-  // Canonical-only workspaces intentionally have no wp_shop_id.  They still
-  // use the same verified Partner user and active membership; do not make a
-  // legacy dashboard projection a prerequisite for completing login.
-  const scope = await dependencies.getTherapistWorkspaceScope(authUser.id);
-  return scope ? { status: "allowed" as const, access: { workspaceId: scope.workspaceId, shopId: 1, shopSlug: "canonical-workspace", role: scope.role } } : legacy;
+  return access;
 }
 
 export async function authorizePartnerDashboardSession(input: {
@@ -76,7 +70,9 @@ export async function authorizePartnerDashboardSession(input: {
     requestedShopId: input.requestedShopId ?? null,
   }, dependencies);
   if (access.status !== "allowed") return access;
-  return resolvePartnerDashboardIdentity(access.access, dependencies);
+  const user = await dependencies.getUser(input.accessToken ?? "");
+  if (!user) return { status: "unauthenticated" as const };
+  return resolvePartnerDashboardIdentity(access.access, user.id, dependencies);
 }
 
 /**
@@ -93,10 +89,10 @@ export async function authorizePartnerLoginEmailSession(input: { accessToken: st
     requestedShopId: null,
   }, dependencies);
   if (access.status !== "allowed") return access;
-  const identity = await resolvePartnerDashboardIdentity(access.access, dependencies);
-  if (identity.status !== "allowed") return identity;
   const authUser = await dependencies.getUser(input.accessToken ?? "");
   if (!authUser) return { status: "unauthenticated" as const };
+  const identity = await resolvePartnerDashboardIdentity(access.access, authUser.id, dependencies);
+  if (identity.status !== "allowed") return identity;
   return { status: "allowed" as const, access: access.access, identity: identity.identity, authUser };
 }
 
@@ -114,10 +110,12 @@ export async function authorizePartnerReviewGrowthSession(input: {
   }, dependencies);
   if (access.status !== "allowed") return access;
 
-  const dashboard = await resolvePartnerDashboardIdentity(access.access, dependencies);
+  const authUser = await dependencies.getUser(input.accessToken ?? "");
+  if (!authUser) return { status: "unauthenticated" as const };
+  const dashboard = await resolvePartnerDashboardIdentity(access.access, authUser.id, dependencies);
   if (dashboard.status !== "allowed") return dashboard;
 
-  const metrics = await getPartnerReviewGrowthMetrics(access.access.workspaceId, partnerReviewGrowthRepository);
+  const metrics = await getPartnerCanonicalGrowth({ workspaceId: access.access.workspaceId, authUserId: authUser.id });
   const growthKit = resolvePartnerReviewGrowthKit(dashboard.identity, metrics);
   if (growthKit.status !== "allowed") return growthKit;
   return { status: "allowed" as const, identity: dashboard.identity, growthKit, metrics };
