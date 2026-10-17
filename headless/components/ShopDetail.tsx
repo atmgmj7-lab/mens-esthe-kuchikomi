@@ -24,15 +24,19 @@ import { buildShopReviewViewModel } from "@/lib/shop-review-view-model";
 import type { PublicShopReviewResult } from "@/lib/reviews/public-adapter";
 import { buildShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { PublicTherapistSummary } from "@/lib/public-therapist";
+import { PublicTherapistList } from "@/components/therapists/PublicTherapistList";
 
 export function ShopDetail({
   shop,
   parentArea,
-  reviewResult
+  reviewResult,
+  therapists = []
 }: {
   shop: ShopView;
   parentArea?: AreaView | null;
   reviewResult: PublicShopReviewResult;
+  therapists?: readonly PublicTherapistSummary[];
 }) {
   const primaryArea = shop.primaryArea;
   const areaName = primaryArea?.name ?? "";
@@ -112,6 +116,7 @@ export function ShopDetail({
               rel={officialRel}
             />
             <p id="contribute"><Link href={`/shops/${shop.slug}/community/`}>未確認の利用者情報を交換・掲載情報を訂正する</Link></p>
+            <PublicTherapistList therapists={therapists} />
             <EskomiBannerV2Slot id="B09" />
             <ShopOwnerCta shop={shop} />
           </div>

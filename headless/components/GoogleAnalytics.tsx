@@ -47,11 +47,11 @@ export function GoogleAnalytics() {
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard")) return;
-    if (!GA_MEASUREMENT_ID) return;
-
     const shopSlug = normalizePublicShopSlug(
       pathname.match(/^\/shops\/([^/]+)\/?$/)?.[1] || ""
     );
+    if (shopSlug) void fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind: "shop_view" }), keepalive: true, cache: "no-store" }).catch(() => undefined);
+    if (!GA_MEASUREMENT_ID) return;
     if (shopSlug) {
       gaEvent("shop_view", {
         shop_slug: shopSlug,
@@ -62,7 +62,6 @@ export function GoogleAnalytics() {
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard")) return;
-    if (!GA_MEASUREMENT_ID) return;
 
     const onClick = (event: MouseEvent) => {
       const anchor = (event.target as Element | null)?.closest("a");
@@ -83,6 +82,8 @@ export function GoogleAnalytics() {
           anchor.getAttribute("data-shop-slug") || ""
         );
         const shopSlug = dataShopSlug || pathShopSlug;
+        if (ctaKind === "line" && shopSlug) void fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind: "official_line_click" }), keepalive: true, cache: "no-store" }).catch(() => undefined);
+        if (!GA_MEASUREMENT_ID) return;
         const ctaPosition =
           anchor.getAttribute("data-shop-cta-position") || "unknown";
         const eventName =

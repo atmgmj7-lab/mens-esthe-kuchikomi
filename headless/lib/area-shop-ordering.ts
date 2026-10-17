@@ -25,14 +25,21 @@ export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea) {
   const breakdown = SIGNALS.map((signal) => {
     const officialEvidence = signal === "officialBooking" ? resolveVerifiedShopFactProvenance("official", model, shop.acf.shop_fact_provenance) : null;
     const bookingEvidence = signal === "officialBooking" ? resolveVerifiedShopFactProvenance("booking", model, shop.acf.shop_fact_provenance) : null;
-    const field = signal === "officialBooking" ? (bookingEvidence ? "booking" : "official") : signal;
-    const evidence = signal === "officialBooking" ? (bookingEvidence ?? officialEvidence) : resolveVerifiedShopFactProvenance(field, model, shop.acf.shop_fact_provenance);
+    const evidence = signal === "officialBooking" ? null : resolveVerifiedShopFactProvenance(signal, model, shop.acf.shop_fact_provenance);
     const available = signal === "price" ? model.prices.some((course) => course.price.status === "confirmed" && Number.isInteger(course.price.amount) && (course.price.amount ?? 0) > 0)
       : signal === "officialBooking" ? (lineVerified || model.actions.some((action) => action.kind !== "official"))
         : model.infoRows.some((row) => signal === "access"
           ? (row.key === "address" || row.key === "station") && Boolean(row.value)
           : row.key === "hours" && Boolean(row.value));
-    const provenance: ShopFactProvenance | null = available && verifiedWithin180Days(evidence) ? evidence : null;
+    // Evaluate every OR candidate before choosing one.  A stale booking
+    // record must not hide a current verified official site (or LINE).
+    const provenance: ShopFactProvenance | null = signal === "officialBooking"
+      ? [
+        model.actions.some((action) => action.kind === "official") ? officialEvidence : null,
+        (lineVerified || model.actions.some((action) => action.kind !== "official")) ? bookingEvidence : null,
+      ].filter((candidate): candidate is ShopFactProvenance => verifiedWithin180Days(candidate))
+        .sort((first, second) => Date.parse(second.reviewedAt) - Date.parse(first.reviewedAt))[0] ?? null
+      : available && verifiedWithin180Days(evidence) ? evidence : null;
     return {
       signal, verified: provenance !== null, points: provenance ? 1 : 0,
       reason: provenance ? "official-current-value-verified" : "missing-or-unverified-fact",
@@ -63,10 +70,14 @@ function comparison(a: OrderingEntry, b: OrderingEntry): { difference: number; r
     { difference: b.totalScore - a.totalScore, reason: "verified-information-count" },
     { difference: b.freshnessTimestamp - a.freshnessTimestamp, reason: "oldest-verified-review-date" },
     // Explicit UTF-16 code-unit comparison keeps server/client/runtime locale out of tie-breaking.
-    { difference: a.shop.title < b.shop.title ? -1 : a.shop.title > b.shop.title ? 1 : 0, reason: "shop-title" },
+    { difference: normalizedShopTitle(a.shop.title) < normalizedShopTitle(b.shop.title) ? -1 : normalizedShopTitle(a.shop.title) > normalizedShopTitle(b.shop.title) ? 1 : 0, reason: "shop-title" },
     { difference: aIdentity < bIdentity ? -1 : aIdentity > bIdentity ? 1 : 0, reason: "canonical-shop-id" },
   ];
   return dimensions.find(({ difference }) => difference !== 0) ?? { difference: 0, reason: "same-shop" };
+}
+
+function normalizedShopTitle(value: string): string {
+  return value.normalize("NFKC").replace(/\s+/gu, " ").trim();
 }
 
 /** R1–R4 lexicographic relation > four verified facts > oldest confirmation > normalized name > stable ID. PR has a separate display slot. */

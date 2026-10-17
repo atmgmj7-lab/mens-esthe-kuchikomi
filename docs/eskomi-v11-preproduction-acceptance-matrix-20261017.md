@@ -126,7 +126,7 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T19 | explicit legacy mapping candidate/bind/map fixture | 実行済 PASS | production mapping dry-run はユーザー前提待ち |
 | T20 | failure contracts | 実行済 PASS | 実 service outage は未試験 |
 | T21 | responsive UI source/static contracts | 未試験 | 320--1440px Chromium・a11y が必要 |
-| T22 | canonical readers/SEO implementation | 未試験 | preview HTTP canonical/robots/sitemap/JSON-LD |
+| T22 | canonical readers/SEO implementation、UUID人物プロフィール/写真proxy/店舗詳細リンク/sitemap | 未試験 | preview HTTP canonical/404/robots/sitemap/ProfilePage JSON-LD |
 | T23 | CRUD/stop/restore/listing/POP/widget fixtures | 実行済 PASS | 実 dashboard 操作は未試験 |
 | T24 | deny/tombstone rollback design + SQL controls | 実行済 PASS | flag rollback preview は未試験 |
 | T25 | 手順のみ | ユーザー前提待ち | production 非破壊 smoke の承認 |
@@ -134,7 +134,7 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T27 | stop state/provisioning reject | 実行済 PASS | 既発行コードの production 観測待ち |
 | T28 | retry lifetime/secret controls | 実行済 PASS | 実時計/HTTPは未試験 |
 | T29 | answer model no star coercion | 実行済 PASS | 入力 UI は未試験 |
-| T30 | therapist registration contract | 実行済 PASS | 実画像権利確認はユーザー前提待ち |
+| T30 | therapist registration contract、active所属・使用許諾済写真・公開店舗だけを返すUUIDプロフィールprojection | 実行済 PASS | 実画像権利確認とChromiumプロフィール表示はユーザー前提待ち |
 | T31 | public labels/offer isolation | 実行済 PASS | 公開HTML確認は未試験 |
 | T32 | gateway/optional therapist contract | 実行済 PASS | 実画面通過は未試験 |
 | T33 | message template/offer guard | 実行済 PASS | 全文面ブラウザ確認は未試験 |
@@ -147,17 +147,17 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T40 | widget failure contract | 実行済 PASS | DB/API/cache 障害注入は未試験 |
 | T41 | common public projection | 実行済 PASS | all-surface HTTP 比較は未試験 |
 | T42 | embed/RPC privacy contract | 実行済 PASS | third-party cookie browser は未試験 |
-| T43 | owner/manager growth/widget/POP flow | 実行済 PASS | 人手の copy/paste/embed は未試験 |
+| T43 | owner/manager growth/widget/POP flow、店舗別の匿名日次閲覧/公式LINEクリック報告（予約・来店・売上とは分離） | 実装済 | 人手の copy/paste/embed、実Auth報告画面、日次0/欠測比較は未試験 |
 | T44 | transient credential controls | 実行済 PASS | 実ブラウザ cookie lifecycle は未試験 |
 | T45 | GET side-effect/idempotency controls | 実行済 PASS | link-preview 実HTTPは未試験 |
 | T46 | neutral fraud controls | 実行済 PASS | 実IP/複数browserは未試験 |
 | T47 | private-control SQL | 実行済 PASS | production analytics/log audit 待ち |
 | T48 | neutral review-flag controls | 実行済 PASS | retention/key rotation 実運用待ち |
 | T49 | correction intake/moderation | 実行済 PASS | UI/HTTP は未試験 |
-| T50 | community の審査・自己取り下げ | 実行済 PASS | 通報は自動非公開にせず運営の再審査へ戻す。本人撤回と運営hideを監査eventで区別し、後者だけを受付控えで異議→再審査可能にする。応答喪失後の再送、1000件超の解決済み履歴からの未処理50件ページ、同一browser/投稿burst収束を隔離PGで検証済み。 |
+| T50 | community の審査・自己取り下げ、API/画面の未処理・履歴ページ切替、最新hide event/revisionに束縛した異議 | 実装済 | fresh PGで本人撤回済み行の除外、51件超/1000件超履歴、古い異議の再審査拒否を再実行。通報は自動非公開にせず運営の再審査へ戻す。 |
 | T51 | reaction expiry/concurrency | 実行済 PASS | UI/HTTP は未試験 |
 | T52 | read-only candidate mechanism | ユーザー前提待ち | 権利・正規ID・実画像の確認 |
-| T53 | R1--R4 ranking | 実行済 PASS | hub・通常地域とも全候補をページング前に、地域関係→料金/営業時間/アクセス/公式連絡・予約の180日以内確認数→各店の最古有効確認日が新しい順→正規app_shop_id UUID（旧データは安定WP ID）で安定比較。PRは別枠。2ページ超の逆順fixture、料金のみ/予約先のみ、同名UUID同点を静的契約で確認。 |
+| T53 | R1--R4 ranking | 実行済 PASS | hub・通常地域とも全候補をページング前に、地域関係→料金/営業時間/アクセス/公式連絡・予約の180日以内確認数→各店の最古有効確認日が新しい順→正規化店名→正規app_shop_id UUID（旧データは安定WP ID）で安定比較。公式サイト/LINE等のOR候補は各々を先に有効期限判定し、古い予約証跡が新しい公式確認を隠さない。PRは別枠。2ページ超の逆順fixture、料金のみ/予約先のみ、同名UUID同点を静的契約で確認。 |
 | T54 | B01--B10 config/slot safety | 実行済 PASS | Library 素材・各提供条件/実在先の承認 |
 | T55 | WP-free lifecycle、area switch、provision、registration review、legacy one-to-one mapping fixture | 実行済 PASS | 写真/投稿を含む Chromium 完走、production legacy差分確認 |
 | T56 | managed CRUD/direct edit/revision/restore fixtures | 実行済 PASS | production 非変更確認と画面通過 |

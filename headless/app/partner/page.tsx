@@ -9,6 +9,7 @@ import { resolvePartnerActionFirstHome } from "@/lib/partner/partner-dashboard";
 import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
 import { pageMetadata } from "@/lib/seo";
+import { PartnerAccessReport } from "@/components/partner/PartnerAccessReport";
 
 export const instant = false;
 
@@ -90,6 +91,8 @@ export default async function PartnerDashboardPage() {
             </div>)}
           </dl> : <p className="hl-partner-home__unavailable" role="status">{home.performance.message}</p>}
         </section>
+
+        <PartnerAccessReport />
 
         <section id="partner-collect-reviews" className="hl-partner-home__section" aria-labelledby="partner-collect-reviews-heading">
           <div className="hl-partner-home__section-heading">
