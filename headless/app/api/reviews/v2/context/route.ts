@@ -15,7 +15,10 @@ export async function POST(request: NextRequest) {
   const selected = typeof body.therapistAssignmentId === "string" ? body.therapistAssignmentId : null;
   const context = await eskomiReviewV11Repository.context(body.entryHandle, hmac(`guest|${token}`), createHash("sha256").update(body.entryHandle).digest("hex"), selected);
   if (!context) return NextResponse.json({ ok: false, code: "CONTEXT_UNAVAILABLE" }, { status: 410 });
-  const response = NextResponse.json({ ok: true, context }, { headers: { "Cache-Control": "no-store" } });
+  // The returned short-lived credential is the tab-local fallback when a
+  // browser rejects cookies.  The form sends it in a header on every submit,
+  // so another tab cannot replace this context through the shared cookie.
+  const response = NextResponse.json({ ok: true, context, replayCredential: token }, { headers: { "Cache-Control": "no-store" } });
   response.cookies.set(COOKIE, token, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 });
   return response;
 }

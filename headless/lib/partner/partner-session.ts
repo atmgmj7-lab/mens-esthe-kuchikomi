@@ -47,7 +47,7 @@ export async function authorizePartnerLoginCompletion(input: { accessToken: stri
   if (!authUser || !partnerLoginStateMatchesEmail(input.state, authUser.email, process.env)) {
     return { status: "unauthenticated" as const };
   }
-  return authorizePartnerAccess({
+  const legacy = await authorizePartnerAccess({
     accessToken: input.accessToken,
     requestedWorkspaceId: null,
     requestedShopId: null,
@@ -55,6 +55,12 @@ export async function authorizePartnerLoginCompletion(input: { accessToken: stri
     ...dependencies,
     getUser: async (accessToken) => accessToken === input.accessToken ? authUser : null,
   });
+  if (legacy.status === "allowed") return legacy;
+  // Canonical-only workspaces intentionally have no wp_shop_id.  They still
+  // use the same verified Partner user and active membership; do not make a
+  // legacy dashboard projection a prerequisite for completing login.
+  const scope = await dependencies.getTherapistWorkspaceScope(authUser.id);
+  return scope ? { status: "allowed" as const, access: { workspaceId: scope.workspaceId, shopId: 1, shopSlug: "canonical-workspace", role: scope.role } } : legacy;
 }
 
 export async function authorizePartnerDashboardSession(input: {

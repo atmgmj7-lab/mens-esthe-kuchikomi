@@ -20,6 +20,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
   therapistName: string | null;
 }) {
   const idempotencyKeyRef = useRef<string | null>(null);
+  const replayCredentialRef = useRef<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [savedInput, setSavedInput] = useState<Draft | null>(null);
   const [status, setStatus] = useState<"input" | "submitting" | "success">("input");
@@ -41,7 +42,8 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     }).catch(() => undefined);
     void fetch("/api/reviews/v2/context/", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-v2" }, body: JSON.stringify({ entryHandle, therapistAssignmentId: selectedTherapistId }) })
       .then((response) => response.ok ? response.json() : null)
-      .then((payload) => { if (active && payload?.ok && payload.context?.shop_name) {
+      .then((payload) => { if (active && payload?.ok && payload.context?.shop_name && typeof payload.replayCredential === "string") {
+        replayCredentialRef.current = payload.replayCredential;
         setContext({ shopName: payload.context.shop_name, therapistName: typeof payload.context.therapist_display_name === "string" ? payload.context.therapist_display_name : null });
         if (payload.context.therapist_unavailable === true) setMessage("担当者は現在投稿対象ではありません。店舗のみの口コミとして続けられます。");
         setContextReady(true);
@@ -77,6 +79,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
         headers: {
           "Content-Type": "application/json",
           "X-ESKOMI-CSRF": "review-v2",
+          "X-ESKOMI-Replay-Credential": replayCredentialRef.current ?? "",
           "Idempotency-Key": idempotencyKeyRef.current ?? (idempotencyKeyRef.current = crypto.randomUUID()),
         },
         body: JSON.stringify({ entryHandle, ...draft }),
