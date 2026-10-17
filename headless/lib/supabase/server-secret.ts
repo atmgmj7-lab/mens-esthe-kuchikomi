@@ -39,3 +39,13 @@ export function createSupabaseServerHeaders(
   if (LEGACY_SERVICE_ROLE_JWT_RE.test(secretValue)) headers.Authorization = `Bearer ${secretValue}`;
   return headers;
 }
+
+/**
+ * Production Supabase exposes PostgREST below `/rest/v1`.  The disposable
+ * Docker acceptance database intentionally runs bare PostgREST instead, so
+ * keep that fixture-only transport detail at this server-side boundary.
+ */
+export function supabaseRpcUrl(baseUrl: string, functionName: string, environment: Environment = process.env): string {
+  const base = baseUrl.replace(/\/$/, "");
+  return `${base}${environment.ESKOMI_E2E_RAW_POSTGREST === "1" ? "/rpc" : "/rest/v1/rpc"}/${functionName}`;
+}

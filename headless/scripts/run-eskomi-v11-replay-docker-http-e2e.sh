@@ -19,6 +19,7 @@ dashboard_password="${ESKOMI_E2E_DASHBOARD_PASSWORD:-isolated-review-operator-pa
 access_context_secret="isolated-access-context-secret-0123456789"
 primary_partner_user="11111111-1111-4111-8111-111111111111"
 other_partner_user="22222222-2222-4222-8222-222222222222"
+operator_partner_user="33333333-3333-4333-8333-333333333333"
 
 cleanup() {
   docker rm -f "$browser_container" "$next_container" "$postgrest_container" "$database_container" >/dev/null 2>&1 || true
@@ -184,9 +185,121 @@ docker run -d --rm --name "$next_container" --network "$network_name" --network-
   --mount "type=bind,src=$headless_root,dst=/app" -w /app \
   -e SUPABASE_URL="http://postgrest:3000" -e SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" -e ESKOMI_E2E_RAW_POSTGREST=1 -e ESKOMI_REVIEW_REPLAY_KEY="$replay_key" \
   -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password" -e ESKOMI_ACCESS_CONTEXT_SECRET="$access_context_secret" \
+  -e SHOP_OWNER_REQUEST_DRY_RUN=true \
   node:24-bookworm-slim sh -c 'npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
 for _ in $(seq 1 90); do docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server' && break; sleep 1; done
 docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server'
+
+# Store-operation acceptance starts with public application and dashboard
+# moderation surfaces.  It uses only fresh fixture data on this internal
+# network; no production store, contact, or Auth identity is involved.
+docker run --rm --network "$network_name" \
+  -e ESKOMI_E2E_DASHBOARD_USER="$dashboard_user" -e ESKOMI_E2E_DASHBOARD_PASSWORD="$dashboard_password" -e ESKOMI_E2E_JWT="$service_role_jwt" \
+  node:24-bookworm-slim node -e '
+    const base="http://next:57000", postgrest="http://postgrest:3000/rpc/";
+    const origin=base, basic=`Basic ${Buffer.from(`${process.env.ESKOMI_E2E_DASHBOARD_USER}:${process.env.ESKOMI_E2E_DASHBOARD_PASSWORD}`).toString("base64")}`;
+    const fail=(m)=>{throw new Error(m)};
+    const json=async(path,init={},expected=200)=>{const r=await fetch(base+path,init),t=await r.text();let v;try{v=JSON.parse(t)}catch{v=null}if(r.status!==expected)fail(`${path} expected ${expected}, got ${r.status}: ${t}`);return v};
+    const rpc=async(name,body)=>{const r=await fetch(postgrest+name,{method:"POST",headers:{Authorization:`Bearer ${process.env.ESKOMI_E2E_JWT}`,apikey:process.env.ESKOMI_E2E_JWT,"Content-Type":"application/json","Content-Profile":"api","Accept-Profile":"api"},body:JSON.stringify(body)});if(!r.ok)fail(`${name} ${r.status}: ${await r.text()}`);return r.json()};
+    const payload=(shop_name,introduction)=>({shop_name,area_slug:"osaka-city",area_name:"大阪市",official_url:"https://example.test/operator",introduction,address:null,business_hours:null,phone:null,line_url:null,booking_url:null,basic_price:null,price_90:null,banner_asset_id:null,gallery_asset_ids:[]});
+    const listing=(kind, id, name, existing={})=>({idempotencyKey:id,kind,...existing,shopName:name,area:"大阪市",websiteUrl:"https://example.test/listing",introduction:"隔離掲載申請",contactName:"隔離担当",contactEmail:`${id.slice(0,8)}@fixture.test`,contactRole:"owner",editPreference:"shop",consentPrivacy:true,consentAccuracy:true,consentImageRights:true});
+    (async()=>{
+      const created=await json("/api/dashboard/managed-shops",{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json",Origin:origin,"X-ESKOMI-CSRF":"managed-shop-write"},body:JSON.stringify({action:"create_and_publish",slug:"v11-operator-e2e",payload:payload("Operator direct original","direct-original")})});
+      if(!created?.ok||typeof created.managedShopId!=="string")fail("operator direct create/publish failed");
+      const directRows=await rpc("list_published_managed_shops",{});if(!directRows.some(x=>x.shop_slug==="v11-operator-e2e"&&x.introduction==="direct-original"))fail("operator direct publication missing");
+      const registration=await json("/api/partner/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({shopSlug:"v11-operator-e2e",contactName:"隔離オーナー",contactRole:"owner",contactEmail:"operator-owner@fixture.test",confirmationDetails:"isolated fixture",sourceUrl:"https://example.test/ignored",consentTerms:true})});
+      if(!registration?.ok)fail("published canonical partner registration failed");
+      const reviews=await rpc("list_partner_registration_reviews_v11",{});const submission=reviews.find(x=>x.shop_slug==="v11-operator-e2e"&&x.contact_email==="operator-owner@fixture.test");
+      if(!submission?.submission_id)fail("partner registration queue missing fixture");
+      const approved=await json("/api/dashboard/partners/review",{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json"},body:JSON.stringify({submissionId:submission.submission_id,decision:"approved",reason:"isolated approval"})});
+      if(!approved?.ok||approved.review?.status!=="approved")fail(`partner registration approval did not persist: ${JSON.stringify(approved)}`);
+      console.log("Published store registration, approval, workspace linkage: PASS");
+
+      const newApplication=await json("/api/listing-applications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(listing("new_listing","a1010101-1111-4111-8111-111111111111","隔離未掲載店舗"))});
+      if(!newApplication?.ok||typeof newApplication.applicationId!=="string")fail("new listing application failed");
+      const before=await json("/api/listing-applications/public/");if(before.listings.some(x=>x.application_id===newApplication.applicationId))fail("unapproved listing leaked publicly");
+      const queued=await json("/api/dashboard/listing-applications",{headers:{Authorization:basic}});const pending=queued.applications.find(x=>x.id===newApplication.applicationId);if(!pending||pending.revision!==1)fail("new listing absent from dashboard queue");
+      await json(`/api/dashboard/listing-applications/${newApplication.applicationId}`,{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json"},body:JSON.stringify({expectedRevision:1,decision:"approved",note:"isolated approval"})});
+      const after=await json("/api/listing-applications/public/");if(!after.listings.some(x=>x.application_id===newApplication.applicationId&&x.shop_name==="隔離未掲載店舗"))fail("approved new listing missing public projection");
+      console.log("Unlisted store application, operator approval, public projection: PASS");
+
+      const existing={existingWpShopId:8400000000000123,existingShopSlug:"v11-existing-e2e"};
+      const first=await json("/api/listing-applications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(listing("existing_change","a2020202-2222-4222-8222-222222222222","既存店舗の初回申請",existing))});
+      const second=await json("/api/listing-applications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(listing("existing_change","a3030303-3333-4333-8333-333333333333","既存店舗の二回目申請",existing))});
+      for(const id of [first.applicationId,second.applicationId])await json(`/api/dashboard/listing-applications/${id}`,{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json"},body:JSON.stringify({expectedRevision:1,decision:"approved",note:"existing isolated approval"})});
+      const firstDetail=await json(`/api/dashboard/listing-applications/${first.applicationId}`,{headers:{Authorization:basic}}),secondDetail=await json(`/api/dashboard/listing-applications/${second.applicationId}`,{headers:{Authorization:basic}});
+      if(!firstDetail.application?.listing_store_id||firstDetail.application.listing_store_id!==secondDetail.application?.listing_store_id)fail("existing-store applications did not bind the same stable store");
+      const stable=await rpc("get_public_listing_store_by_slug",{p_shop_slug:"v11-existing-e2e"});if(stable.length!==1||stable[0].shop_name!=="既存店舗の二回目申請")fail("existing store public projection did not update stable target");
+      console.log("Existing store binds stable target without duplicate ownership: PASS");
+    })().catch(e=>{console.error(e);process.exit(1)});
+  '
+
+operator_fixture="$(docker exec -i "$database_container" psql -X -q -A -t -v ON_ERROR_STOP=1 -U postgres -d "$database_name" <<SQL
+do \$\$
+declare v_workspace uuid; v_store uuid;
+begin
+  select id into v_workspace from private.partner_workspaces where shop_slug='v11-operator-e2e';
+  if v_workspace is null then raise exception 'operator fixture workspace missing'; end if;
+  update private.partner_workspaces set state='active_partner' where id=v_workspace;
+  insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at)
+  values(v_workspace,'$operator_partner_user','owner','active',now()) on conflict (workspace_id,auth_user_id) do update set role='owner',status='active',accepted_at=now(),revoked_at=null;
+  v_store:=private.create_listing_store('v11-operator-e2e','店舗側の初期公開値','大阪市','https://example.test/partner-initial',v_workspace,null);
+  update private.listing_store_revisions set state='approved' where listing_store_id=v_store and revision=1;
+  insert into private.listing_store_publications(listing_store_id,approved_revision,shop_slug,shop_name,area,website_url,introduction,banner_asset_id)
+  values(v_store,1,'v11-operator-e2e','店舗側の初期公開値','大阪市','https://example.test/partner-initial','initial-public',null);
+end \$\$;
+select id || ',' || (select id from private.listing_stores where shop_slug='v11-operator-e2e') from private.partner_workspaces where shop_slug='v11-operator-e2e';
+SQL
+)"
+IFS=, read -r operator_workspace operator_listing_store <<< "$operator_fixture"
+
+docker run --rm --network "$network_name" \
+  -e ESKOMI_E2E_DASHBOARD_USER="$dashboard_user" -e ESKOMI_E2E_DASHBOARD_PASSWORD="$dashboard_password" -e ESKOMI_E2E_JWT="$service_role_jwt" \
+  -e ESKOMI_E2E_OPERATOR_WORKSPACE="$operator_workspace" -e ESKOMI_E2E_OPERATOR_STORE="$operator_listing_store" \
+  -e ESKOMI_E2E_PRIMARY_USER="$operator_partner_user" \
+  node:24-bookworm-slim node -e '
+    const base="http://next:57000", pg="http://postgrest:3000/rpc/", origin=base;
+    const basic=`Basic ${Buffer.from(`${process.env.ESKOMI_E2E_DASHBOARD_USER}:${process.env.ESKOMI_E2E_DASHBOARD_PASSWORD}`).toString("base64")}`;
+    const fail=m=>{throw new Error(m)};
+    const rpc=async(name,body)=>{const r=await fetch(pg+name,{method:"POST",headers:{Authorization:`Bearer ${process.env.ESKOMI_E2E_JWT}`,apikey:process.env.ESKOMI_E2E_JWT,"Content-Type":"application/json","Content-Profile":"api","Accept-Profile":"api"},body:JSON.stringify(body)});if(!r.ok)fail(`${name} ${r.status}: ${await r.text()}`);return r.json()};
+    const json=async(path,init={},expected=200)=>{const r=await fetch(base+path,init),t=await r.text();let v;try{v=JSON.parse(t)}catch{v=null}if(r.status!==expected)fail(`${path} expected ${expected}, got ${r.status}: ${t}`);return v};
+    const workspace=process.env.ESKOMI_E2E_OPERATOR_WORKSPACE,store=process.env.ESKOMI_E2E_OPERATOR_STORE,user=process.env.ESKOMI_E2E_PRIMARY_USER;
+    const draft=introduction=>({shop_name:"店舗側の初期公開値",area:"大阪市",website_url:"https://example.test/partner-initial",introduction,banner_asset_id:null});
+    (async()=>{
+      if(await rpc("save_partner_listing_draft",{p_workspace_id:workspace,p_expected_revision:1,p_payload:draft("承認待ちの変更値")})!=="ok")fail("partner listing draft was not saved");
+      if(await rpc("submit_partner_listing_change",{p_workspace_id:workspace,p_expected_revision:2})!=="ok")fail("partner listing change was not submitted");
+      const before=await rpc("get_public_listing_store_by_slug",{p_shop_slug:"v11-operator-e2e"});if(before.length!==1||before[0].introduction!=="initial-public")fail("unapproved partner change leaked publicly");
+      const queue=await json("/api/dashboard/partner-listing-revisions",{headers:{Authorization:basic}});const pending=queue.revisions.find(x=>x.store_id===store&&x.revision===2);if(!pending)fail("partner listing review queue missing submitted revision");
+      await json("/api/dashboard/partner-listing-revisions",{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json"},body:JSON.stringify({storeId:store,revision:2,decision:"approved",note:"isolated listing approval"})});
+      const after=await rpc("get_public_listing_store_by_slug",{p_shop_slug:"v11-operator-e2e"});if(after.length!==1||after[0].introduction!=="承認待ちの変更値")fail("approved partner change did not update public projection");
+      console.log("Partner change stays private until dashboard approval: PASS");
+
+      const directPayload={shop_name:"Operator direct edited",area_slug:"osaka-city",area_name:"大阪市",official_url:"https://example.test/operator-direct",introduction:"direct-published",address:null,business_hours:null,phone:null,line_url:null,booking_url:null,basic_price:null,price_90:null,banner_asset_id:null,gallery_asset_ids:[]};
+      const managed=(await rpc("list_published_managed_shops",{})).find(x=>x.shop_slug==="v11-operator-e2e");if(!managed?.managed_shop_id||!Number.isInteger(managed.approved_revision))fail("operator managed fixture missing");
+      const direct=await json("/api/dashboard/managed-shops",{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json",Origin:origin,"X-ESKOMI-CSRF":"managed-shop-write"},body:JSON.stringify({action:"save_and_publish",managedShopId:managed.managed_shop_id,expectedRevision:managed.approved_revision,payload:directPayload})});
+      if(!direct?.ok)fail("operator direct edit failed");
+      const changed=(await rpc("list_published_managed_shops",{})).find(x=>x.shop_slug==="v11-operator-e2e");if(changed?.introduction!=="direct-published")fail("operator direct edit was not immediately public");
+      console.log("Operator direct edit publishes without a partner request: PASS");
+
+      const photoKey=await rpc("reserve_partner_therapist_photo_upload",{p_workspace_id:workspace,p_auth_user_id:user,p_content_type:"image/png"});
+      if(typeof photoKey!=="string")fail("therapist photo reservation failed");
+      const photoAsset=await rpc("attach_partner_therapist_photo",{p_workspace_id:workspace,p_auth_user_id:user,p_object_key:photoKey,p_sha256:"a".repeat(64),p_content_type:"image/png",p_byte_size:1,p_width:1,p_height:1});
+      if(typeof photoAsset!=="string")fail("therapist photo attachment failed");
+      const therapists=await rpc("create_partner_therapist_assignment",{p_workspace_id:workspace,p_auth_user_id:user,p_display_name:"隔離セラピスト",p_photo_asset_id:photoAsset,p_permission_policy_version:"fixture-rights-v1",p_permission_confirmed:true});
+      const therapist=therapists[0];if(!therapist?.assignment_id||therapist.display_name!=="隔離セラピスト"||therapist.photo_asset_id!==photoAsset)fail("therapist rights-confirmed registration failed");
+      const links=await rpc("create_partner_review_entry_link",{p_workspace_id:workspace,p_auth_user_id:user,p_therapist_assignment_id:therapist.assignment_id,p_channel:"line"});
+      const link=links[0];if(!link?.public_handle||link.therapist_display_name!=="隔離セラピスト")fail("dedicated therapist review link failed");
+      const selection=await json("/api/reviews/v2/therapists/",{method:"POST",headers:{"Content-Type":"application/json",Origin:origin,"X-ESKOMI-CSRF":"review-v2"},body:JSON.stringify({entryHandle:link.public_handle})});
+      if(!selection?.ok||!Array.isArray(selection.therapists)||selection.therapists.length!==0)fail(`dedicated link unexpectedly offers a replaceable therapist selection: ${JSON.stringify(selection)}`);
+      const profile=await rpc("get_public_therapist_profile_v11",{p_assignment_id:therapist.assignment_id,p_limit:20});if(profile.length!==1||profile[0].display_name!=="隔離セラピスト"||profile[0].photo_asset_id!==photoAsset)fail("public therapist identity/photo projection missing");
+      const context=await json("/api/reviews/v2/context/",{method:"POST",headers:{"Content-Type":"application/json",Origin:origin,"X-ESKOMI-CSRF":"review-v2"},body:JSON.stringify({entryHandle:link.public_handle,therapistAssignmentId:null})});
+      if(context?.context?.therapist_display_name!=="隔離セラピスト")fail("dedicated review context missing therapist");
+      const retired=(await rpc("end_partner_therapist_assignment",{p_workspace_id:workspace,p_auth_user_id:user,p_assignment_id:therapist.assignment_id,p_expected_revision:therapist.revision}))[0];if(retired?.lifecycle_state!=="retired")fail("therapist retirement failed");
+      const fallback=await json("/api/reviews/v2/context/",{method:"POST",headers:{"Content-Type":"application/json",Origin:origin,"X-ESKOMI-CSRF":"review-v2"},body:JSON.stringify({entryHandle:link.public_handle,therapistAssignmentId:null})});
+      if(fallback?.context?.therapist_display_name!==null||fallback?.context?.therapist_unavailable!==true)fail("retired dedicated link did not fall back to store-only context");
+      console.log("Therapist rights, dedicated link, name/photo projection, and retirement fallback: PASS");
+    })().catch(e=>{console.error(e);process.exit(1)});
+  '
 
 docker run --rm --network "$network_name" \
   -e ESKOMI_E2E_ENTRY_HANDLE="$entry_handle" \

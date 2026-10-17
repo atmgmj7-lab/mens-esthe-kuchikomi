@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 type Fetch = typeof fetch;
@@ -146,7 +146,7 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
   async function rpc(name: string, body: Record<string, unknown>, cache: RequestCache = "no-store"): Promise<unknown | null> {
     if (!endpoint || !secret) return null;
     try {
-      const response = await fetchImpl(`${endpoint}/rest/v1/rpc/${name}`, {
+      const response = await fetchImpl(supabaseRpcUrl(endpoint, name, environment), {
         method: "POST",
         headers: createSupabaseServerHeaders(secret, {
           "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api",

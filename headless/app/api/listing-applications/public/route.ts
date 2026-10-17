@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 
 export async function GET() {
   const base = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const secret = resolveSupabaseServerSecret();
   if (!base || !secret) return NextResponse.json({ ok: true, listings: [] });
-  const response = await fetch(`${base}/rest/v1/rpc/get_public_listing_projections`, {
+  const response = await fetch(supabaseRpcUrl(base, "get_public_listing_projections"), {
     method: "POST",
     headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "api" }),
     body: "{}",

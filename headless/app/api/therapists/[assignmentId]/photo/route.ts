@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 import { isPublicTherapistId } from "@/lib/public-therapist";
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ assignmentId: string }> }) {
@@ -9,7 +9,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ assign
   const base = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const secret = resolveSupabaseServerSecret();
   if (!base || !secret) return new NextResponse(null, { status: 404 });
-  const projection = await fetch(`${base}/rest/v1/rpc/get_public_therapist_photo_v11`, {
+  const projection = await fetch(supabaseRpcUrl(base, "get_public_therapist_photo_v11"), {
     method: "POST",
     headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }),
     body: JSON.stringify({ p_assignment_id: assignmentId }),

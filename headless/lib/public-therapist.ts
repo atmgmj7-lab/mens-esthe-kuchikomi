@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 
 export type PublicTherapistSummary = Readonly<{
   assignmentId: string;
@@ -26,7 +26,7 @@ async function rpc(name: string, body: Record<string, unknown>): Promise<unknown
   const secret = resolveSupabaseServerSecret();
   if (!base || !secret) return null;
   try {
-    const response = await fetch(`${base}/rest/v1/rpc/${name}`, {
+    const response = await fetch(supabaseRpcUrl(base, name), {
       method: "POST",
       headers: createSupabaseServerHeaders(secret.value, {
         "Content-Type": "application/json",

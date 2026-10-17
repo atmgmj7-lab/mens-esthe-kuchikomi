@@ -24,6 +24,12 @@ PostgREST access dedupe view=1 line=1: PASS
 Next-to-PostgREST review context HTTP: PASS
 Customer submit and same-payload replay: PASS
 Fixture dashboard Basic Auth + CSRF approval: PASS
+Published store registration, approval, workspace linkage: PASS
+Unlisted store application, operator approval, public projection: PASS
+Existing store binds stable target without duplicate ownership: PASS
+Partner change stays private until dashboard approval: PASS
+Operator direct edit publishes without a partner request: PASS
+Therapist rights, dedicated link, name/photo projection, and retirement fallback: PASS
 Benefit issue, shop-bound redemption, and double-redemption rejection: PASS
 Public reader and widget show approved review: PASS
 Guest withdrawal hides reader and widget: PASS
@@ -65,5 +71,37 @@ The lifecycle uses real HTTP in this order:
    view twice and the LINE click once under the same cookie. The fixture DB is
    required to contain `shop_view_count=1` and `official_line_click_count=1`.
 
-This is HTTP/API evidence, not Chromium/UI evidence. It does not test a real
-user login, production Supabase, production deployment, or browser rendering.
+7. The store-operation portion creates and publishes a canonical fixture store
+   through the CSRF-protected dashboard endpoint, submits
+   `POST /api/partner/register`, and approves it through
+   `POST /api/dashboard/partners/review`. It then submits a previously
+   unlisted listing through `POST /api/listing-applications`, confirms that it
+   is absent from `GET /api/listing-applications/public/` before approval, and
+   confirms the public projection after dashboard approval.
+
+8. Two `existing_change` applications for the same local legacy identity are
+   approved through the dashboard. Their dashboard details must reference the
+   same stable listing-store id, and the second approved content must update
+   that one public store. The fixture never attaches a workspace ownership
+   claim to this existing-store flow.
+
+9. A fixture Partner workspace submits a listing revision over named raw
+   PostgREST `/rpc`; the dashboard review endpoint is the HTTP approval step.
+   The public projection is required to remain at its prior value until that
+   approval. A dashboard `save_and_publish` then proves a direct operator edit
+   is public without a Partner request.
+
+10. A rights-confirmed fixture therapist photo asset, therapist assignment,
+    and dedicated LINE review link are created through the service-only RPC
+    boundary. The test verifies the dedicated link keeps selection fixed, the
+    review context contains the target name, the public profile projection
+    contains the target name and photo asset id, and retirement changes the
+    dedicated context to store-only with `therapist_unavailable=true`.
+
+This is HTTP/API evidence, not Chromium/UI evidence. It does not test real
+Supabase Auth session issuance, email delivery, an actual Storage object byte
+read for the therapist photo, production Supabase, production deployment, or
+browser rendering. The Partner-session routes remain intentionally untested
+here rather than being passed off as real Auth; their authorized mutation
+contracts are exercised only with disposable fixture memberships and actual
+isolated PostgREST HTTP.

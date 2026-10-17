@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { PartnerRegistrationData } from "@/lib/partner/registration-validation";
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 import {
   PARTNER_REVIEW_CAMPAIGN_CHANNELS,
   PARTNER_WORKSPACE_STATES,
@@ -43,7 +43,7 @@ export const partnerWorkspaceRepository: PartnerWorkspaceRepository = {
       // The canonical endpoint returns no rows for an unmapped legacy shop.
       // A non-OK response is never allowed to fall through to the legacy RPC:
       // doing so could treat a managed directory id as a WordPress id.
-      const canonical = await fetch(`${baseUrl}/rest/v1/rpc/provision_partner_workspace_for_published_managed_shop`, {
+      const canonical = await fetch(supabaseRpcUrl(baseUrl, "provision_partner_workspace_for_published_managed_shop"), {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -59,7 +59,7 @@ export const partnerWorkspaceRepository: PartnerWorkspaceRepository = {
         return { id: canonicalRow.workspace_id, state: canonicalRow.state, initialized: canonicalRow.initialized === true };
       }
 
-      const response = await fetch(`${baseUrl}/rest/v1/rpc/provision_partner_workspace`, {
+      const response = await fetch(supabaseRpcUrl(baseUrl, "provision_partner_workspace"), {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -277,7 +277,7 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return [];
     try {
-      const response = await fetch(`${baseUrl}/rest/v1/rpc/list_partner_registration_reviews_v11`, {
+      const response = await fetch(supabaseRpcUrl(baseUrl, "list_partner_registration_reviews_v11"), {
         method: "POST",
         headers,
         body: "{}",
@@ -294,7 +294,7 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return null;
     try {
-      const response = await fetch(`${baseUrl}/rest/v1/rpc/review_partner_registration_v11`, {
+      const response = await fetch(supabaseRpcUrl(baseUrl, "review_partner_registration_v11"), {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -430,7 +430,7 @@ export async function savePartnerRegistration(input: {
   const headers = serviceHeaders();
   if (!baseUrl || !headers) return { ok: false };
   try {
-    const response = await fetch(`${baseUrl}/rest/v1/rpc/register_partner_submission`, {
+    const response = await fetch(supabaseRpcUrl(baseUrl, "register_partner_submission"), {
       method: "POST",
       headers,
       body: JSON.stringify({
