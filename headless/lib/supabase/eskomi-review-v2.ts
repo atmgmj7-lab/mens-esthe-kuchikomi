@@ -26,6 +26,15 @@ export type EskomiReviewSubmission = Readonly<{
   therapistBody: string | null;
 }>;
 
+export type EskomiPublicReview = Readonly<{
+  publicHandle: string;
+  rating: number;
+  body: string;
+  displayName: string;
+  therapistDisplayName: string | null;
+  publishedAt: string;
+}>;
+
 type Configuration = Readonly<{
   baseUrl: string | undefined;
   serviceRoleKey: string | undefined;
@@ -77,6 +86,23 @@ function validSubmission(value: EskomiReviewSubmission): boolean {
         && typeof value.therapistBody === "string" && value.therapistBody.trim().length >= 1 && value.therapistBody.trim().length <= 4000));
 }
 
+function parsePublicReview(value: unknown): EskomiPublicReview | null {
+  if (!record(value) || !UUID_RE.test(String(value.public_handle ?? ""))
+    || !Number.isInteger(value.rating) || (value.rating as number) < 1 || (value.rating as number) > 5
+    || typeof value.body !== "string" || !value.body.trim()
+    || typeof value.display_name !== "string" || !value.display_name.trim()
+    || !(typeof value.therapist_display_name === "string" || value.therapist_display_name === null)
+    || typeof value.published_at !== "string" || Number.isNaN(Date.parse(value.published_at))) return null;
+  return {
+    publicHandle: value.public_handle as string,
+    rating: value.rating as number,
+    body: value.body,
+    displayName: value.display_name,
+    therapistDisplayName: value.therapist_display_name as string | null,
+    publishedAt: value.published_at,
+  };
+}
+
 export function createEskomiReviewV2Repository(configuration: Configuration) {
   const url = baseUrl(configuration.baseUrl);
   const secret = configuration.serviceRoleKey;
@@ -126,6 +152,13 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
       if (!Array.isArray(result) || result.length !== 1 || !record(result[0])
         || !UUID_RE.test(String(result[0].experience_id ?? "")) || typeof result[0].replayed !== "boolean") return null;
       return { experienceId: result[0].experience_id as string, replayed: result[0].replayed };
+    },
+    async listPublications(shopSlug: string): Promise<readonly EskomiPublicReview[] | null> {
+      if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(shopSlug)) return null;
+      const result = await rpc("list_public_review_publications", { p_shop_slug: shopSlug, p_limit: 20, p_offset: 0 });
+      if (!Array.isArray(result)) return null;
+      const publications = result.map(parsePublicReview);
+      return publications.every((publication): publication is EskomiPublicReview => publication !== null) ? publications : null;
     },
   };
 }
