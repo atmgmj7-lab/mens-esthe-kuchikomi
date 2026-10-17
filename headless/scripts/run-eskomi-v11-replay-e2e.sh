@@ -58,6 +58,7 @@ for acceptance in \
   verify_eskomi_review_entry_v2.sql \
   verify_eskomi_review_entry_therapist_selection.sql \
   verify_eskomi_partner_therapist_tools.sql \
+  verify_eskomi_public_profiles_access.sql \
   verify_eskomi_v11_acceptance_hardening.sql \
   verify_eskomi_v11_operations.sql \
   verify_eskomi_v11_rpc_contract.sql \

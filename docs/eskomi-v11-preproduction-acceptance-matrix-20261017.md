@@ -147,14 +147,14 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T40 | widget failure contract | 実行済 PASS | DB/API/cache 障害注入は未試験 |
 | T41 | common public projection | 実行済 PASS | all-surface HTTP 比較は未試験 |
 | T42 | embed/RPC privacy contract | 実行済 PASS | third-party cookie browser は未試験 |
-| T43 | owner/manager growth/widget/POP flow、店舗別の匿名日次閲覧/公式LINEクリック報告（予約・来店・売上とは分離） | 実装済 | 人手の copy/paste/embed、実Auth報告画面、日次0/欠測比較は未試験 |
+| T43 | owner/manager growth/widget/POP flow、店舗別の匿名日次閲覧/公式LINEクリック報告（予約・来店・売上とは分離） | 実装済・隔離PG PASS | 7/28/90日（前期比較は最大180日）をJST日付で取得し、日次確認済みの0と新店・通信停止・欠測の未計測を分離。短期匿名browser hashの同日同対象重複を除外し、raw IP/本文/編集控え/特典コードを保持しない。実Auth画面・Chromium/HTTPは環境接続待ち。 |
 | T44 | transient credential controls | 実行済 PASS | 実ブラウザ cookie lifecycle は未試験 |
 | T45 | GET side-effect/idempotency controls | 実行済 PASS | link-preview 実HTTPは未試験 |
 | T46 | neutral fraud controls | 実行済 PASS | 実IP/複数browserは未試験 |
 | T47 | private-control SQL | 実行済 PASS | production analytics/log audit 待ち |
 | T48 | neutral review-flag controls | 実行済 PASS | retention/key rotation 実運用待ち |
 | T49 | correction intake/moderation | 実行済 PASS | UI/HTTP は未試験 |
-| T50 | community の審査・自己取り下げ、API/画面の未処理・履歴ページ切替、最新hide event/revisionに束縛した異議 | 実装済 | fresh PGで本人撤回済み行の除外、51件超/1000件超履歴、古い異議の再審査拒否を再実行。通報は自動非公開にせず運営の再審査へ戻す。 |
+| T50 | community の審査・自己取り下げ、API/画面の未処理・履歴ページ切替、最新hide event/revisionに束縛した異議 | 実装済・隔離PG PASS | fresh PGで本人撤回済み行の除外、51件超/1000件超履歴、古い異議の再審査拒否を再実行。既存未解決異議は現行の対象revision/eventを証明できる時だけ束縛し、証明不能なものは監査付き要確認へ移して運営がdismiss可能。通報は自動非公開にせず運営の再審査へ戻す。 |
 | T51 | reaction expiry/concurrency | 実行済 PASS | UI/HTTP は未試験 |
 | T52 | read-only candidate mechanism | ユーザー前提待ち | 権利・正規ID・実画像の確認 |
 | T53 | R1--R4 ranking | 実行済 PASS | hub・通常地域とも全候補をページング前に、地域関係→料金/営業時間/アクセス/公式連絡・予約の180日以内確認数→各店の最古有効確認日が新しい順→正規化店名→正規app_shop_id UUID（旧データは安定WP ID）で安定比較。公式サイト/LINE等のOR候補は各々を先に有効期限判定し、古い予約証跡が新しい公式確認を隠さない。PRは別枠。2ページ超の逆順fixture、料金のみ/予約先のみ、同名UUID同点を静的契約で確認。 |

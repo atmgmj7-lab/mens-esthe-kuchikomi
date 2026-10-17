@@ -23,6 +23,9 @@ done < <(git -C "$repo_root" ls-tree -r --name-only bf46aa1 -- supabase/migratio
 docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/fixture_eskomi_populated_upgrade_pre143.sql"
 for migration in "$repo_root"/supabase/migrations/*.sql; do
   [[ "$(basename "$migration")" > "20261017140000_eskomi_review_entry_therapist_selection.sql" ]] || continue
+  if [[ "$(basename "$migration")" == "20261017170000_eskomi_public_therapist_profiles.sql" ]]; then
+    docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/fixture_eskomi_community_appeal_pre171710.sql"
+  fi
   docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$migration"
 done
 docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/verify_eskomi_populated_upgrade.sql"

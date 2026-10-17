@@ -6,6 +6,24 @@ import { useEffect } from "react";
 import { GA_MEASUREMENT_ID, gaEvent, pageview } from "@/lib/gtag";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
 
+const ACCESS_BROWSER_TAG_KEY = "eskomi-public-access-tag-v1";
+
+function publicAccessBrowserTag() {
+  try {
+    const existing = window.sessionStorage.getItem(ACCESS_BROWSER_TAG_KEY);
+    if (existing && /^[0-9a-f]{32}$/i.test(existing)) return existing;
+    const tag = crypto.randomUUID().replaceAll("-", "");
+    window.sessionStorage.setItem(ACCESS_BROWSER_TAG_KEY, tag);
+    return tag;
+  } catch { return null; }
+}
+
+function recordPublicShopAccess(shopSlug: string, eventKind: "shop_view" | "official_line_click") {
+  const browserTag = publicAccessBrowserTag();
+  if (!browserTag) return;
+  void fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind, browserTag }), keepalive: true, cache: "no-store" }).catch(() => undefined);
+}
+
 function isExternalHref(href: string): boolean {
   if (!href || href.startsWith("#") || href.startsWith("/") || href.startsWith("tel:")) {
     return false;
@@ -50,7 +68,7 @@ export function GoogleAnalytics() {
     const shopSlug = normalizePublicShopSlug(
       pathname.match(/^\/shops\/([^/]+)\/?$/)?.[1] || ""
     );
-    if (shopSlug) void fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind: "shop_view" }), keepalive: true, cache: "no-store" }).catch(() => undefined);
+    if (shopSlug) recordPublicShopAccess(shopSlug, "shop_view");
     if (!GA_MEASUREMENT_ID) return;
     if (shopSlug) {
       gaEvent("shop_view", {
@@ -82,7 +100,7 @@ export function GoogleAnalytics() {
           anchor.getAttribute("data-shop-slug") || ""
         );
         const shopSlug = dataShopSlug || pathShopSlug;
-        if (ctaKind === "line" && shopSlug) void fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind: "official_line_click" }), keepalive: true, cache: "no-store" }).catch(() => undefined);
+        if (ctaKind === "line" && shopSlug) recordPublicShopAccess(shopSlug, "official_line_click");
         if (!GA_MEASUREMENT_ID) return;
         const ctaPosition =
           anchor.getAttribute("data-shop-cta-position") || "unknown";
