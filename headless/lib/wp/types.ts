@@ -95,6 +95,8 @@ export type ShopMediaView = {
 
 export type ShopView = {
   id: number;
+  /** app.shops UUID when the canonical reader supplied it; legacy WP IDs remain a compatibility fallback. */
+  canonicalShopId?: string;
   publicationStatus?: string;
   slug: string;
   link: string;

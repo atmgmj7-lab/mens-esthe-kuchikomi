@@ -7,27 +7,29 @@ import { buildAreaVerifiedLineComparison } from "@/lib/area-verified-line-compar
 import type { AreaView, ShopFactProvenance, ShopView } from "@/lib/wp/types";
 
 type OrderingArea = Pick<AreaView, "id" | "slug" | "name">;
-const SIGNALS = ["hours", "official", "line", "access"] as const;
+// R3: price (including duration/add-ons), hours, access, and official contact
+// / booking are the only natural-order inputs.  Four fields, no copy/images.
+const SIGNALS = ["price", "hours", "access", "officialBooking"] as const;
 type Signal = typeof SIGNALS[number];
 const RELATION_PRIORITY = { core: 0, walkable: 0, nearby: 1, related: 2, dispatch: 3, unknown: 4 } as const;
 
 export function isAreaInformationOrderingTarget(area: Pick<AreaView, "id" | "slug">): boolean {
-  return (area.id === 13 && area.slug === "shinosaka") || (area.id === 17 && area.slug === "sakai");
+  return Boolean(area.slug);
 }
 
 /** Field evidence, never raw string volume, price, review count or business closing time. */
 export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea) {
   const model = buildShopDetailViewModel(shop, area.name);
   const lineVerified = buildAreaVerifiedLineComparison(area, [shop]).length === 1;
+  const verifiedWithin180Days = (value: ShopFactProvenance | null) => value !== null && Date.parse(value.reviewedAt) >= Date.now() - 180 * 24 * 60 * 60 * 1000;
   const breakdown = SIGNALS.map((signal) => {
-    const field = signal === "line" ? "booking" : signal;
+    const field = signal === "officialBooking" ? (model.actions.some((action) => action.kind === "official") ? "official" : "booking") : signal;
     const evidence = resolveVerifiedShopFactProvenance(field, model, shop.acf.shop_fact_provenance);
-    const available = signal === "line" ? lineVerified
-      : signal === "official" ? model.actions.some((action) => action.kind === "official")
+    const available = signal === "officialBooking" ? (lineVerified || model.actions.some((action) => action.kind === "official"))
         : model.infoRows.some((row) => signal === "access"
           ? (row.key === "address" || row.key === "station") && Boolean(row.value)
           : row.key === "hours" && Boolean(row.value));
-    const provenance: ShopFactProvenance | null = available && evidence ? evidence : null;
+    const provenance: ShopFactProvenance | null = available && verifiedWithin180Days(evidence) ? evidence : null;
     return {
       signal, verified: provenance !== null, points: provenance ? 1 : 0,
       reason: provenance ? "official-current-value-verified" : "missing-or-unverified-fact",
@@ -35,7 +37,7 @@ export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea) {
     };
   });
   const verifiedSignals = breakdown.filter((item) => item.verified).map((item) => item.signal);
-  // Only field-level review dates from accepted evidence. No generic post modification time.
+  // R4 uses the oldest accepted confirmation, not generic modification time.
   const dates = breakdown.flatMap(({ provenance }) => provenance ? [Date.parse(provenance.reviewedAt)] : []);
   return {
     relation: classifyShopRelation(shop, area),
@@ -43,7 +45,7 @@ export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea) {
     breakdown,
     eligibleSignals: [...SIGNALS],
     verifiedSignals,
-    freshnessTimestamp: dates.length ? Math.max(...dates) : 0,
+    freshnessTimestamp: dates.length ? Math.min(...dates) : 0,
   };
 }
 
@@ -51,18 +53,20 @@ type OrderingFacts = ReturnType<typeof normalizeAreaOrderingFacts>;
 type OrderingEntry = OrderingFacts & { shop: ShopView };
 
 function comparison(a: OrderingEntry, b: OrderingEntry): { difference: number; reason: string } {
+  const aIdentity = a.shop.canonicalShopId ?? String(a.shop.id).padStart(16, "0");
+  const bIdentity = b.shop.canonicalShopId ?? String(b.shop.id).padStart(16, "0");
   const dimensions = [
     { difference: RELATION_PRIORITY[a.relation] - RELATION_PRIORITY[b.relation], reason: "area-relation" },
     { difference: b.totalScore - a.totalScore, reason: "verified-information-count" },
-    { difference: b.freshnessTimestamp - a.freshnessTimestamp, reason: "verified-review-date" },
+    { difference: a.freshnessTimestamp - b.freshnessTimestamp, reason: "oldest-verified-review-date" },
     // Explicit UTF-16 code-unit comparison keeps server/client/runtime locale out of tie-breaking.
     { difference: a.shop.title < b.shop.title ? -1 : a.shop.title > b.shop.title ? 1 : 0, reason: "shop-title" },
-    { difference: a.shop.id - b.shop.id, reason: "wp-id" },
+    { difference: aIdentity < bIdentity ? -1 : aIdentity > bIdentity ? 1 : 0, reason: "canonical-shop-id" },
   ];
   return dimensions.find(({ difference }) => difference !== 0) ?? { difference: 0, reason: "same-shop" };
 }
 
-/** Lexicographic relation > verified count > review date > title > WP ID. PR has a separate display slot. */
+/** R1–R4 lexicographic relation > four verified facts > oldest confirmation > normalized name > stable ID. PR has a separate display slot. */
 export function buildAreaShopOrdering(shops: readonly ShopView[], area: OrderingArea) {
   const entries = shops.filter((shop) => !shop.ranking.isPr)
     .map((shop) => ({ shop, ...normalizeAreaOrderingFacts(shop, area) }))

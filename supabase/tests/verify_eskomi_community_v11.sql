@@ -51,5 +51,24 @@ begin
  select revision into r from private.community_posts_v11 where id=p;
  if api.withdraw_community_post_v11(p,repeat('3',64),r)<>'withdrawn' then raise exception 'community withdrawal failed'; end if;
  if exists(select 1 from api.list_public_community_posts_v11(s,null,null)) then raise exception 'withdrawn community post leaked'; end if;
+ -- A report is idempotent, is private, and does not itself remove public text.
+ select post_id,revision into p,r from api.submit_community_post_v11('shop',s,null,'通報・再審査の確認用',repeat('c',64),repeat('d',64),repeat('e',64),repeat('f',64),encode(extensions.digest('shop'||chr(31)||s::text||chr(31)||'通報・再審査の確認用','sha256'),'hex'));
+ perform api.moderate_community_post_v11(p,'approved','safe',r);
+ select result.report_id,result.revision,result.replayed into c,r,replayed from api.submit_community_report_v11(p,'personal_data','個人情報の疑い',repeat('1',64),repeat('2',64),encode(extensions.digest(p::text||chr(31)||'personal_data'||chr(31)||'個人情報の疑い','sha256'),'hex')) result;
+ if replayed or not exists(select 1 from api.list_public_community_posts_v11(s,null,null) where post_id=p) then raise exception 'report should not auto-unpublish'; end if;
+ select result.replayed into replayed from api.submit_community_report_v11(p,'personal_data','個人情報の疑い',repeat('1',64),repeat('2',64),encode(extensions.digest(p::text||chr(31)||'personal_data'||chr(31)||'個人情報の疑い','sha256'),'hex')) result;
+ if not replayed then raise exception 'community report idempotency failed'; end if;
+ if api.review_community_report_v11(c,'reopen_review','re-review required',r)<>'reopen_review' then raise exception 'community report reopen failed'; end if;
+ if exists(select 1 from api.list_public_community_posts_v11(s,null,null) where post_id=p) or (select moderation_state from private.community_posts_v11 where id=p)<>'pending' then raise exception 'report reopen did not safely hide for review'; end if;
+ select revision into r from private.community_posts_v11 where id=p; perform api.moderate_community_post_v11(p,'approved','reapproved',r);
+ -- Appeals are receipt-bound and return a rejected post to pending review.
+ select post_id,revision into p3,r from api.submit_community_post_v11('shop',s,null,'異議申立ての確認用',repeat('a',64),repeat('b',64),repeat('c',64),repeat('d',64),encode(extensions.digest('shop'||chr(31)||s::text||chr(31)||'異議申立ての確認用','sha256'),'hex'));
+ perform api.moderate_community_post_v11(p3,'rejected','not now',r);
+ select result.appeal_id,result.revision,result.replayed into c,r,replayed from api.submit_community_appeal_v11(repeat('a',64),'事実確認をお願いします',repeat('3',64),encode(extensions.digest(repeat('a',64)||chr(31)||'事実確認をお願いします','sha256'),'hex')) result;
+ if replayed then raise exception 'first community appeal replayed'; end if;
+ select result.replayed into replayed from api.submit_community_appeal_v11(repeat('a',64),'事実確認をお願いします',repeat('3',64),encode(extensions.digest(repeat('a',64)||chr(31)||'事実確認をお願いします','sha256'),'hex')) result;
+ if not replayed then raise exception 'community appeal idempotency failed'; end if;
+ if api.review_community_appeal_v11(c,'reopen_review','appeal accepted',r)<>'reopen_review' then raise exception 'community appeal reopen failed'; end if;
+ if (select moderation_state from private.community_posts_v11 where id=p3)<>'pending' or not exists(select 1 from private.community_moderation_events_v11 where entity_kind='community_post' and entity_id=p3 and action='appeal_reopen_review') then raise exception 'appeal history missing'; end if;
 end $$;
 rollback;

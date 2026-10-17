@@ -50,6 +50,22 @@ export async function POST(request: NextRequest) {
     const result = Array.isArray(value) && value.length === 1 ? value[0] : null;
     return result ? tagResponse({ ok: true, withdrawal: result }, token) : response({ ok: false, code: "UNAVAILABLE" }, 503);
   }
+  if (action === "report") {
+    if (typeof input.postId !== "string" || !UUID.test(input.postId) || typeof input.reasonCode !== "string" || !["personal_data", "threat", "discrimination", "unfounded_serious_claim", "explicit", "illegal_solicitation", "spam", "other"].includes(input.reasonCode) || typeof input.detail !== "string" || input.detail.trim().length > 400 || typeof input.idempotencyKey !== "string" || !UUID.test(input.idempotencyKey)) return response({ ok: false, code: "INVALID" }, 400);
+    const submissionToken = mutationBrowser(request); const detail = input.detail.trim();
+    const value = await eskomiCommunityV11Repository.rpc("submit_community_report_v11", { p_post_id: input.postId, p_reason_code: input.reasonCode, p_detail: detail, p_scope_hash: hmac(secret, `community-report|${submissionToken}`), p_idempotency_hash: createHash("sha256").update(input.idempotencyKey).digest("hex"), p_payload_hash: createHash("sha256").update([input.postId, input.reasonCode, detail].join("\u001f")).digest("hex") });
+    if (isRpcError(value)) return response({ ok: false, code: value.code === "22023" ? "REPLAY_MISMATCH" : "POST_CHANGED" }, value.code === "22023" ? 409 : 404);
+    const result = Array.isArray(value) && value.length === 1 ? value[0] : null;
+    return result ? tagResponse({ ok: true, report: result }, token, 201) : response({ ok: false, code: "UNAVAILABLE" }, 503);
+  }
+  if (action === "appeal") {
+    if (typeof input.receipt !== "string" || !/^[A-Za-z0-9_-]{32,128}$/.test(input.receipt) || typeof input.reason !== "string" || input.reason.trim().length < 1 || input.reason.trim().length > 400 || typeof input.idempotencyKey !== "string" || !UUID.test(input.idempotencyKey)) return response({ ok: false, code: "INVALID" }, 400);
+    const receiptHash = hmac(secret, `community-receipt|${input.receipt}`); const reason = input.reason.trim();
+    const value = await eskomiCommunityV11Repository.rpc("submit_community_appeal_v11", { p_receipt_hash: receiptHash, p_reason: reason, p_idempotency_hash: createHash("sha256").update(input.idempotencyKey).digest("hex"), p_payload_hash: createHash("sha256").update([receiptHash, reason].join("\u001f")).digest("hex") });
+    if (isRpcError(value)) return response({ ok: false, code: "APPEAL_UNAVAILABLE" }, 409);
+    const result = Array.isArray(value) && value.length === 1 ? value[0] : null;
+    return result ? tagResponse({ ok: true, appeal: result }, token, 201) : response({ ok: false, code: "UNAVAILABLE" }, 503);
+  }
   if (action !== "post" || typeof input.scope !== "string" || typeof input.slug !== "string" || typeof input.body !== "string" || input.body.trim().length < 1 || input.body.trim().length > 400 || typeof input.receipt !== "string" || !/^[A-Za-z0-9_-]{32,128}$/.test(input.receipt) || typeof input.idempotencyKey !== "string" || !UUID.test(input.idempotencyKey)) return response({ ok: false, code: "INVALID" }, 400);
   const submissionToken = mutationBrowser(request); const resolved = await target(input.scope, input.slug); if (!resolved || typeof resolved.target_id !== "string") return response({ ok: false, code: "TARGET_UNAVAILABLE" }, 404);
   const ip = request.headers.get("x-forwarded-for")?.split(",", 1)[0]?.trim() ?? "unknown";

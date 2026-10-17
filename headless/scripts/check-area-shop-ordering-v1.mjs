@@ -5,7 +5,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {load,root} from './check-area-verified-line-comparison-contract.mjs';
 assert.ok(existsSync(resolve(root,'lib/area-shop-ordering.ts')),'RED: explainable natural ordering is not implemented');
-const {buildAreaShopOrdering,normalizeAreaOrderingFacts}=load(resolve(root,'lib/area-shop-ordering.ts'));
+const {buildAreaShopOrdering,normalizeAreaOrderingFacts,isAreaInformationOrderingTarget}=load(resolve(root,'lib/area-shop-ordering.ts'));
 const {normalizeShop}=load(resolve(root,'lib/wp/normalize.ts'));
 const {buildShopDetailViewModel}=load(resolve(root,'lib/shop-detail-view-model.ts'));
 const {hashShopFactValue}=load(resolve(root,'lib/shop-information-coverage.ts'));
@@ -30,7 +30,8 @@ equal(normalizeAreaOrderingFacts(changed,area).totalScore,0,'price reviews manua
 const original=verify(shop(2),['hours']);const long=verify(shop(1,{shop_hours:'24時間営業'}),['hours']);
 equal(normalizeAreaOrderingFacts(original,area).totalScore,normalizeAreaOrderingFacts(long,area).totalScore,'after midnight itself adds no point');
 const stale=verify(shop(1),['hours'],'2026-08-01'),fresh=verify(shop(2),['hours'],'2026-09-01');stale.acf.updated_at='2099-01-01';
-equal(ordered([stale,fresh]),[2,1],'only field provenance freshness breaks ties');
+equal(ordered([stale,fresh]),[1,2],'oldest verified confirmation, not generic modification time, breaks ties');
+assert.equal(isAreaInformationOrderingTarget({id:999,slug:'all-areas'}),true,'R1–R4 is enabled for every published area slug');checks++;
 const a=shop(8,{},'A'),b=shop(2,{},'B'),same=shop(4,{},'A');
 equal(ordered([b,a,same]),[4,8,2],'name then numeric WP ID');
 equal(ordered([same,a,b]),[4,8,2],'API order independent');
