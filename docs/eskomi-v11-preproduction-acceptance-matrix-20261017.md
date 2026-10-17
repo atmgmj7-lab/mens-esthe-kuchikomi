@@ -154,10 +154,10 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T47 | private-control SQL | 実行済 PASS | production analytics/log audit 待ち |
 | T48 | neutral review-flag controls | 実行済 PASS | retention/key rotation 実運用待ち |
 | T49 | correction intake/moderation | 実行済 PASS | UI/HTTP は未試験 |
-| T50 | community の審査・自己取り下げ | 実行済 PASS | 通報は自動非公開にせず運営の再審査へ戻す。受付控えに束縛した異議申立て、運営キュー、状態履歴、payload-bound idempotency を隔離PGで検証済み。 |
+| T50 | community の審査・自己取り下げ | 実行済 PASS | 通報は自動非公開にせず運営の再審査へ戻す。本人撤回と運営hideを監査eventで区別し、後者だけを受付控えで異議→再審査可能にする。応答喪失後の再送、1000件超の解決済み履歴からの未処理50件ページ、同一browser/投稿burst収束を隔離PGで検証済み。 |
 | T51 | reaction expiry/concurrency | 実行済 PASS | UI/HTTP は未試験 |
 | T52 | read-only candidate mechanism | ユーザー前提待ち | 権利・正規ID・実画像の確認 |
-| T53 | R1--R4 ranking | 実行済 PASS | 全地域で公開候補全件をページング前に、地域関係→料金/営業時間/アクセス/公式連絡・予約の180日以内確認数→最古確認日→正規shop UUID（旧データは安定WP ID）で安定比較。PRは別枠。 |
+| T53 | R1--R4 ranking | 実行済 PASS | hub・通常地域とも全候補をページング前に、地域関係→料金/営業時間/アクセス/公式連絡・予約の180日以内確認数→各店の最古有効確認日が新しい順→正規app_shop_id UUID（旧データは安定WP ID）で安定比較。PRは別枠。2ページ超の逆順fixture、料金のみ/予約先のみ、同名UUID同点を静的契約で確認。 |
 | T54 | B01--B10 config/slot safety | 実行済 PASS | Library 素材・各提供条件/実在先の承認 |
 | T55 | WP-free lifecycle、area switch、provision、registration review、legacy one-to-one mapping fixture | 実行済 PASS | 写真/投稿を含む Chromium 完走、production legacy差分確認 |
 | T56 | managed CRUD/direct edit/revision/restore fixtures | 実行済 PASS | production 非変更確認と画面通過 |
