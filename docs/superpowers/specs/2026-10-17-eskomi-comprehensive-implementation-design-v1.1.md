@@ -1,6 +1,6 @@
 # Eskomi 総合実装設計 v1.1 — 実装対応表
 
-承認済み原本: 2026-10-17 提供の「Eskomi 総合実装設計・最終承認案 v1.1」。本書は原本ではなく、実装状況を追跡するための35行の対応表である。48,280文字の原本 DOCX 本文は、この checkout には未保存で、Library の正式 helper による取得は環境の HTTPS/DNS 到達不能で失敗している。その全文を受領・materialize できるまで、ここを正本と呼ばない。原本の要求が既存コードと矛盾する場合は原本を優先する。
+承認済み原本: `docs/eskomi-approved-design-v1.1-full-20261017.md`。本書は原本ではなく、実装状況を追跡するための対応表である。原本の要求が既存コードと矛盾する場合は原本を優先する。
 
 ## 不変の実装規約
 
@@ -20,15 +20,20 @@
 | E03 workspace と店舗一致 | `(workspace_id, shop_id)` 複合 FK | integrity SQL に不一致 insert 拒否 |
 | E04–E06 人物・案内リンク | `therapists`、assignments、entry link resolver | 人物写真権利版・一般リンクからの担当選択は未実装 |
 | E07–E10 受付と共通回答 | `submit_review_experience_v2`、任意 nickname/評価/0–400 コメント | 要 DB transaction/E2E |
-| E11 公開投影 | 公開 read RPC と withdrawal archive | 現行は assessment 単位 publication で、1体験1公開IDへの統合は未完了 |
-| E12 編集控え | hash は保存済み | 顧客へ返す操作セッション、期限、再送は未実装 |
-| E13/E14 審査・返信 | moderation audit は保存済み | v2 管理審査 UI、承認返信は未完了 |
+| E11 公開投影 | `review_experience_publications`（1体験1公開ID）、公開read RPC、withdrawal hide | vertical-slice SQLで承認→公開、withdrawal→非表示を確認。全配信面の集計/widget整合は未完了 |
+| E12 編集控え | hash、30日控え、編集session、24h AES-GCM再送cache | DB/private-control SQLは通過。通信断ブラウザE2Eは `npm run qa:eskomi-v11-replay-browser` に保存、現環境ではDocker公開port到達不能のため未完走 |
+| E13/E14 審査・返信 | moderation audit とv1.1承認/withdrawal RPC | 運営者審査UI、承認返信は未完了 |
 | E15–E18 特典 | 受付時に条件済み program から発行、withdrawal は公開投影のみ archive | immutable version、期限、消込 session/結果回復は未完了 |
-| UI 1/2→2/2→受付 | `/r/{handle}` 互換 resolver と `/reviews/entry/[handle]` | PC/SP 実ブラウザと本物の entry fixture は未実行 |
+| UI 1/2→2/2→受付 | `/r/{handle}` 互換 resolver、`/reviews/entry/[handle]`、入力→確認→受付、公開projection表示 | TypeScript/lint/route契約は通過。通信断を含む実ブラウザfixtureは上記E2Eで再現可能化済み、現環境では未完走 |
 | 公開境界 | resolver/read/submit は `app.shops.publication_status='published'` | draft/review/archived DB 境界を local SQL へ追加予定 |
 | 削除 tombstone | archive event 又は過去 publication の unlisted のみ WP 抑制 | draft import 非抑制・archive/restore 抑制を local SQL へ追加予定 |
 | B01–B10 バナー | 素材取得失敗のため未使用 | 画像取得後に権利・PC/SP・配置を実装 |
 | 訂正/情報交換 E30–E32 | 既存申請を再利用候補 | community、reaction、通報は未実装 |
+
+## 2026-10-17 隔離検証の証跡
+
+- fresh PostgreSQL 17で全migrationを適用し、`verify_eskomi_canonical_foundation.sql`、`verify_eskomi_canonical_integrity_fixes.sql`、`verify_eskomi_review_entry_v2.sql`、`verify_eskomi_v11_private_controls.sql`、`verify_eskomi_v11_vertical_slice.sql` を通過した。PostgRESTは公式 `postgrest/postgrest:v16.4` を固定する。
+- `headless/scripts/run-eskomi-v11-replay-e2e.sh` は非公開Docker network内に使い捨てPostgreSQL/PostgRESTを作り、migrationと上記SQLをfresh適用後、Nextを同一shellで起動し、`check-eskomi-v11-replay-browser.mjs` を実行する。最初の成功レスポンスだけを切断し、同一Cookie・同一冪等キーの秘密控え復元、別session非開示、期限切れ時の新規発行なしを確認する。Docker socketはどのコンテナにもmountしない。
 
 ## リリース境界
 

@@ -91,6 +91,7 @@
     "test:eskomi-review-entry-v2-local": "docker exec -i ${ESKOMI_PG17_CONTAINER:-eskomi-pg17-verify} psql -X -v ON_ERROR_STOP=1 -U postgres -d ${ESKOMI_PG17_DATABASE:-eskomi_verify} < ../supabase/tests/verify_eskomi_review_entry_v2.sql",
     "test:eskomi-v11-private-controls-local": "docker exec -i ${ESKOMI_PG17_CONTAINER:-eskomi-pg17-verify} psql -X -v ON_ERROR_STOP=1 -U postgres -d ${ESKOMI_PG17_DATABASE:-eskomi_verify} < ../supabase/tests/verify_eskomi_v11_private_controls.sql",
     "test:eskomi-v11-vertical-slice-local": "docker exec -i ${ESKOMI_PG17_CONTAINER:-eskomi-pg17-verify} psql -X -v ON_ERROR_STOP=1 -U postgres -d ${ESKOMI_PG17_DATABASE:-eskomi_verify} < ../supabase/tests/verify_eskomi_v11_vertical_slice.sql",
+    "qa:eskomi-v11-replay-browser": "bash scripts/run-eskomi-v11-replay-e2e.sh",
     "test:eskomi-canonical-integrity-local": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_eskomi_canonical_integrity_fixes.sql",
     "test:eskomi-canonical-foundation-local": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_eskomi_canonical_foundation.sql",
     "test:review-native-repository": "node scripts/check-review-native-repository.mjs",
