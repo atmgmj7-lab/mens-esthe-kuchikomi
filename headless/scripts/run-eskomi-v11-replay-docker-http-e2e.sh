@@ -14,6 +14,8 @@ browser_container="${ESKOMI_BROWSER_CONTAINER:-eskomi-browser-v11-http-e2e}"
 database_name="${ESKOMI_PG17_DATABASE:-eskomi_verify}"
 jwt_secret="e2e-only-local-postgrest-jwt-secret-012345678901234567890123456789"
 replay_key="${ESKOMI_REVIEW_REPLAY_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}"
+dashboard_user="${ESKOMI_E2E_DASHBOARD_USER:-isolated-review-operator}"
+dashboard_password="${ESKOMI_E2E_DASHBOARD_PASSWORD:-isolated-review-operator-password}"
 
 cleanup() {
   docker rm -f "$browser_container" "$next_container" "$postgrest_container" "$database_container" >/dev/null 2>&1 || true
@@ -35,7 +37,7 @@ docker exec "$database_container" pg_isready -U postgres -d "$database_name" >/d
 docker exec -i "$database_container" psql -X -v ON_ERROR_STOP=1 -U postgres -d "$database_name" <<'SQL'
 create role anon nologin;
 create role authenticated nologin;
-create role service_role nologin;
+create role service_role nologin bypassrls;
 create role authenticator login password 'fixture-authenticator-password';
 grant anon, authenticated, service_role to authenticator;
 create schema extensions;
@@ -74,6 +76,22 @@ with shop as (
 insert into private.review_entry_links(shop_id, link_kind, created_by)
 select id, 'shop_qr', 'isolated-v11-replay-e2e' from shop
 returning public_handle;
+SQL
+)"
+
+# The widget is a separate public projection and needs its own local-only
+# workspace fixture.  It never uses a production workspace or credential.
+widget_handle="$(docker exec -i "$database_container" psql -X -q -A -t -v ON_ERROR_STOP=1 -U postgres -d "$database_name" <<'SQL'
+do $$
+declare v_shop uuid; v_workspace uuid;
+begin
+  select id into v_shop from app.shops where slug='v11-replay-e2e';
+  select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning');
+  insert into private.review_widget_settings_v11(workspace_id,shop_id)
+  values(v_workspace,v_shop) on conflict(workspace_id) do nothing;
+end $$;
+select public_handle from private.review_widget_settings_v11
+where shop_id=(select id from app.shops where slug='v11-replay-e2e');
 SQL
 )"
 
@@ -131,6 +149,7 @@ echo "PostgREST access dedupe view=1 line=1: PASS"
 docker run -d --rm --name "$next_container" --network "$network_name" --network-alias next \
   --mount "type=bind,src=$headless_root,dst=/app" -w /app \
   -e SUPABASE_URL="http://postgrest:3000" -e SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" -e ESKOMI_E2E_RAW_POSTGREST=1 -e ESKOMI_REVIEW_REPLAY_KEY="$replay_key" \
+  -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password" \
   node:24-bookworm-slim sh -c 'npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
 for _ in $(seq 1 90); do docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server' && break; sleep 1; done
 docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server'
@@ -142,6 +161,69 @@ docker run --rm --network "$network_name" \
     fetch("http://next:57000/api/reviews/v2/context/",{method:"POST",headers:{"Content-Type":"application/json","X-ESKOMI-CSRF":"review-v2","Origin":"http://next:57000"},body:JSON.stringify(body)})
       .then(async r=>{const json=await r.json();if(!r.ok||!json?.ok||typeof json.context?.entry_handle!=="string"||typeof json.replayCredential!=="string")throw new Error(`context status=${r.status} body=${JSON.stringify(json)}`);console.log("Next-to-PostgREST review context HTTP: PASS")})
       .catch(error=>{console.error(error);process.exit(1)});
+  '
+
+# This is deliberately HTTP-only: each request crosses the isolated Next to
+# PostgREST boundary.  It proves a guest's submit/replay receipt, operator
+# approval under the local fixture Basic Auth + CSRF guard, both public read
+# surfaces, and the guest withdrawal that hides both projections again.
+docker run --rm --network "$network_name" \
+  -e ESKOMI_E2E_ENTRY_HANDLE="$entry_handle" -e ESKOMI_E2E_WIDGET_HANDLE="$widget_handle" \
+  -e ESKOMI_E2E_DASHBOARD_USER="$dashboard_user" -e ESKOMI_E2E_DASHBOARD_PASSWORD="$dashboard_password" \
+  -e ESKOMI_E2E_JWT="$service_role_jwt" \
+  node:24-bookworm-slim node -e '
+    const base="http://next:57000";
+    const entryHandle=process.env.ESKOMI_E2E_ENTRY_HANDLE;
+    const widgetHandle=process.env.ESKOMI_E2E_WIDGET_HANDLE;
+    const note="isolated HTTP lifecycle review";
+    const origin=base;
+    const basic=`Basic ${Buffer.from(`${process.env.ESKOMI_E2E_DASHBOARD_USER}:${process.env.ESKOMI_E2E_DASHBOARD_PASSWORD}`).toString("base64")}`;
+    const fail=(message)=>{throw new Error(message)};
+    const json=async(path,init,expected)=>{
+      const response=await fetch(base+path,init); const body=await response.text(); let value;
+      try { value=JSON.parse(body); } catch { value=null; }
+      if(response.status!==expected) fail(`${path} expected ${expected}, got ${response.status}: ${body}`);
+      return value;
+    };
+    const headers={"Content-Type":"application/json","X-ESKOMI-CSRF":"review-v2","Origin":origin};
+    (async()=>{
+      const context=await json("/api/reviews/v2/context/",{method:"POST",headers,body:JSON.stringify({entryHandle,therapistAssignmentId:null})},200);
+      if(!context?.ok||typeof context.replayCredential!=="string") fail("customer context missing replay credential");
+      const submitHeaders={...headers,"Idempotency-Key":"isolated-http-lifecycle-key","X-ESKOMI-Replay-Credential":context.replayCredential};
+      const payload={entryHandle,displayName:"HTTP fixture",shopRating:5,commonComment:note,therapistRating:null};
+      const submitted=await json("/api/reviews/v2/submit/",{method:"POST",headers:submitHeaders,body:JSON.stringify(payload)},201);
+      if(!submitted?.ok||submitted.replayed!==false||typeof submitted.experienceId!=="string"||typeof submitted.receipt!=="string") fail("initial submission was not created");
+      const replayed=await json("/api/reviews/v2/submit/",{method:"POST",headers:submitHeaders,body:JSON.stringify(payload)},200);
+      if(!replayed?.ok||replayed.replayed!==true||replayed.experienceId!==submitted.experienceId||replayed.receipt!==submitted.receipt) fail("same submission did not safely replay");
+      console.log("Customer submit and same-payload replay: PASS");
+
+      const queue=await json("/api/dashboard/reviews/v11",{headers:{Authorization:basic}},200);
+      const review=queue?.reviews?.find((item)=>item.experience_id===submitted.experienceId&&item.comment===note);
+      if(!review||!Number.isSafeInteger(review.moderation_revision)) fail("fixture review was absent from the authorized moderation queue");
+      const moderation=await json("/api/dashboard/reviews/v11",{method:"POST",headers:{"Content-Type":"application/json",Authorization:basic,"X-ESKOMI-CSRF":"review-moderation","Origin":origin},body:JSON.stringify({action:"review",id:submitted.experienceId,decision:"approved",revision:review.moderation_revision,note:"isolated approval"})},200);
+      if(!moderation?.ok) fail("operator approval response was not ok");
+      console.log("Fixture dashboard Basic Auth + CSRF approval: PASS");
+
+      const projection=await fetch("http://postgrest:3000/rpc/list_public_review_experience_publications",{method:"POST",headers:{Authorization:`Bearer ${process.env.ESKOMI_E2E_JWT}`,apikey:process.env.ESKOMI_E2E_JWT,"Content-Type":"application/json","Content-Profile":"api","Accept-Profile":"api"},body:JSON.stringify({p_shop_slug:"v11-replay-e2e",p_limit:20,p_offset:0})});
+      const projectionBody=await projection.text();
+      if(!projection.ok||!projectionBody.includes(note)) fail(`public reader projection missing review: ${projection.status}; body=${projectionBody}`);
+      const reader=await fetch(`${base}/reviews/entry/${entryHandle}/`); const readerBody=await reader.text();
+      if(reader.status!==200||!readerBody.includes(note)) fail(`public reader did not show approved review: ${reader.status}; body=${readerBody.slice(0,600)}`);
+      const widget=await json(`/api/public/review-widget/${widgetHandle}`,{},200);
+      if(!widget?.ok||widget.widget?.reviewCount!==1||!widget.widget?.reviews?.some((item)=>item.body===note)) fail("public widget did not show approved review");
+      console.log("Public reader and widget show approved review: PASS");
+
+      const editSession=await json("/api/reviews/v2/edit-session/",{method:"POST",headers,body:JSON.stringify({receipt:submitted.receipt})},200);
+      if(!editSession?.ok||editSession.experienceId!==submitted.experienceId||typeof editSession.credential!=="string") fail("guest edit session unavailable");
+      const withdrawn=await json("/api/reviews/v2/edit/",{method:"DELETE",headers:{...headers,"X-ESKOMI-Edit-Credential":editSession.credential,"X-ESKOMI-Edit-Target":submitted.experienceId},body:JSON.stringify({expectedRevision:1})},200);
+      if(!withdrawn?.ok||withdrawn.state!=="withdrawn") fail("guest withdrawal failed");
+
+      const hiddenReader=await fetch(`${base}/reviews/entry/${entryHandle}/`); const hiddenReaderBody=await hiddenReader.text();
+      if(hiddenReader.status!==200||hiddenReaderBody.includes(note)) fail(`public reader still exposes withdrawn review: ${hiddenReader.status}`);
+      const hiddenWidget=await json(`/api/public/review-widget/${widgetHandle}`,{},200);
+      if(!hiddenWidget?.ok||hiddenWidget.widget?.reviewCount!==0||hiddenWidget.widget?.reviews?.some((item)=>item.body===note)) fail("public widget still exposes withdrawn review");
+      console.log("Guest withdrawal hides reader and widget: PASS");
+    })().catch(error=>{console.error(error);process.exit(1)});
   '
 
 if [[ "${ESKOMI_E2E_API_ONLY:-0}" == "1" ]]; then

@@ -45,14 +45,15 @@ export type EskomiPublicGlobalReview = EskomiPublicReview & Readonly<{
 type Configuration = Readonly<{
   baseUrl: string | undefined;
   serviceRoleKey: string | undefined;
+  allowRawPostgrest?: boolean;
   fetchImpl?: typeof fetch;
 }>;
 
-function baseUrl(value: string | undefined): string | null {
+function baseUrl(value: string | undefined, allowRawPostgrest = false): string | null {
   if (!value) return null;
   try {
     const url = new URL(value);
-    if ((url.protocol !== "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1")
+    if ((url.protocol !== "https:" && url.hostname !== "localhost" && url.hostname !== "127.0.0.1" && !(allowRawPostgrest && url.protocol === "http:"))
       || url.username || url.password || url.search || url.hash) return null;
     return url.toString().replace(/\/$/, "");
   } catch {
@@ -121,14 +122,15 @@ function parsePublicGlobalReview(value: unknown): EskomiPublicGlobalReview | nul
 }
 
 export function createEskomiReviewV2Repository(configuration: Configuration) {
-  const url = baseUrl(configuration.baseUrl);
+  const url = baseUrl(configuration.baseUrl, configuration.allowRawPostgrest);
   const secret = configuration.serviceRoleKey;
   const fetchImpl = configuration.fetchImpl ?? fetch;
 
   async function rpc(name: string, payload: Record<string, unknown>): Promise<unknown | null> {
     if (!url || !secret) return null;
     try {
-      const response = await fetchImpl(`${url}/rest/v1/rpc/${name}`, {
+      const rawPostgrest = configuration.allowRawPostgrest || ["127.0.0.1", "localhost"].includes(new URL(url).hostname);
+      const response = await fetchImpl(`${url}${rawPostgrest ? "/rpc" : "/rest/v1/rpc"}/${name}`, {
         method: "POST",
         headers: createSupabaseServerHeaders(secret, {
           "Content-Type": "application/json",
@@ -197,4 +199,5 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
 export const eskomiReviewV2Repository = createEskomiReviewV2Repository({
   baseUrl: process.env.SUPABASE_URL,
   serviceRoleKey: resolveSupabaseServerSecret()?.value,
+  allowRawPostgrest: process.env.ESKOMI_E2E_RAW_POSTGREST === "1",
 });
