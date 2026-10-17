@@ -24,6 +24,7 @@ declare
   v_experience uuid;
   v_replayed boolean;
   v_program uuid;
+  v_withdrawal text;
 begin
   select managed_shop_id, app_shop_id into v_managed, v_shop
   from private.create_canonical_managed_shop('integrity-' || v_suffix, v_payload, 'local validation');
@@ -88,8 +89,9 @@ begin
   if private.issue_benefit_code(v_program, v_experience, repeat('4', 64)) <> 'issued' then
     raise exception 'benefit issue setup failed';
   end if;
-  if private.moderate_review_experience(v_experience, 'withdrawn', 'local operator', 'guest withdrawal') <> 'withdrawn'
-    or exists (select 1 from app.review_publications where shop_id = v_shop and archived_at is null)
+  v_withdrawal := private.moderate_review_experience(v_experience, 'withdrawn', 'local operator', 'guest withdrawal');
+  if v_withdrawal <> 'withdrawn'
+    or exists (select 1 from app.review_publications as publication where publication.shop_id = v_shop and publication.archived_at is null)
     or not exists (select 1 from private.benefit_codes where experience_id = v_experience and state = 'issued')
     or not exists (select 1 from private.review_outbox where aggregate_id = v_experience and event_type = 'review_withdrawn') then
     raise exception 'withdrawal did not remove only the public projection while retaining the neutral benefit';

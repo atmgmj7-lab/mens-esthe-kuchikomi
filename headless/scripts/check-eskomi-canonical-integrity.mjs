@@ -19,6 +19,10 @@ const acceptanceSafety = readFileSync(
   join(root, "..", "supabase", "migrations", "20261017124000_eskomi_review_entry_acceptance_safety.sql"),
   "utf8",
 );
+const v2ExecutionVerification = readFileSync(
+  join(root, "..", "supabase", "tests", "verify_eskomi_review_entry_v2.sql"),
+  "utf8",
+);
 
 assert.doesNotMatch(
   migration.match(/create or replace function api\.list_unlisted_managed_shop_legacy_identities\(\)[\s\S]*?\$\$;/)?.[0] ?? "",
@@ -51,5 +55,15 @@ assert.match(acceptanceSafety, /publication_state = 'deleted'[\s\S]*managed_shop
 assert.match(acceptanceSafety, /shop\.publication_status = 'published'/, "entry, submission and public reads must require a published shop");
 assert.match(acceptanceSafety, /submit_review_experience_v2/, "accepted submission requires a separate v2 transaction");
 assert.match(acceptanceSafety, /eligibility_rule = 'accepted_submission'/, "benefits must be issued from accepted submission rather than publication");
+assert.match(acceptanceSafety, /drop constraint if exists benefit_programs_eligibility_rule_check[\s\S]*update private\.benefit_programs/s,
+  "the legacy eligibility check must be removed before rows are migrated");
+assert.match(acceptanceSafety, /assessment\.experience_id = v_experience_id/,
+  "RETURNS TABLE output variables must not shadow assessment columns");
+assert.match(acceptanceSafety, /extensions\.gen_random_bytes\(16\)/,
+  "benefit codes must retain at least 128 bits of randomness");
+assert.match(v2ExecutionVerification, /private\.submit_review_experience_v2\(/,
+  "disposable SQL verification must execute the v2 receipt transaction");
+assert.match(v2ExecutionVerification, /\^ESK-\[0-9A-F\]\{32\}\$/,
+  "verification must assert the 128-bit rendered code format");
 
 console.log("Eskomi canonical integrity contract: PASS");
