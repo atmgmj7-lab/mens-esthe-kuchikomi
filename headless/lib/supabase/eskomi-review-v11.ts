@@ -16,10 +16,16 @@ async function rpc(name: string, values: Record<string, unknown>) {
 }
 
 export const eskomiReviewV11Repository = {
-  async context(entryHandle: string, sessionHash: string, fingerprint: string) {
+  async context(entryHandle: string, sessionHash: string, fingerprint: string, therapistAssignmentId: string | null = null) {
     if (!UUID.test(entryHandle)) return null;
-    const value = await rpc("create_review_submission_context", { p_entry_handle: entryHandle, p_session_secret_hash: sessionHash, p_context_fingerprint: fingerprint });
+    if (therapistAssignmentId !== null && !UUID.test(therapistAssignmentId)) return null;
+    const value = await rpc("create_review_submission_context", { p_entry_handle: entryHandle, p_session_secret_hash: sessionHash, p_context_fingerprint: fingerprint, p_therapist_assignment_id: therapistAssignmentId });
     return Array.isArray(value) && value.length === 1 ? value[0] as Record<string, unknown> : null;
+  },
+  async therapists(entryHandle: string) {
+    if (!UUID.test(entryHandle)) return null;
+    const value = await rpc("list_review_entry_therapists", { p_entry_handle: entryHandle });
+    return Array.isArray(value) ? value.filter((item): item is { id: string; display_name: string } => typeof item?.id === "string" && UUID.test(item.id) && typeof item.display_name === "string") : null;
   },
   async submit(values: Record<string, unknown>) {
     const value = await rpc("submit_review_experience_v11", values);

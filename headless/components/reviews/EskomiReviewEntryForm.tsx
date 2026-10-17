@@ -26,15 +26,18 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
   const [message, setMessage] = useState("");
   const [contextReady, setContextReady] = useState(false);
   const [context, setContext] = useState<{ shopName: string; therapistName: string | null }>({ shopName, therapistName });
+  const [therapists, setTherapists] = useState<Array<{ id: string; display_name: string }>>([]);
+  const [selectedTherapistId, setSelectedTherapistId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    void fetch("/api/reviews/v2/context/", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-v2" }, body: JSON.stringify({ entryHandle }) })
+    void fetch("/api/reviews/v2/therapists/", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-v2" }, body: JSON.stringify({ entryHandle }) }).then((response) => response.ok ? response.json() : null).then((payload) => { if (active && payload?.ok && Array.isArray(payload.therapists)) setTherapists(payload.therapists); }).catch(() => undefined);
+    void fetch("/api/reviews/v2/context/", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-v2" }, body: JSON.stringify({ entryHandle, therapistAssignmentId: selectedTherapistId }) })
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => { if (active && payload?.ok && payload.context?.shop_name) { setContext({ shopName: payload.context.shop_name, therapistName: typeof payload.context.therapist_display_name === "string" ? payload.context.therapist_display_name : null }); setContextReady(true); } })
       .catch(() => undefined);
     return () => { active = false; };
-  }, [entryHandle]);
+  }, [entryHandle, selectedTherapistId]);
 
   function prepare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -91,6 +94,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
   return <form className="hl-contact-form hl-review-form" onSubmit={prepare} noValidate>
     <p className="hl-review-form__shop">投稿先店舗：<strong>{context.shopName}</strong></p>
     <p>会員登録は不要です。内容は運営確認後に公開されます。</p>
+    {therapists.length ? <label className="hl-contact-field">担当セラピスト（任意）<select value={selectedTherapistId ?? ""} onChange={(event) => { setContextReady(false); setSelectedTherapistId(event.target.value || null); }}><option value="">選択しない（店舗のみ）</option>{therapists.map((therapist) => <option key={therapist.id} value={therapist.id}>{therapist.display_name}</option>)}</select><small>選択後も、評価は省略できます。</small></label> : null}
     <label className="hl-contact-field">ニックネーム（任意）<input name="displayName" maxLength={30} defaultValue={savedInput?.displayName ?? ""} /></label>
     <label className="hl-contact-field">店舗の総合評価（任意）<select name="shopRating" defaultValue={savedInput?.shopRating?.toString() ?? ""}><option value="">評価しない</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
     <label className="hl-contact-field">利用体験コメント（任意）<textarea name="commonComment" rows={7} maxLength={400} defaultValue={savedInput?.commonComment ?? ""} /></label>
