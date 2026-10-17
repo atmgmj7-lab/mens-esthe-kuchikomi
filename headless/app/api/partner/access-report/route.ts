@@ -17,5 +17,11 @@ export async function GET(request: NextRequest) {
   }).catch(() => null);
   const rows = result?.ok ? await result.json() as unknown : null;
   if (!Array.isArray(rows)) return fail("アクセス報告を取得できませんでした。", 503);
-  return NextResponse.json({ ok: true, ...period, rows }, { headers: partnerTherapistNoStore });
+  const provisionalResult = await fetch(`${context.base}/rest/v1/rpc/get_partner_shop_access_report_v11`, {
+    method: "POST", headers: context.headers,
+    body: JSON.stringify({ p_workspace_id: context.workspaceId, p_auth_user_id: context.authUserId, p_from: period.provisionalOn, p_to: period.provisionalOn }), cache: "no-store",
+  }).catch(() => null);
+  const provisionalRows = provisionalResult?.ok ? await provisionalResult.json() as unknown : null;
+  if (!Array.isArray(provisionalRows)) return fail("アクセス報告を取得できませんでした。", 503);
+  return NextResponse.json({ ok: true, ...period, rows, provisionalRows }, { headers: partnerTherapistNoStore });
 }

@@ -9,6 +9,7 @@ export type PartnerAccessReportPeriod = {
   to: string;
   previousFrom: string;
   previousTo: string;
+  provisionalOn: string;
 };
 
 const TOKYO_DATE_FORMAT = new Intl.DateTimeFormat("en-CA", {
@@ -40,7 +41,10 @@ export function buildPartnerAccessReportPeriod(days: PartnerAccessReportDays, no
   if (!isPartnerAccessReportDays(days)) throw new RangeError("Partner access report days must be 7, 28, or 90");
   if (!(now instanceof Date) || Number.isNaN(now.getTime())) throw new TypeError("now must be a valid Date");
 
-  const to = asTokyoCalendarDate(now);
+  const today = asTokyoCalendarDate(now);
+  // Daily comparison becomes final only after the day closes.  Keep today's
+  // recorded values separate so an incomplete day cannot poison every range.
+  const to = addCalendarDays(today, -1);
   const from = addCalendarDays(to, -(days - 1));
   const previousTo = addCalendarDays(from, -1);
   const previousFrom = addCalendarDays(previousTo, -(days - 1));
@@ -51,5 +55,6 @@ export function buildPartnerAccessReportPeriod(days: PartnerAccessReportDays, no
     to: formatCalendarDate(to),
     previousFrom: formatCalendarDate(previousFrom),
     previousTo: formatCalendarDate(previousTo),
+    provisionalOn: formatCalendarDate(today),
   };
 }

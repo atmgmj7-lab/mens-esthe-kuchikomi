@@ -124,25 +124,6 @@ jobs:
             python ai_auto_updater.py --all
           fi
 
-      # This optional health check closes only the preceding JST day. A
-      # missing secret or failed request deliberately leaves the day unknown;
-      # it must never turn an outage into a displayed zero.
-      - name: Finalize anonymous access measurement day
-        env:
-          ESKOMI_ACCESS_OBSERVATION_URL: ${{ secrets.ESKOMI_ACCESS_OBSERVATION_URL }}
-          ESKOMI_ACCESS_OBSERVATION_SECRET: ${{ secrets.ESKOMI_ACCESS_OBSERVATION_SECRET }}
-        if: always() && env.ESKOMI_ACCESS_OBSERVATION_URL != '' && env.ESKOMI_ACCESS_OBSERVATION_SECRET != ''
-        run: |
-          set -euo pipefail
-          OBSERVED_ON="$(TZ=Asia/Tokyo date -d 'yesterday' +%F)"
-          STATE=complete
-          if [ "${{ job.status }}" != "success" ]; then STATE=partial; fi
-          curl --fail --silent --show-error --max-time 20 \
-            -X POST "${ESKOMI_ACCESS_OBSERVATION_URL%/}/api/internal/access-observation/" \
-            -H "Content-Type: application/json" \
-            -H "x-eskomi-access-observation-secret: ${ESKOMI_ACCESS_OBSERVATION_SECRET}" \
-            --data "{\"observedOn\":\"${OBSERVED_ON}\",\"state\":\"${STATE}\"}"
-
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4

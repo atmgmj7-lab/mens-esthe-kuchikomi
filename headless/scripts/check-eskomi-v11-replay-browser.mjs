@@ -50,10 +50,11 @@ const proxy = createServer((clientRequest, clientResponse) => {
   });
 });
 
-await new Promise((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+const browserProxyOrigin = process.env.ESKOMI_E2E_BROWSER_PROXY_ORIGIN ?? "http://127.0.0.1";
+await new Promise((resolve) => proxy.listen(0, browserProxyOrigin === "http://127.0.0.1" ? "127.0.0.1" : "0.0.0.0", resolve));
 const proxyAddress = proxy.address();
 assert.ok(proxyAddress && typeof proxyAddress !== "string");
-const appUrl = `http://127.0.0.1:${proxyAddress.port}`;
+const appUrl = `${browserProxyOrigin}:${proxyAddress.port}`;
 
 function hmac(value) {
   return createHmac("sha256", serviceRoleKey).update(value).digest("hex");
@@ -98,12 +99,15 @@ async function expectEnabled(locator) {
   assert.fail("review context did not become ready");
 }
 
-const browser = await chromium.launch({
-  headless: true,
-  ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}),
-});
+const browser = process.env.ESKOMI_E2E_CDP_URL
+  ? await chromium.connectOverCDP(process.env.ESKOMI_E2E_CDP_URL)
+  : await chromium.launch({
+    headless: true,
+    ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}),
+  });
 try {
-  const context = await browser.newContext();
+  const context = process.env.ESKOMI_E2E_CDP_URL ? browser.contexts()[0] : await browser.newContext();
+  assert.ok(context, "the connected Chromium browser must expose a default context");
   const page = await context.newPage();
   await page.goto(`${appUrl}/reviews/entry/${entryHandle}/`, { waitUntil: "networkidle" });
   const contextProbe = await page.evaluate(async (handle) => {

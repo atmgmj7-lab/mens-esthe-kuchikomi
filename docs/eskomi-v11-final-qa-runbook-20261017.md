@@ -81,19 +81,20 @@
 ## T43 匿名アクセス報告
 
 - 表示は「計測できた閲覧/公式 LINE クリック」であり、広告ブロッカー等を含む全訪問の網羅、予約、来店、売上ではない。
-- 任意 browser tag は廃止。server 発行の短期 HMAC context は店舗/JST 日/event 種別/HttpOnly 匿名 session に束縛する。同一 session の同一 event は 1 件、同一店舗・日・session は最大 2 event。保存 hash は店舗・日付 scope であり、店舗横断追跡子にはしない。
-- context/session scope hash は 2 日で `private.prune_partner_shop_access_short_lived_v11` が削除する。日別集計は保持する。IP、口コミ本文、編集控え、特典コードをイベント/URL/log に保存しない。
-- 日次 collector health check が前 JST 日を `complete` と閉じた場合だけ、導入済み店舗の 0 を「計測できた 0」とする。`partial`、`missing`、`unknown` は比較不可。イベント 1 件は complete の根拠にしない。
-- 既存 `.github/workflows/daily_shop_update.yml` は、設定済みの場合だけ `POST /api/internal/access-observation/` に前 JST 日を通知する。失敗は unknown、job failure で到達できる場合は partial。自動 polling は追加しない。
+- 任意 browser tag は廃止。server 発行・署名済みの短期 context は店舗/JST 日/event 種別/匿名 session に束縛する。同一 session の同一 event は 1 件、同一店舗・日・session は最大 2 event。cookie未発行の並行 request でも各 server 発行 session の context は有効であり、cookie の後着で先行 context を失効させない。保存 hash は店舗・日付 scope であり、店舗横断追跡子にはしない。
+- context 発行は session ごとの短期上限と、信頼できるホスティング proxy から得た IP の HMAC を粗い短期 abuse signal として併用する。raw IP は保存せず、共有回線の既存 session を一律に拒否しない。個人本人確認や水増しの完全防止を意味しない。
+- context/session/network scope hash は意図した有効期限後、`private.prune_partner_shop_access_short_lived_v11` が**成功した場合にのみ**削除する。finalizer が未実行・失敗なら行は残り得るため、期限超過行と前日 finalization の欠落を運用監視する。日別集計は保持する。IP、口コミ本文、編集控え、特典コードをイベント/URL/log に保存しない。
+- 日次 collector health check が前 JST 日を `complete` と閉じた場合だけ、導入済み店舗の 0 を「計測できた 0」とする。`partial`、`missing`、`unknown` は比較不可。イベント 1 件や WordPress 更新 job の成功は complete の根拠にしない。
+- `.github/workflows/daily_shop_update.yml` は access measurement を finalization しない。独立した計測 health collector が未設定の期間は unknown のままとし、今日の取得済み数値は暫定表示、7/28/90日比較は昨日までの確定期間だけを対象にする。自動 polling は追加しない。
 
-production で必要だが本作業では変更していない設定は server の `ESKOMI_ACCESS_CONTEXT_SECRET`、`ESKOMI_ACCESS_OBSERVATION_SECRET`、GitHub Actions の `ESKOMI_ACCESS_OBSERVATION_URL` と同 secret である。値は secret manager のみへ置く。日次 job 成功、internal route 204、`collection_runs` の前日 complete、期限行減少を read-only 確認してから partner 画面の 0 を有効とする。
+production で必要だが本作業では変更していない設定は server の `ESKOMI_ACCESS_CONTEXT_SECRET` と、独立 access measurement collector 用の既存 `ESKOMI_ACCESS_OBSERVATION_SECRET` / URL である。値は secret manager のみへ置く。WordPress job とは別に、collector の実行根拠、internal route 204、`collection_runs` の前日 complete、期限超過行がないことを read-only 確認してから partner 画面の 0 を有効とする。
 
 ## preview 手順
 
 1. `/dashboard/partners/` で published canonical shop を provision し、WP ID の無い新規店で workspace/owner が解決されることを確認する。
 2. owner で `/partner/`、`/partner/listing/`、`/partner/growth/`、`/partner/therapists/` を確認する。manager は閲覧可、作成/変更不可。
 3. active、写真権利確認済み、published managed shop の人物だけが `/therapists/{assignment UUID}/`、`/api/therapists/{assignment UUID}/photo/`、店舗詳細リンク、sitemap に出ることを確認する。終了/非公開/期限切れ/権利未確認/同名別 UUID は非表示/404。
-4. public shop で `/api/analytics/shop-access/context/` と `/api/analytics/shop-access/` を確認し、no-store/noindex、URL に context/個人値がないことを確認する。翌日 complete 後に `/api/partner/access-report/?days=7` を owner/manager で確認する。
+4. public shop で `/api/analytics/shop-access/context/` と `/api/analytics/shop-access/` を確認し、no-store/noindex、URL に context/個人値がないこと、初回2並行 context と2タブの先行 context が cookie 競合後も 403 にならないことを確認する。翌日の独立 collector complete 後に `/api/partner/access-report/?days=7` を owner/manager で確認する。
 5. manager/revoked/別店舗 session は各々 read 可/403/403、`days` 省略は 28 日で 200、7/28/90 以外は 400 とする。
 6. `/dashboard/community/` で pending draft、公開済み、本人撤回、処理済み、前後 page、51 件超/1000 件超 history、hide/appeal/古い appeal の stale 拒否を確認する。
 

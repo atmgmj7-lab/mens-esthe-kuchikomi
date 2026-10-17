@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PUBLIC_ACCESS_CONTEXT_COOKIE, isPublicAccessEventKind, isPublicAccessShopSlug, publicAccessContextSession, verifyPublicAccessContext } from "@/lib/analytics/public-access-context";
+import { isPublicAccessEventKind, isPublicAccessShopSlug, verifyPublicAccessContext } from "@/lib/analytics/public-access-context";
 import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const headers = { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" };
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   if (Object.keys(body).length !== 3 || !isPublicAccessShopSlug(body.shopSlug) || !isPublicAccessEventKind(body.eventKind) || typeof body.context !== "string") {
     return new NextResponse(null, { status: 400, headers });
   }
-  const context = verifyPublicAccessContext({ context: body.context, shopSlug: body.shopSlug, eventKind: body.eventKind, session: publicAccessContextSession(request.cookies.get(PUBLIC_ACCESS_CONTEXT_COOKIE)?.value) });
+  const context = verifyPublicAccessContext({ context: body.context, shopSlug: body.shopSlug, eventKind: body.eventKind });
   if (!context) return new NextResponse(null, { status: 403, headers });
   const base = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const secret = resolveSupabaseServerSecret();

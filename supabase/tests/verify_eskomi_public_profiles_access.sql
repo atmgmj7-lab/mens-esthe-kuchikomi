@@ -68,6 +68,20 @@ begin
   perform api.record_public_shop_access_v11((select slug from app.shops where id=v_shop_a),'shop_view',repeat('b',64),repeat('c',64));
   perform api.record_public_shop_access_v11((select slug from app.shops where id=v_shop_a),'shop_view',repeat('b',64),repeat('c',64));
   if (select shop_view_count from private.partner_shop_access_daily_v11 where shop_id=v_shop_a and observed_on=v_today)<>1 then raise exception 'same anonymous browser event was counted twice'; end if;
+  -- Context issuance is separately bounded before an attacker can manufacture
+  -- enough event contexts to consume the shop-wide daily ceiling.
+  for v_count in 1..8 loop
+    perform api.reserve_public_shop_access_context_v11((select slug from app.shops where id=v_shop_a),repeat('e',64),null,false);
+  end loop;
+  begin
+    perform api.reserve_public_shop_access_context_v11((select slug from app.shops where id=v_shop_a),repeat('e',64),null,false);
+    raise exception 'context session issuance limit was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  perform api.reserve_public_shop_access_context_v11((select slug from app.shops where id=v_shop_a),repeat('f',64),repeat('a',64),true);
+  if not exists(select 1 from private.partner_shop_access_context_issue_limits_v11 where shop_id=v_shop_a and scope_kind='network' and scope_hash=repeat('a',64)) then
+    raise exception 'trusted network scope was not short-lived HMAC-shaped';
+  end if;
   insert into private.partner_shop_access_rollup_state_v11(shop_id,first_observed_on) values(v_shop_b,v_today-2) on conflict(shop_id) do update set first_observed_on=excluded.first_observed_on;
   perform api.finalize_partner_shop_access_collection_day_v11(v_today-1,'complete');
   select has_data,measurement_state into v_has,v_measurement from api.get_partner_shop_access_report_v11(v_workspace_b,v_user_b,v_today-1,v_today-1);
@@ -79,8 +93,11 @@ begin
     values(v_shop_a,v_today-3,'shop_view',repeat('d',64),now()-interval '1 second');
   insert into private.partner_shop_access_context_limits_v11(shop_id,observed_on,session_scope_hash,accepted_event_count,expires_at)
     values(v_shop_a,v_today-3,repeat('d',64),1,now()-interval '1 second');
+  insert into private.partner_shop_access_context_issue_limits_v11(shop_id,observed_on,scope_kind,scope_hash,issued_count,expires_at)
+    values(v_shop_a,v_today-3,'session',repeat('d',64),1,now()-interval '1 second');
   perform private.prune_partner_shop_access_short_lived_v11(now());
   if exists(select 1 from private.partner_shop_access_dedupe_v11 where shop_id=v_shop_a and observed_on=v_today-3)
-    or exists(select 1 from private.partner_shop_access_context_limits_v11 where shop_id=v_shop_a and observed_on=v_today-3) then raise exception 'expired anonymous access context was retained'; end if;
+    or exists(select 1 from private.partner_shop_access_context_limits_v11 where shop_id=v_shop_a and observed_on=v_today-3)
+    or exists(select 1 from private.partner_shop_access_context_issue_limits_v11 where shop_id=v_shop_a and observed_on=v_today-3) then raise exception 'expired anonymous access context was retained'; end if;
 end $$;
 rollback;

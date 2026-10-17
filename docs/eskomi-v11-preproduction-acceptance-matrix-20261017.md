@@ -147,7 +147,7 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T40 | widget failure contract | 実行済 PASS | DB/API/cache 障害注入は未試験 |
 | T41 | common public projection | 実行済 PASS | all-surface HTTP 比較は未試験 |
 | T42 | embed/RPC privacy contract | 実行済 PASS | third-party cookie browser は未試験 |
-| T43 | owner/manager growth/widget/POP flow、店舗別の匿名日次「計測できた閲覧/公式LINEクリック」報告（予約・来店・売上とは分離） | 実装済・隔離PG PASS | 7/28/90日（前期比較は最大180日）をJST日付で取得。server署名・店舗/日/session scopeの短期contextで同一eventを除外し、同一店舗/日/sessionは最大2件、短期hashは2日で削除する。日次collector完了時だけ0、partial/missing/unknownは比較不可。raw IP/本文/編集控え/特典コードを保持しない。日次health job設定、実Auth画面・Chromium/HTTPは環境接続待ち。 |
+| T43 | owner/manager growth/widget/POP flow、店舗別の匿名日次「計測できた閲覧/公式LINEクリック」報告（予約・来店・売上とは分離） | 実装済・隔離PG PASS | 7/28/90日比較は昨日までの確定期間（前期比較は最大180日）、今日は暫定表示。server署名・店舗/日/session scopeの短期contextで同一eventを除外し、同一店舗/日/sessionは最大2件。context発行は session 短期上限と信頼 proxy IP のHMACによる粗い新規session上限を併用する（raw IPを保持せず、完全防止・本人確認ではない）。期限行はfinalizer/pruner成功時だけ削除され、失敗・未実行は監視対象。独立したアクセス計測health collector完了時だけ0、partial/missing/unknownは比較不可。WordPress更新job成功はcomplete根拠にしない。本文/編集控え/特典コードを保持しない。独立collector設定、実Auth画面・Chromium/HTTPは環境接続待ち。 |
 | T44 | transient credential controls | 実行済 PASS | 実ブラウザ cookie lifecycle は未試験 |
 | T45 | GET side-effect/idempotency controls | 実行済 PASS | link-preview 実HTTPは未試験 |
 | T46 | neutral fraud controls | 実行済 PASS | 実IP/複数browserは未試験 |

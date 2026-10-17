@@ -6,8 +6,8 @@ const period = await import("../lib/partner/access-report-period.ts");
 test("partner access reports use Tokyo calendar dates across the UTC rollover", () => {
   const beforeTokyoMidnight = period.buildPartnerAccessReportPeriod(7, new Date("2026-10-17T14:59:00.000Z"));
   const afterTokyoMidnight = period.buildPartnerAccessReportPeriod(7, new Date("2026-10-17T15:01:00.000Z"));
-  assert.deepEqual(beforeTokyoMidnight, { days: 7, timezone: "Asia/Tokyo", from: "2026-10-11", to: "2026-10-17", previousFrom: "2026-10-04", previousTo: "2026-10-10" });
-  assert.deepEqual(afterTokyoMidnight, { days: 7, timezone: "Asia/Tokyo", from: "2026-10-12", to: "2026-10-18", previousFrom: "2026-10-05", previousTo: "2026-10-11" });
+  assert.deepEqual(beforeTokyoMidnight, { days: 7, timezone: "Asia/Tokyo", from: "2026-10-10", to: "2026-10-16", previousFrom: "2026-10-03", previousTo: "2026-10-09", provisionalOn: "2026-10-17" });
+  assert.deepEqual(afterTokyoMidnight, { days: 7, timezone: "Asia/Tokyo", from: "2026-10-11", to: "2026-10-17", previousFrom: "2026-10-04", previousTo: "2026-10-10", provisionalOn: "2026-10-18" });
 });
 
 test("each selectable report period requests exactly two contiguous Tokyo periods", () => {

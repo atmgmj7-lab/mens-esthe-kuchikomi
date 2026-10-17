@@ -6,10 +6,20 @@ import { useEffect } from "react";
 import { GA_MEASUREMENT_ID, gaEvent, pageview } from "@/lib/gtag";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
 
+let publicAccessContextQueue: Promise<void> = Promise.resolve();
+
 function recordPublicShopAccess(shopSlug: string, eventKind: "shop_view" | "official_line_click") {
-  void fetch(`/api/analytics/shop-access/context/?shopSlug=${encodeURIComponent(shopSlug)}&eventKind=${eventKind}`, { cache: "no-store" })
-    .then(async (response) => response.ok ? await response.json() as { context?: unknown } : null)
-    .then((data) => typeof data?.context === "string" ? fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind, context: data.context }), keepalive: true, cache: "no-store" }) : null)
+  // Serialize first-party context issuance within a tab.  The server also
+  // accepts independently issued signed sessions, so two fresh tabs cannot
+  // invalidate one another when their Set-Cookie responses race.
+  publicAccessContextQueue = publicAccessContextQueue.catch(() => undefined).then(async () => {
+    const response = await fetch(`/api/analytics/shop-access/context/?shopSlug=${encodeURIComponent(shopSlug)}&eventKind=${eventKind}`, { cache: "no-store" });
+    const data = response.ok ? await response.json() as { context?: unknown } : null;
+    if (typeof data?.context === "string") {
+      await fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind, context: data.context }), keepalive: true, cache: "no-store" });
+    }
+  });
+  void publicAccessContextQueue
     .catch(() => undefined);
 }
 
