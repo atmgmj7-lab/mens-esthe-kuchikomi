@@ -78,6 +78,17 @@ SQL
 )"
 
 docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" <<'SQL'
+do $$
+declare payload jsonb;
+begin
+  payload:=jsonb_build_object('shop_name','V11 access HTTP fixture','area_slug','v11-access-area','area_name','V11 access area','official_url','https://example.test/v11-access','introduction','fixture','address',null,'business_hours',null,'phone',null,'line_url',null,'booking_url',null,'basic_price',null,'price_90',null,'banner_asset_id',null,'gallery_asset_ids','[]'::jsonb);
+  perform private.create_canonical_managed_shop('v11-access-e2e',payload,'isolated-http-fixture');
+  update app.shops set publication_status='published',published_at=now() where slug='v11-access-e2e';
+  update private.managed_shops set publication_state='published' where shop_slug='v11-access-e2e';
+end $$;
+SQL
+
+docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" <<'SQL'
 create or replace function api.eskomi_e2e_replay_counts(p_session_hash text)
 returns table(experience_count bigint, operation_count bigint, replay_count bigint)
 language sql security definer set search_path = private, pg_temp as $$
@@ -100,6 +111,22 @@ docker run -d --rm --name "$postgrest_container" --network "$network_name" --net
   postgrest/postgrest:v16.4 >/dev/null
 for _ in $(seq 1 30); do docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening' && break; sleep 1; done
 docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening'
+
+# This is direct PostgREST HTTP, not a unit test and not production traffic.
+# It verifies named JSON argument resolution plus stable per-event dedupe.
+docker run --rm --network "$network_name" -e JWT="$service_role_jwt" node:24-bookworm-slim node -e '
+  const base="http://postgrest:3000/rpc/"; const headers={Authorization:`Bearer ${process.env.JWT}`,apikey:process.env.JWT,"Content-Type":"application/json","Content-Profile":"api","Accept-Profile":"api"};
+  const call=async(name,body)=>{const r=await fetch(base+name,{method:"POST",headers,body:JSON.stringify(body)});if(!r.ok)throw new Error(`${name} ${r.status} ${await r.text()}`)};
+  const shop="v11-access-e2e", session="c".repeat(64);
+  await call("reserve_public_shop_access_context_v11",{p_shop_slug:shop,p_session_scope_hash:session,p_network_scope_hash:null,p_is_new_session:false});
+  await call("record_public_shop_access_v11",{p_shop_slug:shop,p_event_kind:"shop_view",p_access_context_hash:"a".repeat(64),p_session_scope_hash:session});
+  await call("record_public_shop_access_v11",{p_shop_slug:shop,p_event_kind:"shop_view",p_access_context_hash:"a".repeat(64),p_session_scope_hash:session});
+  await call("record_public_shop_access_v11",{p_shop_slug:shop,p_event_kind:"official_line_click",p_access_context_hash:"b".repeat(64),p_session_scope_hash:session});
+  console.log("PostgREST named reserve and stable event calls: PASS");
+ '
+access_counts="$(docker exec -i "$database_container" psql -X -q -A -t -v ON_ERROR_STOP=1 -U postgres -d "$database_name" -c "select shop_view_count||','||official_line_click_count from private.partner_shop_access_daily_v11 daily join app.shops shop on shop.id=daily.shop_id where shop.slug='v11-access-e2e' and daily.observed_on=(now() at time zone 'Asia/Tokyo')::date")"
+test "$access_counts" = "1,1"
+echo "PostgREST access dedupe view=1 line=1: PASS"
 
 docker run -d --rm --name "$next_container" --network "$network_name" --network-alias next \
   --mount "type=bind,src=$headless_root,dst=/app" -w /app \
