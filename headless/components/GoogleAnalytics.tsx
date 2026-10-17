@@ -6,22 +6,11 @@ import { useEffect } from "react";
 import { GA_MEASUREMENT_ID, gaEvent, pageview } from "@/lib/gtag";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
 
-const ACCESS_BROWSER_TAG_KEY = "eskomi-public-access-tag-v1";
-
-function publicAccessBrowserTag() {
-  try {
-    const existing = window.sessionStorage.getItem(ACCESS_BROWSER_TAG_KEY);
-    if (existing && /^[0-9a-f]{32}$/i.test(existing)) return existing;
-    const tag = crypto.randomUUID().replaceAll("-", "");
-    window.sessionStorage.setItem(ACCESS_BROWSER_TAG_KEY, tag);
-    return tag;
-  } catch { return null; }
-}
-
 function recordPublicShopAccess(shopSlug: string, eventKind: "shop_view" | "official_line_click") {
-  const browserTag = publicAccessBrowserTag();
-  if (!browserTag) return;
-  void fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind, browserTag }), keepalive: true, cache: "no-store" }).catch(() => undefined);
+  void fetch(`/api/analytics/shop-access/context/?shopSlug=${encodeURIComponent(shopSlug)}&eventKind=${eventKind}`, { cache: "no-store" })
+    .then(async (response) => response.ok ? await response.json() as { context?: unknown } : null)
+    .then((data) => typeof data?.context === "string" ? fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind, context: data.context }), keepalive: true, cache: "no-store" }) : null)
+    .catch(() => undefined);
 }
 
 function isExternalHref(href: string): boolean {

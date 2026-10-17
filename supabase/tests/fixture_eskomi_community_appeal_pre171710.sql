@@ -1,7 +1,7 @@
 -- Persisted before 171710/171720: one target is provable and one has been
 -- superseded by a visitor withdrawal.  The latter must never be reopened.
 do $$
-declare v_area uuid; v_post_bound uuid; v_post_manual uuid; v_revision integer;
+declare v_area uuid; v_post_bound uuid; v_post_manual uuid; v_post_temporal uuid; v_revision integer;
 begin
   insert into app.areas(slug,name,is_published,published_at) values('upgrade-appeal-area','Upgrade appeal area',true,now()) returning id into v_area;
   select post_id,revision into v_post_bound,v_revision from api.submit_community_post_v11('area',null,v_area,'upgrade-bound-appeal',repeat('1',64),repeat('2',64),repeat('3',64),repeat('4',64),encode(extensions.digest('area'||chr(31)||v_area::text||chr(31)||'upgrade-bound-appeal','sha256'),'hex'));
@@ -12,4 +12,20 @@ begin
   perform api.submit_community_appeal_v11(repeat('6',64),'pre-upgrade stale appeal',repeat('a',64),encode(extensions.digest(repeat('6',64)||chr(31)||'pre-upgrade stale appeal','sha256'),'hex'));
   select revision into v_revision from private.community_posts_v11 where id=v_post_manual;
   perform api.withdraw_community_post_v11(v_post_manual,repeat('6',64),v_revision);
+
+  -- Two pre-upgrade appeals with two rejections: appeal A predates the later
+  -- rejection B, so an upgrade must not guess that A targets B.
+  select post_id,revision into v_post_temporal,v_revision from api.submit_community_post_v11('area',null,v_area,'upgrade-temporal-appeals',repeat('b',64),repeat('c',64),repeat('d',64),repeat('e',64),encode(extensions.digest('area'||chr(31)||v_area::text||chr(31)||'upgrade-temporal-appeals','sha256'),'hex'));
+  perform api.moderate_community_post_v11(v_post_temporal,'rejected','rejection A',v_revision);
+  update private.community_moderation_events_v11 set created_at=now()-interval '20 minutes' where entity_kind='community_post' and entity_id=v_post_temporal and action='rejected';
+  perform api.submit_community_appeal_v11(repeat('b',64),'appeal A',repeat('f',64),encode(extensions.digest(repeat('b',64)||chr(31)||'appeal A','sha256'),'hex'));
+  update private.community_post_appeals_v11 set created_at=now()-interval '15 minutes' where post_id=v_post_temporal and idempotency_hash=repeat('f',64);
+  update private.community_posts_v11 set moderation_state='pending',publication_state='draft',revision=revision+1,operator_reason='manual pre-upgrade re-review' where id=v_post_temporal;
+  insert into private.community_moderation_events_v11(entity_kind,entity_id,action,reason,operator_actor,revision,created_at)
+    select 'community_post',id,'appeal_reopen_review','manual pre-upgrade re-review','fixture',revision,now()-interval '10 minutes' from private.community_posts_v11 where id=v_post_temporal;
+  select revision into v_revision from private.community_posts_v11 where id=v_post_temporal;
+  perform api.moderate_community_post_v11(v_post_temporal,'rejected','rejection B',v_revision);
+  update private.community_moderation_events_v11 set created_at=now()-interval '5 minutes' where entity_kind='community_post' and entity_id=v_post_temporal and action='rejected' and reason='rejection B';
+  perform api.submit_community_appeal_v11(repeat('b',64),'appeal B',repeat('0',64),encode(extensions.digest(repeat('b',64)||chr(31)||'appeal B','sha256'),'hex'));
+  update private.community_post_appeals_v11 set created_at=now()-interval '2 minutes' where post_id=v_post_temporal and idempotency_hash=repeat('0',64);
 end $$;

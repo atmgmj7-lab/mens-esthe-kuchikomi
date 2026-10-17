@@ -8,7 +8,7 @@ const fail = (message: string, status: 401 | 403 | 503) => NextResponse.json({ o
 export async function GET(request: NextRequest) {
   const context = await partnerTherapistRequestContext(request);
   if (context.status !== "allowed") return fail("この店舗のアクセス報告を確認できません。", context.status === "unavailable" ? 503 : context.status === "unauthenticated" ? 401 : 403);
-  const days = Number(request.nextUrl.searchParams.get("days") ?? "30");
+  const days = Number(request.nextUrl.searchParams.get("days") ?? "28");
   if (!Number.isSafeInteger(days) || !isPartnerAccessReportDays(days)) return NextResponse.json({ ok: false, message: "期間を確認してください。" }, { status: 400, headers: partnerTherapistNoStore });
   const period = buildPartnerAccessReportPeriod(days);
   const result = await fetch(`${context.base}/rest/v1/rpc/get_partner_shop_access_report_v11`, {

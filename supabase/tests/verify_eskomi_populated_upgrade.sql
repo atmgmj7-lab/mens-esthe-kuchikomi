@@ -14,7 +14,7 @@ end $$;
 -- be proven.  A superseding visitor withdrawal remains non-reopenable but can
 -- be closed with a normal operator audit event.
 do $$
-declare v_bound private.community_post_appeals_v11%rowtype; v_manual private.community_post_appeals_v11%rowtype;
+declare v_bound private.community_post_appeals_v11%rowtype; v_manual private.community_post_appeals_v11%rowtype; v_temporal_a private.community_post_appeals_v11%rowtype; v_temporal_b private.community_post_appeals_v11%rowtype;
 begin
   select * into v_bound from private.community_post_appeals_v11 where receipt_hash=repeat('1',64) and idempotency_hash=repeat('5',64);
   if v_bound.target_post_revision is null or v_bound.target_event_id is null or v_bound.state<>'received' then raise exception 'provable legacy appeal was not bound to its current target'; end if;
@@ -29,5 +29,13 @@ begin
   if api.review_community_appeal_v11(v_manual.id,'dismiss','manual close after withdrawal',v_manual.revision)<>'dismiss' then raise exception 'manual legacy appeal closure failed'; end if;
   if not exists(select 1 from private.community_moderation_events_v11 where entity_kind='community_post' and entity_id=v_manual.post_id and action='appeal_dismiss' and revision>0) then
     raise exception 'manual legacy appeal closure audit is absent for post %, state %, revision %',v_manual.post_id,(select state from private.community_post_appeals_v11 where id=v_manual.id),(select revision from private.community_post_appeals_v11 where id=v_manual.id);
+  end if;
+  select * into v_temporal_a from private.community_post_appeals_v11 where receipt_hash=repeat('b',64) and idempotency_hash=repeat('f',64);
+  select * into v_temporal_b from private.community_post_appeals_v11 where receipt_hash=repeat('b',64) and idempotency_hash=repeat('0',64);
+  if v_temporal_a.target_post_revision is not null or v_temporal_a.target_event_id is not null or v_temporal_a.state<>'reviewing' or v_temporal_a.operator_reason !~ 'target time cannot be proven' then
+    raise exception 'older legacy appeal was guessed onto a later rejection';
+  end if;
+  if v_temporal_b.target_post_revision is null or v_temporal_b.target_event_id is null or v_temporal_b.state<>'received' then
+    raise exception 'newer legacy appeal was not bound to its own current rejection';
   end if;
 end $$;
