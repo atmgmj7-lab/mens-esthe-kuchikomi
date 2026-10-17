@@ -60,6 +60,7 @@
     "test:free-partner-foundation": "node scripts/check-free-partner-foundation.mjs",
     "test:free-partner-local-supabase": "node scripts/check-free-partner-local-supabase.mjs",
     "test:partner-auth-membership": "node scripts/check-partner-auth-membership.mjs",
+    "test:partner-canonical-registration-review": "node scripts/check-partner-canonical-registration-review.mjs",
     "test:partner-login-email-management": "node scripts/check-partner-login-email-management.mjs",
     "test:partner-login-email-management-local-supabase": "node scripts/check-partner-login-email-management-local-supabase.mjs",
     "qa:partner-login-email-management": "npm run build && node scripts/check-partner-login-email-management-browser.mjs",

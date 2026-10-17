@@ -204,6 +204,17 @@ assert.deepEqual(Array.from(groups.related, ({ id }) => id), [2], "different exp
 assert.deepEqual(Array.from(groups.unclassified, ({ id }) => id), [3], "null Primary with legacy relation creates UNCLASSIFIED");
 assert.equal(groups.exact.includes(unclassified), false, "name, slug, address, and relation order must not infer EXACT");
 
+for (const area of [priorityAreas[0], priorityAreas[1]]) {
+  const canonicalInArea = shop({ id: area.id === 17 ? 1000000170 : 1000000130, title: `${area.name} canonical 新店`, primaryArea: null, terms: [], slug: `canonical-${area.slug}` });
+  canonicalInArea.areaSlug = area.slug;
+  const canonicalOutside = shop({ id: canonicalInArea.id + 1, title: "別地域 canonical 新店", primaryArea: null, terms: [], slug: `canonical-other-${area.slug}` });
+  canonicalOutside.areaSlug = "umeda";
+  const selected = precision.selectAreaRelationShops([canonicalInArea, canonicalOutside], area);
+  assert.deepEqual(Array.from(selected, ({ id }) => id), [canonicalInArea.id], `${area.name} must include its app.shop_areas canonical store and exclude another canonical area`);
+  const canonicalGroups = precision.classifyPriorityAreaShops([canonicalInArea, canonicalOutside], area);
+  assert.deepEqual(Array.from(canonicalGroups.exact, ({ id }) => id), [canonicalInArea.id], `${area.name} canonical primary area must be exact without a WordPress term`);
+}
+
 assert.throws(
   () => precision.classifyPriorityAreaShops([exact, { ...exact }], target),
   /duplicate.*1/iu,

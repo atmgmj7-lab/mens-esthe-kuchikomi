@@ -34,7 +34,7 @@
    `get_partner_canonical_listing_editor(p_workspace_id, p_auth_user_id)`、下書き保存は
    `PATCH /api/partner/listing/` →
    `save_partner_canonical_listing_draft(p_workspace_id, p_auth_user_id, p_expected_revision, p_patch)`、
-   申請は `submit_partner_canonical_listing_revision(p_workspace_id, p_auth_user_id, p_expected_revision)`。
+   申請は `submit_partner_canonical_listing_change(p_workspace_id, p_auth_user_id, p_expected_revision)`。
    `p_patch` は `shop_name`, `area_slug`, `official_url`, `introduction`, `banner_asset_id` のみで、
    地域名をクライアントから受けない。`area_slug` は既存の `app.areas` 候補から選び、共有地域名を
    上書きできない。
@@ -68,10 +68,12 @@ WP-only workspace は今回の compatibility RPC で既存 login を壊さない
 ```sql
 -- 実行先は production ではなく承認済み read-only replica / snapshot に限定する。
 -- 候補、未対応、重複、slug 衝突を個別に出し、件数を release ticket に添付する。
-select pw.id, pw.wp_shop_id, ms.slug, pw.app_shop_id
+select pw.id, pw.wp_shop_id, ms.shop_slug, ms.app_shop_id as candidate_app_shop_id
 from private.partner_workspaces pw
-left join private.managed_shops ms on ms.wp_shop_id = pw.wp_shop_id
-where pw.app_shop_id is null;
+left join private.managed_shops ms
+  on ms.existing_wp_shop_id = pw.wp_shop_id
+ and ms.existing_shop_slug = pw.shop_slug
+where pw.app_shop_id is null and pw.wp_shop_id is not null;
 
 select wp_shop_id, count(*)
 from private.partner_workspaces
@@ -79,7 +81,12 @@ where wp_shop_id is not null
 group by wp_shop_id having count(*) > 1;
 ```
 
-dry-run の合格条件は、対応済み/未対応/重複/slug衝突を全て記録し、二度目の計算が差分 0、孤立 FK 0、
+canonical schema 適用後の dry-run は `api.list_legacy_partner_workspace_mapping_candidates_v11()` を使い、
+`mapping_status='ready'` のみを個別承認対象にする。実行順は (1) exact WP ID + slug を確認、(2) 既存
+`app.shops` を `api.bind_legacy_managed_shop_to_app_shop_v11(managed_shop_id, app_shop_id, actor)` で明示的に
+bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(workspace_id, managed_shop_id, app_shop_id, actor)`
+へ再提示する、である。どちらも名称照合・自動実行をしない。workspace UUID/membership、旧 canonical URL、
+`app.shop_images` は更新しない。dry-run の合格条件は、対応済み/未対応/重複/slug衝突を全て記録し、二度目の計算が差分 0、孤立 FK 0、
 停止/tombstone が legacy/canonical の両方で優先されること。旧口コミ・旧 public banner は自動削除も
 自動再公開もしない。legacy review の件数・公開状態・URL の二重読取比較が 0 差分になるまで、
 `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` の production 切替はしない。
@@ -99,7 +106,7 @@ dry-run の合格条件は、対応済み/未対応/重複/slug衝突を全て�
 | ID | 実装/証跡 | 状態 | 残る確認 |
 | --- | --- | --- | --- |
 | T01 | v1.1 QR/entry RPC、既存 entry fixture | 実行済 PASS | 既存 WP 店の実画面は未試験 |
-| T02 | canonical provision、session、growth/widget、公開 projection | 実行済 PASS | 実HTTP/Chromium は未試験 |
+| T02 | canonical provision、通常登録→審査一覧→承認、session、growth/widget、公開 projection | 実行済 PASS | 実HTTP/Chromium は未試験 |
 | T03 | therapist selection と公開 snapshot | 実行済 PASS | 実写真/同名データはユーザー前提待ち |
 | T04 | ownership/expiry/membership RPC reject | 実行済 PASS | 実 Auth 失効イベントは未試験 |
 | T05 | review entry v2 acceptance | 実行済 PASS | 実入力画面は未試験 |
@@ -116,7 +123,7 @@ dry-run の合格条件は、対応済み/未対応/重複/slug衝突を全て�
 | T16 | reply moderation/ownership | 実行済 PASS | ブラウザ画面は未試験 |
 | T17 | aggregate/source isolation | 実行済 PASS | production backfill はユーザー前提待ち |
 | T18 | canonical/legacy/manager role matrix | 実行済 PASS | 実 Auth revoke は未試験 |
-| T19 | additive upgrade replay | 実行済 PASS | production mapping dry-run はユーザー前提待ち |
+| T19 | explicit legacy mapping candidate/bind/map fixture | 実行済 PASS | production mapping dry-run はユーザー前提待ち |
 | T20 | failure contracts | 実行済 PASS | 実 service outage は未試験 |
 | T21 | responsive UI source/static contracts | 未試験 | 320--1440px Chromium・a11y が必要 |
 | T22 | canonical readers/SEO implementation | 未試験 | preview HTTP canonical/robots/sitemap/JSON-LD |
@@ -147,12 +154,12 @@ dry-run の合格条件は、対応済み/未対応/重複/slug衝突を全て�
 | T47 | private-control SQL | 実行済 PASS | production analytics/log audit 待ち |
 | T48 | neutral review-flag controls | 実行済 PASS | retention/key rotation 実運用待ち |
 | T49 | correction intake/moderation | 実行済 PASS | UI/HTTP は未試験 |
-| T50 | community moderation/report/withdraw | 実行済 PASS | UI/HTTP は未試験 |
+| T50 | community の審査・自己取り下げ | 実行済 PASS（通報/異議申立ては未実装） | 運営限定の通報・異議申立て、再審査、重複送信制御を実装・試験する |
 | T51 | reaction expiry/concurrency | 実行済 PASS | UI/HTTP は未試験 |
 | T52 | read-only candidate mechanism | ユーザー前提待ち | 権利・正規ID・実画像の確認 |
-| T53 | R1--R4 ranking implementation | 未試験 | 全データでの page/cursor/同点比較 |
+| T53 | R1--R4 ranking | 未実装 | 料金を含む4項目、180日、最古確認日、正規ID同点順、全件ソート後ページングが未対応 |
 | T54 | B01--B10 config/slot safety | 実行済 PASS | Library 素材・各提供条件/実在先の承認 |
-| T55 | WP-free lifecycle, area switch, provision, role fixtures | 実行済 PASS | 写真/投稿を含む Chromium 完走、legacy差分確認 |
+| T55 | WP-free lifecycle、area switch、provision、registration review、legacy one-to-one mapping fixture | 実行済 PASS | 写真/投稿を含む Chromium 完走、production legacy差分確認 |
 | T56 | managed CRUD/direct edit/revision/restore fixtures | 実行済 PASS | production 非変更確認と画面通過 |
 
 ## B01--B10 の公開条件

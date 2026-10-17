@@ -132,4 +132,87 @@ begin
     raise exception 'unmapped legacy Partner workspace lost its scoped compatibility login';
   end if;
 end $$;
+
+-- A normal app_shop_id registration must be visible to the operator queue and
+-- reach free_official_partner through the review RPC, not by fixture-only
+-- state mutation.  A pre-existing fixture auth UUID is attached only after
+-- that approval to prove the resulting Partner identity can be used.
+do $$
+declare
+  v_suffix text:=left(replace(gen_random_uuid()::text,'-',''),12);
+  v_slug text; v_managed uuid; v_shop uuid; v_workspace uuid; v_submission uuid;
+  v_queue record; v_review record; v_user uuid:=gen_random_uuid(); v_growth record;
+  v_payload jsonb;
+begin
+  v_slug:='canonical-registration-' || v_suffix;
+  v_payload:=jsonb_build_object('shop_name','通常登録店舗 ' || v_suffix,'area_slug','canonical-registration-area-' || left(v_suffix,8),
+    'area_name','通常登録地域','official_url','https://example.test/registration/' || v_suffix,'introduction','通常登録の初期掲載情報',
+    'address',null,'business_hours',null,'phone',null,'line_url',null,'booking_url',null,'basic_price',null,'price_90',null,
+    'banner_asset_id',null,'gallery_asset_ids','[]'::jsonb);
+  v_managed:=api.create_and_publish_canonical_managed_shop(v_slug,v_payload,'registration fixture operator');
+  select app_shop_id into v_shop from private.managed_shops where id=v_managed;
+  select workspace_id into v_workspace from api.provision_partner_workspace_for_published_managed_shop(v_slug,'self_registration');
+  perform api.register_partner_submission(v_workspace,'通常登録担当','owner','fixture@example.test','店舗の担当者です。',
+    'https://mens-esthe-kuchikomi.com/partner/register/',true);
+  select id into v_submission from private.partner_registration_submissions where workspace_id=v_workspace;
+  if not exists(select 1 from private.partner_workspaces where id=v_workspace and state='shop_confirmed') then
+    raise exception 'canonical registration did not advance through the registration submission RPC';
+  end if;
+  select * into v_queue from api.list_partner_registration_reviews_v11() where submission_id=v_submission;
+  if v_queue.identity_kind<>'canonical' or v_queue.app_shop_id<>v_shop or v_queue.wp_shop_id is not null
+    or v_queue.shop_slug<>v_slug then
+    raise exception 'canonical registration is absent or malformed in the operator review queue';
+  end if;
+  select * into v_review from api.review_partner_registration_v11(v_submission,'approved','fixture operator','registration approved');
+  if v_review.status<>'approved' or v_review.state<>'free_official_partner' or v_review.identity_kind<>'canonical'
+    or v_review.app_shop_id<>v_shop or v_review.wp_shop_id is not null then
+    raise exception 'canonical registration approval did not retain the app_shop_id identity';
+  end if;
+  insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at)
+  values(v_workspace,v_user,'owner','active',now());
+  select * into v_growth from api.get_partner_canonical_growth_v11(v_workspace,v_user);
+  if v_growth.app_shop_id<>v_shop or v_growth.review_handle is null or v_growth.widget_handle is null then
+    raise exception 'approved canonical registration could not use the Partner growth path';
+  end if;
+end $$;
+
+-- Existing stores are mapped only from the immutable WP ID plus the exact
+-- slug. Binding the managed row and mapping its workspace keep the workspace
+-- UUID (and therefore membership), old canonical URL, and app image row.
+do $$
+declare
+  v_suffix text:=left(replace(gen_random_uuid()::text,'-',''),12); v_slug text; v_wp bigint;
+  v_managed uuid; v_app uuid; v_workspace uuid; v_user uuid:=gen_random_uuid(); v_candidate record; v_identity record;
+  v_payload jsonb; v_before_images integer;
+begin
+  v_slug:='legacy-map-'||v_suffix; v_wp:=800000000+floor(random()*999999)::bigint;
+  v_payload:=jsonb_build_object('shop_name','既存移行店舗 '||v_suffix,'area_slug','legacy-map-area-'||left(v_suffix,8),'area_name','既存移行地域',
+    'official_url','https://example.test/legacy/'||v_suffix,'introduction','既存移行の紹介文','address',null,'business_hours',null,
+    'phone',null,'line_url',null,'booking_url',null,'basic_price',null,'price_90',null,'banner_asset_id',null,'gallery_asset_ids','[]'::jsonb);
+  v_managed:=api.import_and_publish_managed_shop_from_legacy(v_wp,v_slug,v_payload,'legacy map fixture');
+  insert into app.shops(slug,canonical_path,name,publication_status,published_at)
+  values(v_slug,'/shops/'||v_slug||'/','既存移行店舗 '||v_suffix,'published',now()) returning id into v_app;
+  insert into app.shop_images(shop_id,image_url,alt_text,image_role,sort_order,is_public,verified_at)
+  values(v_app,'https://images.example.test/'||v_suffix||'.jpg','既存画像','featured',0,true,now());
+  if api.bind_legacy_managed_shop_to_app_shop_v11(v_managed,v_app,'legacy map fixture')<>'bound' then
+    raise exception 'exact legacy managed binding failed';
+  end if;
+  insert into private.partner_workspaces(wp_shop_id,shop_slug,shop_name,canonical_url,state)
+  values(v_wp,v_slug,'既存移行店舗 '||v_suffix,'https://mens-esthe-kuchikomi.com/shops/'||v_slug||'/','free_official_partner') returning id into v_workspace;
+  insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,v_user,'owner','active',now());
+  select count(*) into v_before_images from app.shop_images where shop_id=v_app;
+  select * into v_candidate from api.list_legacy_partner_workspace_mapping_candidates_v11() where workspace_id=v_workspace;
+  if v_candidate.mapping_status<>'ready' or v_candidate.managed_shop_id<>v_managed or v_candidate.app_shop_id<>v_app then
+    raise exception 'legacy mapping dry-run did not require exact WP ID and slug identity';
+  end if;
+  if api.map_legacy_partner_workspace_to_canonical_v11(v_workspace,v_managed,v_app,'legacy map fixture')<>'mapped' then
+    raise exception 'legacy workspace mapping failed';
+  end if;
+  select * into v_identity from api.get_partner_compatible_workspace_identity(v_workspace,v_user);
+  if v_identity.identity_kind<>'canonical' or v_identity.app_shop_id<>v_app or v_identity.wp_shop_id is not null
+    or not exists(select 1 from private.partner_workspace_legacy_aliases_v11 where workspace_id=v_workspace and legacy_wp_shop_id=v_wp and legacy_shop_slug=v_slug)
+    or (select count(*) from app.shop_images where shop_id=v_app)<>v_before_images then
+    raise exception 'legacy mapping did not preserve auth workspace, old alias, or app image identity';
+  end if;
+end $$;
 rollback;

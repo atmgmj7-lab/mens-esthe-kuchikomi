@@ -3,7 +3,16 @@ import { submitPartnerRegistration } from "@/lib/partner/registration-service";
 import { validatePartnerRegistrationPayload } from "@/lib/partner/registration-validation";
 import { resolveTrustedShopOwnerClientIp, claimShopOwnerRequestRateLimit } from "@/lib/shop-owner-request-rate-limit";
 import { partnerWorkspaceRepository, savePartnerRegistration } from "@/lib/supabase/partner-workspace";
+import { managedShopDirectoryRepository } from "@/lib/supabase/managed-shop-directory";
 import { getShopBySlug } from "@/lib/wp/shops";
+
+async function getRegistrationShopBySlug(slug: string) {
+  const canonical = (await managedShopDirectoryRepository.listPublished())
+    .find((publication) => publication.shop_slug === slug && publication.existing_wp_shop_id === null);
+  return canonical
+    ? { id: canonical.directory_id, slug: canonical.shop_slug, title: canonical.shop_name }
+    : getShopBySlug(slug);
+}
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -21,7 +30,7 @@ export async function POST(request: NextRequest) {
     { ...validation.data, sourceUrl: serverSourceUrl },
     resolveTrustedShopOwnerClientIp(request.headers),
     {
-      getShopBySlug,
+      getShopBySlug: getRegistrationShopBySlug,
       claimRateLimit: claimShopOwnerRequestRateLimit,
       workspaceRepository: partnerWorkspaceRepository,
       saveRegistration: savePartnerRegistration,
