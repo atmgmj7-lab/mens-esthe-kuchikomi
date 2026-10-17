@@ -8,7 +8,9 @@ async function rpc(name: string, values: Record<string, unknown>) {
   const secret = resolveSupabaseServerSecret()?.value;
   if (!secret || !process.env.SUPABASE_URL) return null;
   try {
-    const response = await fetch(`${process.env.SUPABASE_URL.replace(/\/$/, "")}/rest/v1/rpc/${name}`, { method: "POST", headers: createSupabaseServerHeaders(secret, { "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }), body: JSON.stringify(values), cache: "no-store" });
+    const origin = process.env.SUPABASE_URL.replace(/\/$/, ""); const parsed = new URL(origin);
+    const endpoint = ["127.0.0.1", "localhost"].includes(parsed.hostname) ? `${origin}/rpc/${name}` : `${origin}/rest/v1/rpc/${name}`;
+    const response = await fetch(endpoint, { method: "POST", headers: createSupabaseServerHeaders(secret, { "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }), body: JSON.stringify(values), cache: "no-store" });
     return response.ok ? await response.json() : null;
   } catch { return null; }
 }
