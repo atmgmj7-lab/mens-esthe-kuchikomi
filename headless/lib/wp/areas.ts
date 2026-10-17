@@ -25,16 +25,51 @@ function normalizeArea(term: WpTerm): AreaView {
   };
 }
 
+// WordPress term ids are positive.  A deterministic negative id lets the
+// existing AreaView-based templates address a Supabase-only area without
+// inventing or persisting a WordPress identity.
+function managedAreaId(slug: string): number {
+  let hash = 2166136261;
+  for (const character of slug) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return -((hash >>> 0) % 2147483646 + 1);
+}
+
+async function managedAreas(): Promise<AreaView[]> {
+  if (!useSupabaseManagedShopDirectory()) return [];
+  const state = await getManagedShopDirectoryState();
+  const grouped = new Map<string, { name: string; count: number }>();
+  for (const publication of state.publications) {
+    const current = grouped.get(publication.area_slug);
+    grouped.set(publication.area_slug, { name: publication.area_name, count: (current?.count ?? 0) + 1 });
+  }
+  return [...grouped.entries()].map(([slug, value]) => ({
+    id: managedAreaId(slug), slug, name: value.name, parent: 0, count: value.count, description: "", acf: {},
+  })).sort((left, right) => left.name.localeCompare(right.name, "ja"));
+}
+
+async function managedAreaBySlug(slug: string): Promise<AreaView | null> {
+  return (await managedAreas()).find((area) => area.slug === slug) ?? null;
+}
+
+async function managedAreaById(id: number): Promise<AreaView | null> {
+  return id < 0 ? (await managedAreas()).find((area) => area.id === id) ?? null : null;
+}
+
 export async function getAreas(): Promise<AreaView[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", "areas:all");
   try {
     const terms = await wpFetch<WpTerm[]>("/wp/v2/area?per_page=100&hide_empty=false");
-    return terms.map(normalizeArea);
+    const legacy = terms.map(normalizeArea);
+    const canonical = await managedAreas();
+    return [...legacy, ...canonical.filter((area) => !legacy.some((candidate) => candidate.slug === area.slug))];
   } catch (error) {
     logWpBuildFallback("areas list", error);
-    return [];
+    try { return await managedAreas(); } catch (managedError) {
+      if (isManagedShopDirectoryUnavailableError(managedError)) throw managedError;
+      return [];
+    }
   }
 }
 
@@ -44,10 +79,13 @@ export async function getAreaBySlug(slug: string): Promise<AreaView | null> {
   cacheTag("wp", "areas", `area:${slug}`);
   try {
     const terms = await wpFetch<WpTerm[]>(`/wp/v2/area?slug=${encodeURIComponent(slug)}&hide_empty=false`);
-    return terms[0] ? normalizeArea(terms[0]) : null;
+    return terms[0] ? normalizeArea(terms[0]) : await managedAreaBySlug(slug);
   } catch (error) {
     logWpBuildFallback(`area ${slug}`, error);
-    return null;
+    try { return await managedAreaBySlug(slug); } catch (managedError) {
+      if (isManagedShopDirectoryUnavailableError(managedError)) throw managedError;
+      return null;
+    }
   }
 }
 
@@ -73,6 +111,8 @@ export async function getAreaById(id: number): Promise<AreaView | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", `area:id:${id}`);
+  const canonical = await managedAreaById(id);
+  if (canonical) return canonical;
   try {
     const term = await wpFetch<WpTerm>(`/wp/v2/area/${id}?hide_empty=false`);
     return term ? normalizeArea(term) : null;
@@ -112,10 +152,9 @@ export type GetAreaShopsOptions = {
 };
 
 async function getManagedAreaShops(area: AreaView): Promise<ShopView[]> {
-  const [entries, state] = await Promise.all([
-    getAreaShopOrderIndex(area.id),
-    getManagedShopDirectoryState(),
-  ]);
+  const state = await getManagedShopDirectoryState();
+  if (area.id < 0) return composeManagedShopPublicationsForArea(area.slug, [], [], state.publications, state.suppressions);
+  const entries = await getAreaShopOrderIndex(area.id);
   const legacyAreaShops = (await fetchAreaShopsInOrder(area.id, entries)).map(normalizeShop);
   const directLegacyIds = new Set(legacyAreaShops.map((shop) => shop.id));
   const movedInLegacyShops = (await Promise.all(
