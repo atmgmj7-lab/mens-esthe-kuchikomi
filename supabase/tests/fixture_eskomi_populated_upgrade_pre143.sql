@@ -1,0 +1,10 @@
+begin;
+insert into app.shops(slug,canonical_path,name,publication_status,published_at) values('upgrade-fixture','/shops/upgrade-fixture/','旧店舗名','published',now());
+insert into private.partner_workspaces(wp_shop_id,app_shop_id,shop_slug,shop_name,canonical_url,state) select null,id,'upgrade-fixture','旧店舗名','https://mens-esthe-kuchikomi.com/shops/upgrade-fixture/','active_partner' from app.shops where slug='upgrade-fixture';
+insert into app.therapists(stable_key) values('upgrade-therapist');
+insert into app.therapist_assignments(therapist_id,shop_id,display_name,photo_asset_key,photo_rights_confirmed_at) select therapist.id,shop.id,'旧担当名','therapists/00000000-0000-4000-8000-000000000000/00000000-0000-4000-8000-000000000001.jpg',now() from app.therapists therapist cross join app.shops shop where therapist.stable_key='upgrade-therapist' and shop.slug='upgrade-fixture';
+insert into private.therapist_assignment_rights(assignment_id,workspace_id,permission_policy_version,permission_confirmed_at) select assignment.id,workspace.id,'legacy-rights-v1',now() from app.therapist_assignments assignment cross join private.partner_workspaces workspace where assignment.display_name='旧担当名' and workspace.shop_slug='upgrade-fixture';
+insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,reviewed_at) select id,'旧投稿者',repeat('a',64),'approved',now() from app.shops where slug='upgrade-fixture';
+insert into private.review_experience_revisions(experience_id,revision,nickname,experience_comment,moderation_state,reviewed_at) select id,1,'旧投稿者','旧投稿本文','approved',now() from private.review_experiences where edit_receipt_hash=repeat('a',64);
+insert into app.review_experience_publications(experience_id,active_revision_id,shop_id,therapist_assignment_id,publication_state,published_at) select experience.id,revision.id,experience.shop_id,assignment.id,'published',now() from private.review_experiences experience join private.review_experience_revisions revision on revision.experience_id=experience.id join app.therapist_assignments assignment on assignment.display_name='旧担当名' where experience.edit_receipt_hash=repeat('a',64);
+commit;

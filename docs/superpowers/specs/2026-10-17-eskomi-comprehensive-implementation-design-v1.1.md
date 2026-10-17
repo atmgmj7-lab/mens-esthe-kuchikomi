@@ -39,3 +39,13 @@
 ## リリース境界
 
 本書は G0/G1 の実装正本であり、G3 の特典条件・保存/同意・鍵設定、G4 の全受入、G5 の本番承認を代替しない。10/08 duplicate migration の no-op 化は fresh reset の修正であり、既存DB migration ledger の読取り照合を本番前ゲートとして残す。
+
+## 引継ぎ時点の未完成範囲
+
+- 実ブラウザHTTP E2E：この環境ではホストChromiumがDocker公開PostgREST portへ接続できず未完走。Docker socket mount、host network、権限変更は行わない。
+- 投稿の編集・取り下げを実際に操作する公開UI/API：receipt sessionのDB wrapperはあるが、編集本文・withdrawalのHTTP操作とbrowser E2Eは未接続。
+- 特典の店舗側照会・消込HTTP/UI、idempotent redemption API、実務画面：DBのimmutable version/expiry境界はあるが画面は未完成。
+- 運営審査UI・返信・訂正・通報、公開人物ページ/人物別集計、widget/aggregate/cache invalidation、coupon/benefitの全G3条件は未完成。
+- Operator用の人物管理画面は既存管理認証との統合を要する。Partner画面はworkspace membershipで保護済み。
+- public projectionを店舗詳細ページ全体へ表示する最終UI統合・アクセシビリティ確認は未完成。entryページの公開口コミ表示のみv1.1 projectionへ接続済み。
+- `run-eskomi-v11-populated-upgrade-e2e.sh` はbf46aa1境界までのmigration＋代表データから後続migrationを適用する隔離upgrade証跡であり、本番migration ledger照合の代替ではない。

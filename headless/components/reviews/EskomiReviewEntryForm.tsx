@@ -84,17 +84,18 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
         },
         body: JSON.stringify({ entryHandle, ...draft }),
       });
-      const payload = await response.json() as { ok?: boolean; code?: string; message?: string; receipt?: string | null };
+      const payload = await response.json() as { ok?: boolean; code?: string; message?: string; receipt?: string | null; benefitCode?: string | null; benefitStatus?: string };
       if (!response.ok || !payload.ok) {
-        if (payload.code === "SUBMISSION_UNAVAILABLE") {
+        if (payload.code === "TARGET_CHANGED") {
+          setStatus("input");
           setDraft(null);
           setSelectedTherapistId(null);
-          setMessage("担当者の対象状態が変わった可能性があります。店舗のみの口コミとして内容を確認し直してください。");
+          setMessage("担当者の対象状態が変わりました。店舗のみの口コミとして内容を確認し直してください。");
           return;
         }
         throw new Error(payload.message || "送信できませんでした。");
       }
-      setMessage(payload.receipt ? `口コミを受け付けました。編集控え：${payload.receipt}` : "口コミを受け付けました。運営確認後に掲載します。");
+      setMessage(payload.receipt ? `口コミを受け付けました。編集控え：${payload.receipt}${payload.benefitCode ? `　特典コード：${payload.benefitCode}` : ""}` : "口コミを受け付けました。運営確認後に掲載します。");
       setStatus("success");
     } catch (error) {
       setStatus("input");
