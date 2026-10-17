@@ -85,6 +85,8 @@
     "test:partner-review-growth": "node scripts/check-partner-review-growth.mjs",
     "test:partner-review-growth-local-supabase": "node scripts/check-partner-review-growth.mjs --local-supabase",
     "test:review-native-db-contract": "node scripts/check-review-native-db-contract.mjs",
+    "test:eskomi-canonical-foundation": "node scripts/check-eskomi-canonical-foundation.mjs",
+    "test:eskomi-canonical-foundation-local": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_eskomi_canonical_foundation.sql",
     "test:review-native-repository": "node scripts/check-review-native-repository.mjs",
     "test:review-native-submit-api": "node scripts/check-review-native-submit-api.mjs",
     "test:review-native-moderation": "node scripts/check-review-native-moderation.mjs",
