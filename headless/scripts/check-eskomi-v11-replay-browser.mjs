@@ -106,6 +106,15 @@ try {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto(`${appUrl}/reviews/entry/${entryHandle}/`, { waitUntil: "networkidle" });
+  const contextProbe = await page.evaluate(async (handle) => {
+    const response = await fetch("/api/reviews/v2/context/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-v2" },
+      body: JSON.stringify({ entryHandle: handle, therapistAssignmentId: null }),
+    });
+    return { status: response.status, body: await response.json() };
+  }, entryHandle);
+  assert.equal(contextProbe.status, 200, `review context must be available: ${JSON.stringify(contextProbe.body)}`);
   await waitForContext(page);
   await page.getByLabel("利用体験コメント（任意）").fill(submission(entryHandle).commonComment);
   await page.getByRole("button", { name: "内容を確認する" }).click();

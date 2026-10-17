@@ -48,10 +48,16 @@ for acceptance in \
   verify_eskomi_canonical_foundation.sql \
   verify_eskomi_canonical_integrity_fixes.sql \
   verify_eskomi_review_entry_v2.sql \
+  verify_eskomi_review_entry_therapist_selection.sql \
   verify_eskomi_v11_private_controls.sql \
   verify_eskomi_v11_vertical_slice.sql; do
   docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/$acceptance"
 done
+
+if [[ "${ESKOMI_SQL_ONLY:-0}" == "1" ]]; then
+  echo "Eskomi v1.1 fresh PostgreSQL 17 acceptance: PASS"
+  exit 0
+fi
 
 entry_handle="$(docker exec -i "$database_container" psql -X -q -A -t -v ON_ERROR_STOP=1 -U postgres -d "$database_name" <<'SQL'
 with shop as (
@@ -93,6 +99,13 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening'
+
+# Exercise the context RPC directly before starting Next.  This keeps a
+# PostgREST signature/SQL failure distinguishable from an app/browser failure.
+curl -fsS "http://127.0.0.1:57001/rpc/create_review_submission_context" \
+  -H "Authorization: Bearer $service_role_jwt" -H "apikey: $service_role_jwt" \
+  -H 'Content-Type: application/json' -H 'Content-Profile: api' -H 'Accept-Profile: api' \
+  --data "{\"p_entry_handle\":\"$entry_handle\",\"p_session_secret_hash\":\"$(printf 'a%.0s' {1..64})\",\"p_context_fingerprint\":\"$(printf 'b%.0s' {1..64})\",\"p_therapist_assignment_id\":null}" >/dev/null
 
 (
   cd "$headless_root"

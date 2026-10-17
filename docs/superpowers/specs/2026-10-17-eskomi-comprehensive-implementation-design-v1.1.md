@@ -18,7 +18,7 @@
 |---|---|---|
 | E01/E02 正規店舗・WP非依存 | `app.shops`、`managed_shops.app_shop_id`、canonical 作成 RPC | canonical foundation SQL。要 local Supabase 実行 |
 | E03 workspace と店舗一致 | `(workspace_id, shop_id)` 複合 FK | integrity SQL に不一致 insert 拒否 |
-| E04–E06 人物・案内リンク | `therapists`、assignments、entry link resolver | 人物写真権利版・一般リンクからの担当選択は未実装 |
+| E04–E06 人物・案内リンク | `therapists`、assignments、entry link resolver、一般リンクの同店active担当選択 | `verify_eskomi_review_entry_therapist_selection.sql`で、1体験内の店舗/任意人物評価、他店改ざん拒否、共有一般リンク不変、退店後の店舗のみ継続を実行確認。人物の店舗登録・写真権利確認・常設リンク発行/お礼文UIは未実装 |
 | E07–E10 受付と共通回答 | `submit_review_experience_v2`、任意 nickname/評価/0–400 コメント | 要 DB transaction/E2E |
 | E11 公開投影 | `review_experience_publications`（1体験1公開ID）、公開read RPC、withdrawal hide | vertical-slice SQLで承認→公開、withdrawal→非表示を確認。全配信面の集計/widget整合は未完了 |
 | E12 編集控え | hash、30日控え、編集session、24h AES-GCM再送cache | DB/private-control SQLは通過。通信断ブラウザE2Eは `npm run qa:eskomi-v11-replay-browser` に保存、現環境ではDocker公開port到達不能のため未完走 |
@@ -32,8 +32,9 @@
 
 ## 2026-10-17 隔離検証の証跡
 
-- fresh PostgreSQL 17で全migrationを適用し、`verify_eskomi_canonical_foundation.sql`、`verify_eskomi_canonical_integrity_fixes.sql`、`verify_eskomi_review_entry_v2.sql`、`verify_eskomi_v11_private_controls.sql`、`verify_eskomi_v11_vertical_slice.sql` を通過した。PostgRESTは公式 `postgrest/postgrest:v16.4` を固定する。
+- fresh PostgreSQL 17で全migrationを適用し、`verify_eskomi_canonical_foundation.sql`、`verify_eskomi_canonical_integrity_fixes.sql`、`verify_eskomi_review_entry_v2.sql`、`verify_eskomi_review_entry_therapist_selection.sql`、`verify_eskomi_v11_private_controls.sql`、`verify_eskomi_v11_vertical_slice.sql` を通過した。PostgRESTは公式 `postgrest/postgrest:v16.4` を固定する。
 - `headless/scripts/run-eskomi-v11-replay-e2e.sh` は非公開Docker network内に使い捨てPostgreSQL/PostgRESTを作り、migrationと上記SQLをfresh適用後、Nextを同一shellで起動し、`check-eskomi-v11-replay-browser.mjs` を実行する。最初の成功レスポンスだけを切断し、同一Cookie・同一冪等キーの秘密控え復元、別session非開示、期限切れ時の新規発行なしを確認する。Docker socketはどのコンテナにもmountしない。
+- この実行環境ではDocker公開port `127.0.0.1:57001` へホストのNext/Chromiumから接続できず（PostgREST起動後も `curl` が接続拒否）、実ブラウザ経路は未完走。`ESKOMI_SQL_ONLY=1` は同じfresh DB migration・SQL受入だけを明示的に完走させる検証モードであり、ブラウザ合格の代替にはしない。
 
 ## リリース境界
 
