@@ -72,6 +72,10 @@ export type PublicPartnerReviewWidgetCampaign = Readonly<{
 
 export type PartnerRegistrationReviewStatus = "received" | "under_review" | "approved" | "rejected";
 
+export type PartnerRegistrationReviewShop =
+  | Readonly<{ identityKind: "canonical"; appShopId: string; wpShopId: null; slug: string; title: string; canonicalUrl: string }>
+  | Readonly<{ identityKind: "legacy"; appShopId: null; wpShopId: number; slug: string; title: string; canonicalUrl: string }>;
+
 export type PartnerRegistrationReview = {
   submissionId: string;
   workspaceId: string;
@@ -86,9 +90,16 @@ export type PartnerRegistrationReview = {
   reviewedBy: string | null;
   reviewReason: string | null;
   workspaceState: PartnerWorkspaceState;
-  shop: CanonicalPartnerShop & { canonicalUrl: string };
+  shop: PartnerRegistrationReviewShop;
   campaigns: PartnerReviewCampaign[];
 };
+
+export type PartnerRegistrationReviewDecision = Readonly<{
+  state: PartnerWorkspaceState;
+  status: "approved" | "rejected";
+  workspaceId: string;
+  shop: Pick<PartnerRegistrationReviewShop, "identityKind" | "appShopId" | "wpShopId" | "slug" | "canonicalUrl">;
+}>;
 
 export type PartnerWorkspaceRepository = {
   provision: (input: {
@@ -107,7 +118,7 @@ export type PartnerReviewGrowthRepository = {
     decision: "approved" | "rejected";
     actorLabel: string;
     reason: string;
-  }) => Promise<{ state: PartnerWorkspaceState; status: "approved" | "rejected" } | null>;
+  }) => Promise<PartnerRegistrationReviewDecision | null>;
   openReviewCampaign: (token: string) => Promise<(CanonicalPartnerShop & { canonicalUrl: string }) | null>;
   recordReviewCampaignVisit: (input: {
     token: string;

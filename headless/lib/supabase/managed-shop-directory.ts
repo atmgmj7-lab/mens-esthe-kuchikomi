@@ -10,6 +10,7 @@ export type ManagedShopDetail = Readonly<Record<string, unknown>>;
 
 export type PublishedManagedShop = Readonly<{
   managed_shop_id: string;
+  app_shop_id: string | null;
   directory_id: number;
   existing_wp_shop_id: number | null;
   shop_slug: string;
@@ -64,12 +65,14 @@ function publication(value: unknown): PublishedManagedShop | null {
     || !Number.isSafeInteger(value.directory_id) || (value.directory_id as number) < 1
     || !Number.isSafeInteger(value.approved_revision) || (value.approved_revision as number) < 1) return null;
   const existing = nullableInt(value.existing_wp_shop_id);
+  const appShopId = value.app_shop_id == null ? null : string(value.app_shop_id);
   const optional = ["introduction", "address", "business_hours", "phone", "line_url", "booking_url", "banner_asset_id"] as const;
-  if (existing === undefined || nullableString(value.official_url) === undefined || optional.some((key) => nullableString(value[key]) === undefined)
+  if (existing === undefined || appShopId !== null && !UUID.test(appShopId) || nullableString(value.official_url) === undefined || optional.some((key) => nullableString(value[key]) === undefined)
     || nullableInt(value.basic_price) === undefined || nullableInt(value.price_90) === undefined
     || !Array.isArray(value.gallery_asset_ids) || !value.gallery_asset_ids.every((id) => typeof id === "string" && UUID.test(id))) return null;
   return {
     managed_shop_id: value.managed_shop_id as string,
+    app_shop_id: appShopId,
     directory_id: value.directory_id as number,
     existing_wp_shop_id: existing,
     shop_slug: value.shop_slug as string,
@@ -198,12 +201,15 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
     },
     async create(input: Readonly<{ slug: string; payload: ManagedShopPayload; actorLabel: string }>): Promise<string | null> {
       if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(input.slug) || !payload(input.payload) || !actor(input.actorLabel)) return null;
-      const result = await rpc("create_managed_shop", { p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
-      return typeof result === "string" && UUID.test(result) ? result : null;
+      const result = await rpc("create_canonical_managed_shop", { p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
+      const row = Array.isArray(result) ? result[0] : null;
+      return record(row) && typeof row.managed_shop_id === "string" && UUID.test(row.managed_shop_id) ? row.managed_shop_id : null;
     },
     async createAndPublish(input: Readonly<{ slug: string; payload: ManagedShopPayload; actorLabel: string }>): Promise<string | null> {
       if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(input.slug) || !payload(input.payload) || !actor(input.actorLabel)) return null;
-      const result = await rpc("create_and_publish_managed_shop", { p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
+      // New operator stores must have a canonical app.shops identity. Legacy
+      // imports retain their dedicated import RPCs below.
+      const result = await rpc("create_and_publish_canonical_managed_shop", { p_shop_slug: input.slug, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
       return typeof result === "string" && UUID.test(result) ? result : null;
     },
     async importAndPublishLegacy(input: Readonly<{ wpShopId: number; slug: string; payload: ManagedShopPayload; actorLabel: string }>): Promise<string | null> {
@@ -223,6 +229,11 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
       const result = await rpc("save_and_publish_managed_shop", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
       return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
     },
+    async saveCanonicalAndPublish(input: Readonly<{ managedShopId: string; expectedRevision: number; payload: ManagedShopPayload; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !payload(input.payload) || !actor(input.actorLabel)) return null;
+      const result = await rpc("save_and_publish_canonical_managed_shop", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_payload: input.payload, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
     async submit(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | null> {
       if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
       const result = await rpc("submit_managed_shop_revision", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
@@ -234,20 +245,42 @@ export function createManagedShopDirectoryRepository(configuration: Readonly<{
       const result = await rpc("review_managed_shop_revision", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_decision: input.decision, p_reviewer_label: actor(input.actorLabel), p_note: input.note ?? null });
       return result === "ok" || result === "conflict" ? result : null;
     },
+    async reviewCanonical(input: Readonly<{ managedShopId: string; expectedRevision: number; decision: "approved" | "changes_requested"; actorLabel: string; note?: string | null }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)
+        || (input.decision !== "approved" && input.decision !== "changes_requested") || (input.note?.length ?? 0) > 5000) return null;
+      const result = await rpc("review_canonical_managed_shop_revision", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_decision: input.decision, p_reviewer_label: actor(input.actorLabel), p_note: input.note ?? null });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
     async setVisibility(input: Readonly<{ managedShopId: string; expectedRevision: number; visibility: "published" | "unlisted"; actorLabel: string }>): Promise<"ok" | "conflict" | null> {
       if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)
         || (input.visibility !== "published" && input.visibility !== "unlisted")) return null;
       const result = await rpc("set_managed_shop_visibility", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_visibility: input.visibility, p_actor_label: actor(input.actorLabel) });
       return result === "ok" || result === "conflict" ? result : null;
     },
+    async setCanonicalVisibility(input: Readonly<{ managedShopId: string; expectedRevision: number; visibility: "published" | "unlisted"; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)
+        || (input.visibility !== "published" && input.visibility !== "unlisted")) return null;
+      const result = await rpc("set_canonical_managed_shop_visibility", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_visibility: input.visibility, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
     async archive(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
       if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
       const result = await rpc("archive_managed_shop", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
       return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
     },
+    async archiveCanonical(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
+      const result = await rpc("archive_canonical_managed_shop", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
     async restoreArchiveToUnlisted(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
       if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
       const result = await rpc("restore_archived_managed_shop_to_unlisted", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
+      return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
+    },
+    async restoreCanonicalArchiveToUnlisted(input: Readonly<{ managedShopId: string; expectedRevision: number; actorLabel: string }>): Promise<"ok" | "conflict" | "not_found" | null> {
+      if (!UUID.test(input.managedShopId) || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1 || !actor(input.actorLabel)) return null;
+      const result = await rpc("restore_canonical_managed_shop_to_unlisted", { p_managed_shop_id: input.managedShopId, p_expected_revision: input.expectedRevision, p_actor_label: actor(input.actorLabel) });
       return result === "ok" || result === "conflict" || result === "not_found" ? result : null;
     },
     async attachAsset(input: Readonly<{ managedShopId: string; assetId: string; objectKey: string; sha256: string; contentType: "image/png" | "image/jpeg" | "image/webp"; byteSize: number; width: number; height: number; actorLabel: string }>): Promise<string | null> {

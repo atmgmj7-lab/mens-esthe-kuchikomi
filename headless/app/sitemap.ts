@@ -4,6 +4,7 @@ import { STATIC_PAGE_SLUGS } from "@/lib/static-pages";
 import { getAreas } from "@/lib/wp/areas";
 import { getPostsForSitemap } from "@/lib/wp/posts";
 import { getShopsForSitemap } from "@/lib/wp/shops";
+import { getPublicTherapistsForSitemap } from "@/lib/public-therapist";
 
 const FIXED_PAGE_PRIORITY: Record<string, number> = {
   "osaka-nihonbashi": 0.75
@@ -26,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let areaRoutes: MetadataRoute.Sitemap = [];
   let shopRoutes: MetadataRoute.Sitemap = [];
   let postRoutes: MetadataRoute.Sitemap = [];
+  let therapistRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const areas = await getAreas();
@@ -63,5 +65,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     postRoutes = [];
   }
 
-  return [...staticRoutes, ...areaRoutes, ...shopRoutes, ...postRoutes];
+  try {
+    const therapists = await getPublicTherapistsForSitemap();
+    therapistRoutes = therapists.map((therapist) => ({
+      url: canonicalUrl(`/therapists/${therapist.assignmentId}/`),
+      lastModified: therapist.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+    }));
+  } catch {
+    therapistRoutes = [];
+  }
+
+  return [...staticRoutes, ...areaRoutes, ...shopRoutes, ...therapistRoutes, ...postRoutes];
 }

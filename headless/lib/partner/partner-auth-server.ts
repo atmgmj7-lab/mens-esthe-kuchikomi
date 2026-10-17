@@ -8,6 +8,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 type Environment = Readonly<Record<string, string | undefined>>;
 type AuthConfiguration = Readonly<{ baseUrl: string; authPublishableKey: string }>;
+export type PartnerTherapistWorkspaceScope = Readonly<{ workspaceId: string; appShopId: string; role: "owner" | "manager" }>;
 
 function normalizeSupabaseUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value) return null;
@@ -38,31 +39,44 @@ function parseAuthUser(value: unknown): PartnerAuthUser | null {
 function parseMembership(value: unknown): PartnerMembershipAccess | null {
   if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
   const row = value[0] as Record<string, unknown>;
-  return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
-    && typeof row.wp_shop_id === "number" && Number.isSafeInteger(row.wp_shop_id) && row.wp_shop_id > 0
+  if (!(typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
     && typeof row.shop_slug === "string" && row.shop_slug.length > 0
     && (row.role === "owner" || row.role === "manager")
-    ? { workspaceId: row.workspace_id, shopId: row.wp_shop_id, shopSlug: row.shop_slug, role: row.role }
-    : null;
+    && (row.identity_kind === "canonical" || row.identity_kind === "legacy"))) return null;
+  if (row.identity_kind === "canonical" && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id) && row.wp_shop_id === null) {
+    return { workspaceId: row.workspace_id, identityKind: "canonical", appShopId: row.app_shop_id, shopSlug: row.shop_slug, role: row.role };
+  }
+  if (row.identity_kind === "legacy" && row.app_shop_id === null && Number.isSafeInteger(row.wp_shop_id) && (row.wp_shop_id as number) > 0) {
+    return { workspaceId: row.workspace_id, identityKind: "legacy", wpShopId: row.wp_shop_id as number, shopSlug: row.shop_slug, role: row.role };
+  }
+  return null;
 }
 
 function parseWorkspaceIdentity(value: unknown): PartnerWorkspaceIdentity | null {
   if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
   const row = value[0] as Record<string, unknown>;
-  return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
-    && typeof row.wp_shop_id === "number" && Number.isSafeInteger(row.wp_shop_id) && row.wp_shop_id > 0
+  if (!(typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
     && typeof row.shop_slug === "string" && row.shop_slug.length > 0
     && typeof row.shop_name === "string" && row.shop_name.trim().length > 0
     && typeof row.canonical_url === "string" && row.canonical_url.length > 0
     && (row.state === "free_official_partner" || row.state === "active_partner")
-    ? {
-      workspaceId: row.workspace_id,
-      shopId: row.wp_shop_id,
-      shopSlug: row.shop_slug,
-      shopName: row.shop_name,
-      canonicalUrl: row.canonical_url,
-      state: row.state,
-    }
+    && (row.identity_kind === "canonical" || row.identity_kind === "legacy"))) return null;
+  if (row.identity_kind === "canonical" && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id) && row.wp_shop_id === null) {
+    return { workspaceId: row.workspace_id, identityKind: "canonical", appShopId: row.app_shop_id, shopSlug: row.shop_slug, shopName: row.shop_name, canonicalUrl: row.canonical_url, state: row.state };
+  }
+  if (row.identity_kind === "legacy" && row.app_shop_id === null && Number.isSafeInteger(row.wp_shop_id) && (row.wp_shop_id as number) > 0) {
+    return { workspaceId: row.workspace_id, identityKind: "legacy", wpShopId: row.wp_shop_id as number, shopSlug: row.shop_slug, shopName: row.shop_name, canonicalUrl: row.canonical_url, state: row.state };
+  }
+  return null;
+}
+
+function parseTherapistWorkspaceScope(value: unknown): PartnerTherapistWorkspaceScope | null {
+  if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
+  const row = value[0] as Record<string, unknown>;
+  return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
+    && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id)
+    && (row.role === "owner" || row.role === "manager")
+    ? { workspaceId: row.workspace_id, appShopId: row.app_shop_id, role: row.role }
     : null;
 }
 
@@ -99,7 +113,9 @@ function validMagicLinkToken(value: unknown): value is string {
 export function createPartnerAuthDependencies(
   environment: Environment,
   fetchImpl: typeof fetch = fetch,
-): (PartnerAccessDependencies & PartnerDashboardIdentityDependencies) | null {
+): (PartnerAccessDependencies & PartnerDashboardIdentityDependencies & {
+  getTherapistWorkspaceScope: (authUserId: string) => Promise<PartnerTherapistWorkspaceScope | null>;
+}) | null {
   const auth = authConfiguration(environment);
   const serverSecret = resolveSupabaseServerSecret(environment);
   if (!auth || !serverSecret) return null;
@@ -130,7 +146,7 @@ export function createPartnerAuthDependencies(
     async getActiveMembership(authUserId: string): Promise<PartnerMembershipAccess | null> {
       if (typeof authUserId !== "string" || !UUID_RE.test(authUserId)) return null;
       try {
-        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_auth_membership`, {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_compatible_auth_membership`, {
           method: "POST",
           headers: serviceHeaders,
           body: JSON.stringify({ p_auth_user_id: authUserId }),
@@ -141,16 +157,30 @@ export function createPartnerAuthDependencies(
         return null;
       }
     },
-    async getWorkspaceIdentity(workspaceId: string): Promise<PartnerWorkspaceIdentity | null> {
-      if (typeof workspaceId !== "string" || !UUID_RE.test(workspaceId)) return null;
+    async getWorkspaceIdentity(workspaceId: string, authUserId: string): Promise<PartnerWorkspaceIdentity | null> {
+      if (typeof workspaceId !== "string" || !UUID_RE.test(workspaceId) || typeof authUserId !== "string" || !UUID_RE.test(authUserId)) return null;
       try {
-        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_workspace_identity`, {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_compatible_workspace_identity`, {
           method: "POST",
           headers: serviceHeaders,
-          body: JSON.stringify({ p_workspace_id: workspaceId }),
+          body: JSON.stringify({ p_workspace_id: workspaceId, p_auth_user_id: authUserId }),
           cache: "no-store",
         });
         return response.ok ? parseWorkspaceIdentity(await response.json()) : null;
+      } catch {
+        return null;
+      }
+    },
+    async getTherapistWorkspaceScope(authUserId: string): Promise<PartnerTherapistWorkspaceScope | null> {
+      if (typeof authUserId !== "string" || !UUID_RE.test(authUserId)) return null;
+      try {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_therapist_workspace_scope`, {
+          method: "POST",
+          headers: serviceHeaders,
+          body: JSON.stringify({ p_auth_user_id: authUserId }),
+          cache: "no-store",
+        });
+        return response.ok ? parseTherapistWorkspaceScope(await response.json()) : null;
       } catch {
         return null;
       }

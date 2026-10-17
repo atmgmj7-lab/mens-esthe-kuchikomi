@@ -35,6 +35,7 @@ function publicationImage(publication: PublishedManagedShop): string {
 function publicationAcf(publication: PublishedManagedShop): Record<string, unknown> {
   return {
     managed_area_name: publication.area_name,
+    ...(publication.app_shop_id ? { app_shop_id: publication.app_shop_id } : {}),
     official_url: publication.official_url,
     shop_address: publication.address,
     shop_hours: publication.business_hours,
@@ -51,6 +52,7 @@ function overlayLegacyShop(shop: ShopView, publication: PublishedManagedShop): S
   const primaryArea = shop.primaryArea && shop.primaryArea.slug === publication.area_slug ? shop.primaryArea : null;
   return {
     ...shop,
+    ...(publication.app_shop_id ? { canonicalShopId: publication.app_shop_id } : {}),
     title: publication.shop_name,
     contentHtml: publication.introduction === null ? shop.contentHtml : htmlEscape(publication.introduction),
     excerpt: publication.introduction === null ? shop.excerpt : publication.introduction,
@@ -70,6 +72,7 @@ function createManagedShop(publication: PublishedManagedShop): ShopView {
   const imageUrl = publicationImage(publication);
   return {
     id: publication.directory_id,
+    ...(publication.app_shop_id ? { canonicalShopId: publication.app_shop_id } : {}),
     publicationStatus: "publish",
     slug: publication.shop_slug,
     link: publication.canonical_url,

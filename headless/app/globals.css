@@ -543,6 +543,7 @@ img {
 }
 .hl-partner-home__metric dt { color: #596675; font-size: .88rem; font-weight: 700; }
 .hl-partner-home__metric dd {
+  font-family: var(--hl-sans, system-ui, sans-serif);
   margin: 4px 0 0;
   color: var(--color-luxury-text, #1a2830);
   font-size: clamp(1.7rem, 4vw, 2.2rem);

@@ -12,6 +12,7 @@ import { getShopBySlug, getShopsForSitemap } from "@/lib/wp/shops";
 import { isManagedShopLegacySuppressedBySlug } from "@/lib/managed-shop-source";
 import { getPublicPartnerListing } from "@/lib/partner/public-listing";
 import { PublicPartnerListing } from "@/components/partner/PublicPartnerListing";
+import { getPublicTherapistsForShop } from "@/lib/public-therapist";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -64,9 +65,10 @@ export default async function ShopPage({ params }: Props) {
   if (!shop) notFound();
   const approvedShop = partner ? { ...shop, contentHtml: partner.introduction ?? shop.contentHtml, imageUrl: partner.banner_asset_id ? `/api/partner/listing/banner/${partner.banner_asset_id}/` : shop.imageUrl, media: partner.banner_asset_id ? { ...shop.media, cardSquare: { ...shop.media.cardSquare, url: `/api/partner/listing/banner/${partner.banner_asset_id}/`, source: "legacy-acf" as const, alt: `${shop.title} の掲載画像` } } : shop.media, officialUrl: partner.website_url || shop.officialUrl } : shop;
 
-  const [allAreas, reviewResult] = await Promise.all([
+  const [allAreas, reviewResult, therapists] = await Promise.all([
     withWpBuildFallback(`shop area list ${approvedShop.slug}`, getAreas, []),
-    publicReviewAdapter.getShopReviews(approvedShop, 1, 3)
+    publicReviewAdapter.getShopReviews(approvedShop, 1, 3),
+    getPublicTherapistsForShop(approvedShop.slug),
   ]);
   const { parent: parentArea } = resolveShopDetailAreaContext(approvedShop, allAreas);
 
@@ -75,6 +77,7 @@ export default async function ShopPage({ params }: Props) {
       shop={approvedShop}
       parentArea={parentArea}
       reviewResult={reviewResult}
+      therapists={therapists}
     />
   );
 }

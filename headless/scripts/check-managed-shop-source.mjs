@@ -23,7 +23,7 @@ const legacy = {
   ranking: { availability: "unavailable" }, strictRanking: { availability: "unavailable", reason: "shop" },
 };
 const overlay = {
-  managed_shop_id: "11111111-1111-4111-8111-111111111111", directory_id: 1_000_000_001, existing_wp_shop_id: 768,
+  managed_shop_id: "11111111-1111-4111-8111-111111111111", app_shop_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", directory_id: 1_000_000_001, existing_wp_shop_id: 768,
   shop_slug: "legacy-shop", canonical_url: legacy.link, approved_revision: 3, shop_name: "更新済み店舗", area_slug: "new-area", area_name: "新エリア",
   official_url: "https://example.test/new", introduction: "<script>unsafe</script>紹介", address: "大阪市", business_hours: "10:00", phone: "06", line_url: null, booking_url: null,
   basic_price: 12000, price_90: 15000, banner_asset_id: null, gallery_asset_ids: [],
@@ -34,11 +34,13 @@ const composed = composeManagedShopPublications([legacy], [overlay, created]);
 assert.equal(composed.length, 2, "published new store must be appended without a WordPress row");
 assert.equal(composed[0].id, 768, "legacy review identity must be preserved");
 assert.equal(composed[0].title, "更新済み店舗");
+assert.equal(composed[0].canonicalShopId, overlay.app_shop_id, "managed legacy overlays retain their canonical app.shops UUID");
 assert.equal(composed[0].areaSlug, "new-area");
 assert.equal(composed[0].acf.basic_price, "12000");
 assert.equal(composed[0].contentHtml, "&lt;script&gt;unsafe&lt;/script&gt;紹介", "managed text cannot become raw HTML");
 assert.equal(composed[1].id, 1_000_000_002, "new stores need a stable non-WordPress directory id");
 assert.equal(composed[1].slug, "new-managed-shop");
+assert.equal(composed[1].canonicalShopId, created.app_shop_id, "new managed stores expose app.shops UUID instead of directory id for formal ties");
 assert.equal(composed[1].acf.managed_area_name, "新エリア");
 
 const mismatch = composeManagedShopPublications([legacy], [{ ...overlay, shop_slug: "mismatched-slug" }]);

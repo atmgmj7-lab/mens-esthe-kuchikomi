@@ -8,8 +8,8 @@ import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
 import { resolvePartnerActionFirstHome } from "@/lib/partner/partner-dashboard";
 import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
-import { buildShopOwnerRequestUrl } from "@/lib/shop-owner-request-links";
 import { pageMetadata } from "@/lib/seo";
+import { PartnerAccessReport } from "@/components/partner/PartnerAccessReport";
 
 export const instant = false;
 
@@ -24,10 +24,21 @@ export default async function PartnerDashboardPage() {
   await connection();
   const accessToken = (await cookies()).get(PARTNER_SESSION_COOKIE)?.value ?? null;
   const dashboard = await authorizePartnerReviewGrowthSession({ accessToken });
+  if (dashboard.status === "legacy_migration_required") {
+    return <main id="main_content" className="l-mainContent l-article hl-partner-home" data-partner-dashboard-root>
+      <div className="l-mainContent__inner hl-page-inner hl-partner-home__inner">
+        <header className="hl-partner-home__context"><p className="hl-partner-home__eyebrow">店舗用メニュー</p><h1>{dashboard.identity.shopName}</h1></header>
+        <section className="hl-partner-home__section" aria-labelledby="partner-migration-heading">
+          <p className="hl-partner-home__eyebrow">移行の確認中</p><h2 id="partner-migration-heading">店舗データの対応を確認しています</h2>
+          <p>ログインは維持されています。口コミURL・掲載編集・widgetは、運営が既存店舗を正規店舗IDへ照合してから利用できます。</p>
+          <p><a className="hl-partner-home__text-link" href={dashboard.identity.canonicalUrl}>現在の公開店舗ページを確認</a> <a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></p>
+        </section>
+      </div>
+    </main>;
+  }
   if (dashboard.status !== "allowed") redirect("/partner/login/");
   const { identity, growthKit } = dashboard;
   const home = resolvePartnerActionFirstHome(identity, growthKit);
-  const listingRequestHref = buildShopOwnerRequestUrl({ id: identity.shopId, slug: identity.shopSlug, title: identity.shopName });
   const asset = (key: (typeof home.collection)[number]["key"]) => home.collection.find((item) => item.key === key);
   const qrAsset = asset("qr");
   const qrDataUrl = qrAsset?.status === "available"
@@ -53,7 +64,7 @@ export default async function PartnerDashboardPage() {
               <h1>{home.context.shopName}</h1>
               <p className="hl-partner-home__status">招待済みの店舗担当者向け</p>
             </div>
-            <div><a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a><a className="hl-partner-home__text-link" href="/partner/listing/">掲載情報を本人編集</a><a className="hl-partner-home__text-link" href={listingRequestHref}>掲載情報の修正を申請</a><a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></div>
+            <div><a className="hl-partner-home__text-link" href={home.context.canonicalUrl}>公開店舗ページを確認</a><a className="hl-partner-home__text-link" href="/partner/listing/">掲載情報を編集・申請</a><a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></div>
           </div>
         </header>
 
@@ -81,6 +92,8 @@ export default async function PartnerDashboardPage() {
           </dl> : <p className="hl-partner-home__unavailable" role="status">{home.performance.message}</p>}
         </section>
 
+        <PartnerAccessReport />
+
         <section id="partner-collect-reviews" className="hl-partner-home__section" aria-labelledby="partner-collect-reviews-heading">
           <div className="hl-partner-home__section-heading">
             <div>
@@ -102,6 +115,12 @@ export default async function PartnerDashboardPage() {
               <h3 id="partner-line-message-heading">LINE案内文</h3>
               {lineAsset?.status === "available" ? <><p className="hl-partner-growth-kit__message">{lineAsset.value}</p><PartnerCopyButton label="LINE案内文" value={lineAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(lineAsset)}</p>}
             </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-therapists-heading">
+              <h3 id="partner-therapists-heading">担当者別のご案内</h3>
+              <p>担当者の公開名・写真と、コピー用の口コミ案内文を管理します。</p>
+              <p><a className="hl-partner-home__text-link" href="/partner/therapists/">担当者を管理する</a></p>
+            </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-operations-heading"><h3 id="partner-operations-heading">口コミ返信と特典</h3><p>返信の申請、特典条件・発行状況・使用済み状況を確認します。</p><p><a className="hl-partner-home__text-link" href="/partner/operations/">運用を開く</a></p></section>
             <section className="hl-partner-home__asset" aria-labelledby="partner-website-cta-heading">
               <h3 id="partner-website-cta-heading">店舗サイト用の案内</h3>
               {websiteCtaAsset?.status === "available" ? <><p><code className="hl-partner-growth-kit__value">{websiteCtaAsset.value}</code></p><PartnerCopyButton label="店舗サイト用の案内" value={websiteCtaAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(websiteCtaAsset)}</p>}

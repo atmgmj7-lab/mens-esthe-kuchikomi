@@ -1,7 +1,14 @@
 export type PartnerAuthUser = Readonly<{ id: string; email: string | null }>;
 export type PartnerMembershipAccess = Readonly<{
   workspaceId: string;
-  shopId: number;
+  identityKind: "canonical";
+  appShopId: string;
+  shopSlug: string;
+  role: "owner" | "manager";
+}> | Readonly<{
+  workspaceId: string;
+  identityKind: "legacy";
+  wpShopId: number;
   shopSlug: string;
   role: "owner" | "manager";
 }>;
@@ -26,10 +33,10 @@ function validRequestedShopId(value: number | null): boolean {
 function validMembership(value: PartnerMembershipAccess | null): value is PartnerMembershipAccess {
   return value !== null
     && UUID_RE.test(value.workspaceId)
-    && Number.isSafeInteger(value.shopId)
-    && value.shopId > 0
     && value.shopSlug.length > 0
-    && (value.role === "owner" || value.role === "manager");
+    && (value.role === "owner" || value.role === "manager")
+    && ((value.identityKind === "canonical" && UUID_RE.test(value.appShopId))
+      || (value.identityKind === "legacy" && Number.isSafeInteger(value.wpShopId) && value.wpShopId > 0));
 }
 
 export async function authorizePartnerAccess(
@@ -57,8 +64,11 @@ export async function authorizePartnerAccess(
   }
   if (!validMembership(membership)) return { status: "forbidden" };
 
-  if ((input.requestedWorkspaceId !== null && input.requestedWorkspaceId.toLowerCase() !== membership.workspaceId.toLowerCase())
-    || (input.requestedShopId !== null && input.requestedShopId !== membership.shopId)) {
+  if (input.requestedWorkspaceId !== null && input.requestedWorkspaceId.toLowerCase() !== membership.workspaceId.toLowerCase()) {
+    return { status: "forbidden" };
+  }
+  if ((membership.identityKind === "canonical" && input.requestedShopId !== null)
+    || (membership.identityKind === "legacy" && input.requestedShopId !== null && input.requestedShopId !== membership.wpShopId)) {
     return { status: "forbidden" };
   }
 
