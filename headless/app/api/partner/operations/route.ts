@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { validPartnerMutation } from "@/lib/partner/partner-mutation-security";
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
     const amount = input.amount === "" || input.amount === null ? null : Number(input.amount); const rate = input.rate === "" || input.rate === null ? null : Number(input.rate);
     const rows = await rpc(c, "save_partner_benefit_program_v11", { p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_expected_revision: input.expectedRevision, p_title: input.title, p_benefit_kind: input.kind, p_amount_yen: Number.isInteger(amount) ? amount : null, p_rate: typeof rate === "number" && Number.isFinite(rate) ? rate : null, p_terms_text: input.terms, p_issuer_label: input.issuer, p_funding_party_label: input.funder, p_valid_from: input.validFrom, p_valid_until: typeof input.validUntil === "string" && input.validUntil ? input.validUntil : null, p_redeem_valid_days: Number.isInteger(input.redeemDays) ? input.redeemDays : null, p_combinable: input.combinable === true });
     return Array.isArray(rows) && rows.length === 1 ? NextResponse.json({ ok: true, benefit: rows[0] }, { headers: partnerTherapistNoStore }) : fail("特典条件を保存できませんでした。再読み込みして確認してください。", 409);
+  }
+  if (input.action === "redeem" && typeof input.code === "string" && /^ESK-[0-9A-F]{32}$/.test(input.code)) {
+    const state = await rpc(c, "redeem_benefit_code", { p_workspace_id: c.workspaceId, p_code_hash: createHash("sha256").update(input.code).digest("hex") });
+    return typeof state === "string" ? NextResponse.json({ ok: true, state }, { headers: partnerTherapistNoStore }) : fail("特典コードを確認できませんでした。", 409);
   }
   return fail("入力内容を確認してください。", 400);
 }
