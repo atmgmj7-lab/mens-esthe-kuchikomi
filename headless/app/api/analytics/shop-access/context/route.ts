@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
   const base = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const secret = resolveSupabaseServerSecret();
   if (!verified || !base || !secret) return new NextResponse(null, { status: 204, headers });
-  const reserved = await fetch(`${base}/rest/v1/rpc/reserve_public_shop_access_context_v11`, {
+  const rawPostgrest = process.env.ESKOMI_E2E_RAW_POSTGREST === "1";
+  const reserved = await fetch(`${base}${rawPostgrest ? "/rpc" : "/rest/v1/rpc"}/reserve_public_shop_access_context_v11`, {
     method: "POST",
     headers: createSupabaseServerHeaders(secret.value, { "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }),
     body: JSON.stringify({ p_shop_slug: shopSlug, p_session_scope_hash: verified.sessionScopeHash, p_network_scope_hash: publicAccessNetworkScopeHash(request.headers.get("x-forwarded-for")), p_is_new_session: session.isNew }),
