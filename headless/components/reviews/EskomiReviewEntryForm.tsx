@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type Draft = Readonly<{
   displayName: string;
@@ -24,6 +24,16 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
   const [savedInput, setSavedInput] = useState<Draft | null>(null);
   const [status, setStatus] = useState<"input" | "submitting" | "success">("input");
   const [message, setMessage] = useState("");
+  const [contextReady, setContextReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/reviews/v2/context/", { method: "POST", headers: { "Content-Type": "application/json", "X-ESKOMI-CSRF": "review-v2" }, body: JSON.stringify({ entryHandle }) })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => { if (active && payload?.ok) setContextReady(true); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [entryHandle]);
 
   function prepare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,20 +57,18 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     setStatus("submitting");
     setMessage("");
     try {
-      const response = await fetch("/api/reviews/entry-v2/submit/", {
+      const response = await fetch("/api/reviews/v2/submit/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-ESKOMI-CSRF": "review-entry-v2",
+          "X-ESKOMI-CSRF": "review-v2",
           "Idempotency-Key": idempotencyKeyRef.current ?? (idempotencyKeyRef.current = crypto.randomUUID()),
         },
         body: JSON.stringify({ entryHandle, ...draft }),
       });
-      const payload = await response.json() as { ok?: boolean; message?: string; benefitCode?: string | null; benefitStatus?: string };
+      const payload = await response.json() as { ok?: boolean; message?: string; receipt?: string | null };
       if (!response.ok || !payload.ok) throw new Error(payload.message || "送信できませんでした。");
-      setMessage(payload.benefitCode
-        ? `${payload.message || "口コミを受け付けました。"} 特典コード：${payload.benefitCode}`
-        : payload.message || "口コミを受け付けました。");
+      setMessage(payload.receipt ? `口コミを受け付けました。編集控え：${payload.receipt}` : "口コミを受け付けました。運営確認後に掲載します。");
       setStatus("success");
     } catch (error) {
       setStatus("input");
@@ -86,6 +94,6 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     <label className="hl-contact-field">店舗の総合評価（任意）<select name="shopRating" defaultValue={savedInput?.shopRating?.toString() ?? ""}><option value="">評価しない</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
     <label className="hl-contact-field">利用体験コメント（任意）<textarea name="commonComment" rows={7} maxLength={400} defaultValue={savedInput?.commonComment ?? ""} /></label>
     {therapistName ? <fieldset className="hl-contact-field"><legend>{therapistName}さんの評価（任意）</legend><select name="therapistRating" defaultValue={savedInput?.therapistRating?.toString() ?? ""}><option value="">評価しない</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value}</option>)}</select></fieldset> : null}
-    <button type="submit" className="hl-contact-submit">内容を確認する</button>{message ? <p role="alert">{message}</p> : null}
+    <button type="submit" className="hl-contact-submit" disabled={!contextReady}>{contextReady ? "内容を確認する" : "投稿先を確認中…"}</button>{message ? <p role="alert">{message}</p> : null}
   </form>;
 }
