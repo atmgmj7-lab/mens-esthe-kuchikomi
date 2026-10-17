@@ -110,6 +110,7 @@ export function ShopDetail({
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />
+            <p><Link href={`/shops/${shop.slug}/community/`}>未確認の利用者情報を交換・掲載情報を訂正する</Link></p>
             <ShopOwnerCta shop={shop} />
           </div>
         </article>

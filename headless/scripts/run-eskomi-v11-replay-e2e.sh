@@ -24,7 +24,13 @@ docker network create --internal "$network_name" >/dev/null
 docker run -d --rm --name "$database_container" --network "$network_name" \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB="$database_name" postgres:17 >/dev/null
 for _ in $(seq 1 30); do
-  docker exec "$database_container" pg_isready -U postgres -d "$database_name" >/dev/null 2>&1 && break
+  # The official image briefly accepts bootstrap connections before its final
+  # post-init restart.  Require a second ready check so migrations never race
+  # that restart on a fresh disposable cluster.
+  if docker exec "$database_container" pg_isready -U postgres -d "$database_name" >/dev/null 2>&1; then
+    sleep 1
+    docker exec "$database_container" pg_isready -U postgres -d "$database_name" >/dev/null 2>&1 && break
+  fi
   sleep 1
 done
 docker exec "$database_container" pg_isready -U postgres -d "$database_name" >/dev/null

@@ -90,6 +90,7 @@ export function AreaPageView({
           <p className="escomi-final-area-hero__source-note">
             口コミ・編集部コメント・PR情報は分けて掲載しています。料金や営業時間は予約前に公式情報で確認してください。
           </p>
+          <p className="escomi-final-area-hero__source-note"><Link href={`/area/${area.slug}/community/`}>このエリアの未確認利用者情報を交換する</Link></p>
         </section>
 
         {isParentArea && mapUrl && childAreas.length > 0 ? (
