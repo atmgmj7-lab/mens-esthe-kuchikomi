@@ -53,6 +53,7 @@ for acceptance in \
   verify_eskomi_v11_acceptance_hardening.sql \
   verify_eskomi_v11_operations.sql \
   verify_eskomi_v11_rpc_contract.sql \
+  verify_eskomi_community_v11.sql \
   verify_eskomi_v11_private_controls.sql \
   verify_eskomi_v11_vertical_slice.sql; do
   docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/$acceptance"
