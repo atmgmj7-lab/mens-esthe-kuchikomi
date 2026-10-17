@@ -7,6 +7,7 @@ import type {
   ReviewRepository,
 } from "@/lib/reviews/repository";
 import { reviewNativeRepository } from "@/lib/supabase/review-native";
+import { eskomiReviewV2Repository } from "@/lib/supabase/eskomi-review-v2";
 import { getPublicShopDetailReviewsV11 } from "@/lib/supabase/eskomi-public-shop-detail-reviews-v11";
 import {
   getApprovedReviewsPage,
@@ -384,6 +385,38 @@ export function createPublicReviewAdapter(
       if (!validPageRequest(page, perPage)
         || (primaryAreaSlug !== null && !CANONICAL_AREA_SLUG_RE.test(primaryAreaSlug))) {
         return unavailable(source, "invalid-response");
+      }
+      // V1.1 shop details and the global list must not split the approved
+      // corpus.  The canonical projection carries its own directory identity
+      // and area, so this path makes no WordPress request.
+      if (v11PublicShopReviews) {
+        const global = await eskomiReviewV2Repository.listGlobalPublications(page, perPage, primaryAreaSlug);
+        if (!global) return unavailable("supabase", "request-failed");
+        return {
+          status: "available",
+          source: "supabase",
+          page: {
+            reviews: global.reviews.map((review) => ({
+              id: review.publicHandle,
+              body: review.body,
+              submittedAt: review.publishedAt,
+              displayName: review.displayName,
+              therapistDisplayName: review.therapistDisplayName,
+              reply: null,
+              ratings: { total: review.rating, price: null, service: null, cleanliness: null },
+              shop: {
+                id: review.directoryId,
+                slug: review.shopSlug,
+                name: review.shopName,
+                primaryArea: { id: 0, slug: review.areaSlug, name: review.areaName },
+              },
+              areas: [{ id: 0, slug: review.areaSlug, name: review.areaName }],
+            })),
+            total: global.total,
+            totalPages: global.total === 0 ? 0 : Math.ceil(global.total / perPage),
+            page,
+          },
+        };
       }
       if (source === "wordpress") {
         if (rankUpPilot) {
