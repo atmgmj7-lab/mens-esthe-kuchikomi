@@ -110,6 +110,7 @@ const module = loadTypeScript("lib/reviews/public-adapter.ts", {
     useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
   },
   "@/lib/supabase/review-native": { reviewNativeRepository: repository },
+  "@/lib/supabase/eskomi-review-v2": { eskomiReviewV2Repository: { listGlobalPublications: async () => null } },
   "@/lib/supabase/eskomi-public-shop-detail-reviews-v11": { getPublicShopDetailReviewsV11: async () => null },
   "@/lib/wp/reviews": {
     getApprovedShopReviews: async (...args) => { calls.push(["wp-shop", args]); return wpShopResult; },
