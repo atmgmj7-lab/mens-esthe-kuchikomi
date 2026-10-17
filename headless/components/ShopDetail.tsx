@@ -6,6 +6,7 @@ import { ShopDetailSections } from "@/components/shop-detail/ShopDetailSections"
 import { ShopOwnerCta } from "@/components/shop-detail/ShopOwnerCta";
 import { ShopRelatedLinks } from "@/components/shop-detail/ShopRelatedLinks";
 import { ShopSectionNav } from "@/components/shop-detail/ShopSectionNav";
+import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
 import styles from "@/components/shop-detail/ShopDetail.module.css";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
@@ -110,7 +111,8 @@ export function ShopDetail({
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />
-            <p><Link href={`/shops/${shop.slug}/community/`}>未確認の利用者情報を交換・掲載情報を訂正する</Link></p>
+            <p id="contribute"><Link href={`/shops/${shop.slug}/community/`}>未確認の利用者情報を交換・掲載情報を訂正する</Link></p>
+            <EskomiBannerV2Slot id="B09" />
             <ShopOwnerCta shop={shop} />
           </div>
         </article>
