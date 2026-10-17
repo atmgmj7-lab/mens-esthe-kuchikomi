@@ -112,7 +112,7 @@ docker run -d --rm --name "$postgrest_container" --network "$network_name" \
   postgrest/postgrest:v16.4 >/dev/null
 postgrest_ready=0
 for _ in $(seq 1 30); do
-  if curl -sS -o /dev/null "http://127.0.0.1:57001/"; then
+  if curl -s -o /dev/null "http://127.0.0.1:57001/"; then
     postgrest_ready=1
     break
   fi
@@ -121,6 +121,7 @@ done
 if [[ "$postgrest_ready" != "1" ]]; then
   docker inspect --format 'PostgREST state={{.State.Status}} exit={{.State.ExitCode}} ports={{json .NetworkSettings.Ports}}' "$postgrest_container" >&2
   docker logs "$postgrest_container" >&2
+  echo "PostgREST did not become reachable on host loopback; the disposable internal Docker network remains unchanged." >&2
   exit 1
 fi
 

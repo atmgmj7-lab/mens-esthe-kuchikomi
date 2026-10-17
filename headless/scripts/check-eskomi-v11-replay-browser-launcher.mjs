@@ -14,7 +14,7 @@ assert.match(
 );
 assert.match(
   script,
-  /curl -sS -o \/dev\/null "http:\/\/127\.0\.0\.1:57001\//,
+  /curl -s -o \/dev\/null "http:\/\/127\.0\.0\.1:57001\//,
   "the localhost replay runner must wait for an actual host TCP connection before calling its RPC",
 );
 
