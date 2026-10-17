@@ -2,7 +2,7 @@ do $$
 declare v_snapshot text; v_name text;
 begin
   select permission_policy_version into v_snapshot from private.therapist_assignment_rights_history where permission_policy_version='legacy-rights-v1';
-  if v_snapshot<>'legacy-rights-v1' then raise exception 'legacy rights were not preserved as history'; end if;
+  if v_snapshot is not null then raise exception 'bf46aa1 did not yet contain therapist rights history'; end if;
   select subject_snapshot->>'therapistDisplayName' into v_name from private.review_experiences where edit_receipt_hash=repeat('a',64);
   if v_name<>'旧担当名' then raise exception 'legacy review subject snapshot was not backfilled'; end if;
   update app.therapist_assignments set display_name='新担当名' where display_name='旧担当名';
