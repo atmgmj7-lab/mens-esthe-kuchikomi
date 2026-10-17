@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { eskomiReviewV11Repository } from "@/lib/supabase/eskomi-review-v11";
 import { resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== request.nextUrl.origin || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
+  const origin = request.headers.get("origin");
+  if (!origin || (() => { try { return new URL(origin).host !== request.headers.get("host"); } catch { return true; } })() || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
   const secret = resolveSupabaseServerSecret()?.value; let body: { receipt?: unknown } = {};
   try { body = await request.json(); } catch { /* handled below */ }
   if (!secret || typeof body.receipt !== "string" || body.receipt.length < 32) return NextResponse.json({ ok: false, code: "INVALID_RECEIPT" }, { status: 400 });

@@ -6,7 +6,8 @@ import { resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 const COOKIE = "eskomi_v11_guest";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== request.nextUrl.origin || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
+  const origin = request.headers.get("origin");
+  if (!origin || (() => { try { return new URL(origin).host !== request.headers.get("host"); } catch { return true; } })() || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
   const secret = resolveSupabaseServerSecret()?.value; let body: { entryHandle?: unknown } = {};
   try { body = await request.json(); } catch { /* handled below */ }
   if (!secret || typeof body.entryHandle !== "string" || !UUID.test(body.entryHandle)) return NextResponse.json({ ok: false, code: "INVALID_CONTEXT" }, { status: 400 });

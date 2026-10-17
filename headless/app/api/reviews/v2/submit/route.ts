@@ -26,7 +26,8 @@ function decryptReceipt(key: Buffer, ciphertext: string, nonce: string): string 
   try { const bytes = Buffer.from(ciphertext, "base64url"); const tag = bytes.subarray(-16); const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(nonce, "base64url")); decipher.setAuthTag(tag); const value = JSON.parse(Buffer.concat([decipher.update(bytes.subarray(0, -16)), decipher.final()]).toString("utf8")) as { receipt?: unknown }; return typeof value.receipt === "string" ? value.receipt : null; } catch { return null; }
 }
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== request.nextUrl.origin || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
+  const origin = request.headers.get("origin");
+  if (!origin || (() => { try { return new URL(origin).host !== request.headers.get("host"); } catch { return true; } })() || request.headers.get("x-eskomi-csrf") !== "review-v2") return NextResponse.json({ ok: false, code: "FORBIDDEN" }, { status: 403 });
   const secret = resolveSupabaseServerSecret()?.value; const key = request.headers.get("idempotency-key"); const session = request.cookies.get("eskomi_v11_guest")?.value;
   if (!secret || !key || !session || key.length > 200) return NextResponse.json({ ok: false, code: "CONTEXT_UNAVAILABLE" }, { status: 410 });
   let input: Input | null = null; try { input = parsed(await request.json()); } catch { /* handled below */ }
