@@ -34,6 +34,14 @@ export type EskomiPublicReview = Readonly<{
   publishedAt: string;
 }>;
 
+export type EskomiPublicGlobalReview = EskomiPublicReview & Readonly<{
+  directoryId: number;
+  shopSlug: string;
+  shopName: string;
+  areaSlug: string;
+  areaName: string;
+}>;
+
 type Configuration = Readonly<{
   baseUrl: string | undefined;
   serviceRoleKey: string | undefined;
@@ -101,6 +109,17 @@ function parsePublicReview(value: unknown): EskomiPublicReview | null {
   };
 }
 
+function parsePublicGlobalReview(value: unknown): EskomiPublicGlobalReview | null {
+  const review = parsePublicReview(value);
+  if (!review || !record(value)
+    || !Number.isSafeInteger(value.directory_id) || (value.directory_id as number) < 1
+    || typeof value.shop_slug !== "string" || !value.shop_slug
+    || typeof value.shop_name !== "string" || !value.shop_name
+    || typeof value.area_slug !== "string" || !value.area_slug
+    || typeof value.area_name !== "string" || !value.area_name) return null;
+  return { ...review, directoryId: value.directory_id as number, shopSlug: value.shop_slug, shopName: value.shop_name, areaSlug: value.area_slug, areaName: value.area_name };
+}
+
 export function createEskomiReviewV2Repository(configuration: Configuration) {
   const url = baseUrl(configuration.baseUrl);
   const secret = configuration.serviceRoleKey;
@@ -158,6 +177,19 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
       if (!Array.isArray(result)) return null;
       const publications = result.map(parsePublicReview);
       return publications.every((publication): publication is EskomiPublicReview => publication !== null) ? publications : null;
+    },
+    async listGlobalPublications(page: number, perPage: number, areaSlug: string | null): Promise<{ reviews: readonly EskomiPublicGlobalReview[]; total: number } | null> {
+      if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 50
+        || (areaSlug !== null && !/^[a-z0-9][a-z0-9-]{0,118}[a-z0-9]$/.test(areaSlug))) return null;
+      const offset = (page - 1) * perPage;
+      const [rows, total] = await Promise.all([
+        rpc("list_public_review_experience_publications_global", { p_limit: perPage, p_offset: offset, p_area_slug: areaSlug }),
+        rpc("count_public_review_experience_publications_global", { p_area_slug: areaSlug }),
+      ]);
+      if (!Array.isArray(rows) || !Number.isSafeInteger(total) || (total as number) < 0) return null;
+      const reviews = rows.map(parsePublicGlobalReview);
+      return reviews.every((review): review is EskomiPublicGlobalReview => review !== null)
+        ? { reviews, total: total as number } : null;
     },
   };
 }
