@@ -79,6 +79,11 @@ begin
   exception when invalid_parameter_value then null;
   end;
   perform api.reserve_public_shop_access_context_v11((select slug from app.shops where id=v_shop_a),repeat('f',64),repeat('a',64),true);
+  if not exists(
+    select 1 from pg_proc procedure join pg_namespace schema on schema.oid=procedure.pronamespace
+    where schema.nspname='api' and procedure.proname='reserve_public_shop_access_context_v11'
+      and procedure.proargnames=array['p_shop_slug','p_session_scope_hash','p_network_scope_hash','p_is_new_session']
+  ) then raise exception 'public access context RPC argument names are not PostgREST JSON compatible'; end if;
   if not exists(select 1 from private.partner_shop_access_context_issue_limits_v11 where shop_id=v_shop_a and scope_kind='network' and scope_hash=repeat('a',64)) then
     raise exception 'trusted network scope was not short-lived HMAC-shaped';
   end if;

@@ -31,6 +31,21 @@ test("independently minted first sessions keep both concurrent contexts valid", 
   assert.equal(context.resolvePublicAccessContextSession(`${first.cookieValue}tampered`, now)?.isNew, true);
 });
 
+test("refreshed context dedupes each event kind without dropping the first LINE click", () => {
+  const firstNow = atJst("2026-10-17T12:00:00.000Z");
+  const laterNow = atJst("2026-10-17T12:00:01.000Z");
+  const session = context.resolvePublicAccessContextSession(undefined, firstNow);
+  const viewOne = context.issuePublicAccessContext({ shopSlug: "fixture-shop", eventKind: "shop_view", sessionHash: session.sessionHash, now: firstNow });
+  const viewTwo = context.issuePublicAccessContext({ shopSlug: "fixture-shop", eventKind: "shop_view", sessionHash: session.sessionHash, now: laterNow });
+  const line = context.issuePublicAccessContext({ shopSlug: "fixture-shop", eventKind: "official_line_click", sessionHash: session.sessionHash, now: laterNow });
+  const firstView = context.verifyPublicAccessContext({ context: viewOne, shopSlug: "fixture-shop", eventKind: "shop_view", now: firstNow });
+  const refreshedView = context.verifyPublicAccessContext({ context: viewTwo, shopSlug: "fixture-shop", eventKind: "shop_view", now: laterNow });
+  const firstLine = context.verifyPublicAccessContext({ context: line, shopSlug: "fixture-shop", eventKind: "official_line_click", now: laterNow });
+  assert.equal(firstView.accessContextHash, refreshedView.accessContextHash);
+  assert.notEqual(firstView.accessContextHash, firstLine.accessContextHash);
+  assert.equal(firstView.sessionScopeHash, firstLine.sessionScopeHash);
+});
+
 test("network signal is only accepted from the trusted hosting proxy and stores no raw address", () => {
   const prior = process.env.VERCEL;
   process.env.VERCEL = "1";

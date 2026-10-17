@@ -103,7 +103,11 @@ export function verifyPublicAccessContext(input: { context: unknown; shopSlug: s
   if (payload.v !== 1 || payload.shopSlug !== input.shopSlug || payload.eventKind !== input.eventKind || payload.observedOn !== tokyoDate(input.now)
     || payload.exp <= nowSeconds || !/^[0-9a-f]{64}$/.test(payload.sessionHash)) return null;
   return {
-    accessContextHash: createHash("sha256").update(input.context).digest("hex"),
+    // The signed context is intentionally short-lived and changes on a
+    // refresh.  Event de-duplication must instead be stable for one server
+    // session/shop/JST day/event, while still keeping the context signature
+    // and expiry as independent admission controls.
+    accessContextHash: createHash("sha256").update(`${payload.sessionHash}\u001f${payload.shopSlug}\u001f${payload.observedOn}\u001f${payload.eventKind}`).digest("hex"),
     sessionScopeHash: createHash("sha256").update(`${payload.sessionHash}\u001f${payload.shopSlug}\u001f${payload.observedOn}`).digest("hex"),
   };
 }
