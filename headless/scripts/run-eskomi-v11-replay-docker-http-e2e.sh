@@ -11,6 +11,7 @@ database_container="${ESKOMI_PG17_CONTAINER:-eskomi-pg17-v11-http-e2e}"
 postgrest_container="${ESKOMI_POSTGREST_CONTAINER:-eskomi-postgrest-v164-http-e2e}"
 next_container="${ESKOMI_NEXT_CONTAINER:-eskomi-next-v11-http-e2e}"
 browser_container="${ESKOMI_BROWSER_CONTAINER:-eskomi-browser-v11-http-e2e}"
+runtime_volume="${ESKOMI_E2E_RUNTIME_VOLUME:-eskomi-v11-runtime-${RANDOM}-${RANDOM}}"
 database_name="${ESKOMI_PG17_DATABASE:-eskomi_verify}"
 jwt_secret="e2e-only-local-postgrest-jwt-secret-012345678901234567890123456789"
 replay_key="${ESKOMI_REVIEW_REPLAY_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}"
@@ -24,10 +25,24 @@ operator_partner_user="33333333-3333-4333-8333-333333333333"
 cleanup() {
   docker rm -f "$browser_container" "$next_container" "$postgrest_container" "$database_container" >/dev/null 2>&1 || true
   docker network rm "$network_name" >/dev/null 2>&1 || true
+  docker volume rm "$runtime_volume" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 service_role_jwt="$(node -e 'const c=require("node:crypto");const b=(x)=>Buffer.from(JSON.stringify(x)).toString("base64url");const h=b({alg:"HS256",typ:"JWT"});const p=b({role:"service_role"});process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.argv[1]).update(h+"."+p).digest("base64url"));' "$jwt_secret")"
+
+# The host's node_modules may contain macOS-native SWC binaries. Install the
+# lockfile-pinned Linux runtime before the application joins the internal test
+# network, so Next never needs outbound registry access while exercising data.
+docker volume create "$runtime_volume" >/dev/null
+docker run --rm \
+  --mount "type=bind,src=$headless_root,dst=/source,readonly" \
+  --mount "type=volume,src=$runtime_volume,dst=/app" \
+  node:24-bookworm-slim sh -ceu '
+    tar -C /source --exclude=node_modules --exclude=.next -cf - . | tar -C /app -xf -
+    cd /app
+    npm ci --ignore-scripts
+  ' >/dev/null
 
 docker network create --internal "$network_name" >/dev/null
 docker run -d --rm --name "$database_container" --network "$network_name" --network-alias postgres \
@@ -153,8 +168,16 @@ create or replace function api.eskomi_e2e_expire_replay(p_session_hash text)
 returns void language sql security definer set search_path = private, pg_temp as $$
   update private.guest_operation_sessions set replay_expires_at=now()-interval '1 second' where session_secret_hash=p_session_hash
 $$;
-revoke all on function api.eskomi_e2e_replay_counts(text), api.eskomi_e2e_expire_replay(text) from public, anon, authenticated;
-grant execute on function api.eskomi_e2e_replay_counts(text), api.eskomi_e2e_expire_replay(text) to service_role;
+create or replace function api.eskomi_e2e_existing_store_ownership_counts()
+returns table(workspace_count bigint, membership_count bigint, owned_listing_store_count bigint)
+language sql security definer set search_path = private, pg_temp as $$
+  select
+    (select count(*) from private.partner_workspaces),
+    (select count(*) from private.partner_memberships),
+    (select count(*) from private.listing_stores where workspace_id is not null)
+$$;
+revoke all on function api.eskomi_e2e_replay_counts(text), api.eskomi_e2e_expire_replay(text), api.eskomi_e2e_existing_store_ownership_counts() from public, anon, authenticated;
+grant execute on function api.eskomi_e2e_replay_counts(text), api.eskomi_e2e_expire_replay(text), api.eskomi_e2e_existing_store_ownership_counts() to service_role;
 notify pgrst, 'reload schema';
 SQL
 
@@ -162,8 +185,12 @@ docker run -d --rm --name "$postgrest_container" --network "$network_name" --net
   -e PGRST_DB_URI="postgres://authenticator:fixture-authenticator-password@postgres:5432/$database_name" \
   -e PGRST_DB_SCHEMAS=api -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$jwt_secret" \
   postgrest/postgrest:v16.4 >/dev/null
-for _ in $(seq 1 30); do docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening' && break; sleep 1; done
-docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening'
+for _ in $(seq 1 30); do
+  postgrest_logs="$(docker logs "$postgrest_container" 2>&1)"
+  grep -q 'API server listening' <<<"$postgrest_logs" && break
+  sleep 1
+done
+grep -q 'API server listening' <<<"$postgrest_logs"
 
 # This is direct PostgREST HTTP, not a unit test and not production traffic.
 # It verifies named JSON argument resolution plus stable per-event dedupe.
@@ -182,13 +209,17 @@ test "$access_counts" = "1,1"
 echo "PostgREST access dedupe view=1 line=1: PASS"
 
 docker run -d --rm --name "$next_container" --network "$network_name" --network-alias next \
-  --mount "type=bind,src=$headless_root,dst=/app" -w /app \
+  --mount "type=volume,src=$runtime_volume,dst=/app" -w /app \
   -e SUPABASE_URL="http://postgrest:3000" -e SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" -e ESKOMI_E2E_RAW_POSTGREST=1 -e ESKOMI_REVIEW_REPLAY_KEY="$replay_key" \
   -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password" -e ESKOMI_ACCESS_CONTEXT_SECRET="$access_context_secret" \
   -e SHOP_OWNER_REQUEST_DRY_RUN=true \
   node:24-bookworm-slim sh -c 'npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
-for _ in $(seq 1 90); do docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server' && break; sleep 1; done
-docker logs "$next_container" 2>&1 | grep -Eq 'Ready|started server'
+for _ in $(seq 1 90); do
+  next_logs="$(docker logs "$next_container" 2>&1)"
+  grep -Eq 'Ready|started server' <<<"$next_logs" && break
+  sleep 1
+done
+grep -Eq 'Ready|started server' <<<"$next_logs"
 
 # Store-operation acceptance starts with public application and dashboard
 # moderation surfaces.  It uses only fresh fixture data on this internal
@@ -224,13 +255,16 @@ docker run --rm --network "$network_name" \
       console.log("Unlisted store application, operator approval, public projection: PASS");
 
       const existing={existingWpShopId:8400000000000123,existingShopSlug:"v11-existing-e2e"};
+      const ownershipBefore=(await rpc("eskomi_e2e_existing_store_ownership_counts",{}))[0];
       const first=await json("/api/listing-applications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(listing("existing_change","a2020202-2222-4222-8222-222222222222","既存店舗の初回申請",existing))});
       const second=await json("/api/listing-applications",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(listing("existing_change","a3030303-3333-4333-8333-333333333333","既存店舗の二回目申請",existing))});
       for(const id of [first.applicationId,second.applicationId])await json(`/api/dashboard/listing-applications/${id}`,{method:"POST",headers:{Authorization:basic,"Content-Type":"application/json"},body:JSON.stringify({expectedRevision:1,decision:"approved",note:"existing isolated approval"})});
       const firstDetail=await json(`/api/dashboard/listing-applications/${first.applicationId}`,{headers:{Authorization:basic}}),secondDetail=await json(`/api/dashboard/listing-applications/${second.applicationId}`,{headers:{Authorization:basic}});
       if(!firstDetail.application?.listing_store_id||firstDetail.application.listing_store_id!==secondDetail.application?.listing_store_id)fail("existing-store applications did not bind the same stable store");
       const stable=await rpc("get_public_listing_store_by_slug",{p_shop_slug:"v11-existing-e2e"});if(stable.length!==1||stable[0].shop_name!=="既存店舗の二回目申請")fail("existing store public projection did not update stable target");
-      console.log("Existing store binds stable target without duplicate ownership: PASS");
+      const ownershipAfter=(await rpc("eskomi_e2e_existing_store_ownership_counts",{}))[0];
+      if(JSON.stringify(ownershipAfter)!==JSON.stringify(ownershipBefore))fail(`existing store flow changed workspace, membership, or owner counts: ${JSON.stringify({ownershipBefore,ownershipAfter})}`);
+      console.log("Existing store reuses the stable target without creating a workspace, membership, or owner: PASS");
     })().catch(e=>{console.error(e);process.exit(1)});
   '
 
@@ -410,9 +444,10 @@ docker run -d --rm --name "$browser_container" --network "$network_name" --netwo
   --headless=new --no-sandbox --disable-gpu --proxy-server=direct:// --proxy-bypass-list='*' \
   --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222 >/dev/null
 sleep 2
-cdp_path="$(docker logs "$browser_container" 2>&1 | sed -n 's@.*ws://127\.0\.0\.1:9222\(/devtools/browser/.*\)@\1@p' | tail -n 1)"
+browser_logs="$(docker logs "$browser_container" 2>&1)"
+cdp_path="$(sed -n 's@.*ws://127\.0\.0\.1:9222\(/devtools/browser/.*\)@\1@p' <<<"$browser_logs" | tail -n 1)"
 test -n "$cdp_path"
-docker run --rm --network "$network_name" --network-alias runner --mount "type=bind,src=$headless_root,dst=/app,readonly" -w /app \
+docker run --rm --network "$network_name" --network-alias runner --mount "type=volume,src=$runtime_volume,dst=/app,readonly" -w /app \
   -e SUPABASE_URL="http://postgrest:3000" -e SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" \
   -e ESKOMI_E2E_ENTRY_HANDLE="$entry_handle" -e ESKOMI_E2E_NEXT_URL="http://next:57000" \
   -e ESKOMI_E2E_CDP_URL="ws://browser:9222${cdp_path}" \

@@ -28,7 +28,10 @@ begin
 end $$;
 select kind||'|'||workspace_id||'|'||user_id from v11_race_fixture order by kind;
 SQL
-mapfile -t fixtures < <("${psql_exec[@]}" -A -t < "$fixture_sql")
+fixtures=()
+while IFS= read -r row; do
+  [[ -n "$row" ]] && fixtures+=("$row")
+done < <("${psql_exec[@]}" -A -t < "$fixture_sql")
 if [[ "${#fixtures[@]}" != "6" ]]; then
   echo "v1.1 race fixture setup failed" >&2
   exit 1
