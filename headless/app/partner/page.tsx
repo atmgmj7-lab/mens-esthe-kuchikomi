@@ -102,6 +102,11 @@ export default async function PartnerDashboardPage() {
               <h3 id="partner-line-message-heading">LINE案内文</h3>
               {lineAsset?.status === "available" ? <><p className="hl-partner-growth-kit__message">{lineAsset.value}</p><PartnerCopyButton label="LINE案内文" value={lineAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(lineAsset)}</p>}
             </section>
+            <section className="hl-partner-home__asset" aria-labelledby="partner-therapists-heading">
+              <h3 id="partner-therapists-heading">担当者別のご案内</h3>
+              <p>担当者の公開名・写真と、コピー用の口コミ案内文を管理します。</p>
+              <p><a className="hl-partner-home__text-link" href="/partner/therapists/">担当者を管理する</a></p>
+            </section>
             <section className="hl-partner-home__asset" aria-labelledby="partner-website-cta-heading">
               <h3 id="partner-website-cta-heading">店舗サイト用の案内</h3>
               {websiteCtaAsset?.status === "available" ? <><p><code className="hl-partner-growth-kit__value">{websiteCtaAsset.value}</code></p><PartnerCopyButton label="店舗サイト用の案内" value={websiteCtaAsset.value} /></> : <p className="hl-partner-home__unavailable">{unavailableMessage(websiteCtaAsset)}</p>}

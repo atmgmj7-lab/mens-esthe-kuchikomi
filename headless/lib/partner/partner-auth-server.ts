@@ -8,6 +8,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 type Environment = Readonly<Record<string, string | undefined>>;
 type AuthConfiguration = Readonly<{ baseUrl: string; authPublishableKey: string }>;
+export type PartnerTherapistWorkspaceScope = Readonly<{ workspaceId: string; appShopId: string; role: "owner" | "manager" }>;
 
 function normalizeSupabaseUrl(value: unknown): string | null {
   if (typeof value !== "string" || !value) return null;
@@ -66,6 +67,16 @@ function parseWorkspaceIdentity(value: unknown): PartnerWorkspaceIdentity | null
     : null;
 }
 
+function parseTherapistWorkspaceScope(value: unknown): PartnerTherapistWorkspaceScope | null {
+  if (!Array.isArray(value) || value.length !== 1 || !value[0] || typeof value[0] !== "object") return null;
+  const row = value[0] as Record<string, unknown>;
+  return typeof row.workspace_id === "string" && UUID_RE.test(row.workspace_id)
+    && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id)
+    && (row.role === "owner" || row.role === "manager")
+    ? { workspaceId: row.workspace_id, appShopId: row.app_shop_id, role: row.role }
+    : null;
+}
+
 function authConfiguration(environment: Environment): AuthConfiguration | null {
   const baseUrl = normalizeSupabaseUrl(environment.SUPABASE_URL);
   const authPublishableKey = configuredString(environment.SUPABASE_AUTH_PUBLISHABLE_KEY);
@@ -99,7 +110,9 @@ function validMagicLinkToken(value: unknown): value is string {
 export function createPartnerAuthDependencies(
   environment: Environment,
   fetchImpl: typeof fetch = fetch,
-): (PartnerAccessDependencies & PartnerDashboardIdentityDependencies) | null {
+): (PartnerAccessDependencies & PartnerDashboardIdentityDependencies & {
+  getTherapistWorkspaceScope: (authUserId: string) => Promise<PartnerTherapistWorkspaceScope | null>;
+}) | null {
   const auth = authConfiguration(environment);
   const serverSecret = resolveSupabaseServerSecret(environment);
   if (!auth || !serverSecret) return null;
@@ -151,6 +164,20 @@ export function createPartnerAuthDependencies(
           cache: "no-store",
         });
         return response.ok ? parseWorkspaceIdentity(await response.json()) : null;
+      } catch {
+        return null;
+      }
+    },
+    async getTherapistWorkspaceScope(authUserId: string): Promise<PartnerTherapistWorkspaceScope | null> {
+      if (typeof authUserId !== "string" || !UUID_RE.test(authUserId)) return null;
+      try {
+        const response = await fetchImpl(`${auth.baseUrl}/rest/v1/rpc/get_partner_therapist_workspace_scope`, {
+          method: "POST",
+          headers: serviceHeaders,
+          body: JSON.stringify({ p_auth_user_id: authUserId }),
+          cache: "no-store",
+        });
+        return response.ok ? parseTherapistWorkspaceScope(await response.json()) : null;
       } catch {
         return null;
       }

@@ -25,6 +25,21 @@ export async function authorizePartnerSession(input: {
   }, dependencies);
 }
 
+/**
+ * Authorizes therapist tools with the same Partner access-token cookie.  It
+ * intentionally does not accept a workspace id from a route or form: the
+ * service-only membership projection is the authority for the workspace.
+ */
+export async function authorizePartnerTherapistSession(input: { accessToken: string | null }) {
+  const dependencies = createPartnerAuthDependencies(process.env);
+  if (!dependencies) return { status: "unavailable" as const };
+  const user = await dependencies.getUser(input.accessToken ?? "");
+  if (!user) return { status: "unauthenticated" as const };
+  const scope = await dependencies.getTherapistWorkspaceScope(user.id);
+  if (!scope) return { status: "forbidden" as const };
+  return { status: "allowed" as const, access: scope };
+}
+
 export async function authorizePartnerLoginCompletion(input: { accessToken: string; state: string }) {
   const dependencies = createPartnerAuthDependencies(process.env);
   if (!dependencies) return { status: "unavailable" as const };
