@@ -23,6 +23,18 @@ export default async function PartnerDashboardPage() {
   await connection();
   const accessToken = (await cookies()).get(PARTNER_SESSION_COOKIE)?.value ?? null;
   const dashboard = await authorizePartnerReviewGrowthSession({ accessToken });
+  if (dashboard.status === "legacy_migration_required") {
+    return <main id="main_content" className="l-mainContent l-article hl-partner-home" data-partner-dashboard-root>
+      <div className="l-mainContent__inner hl-page-inner hl-partner-home__inner">
+        <header className="hl-partner-home__context"><p className="hl-partner-home__eyebrow">店舗用メニュー</p><h1>{dashboard.identity.shopName}</h1></header>
+        <section className="hl-partner-home__section" aria-labelledby="partner-migration-heading">
+          <p className="hl-partner-home__eyebrow">移行の確認中</p><h2 id="partner-migration-heading">店舗データの対応を確認しています</h2>
+          <p>ログインは維持されています。口コミURL・掲載編集・widgetは、運営が既存店舗を正規店舗IDへ照合してから利用できます。</p>
+          <p><a className="hl-partner-home__text-link" href={dashboard.identity.canonicalUrl}>現在の公開店舗ページを確認</a> <a className="hl-partner-home__text-link" href="/partner/settings/">ログインメール設定</a></p>
+        </section>
+      </div>
+    </main>;
+  }
   if (dashboard.status !== "allowed") redirect("/partner/login/");
   const { identity, growthKit } = dashboard;
   const home = resolvePartnerActionFirstHome(identity, growthKit);

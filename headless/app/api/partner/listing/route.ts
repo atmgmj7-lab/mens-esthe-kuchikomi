@@ -25,15 +25,15 @@ async function context(request: NextRequest) {
 
 function payload(body: Record<string, unknown>) {
   const shopName = typeof body.shopName === "string" ? body.shopName.trim() : "";
-  const area = typeof body.area === "string" ? body.area.trim() : "";
+  const areaSlug = typeof body.areaSlug === "string" ? body.areaSlug.trim() : "";
   const websiteUrl = typeof body.websiteUrl === "string" ? body.websiteUrl.trim() : "";
   const introduction = typeof body.introduction === "string" ? body.introduction.trim() : "";
-  if (!shopName || shopName.length > 120 || !area || area.length > 120 || introduction.length > 5000) return null;
+  if (!shopName || shopName.length > 120 || !/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(areaSlug) || introduction.length > 5000) return null;
   try {
     const url = new URL(websiteUrl);
     if (!['http:', 'https:'].includes(url.protocol)) return null;
     const bannerAssetId = typeof body.bannerAssetId === "string" && /^[0-9a-f-]{36}$/i.test(body.bannerAssetId) ? body.bannerAssetId : null;
-    return { shop_name: shopName, area, website_url: url.toString(), introduction: introduction || null, banner_asset_id: bannerAssetId };
+    return { shop_name: shopName, area_slug: areaSlug, website_url: url.toString(), introduction: introduction || null, banner_asset_id: bannerAssetId };
   } catch { return null; }
 }
 
@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest) {
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return failure("下書き内容を確認してください。", 400); }
   const expected = Number(body.expectedRevision); const draft = payload(body);
   if (!Number.isSafeInteger(expected) || expected < 1 || !draft) return failure("下書き内容を確認してください。", 400);
-  const response = await fetch(`${c.base}/rest/v1/rpc/save_partner_canonical_listing_draft`, { method: "POST", headers: c.headers, body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_expected_revision: expected, p_patch: { shop_name: draft.shop_name, area_name: draft.area, official_url: draft.website_url, introduction: draft.introduction, banner_asset_id: draft.banner_asset_id } }), cache: "no-store" });
+  const response = await fetch(`${c.base}/rest/v1/rpc/save_partner_canonical_listing_draft`, { method: "POST", headers: c.headers, body: JSON.stringify({ p_workspace_id: c.workspaceId, p_auth_user_id: c.authUserId, p_expected_revision: expected, p_patch: { shop_name: draft.shop_name, area_slug: draft.area_slug, official_url: draft.website_url, introduction: draft.introduction, banner_asset_id: draft.banner_asset_id } }), cache: "no-store" });
   if (!response.ok) return failure("下書きを保存できませんでした。", 503);
   const result = await response.json();
   if (result === "forbidden") return failure("この店舗の編集権限がありません。", 403);

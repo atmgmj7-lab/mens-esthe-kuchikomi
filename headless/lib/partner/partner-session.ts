@@ -114,6 +114,12 @@ export async function authorizePartnerReviewGrowthSession(input: {
   if (!authUser) return { status: "unauthenticated" as const };
   const dashboard = await resolvePartnerDashboardIdentity(access.access, authUser.id, dependencies);
   if (dashboard.status !== "allowed") return dashboard;
+  if (dashboard.identity.identityKind === "legacy") {
+    // Legacy users retain a successful login and can reach their settings
+    // while an operator performs the reviewed app_shop_id mapping.  Do not
+    // fabricate canonical links, widgets, or listing mutations for them.
+    return { status: "legacy_migration_required" as const, identity: dashboard.identity };
+  }
 
   const metrics = await getPartnerCanonicalGrowth({ workspaceId: access.access.workspaceId, authUserId: authUser.id });
   const growthKit = resolvePartnerReviewGrowthKit(dashboard.identity, metrics);

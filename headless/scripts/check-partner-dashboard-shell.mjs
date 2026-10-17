@@ -65,9 +65,10 @@ assert.doesNotMatch(partnerPage, /DashboardPartnerWorkspace|DashboardReviewModer
 
 const workspaceA = "11111111-1111-4111-8111-111111111111";
 const workspaceB = "22222222-2222-4222-8222-222222222222";
-const membershipA = { workspaceId: workspaceA, appShopId: "33333333-3333-4333-8333-333333333333", shopSlug: "shop-a", role: "owner" };
+const membershipA = { workspaceId: workspaceA, identityKind: "canonical", appShopId: "33333333-3333-4333-8333-333333333333", shopSlug: "shop-a", role: "owner" };
 const ownIdentity = {
   workspaceId: workspaceA,
+  identityKind: "canonical",
   appShopId: membershipA.appShopId,
   shopSlug: "shop-a",
   shopName: "Partner Shop A",
@@ -120,7 +121,9 @@ const serverDependencies = server.createPartnerAuthDependencies({
   serverRequests.push({ url, options });
   return Response.json([{
     workspace_id: workspaceA,
+    identity_kind: "canonical",
     app_shop_id: membershipA.appShopId,
+    wp_shop_id: null,
     shop_slug: "shop-a",
     shop_name: "Partner Shop A",
     canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/",
@@ -137,7 +140,7 @@ assert.deepEqual(
   ownIdentity,
   "the server-only identity adapter must parse the canonical workspace projection",
 );
-assert.equal(serverRequests[0].url, "https://project.supabase.co/rest/v1/rpc/get_partner_canonical_workspace_identity");
+assert.equal(serverRequests[0].url, "https://project.supabase.co/rest/v1/rpc/get_partner_compatible_workspace_identity");
 assert.equal(serverRequests[0].options.headers.apikey, "service-role-fixture");
 assert.equal(serverRequests[0].options.headers.Authorization, undefined);
 assert.deepEqual(JSON.parse(serverRequests[0].options.body), { p_workspace_id: workspaceA, p_auth_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });

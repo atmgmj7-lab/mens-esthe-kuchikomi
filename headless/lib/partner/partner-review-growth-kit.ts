@@ -1,4 +1,4 @@
-import type { PartnerWorkspaceIdentity } from "@/lib/partner/partner-dashboard";
+import type { CanonicalPartnerWorkspaceIdentity } from "@/lib/partner/partner-dashboard";
 
 export type PartnerCanonicalGrowthMetrics = Readonly<{
   workspaceId: string;
@@ -95,7 +95,7 @@ function widgetUrl(token: string): string | null {
 }
 
 export function resolvePartnerReviewGrowthKit(
-  identity: PartnerWorkspaceIdentity,
+  identity: CanonicalPartnerWorkspaceIdentity,
   metrics: PartnerCanonicalGrowthMetrics | null,
 ): PartnerReviewGrowthKitResult {
   if (metrics === null) {
@@ -142,7 +142,7 @@ export function resolvePartnerReviewGrowthKit(
  * or changes a campaign while rendering.
  */
 export function resolvePartnerReviewGrowthCenter(
-  identity: PartnerWorkspaceIdentity,
+  identity: CanonicalPartnerWorkspaceIdentity,
   metrics: PartnerCanonicalGrowthMetrics | null,
 ): PartnerReviewGrowthCenterResult {
   if (metrics !== null && (metrics.workspaceId !== identity.workspaceId || metrics.appShopId !== identity.appShopId || !validMetrics(metrics))) {

@@ -56,6 +56,17 @@ begin
     select 1 from app.shops where id=v_app and name=v_payload->>'shop_name' and excerpt='運営による直接編集の反映' and publication_status='published'
   ) then raise exception 'canonical direct edit did not reflect into app.shops'; end if;
 
+  -- Changing a published canonical shop's area must clear the old primary
+  -- before promoting the new one; the database has an immediate one-primary
+  -- partial unique index.
+  v_payload := v_payload || jsonb_build_object('area_slug','canonical-moved-' || left(v_suffix, 8), 'area_name','移動先テスト地域');
+  v_result := api.save_and_publish_canonical_managed_shop(v_managed, 2, v_payload, 'local canonical operator');
+  if v_result <> 'ok'
+    or not exists (select 1 from app.shop_areas area join app.areas definition on definition.id=area.area_id where area.shop_id=v_app and area.is_primary and definition.slug=v_payload->>'area_slug')
+    or exists (select 1 from app.shop_areas area join app.areas definition on definition.id=area.area_id where area.shop_id=v_app and area.is_primary and definition.slug<>v_payload->>'area_slug') then
+    raise exception 'canonical direct area transition did not preserve one primary projection';
+  end if;
+
   select managed_shop_id, app_shop_id into v_draft_managed, v_draft_app
   from api.create_canonical_managed_shop('canonical-draft-' || v_suffix, v_payload, 'local canonical operator');
   if api.submit_managed_shop_revision(v_draft_managed, 1, 'local canonical operator') <> 'ok' then
@@ -67,7 +78,7 @@ begin
     raise exception 'canonical draft approval did not publish its app identity (% / %)', v_result, (select publication_status from app.shops where id=v_draft_app);
   end if;
 
-  v_result := api.set_canonical_managed_shop_visibility(v_managed, 2, 'unlisted', 'local canonical operator');
+  v_result := api.set_canonical_managed_shop_visibility(v_managed, 3, 'unlisted', 'local canonical operator');
   if v_result <> 'ok'
     or exists (select 1 from api.list_published_managed_shops() where managed_shop_id=v_managed)
     or not exists (select 1 from app.shops where id=v_app and publication_status='review' and published_at is null) then
@@ -76,19 +87,19 @@ begin
       (select publication_status || ':' || coalesce(published_at::text, 'null') from app.shops where id=v_app),
       (select publication_state from private.managed_shops where id=v_managed);
   end if;
-  v_result := api.set_canonical_managed_shop_visibility(v_managed, 2, 'published', 'local canonical operator');
+  v_result := api.set_canonical_managed_shop_visibility(v_managed, 3, 'published', 'local canonical operator');
   if v_result <> 'ok'
     or not exists (select 1 from app.shops where id=v_app and publication_status='published') then
     raise exception 'canonical re-publication did not restore app visibility (% / %)', v_result, (select publication_status from app.shops where id=v_app);
   end if;
 
-  v_result := api.archive_canonical_managed_shop(v_managed, 2, 'local canonical operator');
+  v_result := api.archive_canonical_managed_shop(v_managed, 3, 'local canonical operator');
   if v_result <> 'ok'
     or exists (select 1 from api.list_published_managed_shops() where managed_shop_id=v_managed)
     or not exists (select 1 from app.shops where id=v_app and publication_status='archived') then
     raise exception 'canonical archive did not hide the app shop (% / %)', v_result, (select publication_status from app.shops where id=v_app);
   end if;
-  v_result := api.restore_canonical_managed_shop_to_unlisted(v_managed, 2, 'local canonical operator');
+  v_result := api.restore_canonical_managed_shop_to_unlisted(v_managed, 3, 'local canonical operator');
   if v_result <> 'ok'
     or not exists (select 1 from private.managed_shops where id=v_managed and publication_state='unlisted')
     or not exists (select 1 from app.shops where id=v_app and publication_status='review') then

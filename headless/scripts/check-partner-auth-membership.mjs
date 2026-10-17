@@ -62,8 +62,16 @@ const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const userB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const membershipA = {
   workspaceId: workspaceA,
+  identityKind: "canonical",
   appShopId: "33333333-3333-4333-8333-333333333333",
   shopSlug: "shop-a",
+  role: "owner",
+};
+const legacyMembership = {
+  workspaceId: workspaceB,
+  identityKind: "legacy",
+  wpShopId: 202,
+  shopSlug: "legacy-shop",
   role: "owner",
 };
 
@@ -116,6 +124,24 @@ await assertAuthorization(
 );
 
 await assertAuthorization(
+  { accessToken: "valid-a", requestedWorkspaceId: workspaceB, requestedShopId: 202 }, {
+    ...validDependencies,
+    async getActiveMembership() { return legacyMembership; },
+  },
+  { status: "allowed", access: legacyMembership },
+  "an existing WordPress-only workspace keeps its own scoped login during the reviewed mapping",
+);
+
+await assertAuthorization(
+  { accessToken: "valid-a", requestedWorkspaceId: workspaceB, requestedShopId: 203 }, {
+    ...validDependencies,
+    async getActiveMembership() { return legacyMembership; },
+  },
+  { status: "forbidden" },
+  "a legacy workspace still rejects another WordPress shop id",
+);
+
+await assertAuthorization(
   { accessToken: "valid-a", requestedWorkspaceId: userB, requestedShopId: null }, validDependencies,
   { status: "forbidden" },
   "an arbitrary UUID must never be treated as a partner workspace",
@@ -144,7 +170,9 @@ const serverDependencies = server.createPartnerAuthDependencies({
   }
   return Response.json([{
     workspace_id: workspaceA,
+    identity_kind: "canonical",
     app_shop_id: membershipA.appShopId,
+    wp_shop_id: null,
     shop_slug: "shop-a",
     role: "owner",
   }]);
@@ -160,14 +188,17 @@ assert.equal(serverRequests[0].url, "https://project.supabase.co/auth/v1/user");
 assert.equal(serverRequests[0].options.headers.Authorization, "Bearer session-token");
 assert.equal(serverRequests[0].options.headers.apikey, "publishable-fixture");
 assert.notEqual(serverRequests[0].options.headers.Authorization, "Bearer service-role-fixture");
-assert.equal(serverRequests[1].url, "https://project.supabase.co/rest/v1/rpc/get_partner_canonical_auth_membership");
+assert.equal(serverRequests[1].url, "https://project.supabase.co/rest/v1/rpc/get_partner_compatible_auth_membership");
 assert.equal(serverRequests[1].options.headers.apikey, "service-role-fixture");
 assert.equal(serverRequests[1].options.headers.Authorization, undefined);
+assert.match(serverSource, /get_partner_compatible_auth_membership/);
+assert.match(serverSource, /get_partner_compatible_workspace_identity/);
 
 const partnerPageSource = existsSync(partnerPagePath) ? readFileSync(partnerPagePath, "utf8") : "";
 assert.match(partnerPageSource, /await connection\(\)/, "the private partner gate must opt out of prerendering through the Cache Components-compatible API");
 assert.match(partnerPageSource, /export const instant\s*=\s*false/, "the private partner gate must use the existing blocking-route contract");
 assert.doesNotMatch(partnerPageSource, /export const dynamic\s*=/, "Cache Components routes must not use incompatible dynamic segment config");
+assert.match(partnerPageSource, /legacy_migration_required/, "an unmapped legacy workspace must retain a scoped migration-status home instead of losing login access");
 
 const requestLinkSource = existsSync(requestLinkPath) ? readFileSync(requestLinkPath, "utf8") : "";
 const completeLinkSource = existsSync(completeLinkPath) ? readFileSync(completeLinkPath, "utf8") : "";

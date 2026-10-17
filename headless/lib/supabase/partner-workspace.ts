@@ -39,6 +39,25 @@ export const partnerWorkspaceRepository: PartnerWorkspaceRepository = {
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return null;
     try {
+      // The canonical endpoint returns no rows for an unmapped legacy shop.
+      // A non-OK response is never allowed to fall through to the legacy RPC:
+      // doing so could treat a managed directory id as a WordPress id.
+      const canonical = await fetch(`${baseUrl}/rest/v1/rpc/provision_partner_workspace_for_published_managed_shop`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          p_shop_slug: input.shopSlug,
+          p_source: input.source,
+        }),
+        cache: "no-store",
+      });
+      const canonicalRows = canonical.ok ? await canonical.json() as unknown : null;
+      if (!canonical.ok || !Array.isArray(canonicalRows) || canonicalRows.length > 1) return null;
+      const canonicalRow = canonicalRows[0] as { workspace_id?: string; state?: PartnerWorkspace["state"]; initialized?: boolean } | undefined;
+      if (canonicalRow?.workspace_id && canonicalRow.state) {
+        return { id: canonicalRow.workspace_id, state: canonicalRow.state, initialized: canonicalRow.initialized === true };
+      }
+
       const response = await fetch(`${baseUrl}/rest/v1/rpc/provision_partner_workspace`, {
         method: "POST",
         headers,
@@ -52,7 +71,7 @@ export const partnerWorkspaceRepository: PartnerWorkspaceRepository = {
         cache: "no-store",
       });
       const rows = await response.json() as Array<{ workspace_id?: string; state?: PartnerWorkspace["state"]; initialized?: boolean }>;
-      const row = response.ok && Array.isArray(rows) ? rows[0] : null;
+      const row = response.ok && Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
       return row?.workspace_id && row.state
         ? { id: row.workspace_id, state: row.state, initialized: row.initialized === true }
         : null;
