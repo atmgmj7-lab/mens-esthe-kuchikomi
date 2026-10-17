@@ -117,7 +117,7 @@ export function ShopDetail({
             />
             <p id="contribute"><Link href={`/shops/${shop.slug}/community/`}>未確認の利用者情報を交換・掲載情報を訂正する</Link></p>
             <PublicTherapistList therapists={therapists} />
-            <EskomiBannerV2Slot id="B09" />
+            <EskomiBannerV2Slot id="B09" href={`/shops/${shop.slug}/community/`} />
             <ShopOwnerCta shop={shop} />
           </div>
         </article>

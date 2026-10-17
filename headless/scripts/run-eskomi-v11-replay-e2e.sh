@@ -110,11 +110,19 @@ docker run -d --rm --name "$postgrest_container" --network "$network_name" \
   -e PGRST_DB_URI="postgres://authenticator:fixture-authenticator-password@$database_container:5432/$database_name" \
   -e PGRST_DB_SCHEMAS=api -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$jwt_secret" \
   postgrest/postgrest:v16.4 >/dev/null
+postgrest_ready=0
 for _ in $(seq 1 30); do
-  docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening' && break
+  if curl -sS -o /dev/null "http://127.0.0.1:57001/"; then
+    postgrest_ready=1
+    break
+  fi
   sleep 1
 done
-docker logs "$postgrest_container" 2>&1 | grep -q 'API server listening'
+if [[ "$postgrest_ready" != "1" ]]; then
+  docker inspect --format 'PostgREST state={{.State.Status}} exit={{.State.ExitCode}} ports={{json .NetworkSettings.Ports}}' "$postgrest_container" >&2
+  docker logs "$postgrest_container" >&2
+  exit 1
+fi
 
 # Exercise the context RPC directly before starting Next.  This keeps a
 # PostgREST signature/SQL failure distinguishable from an app/browser failure.
@@ -137,6 +145,6 @@ curl -fsS "http://127.0.0.1:57001/rpc/create_review_submission_context" \
   SUPABASE_SERVICE_ROLE_KEY="$service_role_jwt" \
   ESKOMI_E2E_ENTRY_HANDLE="$entry_handle" \
   ESKOMI_E2E_NEXT_URL="http://127.0.0.1:57000" \
-  ESKOMI_E2E_CHROMIUM="/usr/bin/chromium" \
+  ESKOMI_E2E_CHROMIUM="${ESKOMI_E2E_CHROMIUM:-/usr/bin/chromium}" \
   node scripts/check-eskomi-v11-replay-browser.mjs
 )
