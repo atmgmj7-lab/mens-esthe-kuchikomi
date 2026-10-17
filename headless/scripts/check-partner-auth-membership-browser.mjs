@@ -127,7 +127,7 @@ let log = "";
 next.stdout.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 next.stderr.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}) });
 try {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {

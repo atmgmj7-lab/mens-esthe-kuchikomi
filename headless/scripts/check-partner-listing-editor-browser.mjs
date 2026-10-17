@@ -68,10 +68,10 @@ await new Promise((resolve) => mock.listen(mockPort, "127.0.0.1", resolve));
 const baseUrl = `http://127.0.0.1:${appPort}`;
 const next = spawn("npm", ["run", "start", "--", "--hostname", "127.0.0.1", "--port", String(appPort)], { cwd: root, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, SUPABASE_URL: `http://127.0.0.1:${mockPort}`, SUPABASE_AUTH_PUBLISHABLE_KEY: "fixture-publishable-key", SUPABASE_SERVICE_ROLE_KEY: "fixture-service-role-key", DASHBOARD_BASIC_AUTH_USER: "operator", DASHBOARD_BASIC_AUTH_PASSWORD: "fixture-password", PARTNER_AUTH_REDIRECT_ORIGIN: baseUrl, WP_API_BASE_URL: `http://127.0.0.1:${mockPort}/wp-json` } });
 let log = ""; next.stdout.on("data", (chunk) => { log = `${log}${chunk}`.slice(-3000); }); next.stderr.on("data", (chunk) => { log = `${log}${chunk}`.slice(-3000); });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}) });
 try {
   for (let deadline = Date.now() + 30_000; ; await new Promise((resolve) => setTimeout(resolve, 200))) { if (next.exitCode !== null) throw new Error(log); try { if ((await fetch(`${baseUrl}/partner/listing/`)).status === 200) break; } catch {} if (Date.now() > deadline) throw new Error(`fixture start timeout\n${log}`); }
-  const anon = await browser.newPage(); assert.equal((await anon.goto(`${baseUrl}/api/dashboard/partner-listing-revisions/`))?.status(), 401, "anonymous operator API must be rejected");
+  const anon = await browser.newPage(); assert.equal((await anon.request.get(`${baseUrl}/api/dashboard/partner-listing-revisions/`)).status(), 401, "anonymous operator API must be rejected");
   const partner = await browser.newPage({ viewport: { width: 390, height: 844 } }); await partner.context().addCookies([{ name: "eskomi_partner_access_token", value: "partner-a-session-token", domain: "127.0.0.1", path: "/" }]);
   await partner.goto(`${baseUrl}/partner/listing/`, { waitUntil: "domcontentloaded" }); await partner.getByRole("heading", { name: "新規テスト店舗" }).waitFor();
   await partner.locator('input[type="file"]').setInputFiles({ name: "banner.png", mimeType: "image/png", buffer: png }); await partner.getByText("画像を保管しました").waitFor();

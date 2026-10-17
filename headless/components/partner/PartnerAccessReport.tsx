@@ -27,7 +27,7 @@ export function PartnerAccessReport() {
   useEffect(() => { void load(28); }, []);
   const split = useMemo(() => report ? { current: report.rows.slice(-report.days), previous: report.rows.slice(0, -report.days) } : null, [report]);
   const latest = report?.rows.filter((row) => row.updated_at).map((row) => row.updated_at).sort().at(-1) ?? null;
-  return <section className="hl-partner-home__section" aria-labelledby="partner-access-report-heading">
+  return <section id="partner-access-report" className="hl-partner-home__section" aria-labelledby="partner-access-report-heading">
     <div className="hl-partner-home__section-heading"><div><p className="hl-partner-home__eyebrow">ACCESS REPORT</p><h2 id="partner-access-report-heading">計測できた閲覧と公式LINEクリック</h2></div><p className="hl-partner-home__section-note">予約・来店・売上の数ではありません。</p></div>
     <p>この店舗の公開ページで計測できた閲覧と、公式LINEへのクリックだけを日ごとに匿名集計しています。広告ブロッカーなどで計測されない閲覧があり、全訪問の網羅を保証するものではありません。個別のIP、口コミ本文、編集控え、特典コードは保存・表示しません。</p>
     <label>期間 <select value={days} onChange={(event) => { const value = Number(event.target.value); setDays(value); void load(value); }}><option value={7}>直近7日</option><option value={28}>直近28日</option><option value={90}>直近90日</option></select></label>

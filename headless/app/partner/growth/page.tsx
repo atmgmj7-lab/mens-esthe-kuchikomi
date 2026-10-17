@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import QRCode from "qrcode";
 
 import { PartnerCopyButton } from "@/components/partner/PartnerCopyButton";
+import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
 import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { resolvePartnerReviewGrowthCenter } from "@/lib/partner/partner-review-growth-kit";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
@@ -60,6 +61,8 @@ export default async function PartnerReviewGrowthCenterPage() {
         <p>評価の指定、特典や報酬による依頼、良い口コミだけを求める案内は行いません。</p>
       </section>
 
+      <EskomiBannerV2Slot id="B02" />
+
       <section className="hl-partner-home__section" aria-labelledby="growth-center-assets-heading">
         <div className="hl-partner-home__section-heading"><div><p className="hl-partner-home__eyebrow">ご案内に使うもの</p><h2 id="growth-center-assets-heading">配布するものを選ぶ</h2></div><a className="hl-partner-home__text-link" href="/partner/">店舗用メニューへ戻る</a></div>
         <div className="hl-partner-home__collection">
@@ -70,6 +73,7 @@ export default async function PartnerReviewGrowthCenterPage() {
           <section className="hl-partner-home__asset hl-partner-growth-center__widget" aria-labelledby="growth-widget-heading"><h3 id="growth-widget-heading">店舗サイトの口コミ表示</h3><p>運営が公開したこの店舗の口コミだけを、店舗サイトに任意で表示できます。</p>{widget?.status === "available" && widgetSnippet ? <><div className="hl-partner-growth-center__asset-actions"><a className="hl-partner-home__text-link" href={widget.value} target="_blank" rel="noreferrer">表示内容を確認</a><PartnerCopyButton label="設置用コード" value={widgetSnippet} /></div><details><summary>設置方法を見る</summary><ol><li>表示内容を確認し、対象店舗を確かめます。</li><li>設置用コードをコピーし、iframeと直後のscriptを一緒に貼り付けます。</li><li>店舗サイトの任意のHTML表示位置へ貼り付けます。</li><li>scriptを貼れないCMSでは、iframeだけを貼ってください。高さは700pxのままになり、内容が多い場合は枠内をスクロールして確認できます。</li></ol></details></> : <Unavailable asset={unavailable(widget)} />}</section>
         </div>
       </section>
+      <EskomiBannerV2Slot id="B04" />
     </div>
   </main>;
 }

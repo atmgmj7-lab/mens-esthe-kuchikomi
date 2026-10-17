@@ -10,6 +10,7 @@ import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-wi
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
 import { pageMetadata } from "@/lib/seo";
 import { PartnerAccessReport } from "@/components/partner/PartnerAccessReport";
+import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
 
 export const instant = false;
 
@@ -92,6 +93,7 @@ export default async function PartnerDashboardPage() {
           </dl> : <p className="hl-partner-home__unavailable" role="status">{home.performance.message}</p>}
         </section>
 
+        <EskomiBannerV2Slot id="B07" />
         <PartnerAccessReport />
 
         <section id="partner-collect-reviews" className="hl-partner-home__section" aria-labelledby="partner-collect-reviews-heading">
