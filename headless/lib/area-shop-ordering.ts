@@ -23,9 +23,12 @@ export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea) {
   const lineVerified = buildAreaVerifiedLineComparison(area, [shop]).length === 1;
   const verifiedWithin180Days = (value: ShopFactProvenance | null) => value !== null && Date.parse(value.reviewedAt) >= Date.now() - 180 * 24 * 60 * 60 * 1000;
   const breakdown = SIGNALS.map((signal) => {
-    const field = signal === "officialBooking" ? (model.actions.some((action) => action.kind === "official") ? "official" : "booking") : signal;
-    const evidence = resolveVerifiedShopFactProvenance(field, model, shop.acf.shop_fact_provenance);
-    const available = signal === "officialBooking" ? (lineVerified || model.actions.some((action) => action.kind === "official"))
+    const officialEvidence = signal === "officialBooking" ? resolveVerifiedShopFactProvenance("official", model, shop.acf.shop_fact_provenance) : null;
+    const bookingEvidence = signal === "officialBooking" ? resolveVerifiedShopFactProvenance("booking", model, shop.acf.shop_fact_provenance) : null;
+    const field = signal === "officialBooking" ? (bookingEvidence ? "booking" : "official") : signal;
+    const evidence = signal === "officialBooking" ? (bookingEvidence ?? officialEvidence) : resolveVerifiedShopFactProvenance(field, model, shop.acf.shop_fact_provenance);
+    const available = signal === "price" ? model.prices.some((course) => course.price.status === "confirmed" && Number.isInteger(course.price.amount) && (course.price.amount ?? 0) > 0)
+      : signal === "officialBooking" ? (lineVerified || model.actions.some((action) => action.kind !== "official"))
         : model.infoRows.some((row) => signal === "access"
           ? (row.key === "address" || row.key === "station") && Boolean(row.value)
           : row.key === "hours" && Boolean(row.value));
@@ -58,7 +61,7 @@ function comparison(a: OrderingEntry, b: OrderingEntry): { difference: number; r
   const dimensions = [
     { difference: RELATION_PRIORITY[a.relation] - RELATION_PRIORITY[b.relation], reason: "area-relation" },
     { difference: b.totalScore - a.totalScore, reason: "verified-information-count" },
-    { difference: a.freshnessTimestamp - b.freshnessTimestamp, reason: "oldest-verified-review-date" },
+    { difference: b.freshnessTimestamp - a.freshnessTimestamp, reason: "oldest-verified-review-date" },
     // Explicit UTF-16 code-unit comparison keeps server/client/runtime locale out of tie-breaking.
     { difference: a.shop.title < b.shop.title ? -1 : a.shop.title > b.shop.title ? 1 : 0, reason: "shop-title" },
     { difference: aIdentity < bIdentity ? -1 : aIdentity > bIdentity ? 1 : 0, reason: "canonical-shop-id" },
@@ -77,5 +80,24 @@ export function buildAreaShopOrdering(shops: readonly ShopView[], area: Ordering
       tieBreakReason: index === 0 ? "first-in-order" : comparison(entries[index - 1], entry).reason,
     })),
     excludedPrShopIds: shops.filter((shop) => shop.ranking.isPr).map((shop) => shop.id).sort((a, b) => a - b),
+  };
+}
+
+/** The reader must pass every eligible candidate here before it cuts a page. */
+export function paginateAreaShopInformationOrder(
+  shops: readonly ShopView[],
+  area: OrderingArea,
+  page: number,
+  perPage: number,
+) {
+  const ordered = isAreaInformationOrderingTarget(area)
+    ? buildAreaShopOrdering(shops, area).entries.map(({ shop }) => shop)
+    : [...shops];
+  const safePage = Math.max(1, Math.floor(page));
+  const safePerPage = Math.max(1, Math.floor(perPage));
+  return {
+    totalPages: Math.max(1, Math.ceil(ordered.length / safePerPage)),
+    shops: ordered.slice((safePage - 1) * safePerPage, safePage * safePerPage),
+    ordered,
   };
 }

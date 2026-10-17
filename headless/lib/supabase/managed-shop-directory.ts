@@ -10,6 +10,7 @@ export type ManagedShopDetail = Readonly<Record<string, unknown>>;
 
 export type PublishedManagedShop = Readonly<{
   managed_shop_id: string;
+  app_shop_id: string | null;
   directory_id: number;
   existing_wp_shop_id: number | null;
   shop_slug: string;
@@ -64,12 +65,14 @@ function publication(value: unknown): PublishedManagedShop | null {
     || !Number.isSafeInteger(value.directory_id) || (value.directory_id as number) < 1
     || !Number.isSafeInteger(value.approved_revision) || (value.approved_revision as number) < 1) return null;
   const existing = nullableInt(value.existing_wp_shop_id);
+  const appShopId = value.app_shop_id == null ? null : string(value.app_shop_id);
   const optional = ["introduction", "address", "business_hours", "phone", "line_url", "booking_url", "banner_asset_id"] as const;
-  if (existing === undefined || nullableString(value.official_url) === undefined || optional.some((key) => nullableString(value[key]) === undefined)
+  if (existing === undefined || appShopId !== null && !UUID.test(appShopId) || nullableString(value.official_url) === undefined || optional.some((key) => nullableString(value[key]) === undefined)
     || nullableInt(value.basic_price) === undefined || nullableInt(value.price_90) === undefined
     || !Array.isArray(value.gallery_asset_ids) || !value.gallery_asset_ids.every((id) => typeof id === "string" && UUID.test(id))) return null;
   return {
     managed_shop_id: value.managed_shop_id as string,
+    app_shop_id: appShopId,
     directory_id: value.directory_id as number,
     existing_wp_shop_id: existing,
     shop_slug: value.shop_slug as string,

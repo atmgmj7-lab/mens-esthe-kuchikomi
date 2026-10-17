@@ -12,6 +12,7 @@ import {
   type AreaShopRankingEntry
 } from "@/lib/area-shop-ranking";
 import { resolveAreaShopListCardRank } from "@/lib/area-shop-list-controls";
+import { buildAreaShopOrdering, isAreaInformationOrderingTarget } from "@/lib/area-shop-ordering";
 import { safeText } from "@/lib/wp/client";
 import { areaBreadcrumbJsonLd, asFaqRows, faqJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
@@ -40,7 +41,11 @@ export function AreaPageView({
   areaFeatures?: readonly AreaFeatureItem[];
 }) {
   const guideShops = seoShops ?? shops;
-  const rankedShops = orderShopsForAreaRanking(shops, area, rankingEntries);
+  // Every public area uses the same R1–R4 candidate comparison.  Legacy
+  // manual ranks remain available only for non-formal compatibility routes.
+  const rankedShops = isAreaInformationOrderingTarget(area)
+    ? buildAreaShopOrdering(shops, area).entries.map(({ shop }) => shop)
+    : orderShopsForAreaRanking(shops, area, rankingEntries);
   const isParentArea = area.parent === 0;
   const characteristics = safeText(area.acf.area_characteristics, area.description);
   const column = sanitizeAreaHtml(area.slug, safeText(area.acf.area_column_content));

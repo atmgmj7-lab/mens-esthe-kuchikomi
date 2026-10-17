@@ -37,11 +37,20 @@ begin
  end;
  select result.revision into r from api.withdraw_community_post_by_receipt_v11(repeat('8',64)) result;
  if (select publication_state from private.community_posts_v11 where id=p2)<>'withdrawn' then raise exception 'pending community receipt withdrawal failed'; end if;
+ begin
+   perform api.submit_community_appeal_v11(repeat('8',64),'本人撤回の復活は禁止',repeat('4',64),encode(extensions.digest(repeat('8',64)||chr(31)||'本人撤回の復活は禁止','sha256'),'hex'));
+   raise exception 'self-withdrawn post became appealable';
+ exception when no_data_found then null;
+ end;
  select post_id,revision into p3,r from api.submit_community_post_v11('area',null,a,'運営非公開化の確認用',repeat('d',64),repeat('e',64),repeat('f',64),repeat('0',64),encode(extensions.digest('area'||chr(31)||a::text||chr(31)||'運営非公開化の確認用','sha256'),'hex'));
  if api.moderate_community_post_v11(p3,'approved','safe',r)<>'approved' then raise exception 'community approve failed'; end if;
  select revision into r from private.community_posts_v11 where id=p3;
  if api.moderate_community_post_v11(p3,'hidden','operator hide',r)<>'hidden' then raise exception 'operator community hide decision failed'; end if;
  if (select publication_state from private.community_posts_v11 where id=p3)<>'withdrawn' then raise exception 'operator community hide publication state failed: %',(select publication_state from private.community_posts_v11 where id=p3); end if;
+ select result.appeal_id,result.revision,result.replayed into c,r,replayed from api.submit_community_appeal_v11(repeat('d',64),'非公開措置への異議です',repeat('1',64),encode(extensions.digest(repeat('d',64)||chr(31)||'非公開措置への異議です','sha256'),'hex')) result;
+ if replayed or api.review_community_appeal_v11(c,'reopen_review','operator hide appeal',r)<>'reopen_review' then raise exception 'operator hidden post appeal failed'; end if;
+ select result.replayed into replayed from api.submit_community_appeal_v11(repeat('d',64),'非公開措置への異議です',repeat('1',64),encode(extensions.digest(repeat('d',64)||chr(31)||'非公開措置への異議です','sha256'),'hex')) result;
+ if not replayed or (select moderation_state from private.community_posts_v11 where id=p3)<>'pending' then raise exception 'appeal replay was coupled to later review state'; end if;
  begin
    perform api.moderate_community_post_v11(p3,'approved','stale retry',r);
    raise exception 'stale approval revived hidden post';
@@ -70,5 +79,12 @@ begin
  if not replayed then raise exception 'community appeal idempotency failed'; end if;
  if api.review_community_appeal_v11(c,'reopen_review','appeal accepted',r)<>'reopen_review' then raise exception 'community appeal reopen failed'; end if;
  if (select moderation_state from private.community_posts_v11 where id=p3)<>'pending' or not exists(select 1 from private.community_moderation_events_v11 where entity_kind='community_post' and entity_id=p3 and action='appeal_reopen_review') then raise exception 'appeal history missing'; end if;
+ -- A queue page stays bounded and puts a newly received item ahead of over
+ -- 1000 resolved rows. Resolved history is only visible through its own page.
+ insert into private.community_post_reports_v11(post_id,reporter_scope_hash,idempotency_hash,payload_hash,reason_code,detail,state,created_at)
+ select p,encode(extensions.digest('queue-scope-'||g::text,'sha256'),'hex'),encode(extensions.digest('queue-key-'||g::text,'sha256'),'hex'),encode(extensions.digest('queue-payload-'||g::text,'sha256'),'hex'),'other','history','dismissed',now()-((1002-g)||' seconds')::interval from generate_series(1,1001) g;
+ insert into private.community_post_reports_v11(post_id,reporter_scope_hash,idempotency_hash,payload_hash,reason_code,detail,state) values(p,repeat('9',64),repeat('a',64),repeat('b',64),'spam','new pending','received') returning id into c;
+ if (select count(*) from api.list_operator_community_reports_v11(50,0,false))<>1 or (select report_id from api.list_operator_community_reports_v11(50,0,false) limit 1)<>c then raise exception 'pending report queue is not newest bounded page'; end if;
+ if (select count(*) from api.list_operator_community_reports_v11(50,0,true))<>50 then raise exception 'resolved report history is not paginated'; end if;
 end $$;
 rollback;

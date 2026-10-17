@@ -11,6 +11,7 @@ import {
 } from "@/lib/managed-shop-source";
 import { useSupabaseManagedShopDirectory } from "@/lib/supabase/managed-shop-directory";
 import { getWordPressShopById } from "@/lib/wp/shops";
+import { isAreaInformationOrderingTarget, paginateAreaShopInformationOrder } from "@/lib/area-shop-ordering";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
@@ -190,18 +191,29 @@ export async function getAreaShops(
   );
   try {
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 100) throw new Error("Invalid area page request");
+    const area = await getAreaById(areaId);
+    if (!area) return { shops: [], totalPages: 1 };
     if (!useSupabaseManagedShopDirectory()) {
       const index = await getAreaShopOrderIndex(areaId);
+      if (isAreaInformationOrderingTarget(area)) {
+        // Formal R1–R4 has to see the whole candidate set.  Cutting the WP
+        // index first would permanently strand a better candidate on page 2.
+        const candidates = await applyManagedShopFactsToList((await fetchAreaShopsInOrder(areaId, index)).map(normalizeShop));
+        const result = paginateAreaShopInformationOrder(candidates, area, page, perPage);
+        return { shops: result.shops, totalPages: result.totalPages };
+      }
       const totalPages = Math.max(1, Math.ceil(index.length / perPage));
       const entries = index.slice((page - 1) * perPage, page * perPage);
       const shops = await fetchAreaShopsInOrder(areaId, entries);
       return { shops: await applyManagedShopFactsToList(shops.map(normalizeShop)), totalPages };
     }
-    const area = await getAreaById(areaId);
-    if (!area) return { shops: [], totalPages: 1 };
-    const managedShops = await getManagedAreaShops(area);
+    const managedShops = await applyManagedShopFactsToList(await getManagedAreaShops(area));
+    if (isAreaInformationOrderingTarget(area)) {
+      const result = paginateAreaShopInformationOrder(managedShops, area, page, perPage);
+      return { shops: result.shops, totalPages: result.totalPages };
+    }
     const totalPages = Math.max(1, Math.ceil(managedShops.length / perPage));
-    return { shops: await applyManagedShopFactsToList(managedShops.slice((page - 1) * perPage, page * perPage)), totalPages };
+    return { shops: managedShops.slice((page - 1) * perPage, page * perPage), totalPages };
   } catch (error) {
     if (isManagedShopSourceUnavailableError(error) || isManagedShopDirectoryUnavailableError(error)) throw error;
     logWpBuildFallback(`area shops ${areaId}`, error);
