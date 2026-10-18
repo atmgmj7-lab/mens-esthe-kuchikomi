@@ -759,6 +759,12 @@ store-scoped.
 - [x] Record that the direct v1.1 widget can show an approved canonical review, while the normal shop and global readers require the separate global v1.1 source cutover.
 - [x] Save the clarification on the approved branch and confirm its remote SHA.
 
+## Production-ledger reconciliation (documentation only)
+
+- [x] Reconfirm the approved remote SHA and derive the source migration suffix after the authorized read-only ledger boundary.
+- [x] Compare fresh/representative-upgrade fixture scope with the actual boundary and record Mrs.Rank UP mapping hard stops without private identifiers.
+- [ ] Verify, commit, push the reconciliation packet, and confirm its remote SHA.
+
 ## Guardrails
 
 - No main merge, deployment, production DB/auth write, secret retrieval, backup upload, file deletion, or Docker resource change.

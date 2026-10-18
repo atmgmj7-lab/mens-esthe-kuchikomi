@@ -129,6 +129,12 @@ Before any write, an authorized production operator must:
 This task performed only a repository-local ordering check; it did not access
 any production migration ledger.
 
+The redacted read-only reconciliation of the actual ledger boundary and the
+Mrs.Rank UP prerequisites is maintained in
+[`2026-10-18-pilot-migration-gap-reconciliation.md`](2026-10-18-pilot-migration-gap-reconciliation.md).
+It identifies a migration/preparation hard stop before this packet's one-row
+mapping preflight can become eligible.
+
 ## Read-only, one-store binding preflight
 
 Run the following only through the approved read-only production replica or

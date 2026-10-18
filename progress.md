@@ -952,3 +952,8 @@
 - Updated the release packet to prevent a widget-only result from being described as a completed store-page launch, and to offer the full-reader actual-data comparison/cutover as the only route to normal site visibility.
 - Saved the clarification as `840707259d2f68ee8e7fbb5470d609263ec5f9da` on the
   approved branch; remote `main` remained unchanged.
+
+## 2026-10-18 — migration gap reconciliation
+
+- Reconciled the redacted read-only production ledger boundary with the source migration manifest and existing fresh/representative-upgrade fixtures.
+- Added the ordered delta and mapping-preparation hard stops: a `20261015182000`-baseline rehearsal, exact managed projection, and canonical publication state are required before the one-row mapping preflight can pass.

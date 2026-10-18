@@ -559,3 +559,8 @@
 
 - The fixed pilot is Mrs.Rank UP: WP ID `768`, its percent-encoded canonical slug, and the current public URL are recorded in the first-pilot packet.  The public page read showed zero approved reviews; the public `/reviews/` snapshot also showed zero, but the native pilot's zero-total precondition must be rechecked in the authorized release window.
 - An approved v1.1 individual-link review is visible through the direct v1.1 widget handle, but normal shop/global readers do not read that v1.1 publication until the global `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` cutover.  The pre-publication packet now makes this limitation and the two viable release choices explicit.
+
+## 2026-10-18 — read-only production migration reconciliation
+
+- The authorized read-only ledger ends at `20261015182000`; the pending ordered suffix begins with the canonical foundation and ends with the canonical email-audit migration. Existing fresh and representative populated-upgrade fixtures do not reproduce that actual starting boundary.
+- Mrs.Rank UP is not mapping-ready after migration alone: the current managed projection has no exact candidate, and the canonical shop is draft. Both facts are documented as hard stops; no production identifier or row value is committed.
