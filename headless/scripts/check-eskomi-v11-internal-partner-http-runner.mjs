@@ -19,6 +19,9 @@ assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercis
 assert.match(script, /\/api\/partner\/review-links/, "the test must exercise normal Next review-link issuance");
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
 assert.match(script, /listen\(8000,"127\.0\.0\.1"\)/, "the test adapter must bind only to the Next container loopback");
+assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
+assert.match(script, /redirect lacks callback fragment session/, "a redirect without the callback session fragment must fail without logging its token value");
+assert.match(script, /verification did not redirect; status=/, "a non-redirect verification response must expose only safe diagnostic shape");
 assert.match(script, /foreign .*must be denied/i, "the test must prove a foreign partner is denied");
 assert.match(script, /invalid image must be rejected/i, "the test must prove invalid image rejection");
 assert.match(script, /oversized image must be rejected/i, "the test must prove oversized image rejection");

@@ -28,6 +28,8 @@ Changing the partner redirect origin to `http://localhost:57000` is valid, but d
 
 ## Follow-up configuration
 
-The production hostname validator remains unchanged. The follow-up run starts a test-only proxy bound to `127.0.0.1:8000` **inside the disposable Next container**, forwarding only its own Auth/REST/Storage paths to the internal `api:8000` router. This preserves the existing localhost validator while keeping all traffic off the host network. It reached the normal request-link endpoint and real GoTrue email issuance; the next fixture repair is to consume the confirmation redirect in the same way as the actual callback/browser flow. Browser QA remains separate and is not counted as a pass.
+The production hostname validator remains unchanged. The follow-up run starts a test-only proxy bound to `127.0.0.1:8000` **inside the disposable Next container**, forwarding only its own Auth/REST/Storage paths to the internal `api:8000` router. This preserves the existing localhost validator while keeping all traffic off the host network. It reached the normal request-link endpoint and real GoTrue email issuance; current evidence shows the fixture needs to diagnose a non-redirect verify response before it can consume the callback fragment. The diagnostic records only HTTP status, content type, and response key names—never a link token. Browser QA remains separate and is not counted as a pass.
 
 The runner also distinguishes a runtime volume it creates from an explicitly marked borrowed prepared volume. Cleanup removes only the former.
+
+The earlier removal of `eskomi-v11-partner-prep-112-26641` was verified from the task's own Docker commands: it was a disposable volume created by this task for Linux dependency installation, not an existing or user-supplied volume. No existing volume was passed as `ESKOMI_E2E_RUNTIME_VOLUME` during those runs.
