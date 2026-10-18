@@ -12,12 +12,12 @@ import {
   type AreaShopRankingEntry
 } from "@/lib/area-shop-ranking";
 import { resolveAreaShopListCardRank } from "@/lib/area-shop-list-controls";
-import { buildAreaShopOrdering, isAreaInformationOrderingTarget } from "@/lib/area-shop-ordering";
+import { buildAreaShopOrdering, getAreaInformationOrderingReferenceTimestamp, isAreaInformationOrderingTarget } from "@/lib/area-shop-ordering";
 import { safeText } from "@/lib/wp/client";
 import { areaBreadcrumbJsonLd, asFaqRows, faqJsonLd } from "@/lib/seo";
 import type { AreaView, ShopView } from "@/lib/wp/types";
 
-export function AreaPageView({
+export async function AreaPageView({
   area,
   shops,
   childAreas,
@@ -40,11 +40,12 @@ export function AreaPageView({
   rankingEntries?: AreaShopRankingEntry[];
   areaFeatures?: readonly AreaFeatureItem[];
 }) {
+  const orderingReferenceTimestamp = await getAreaInformationOrderingReferenceTimestamp();
   const guideShops = seoShops ?? shops;
   // Every public area uses the same R1–R4 candidate comparison.  Legacy
   // manual ranks remain available only for non-formal compatibility routes.
   const rankedShops = isAreaInformationOrderingTarget(area)
-    ? buildAreaShopOrdering(shops, area).entries.map(({ shop }) => shop)
+    ? buildAreaShopOrdering(shops, area, orderingReferenceTimestamp).entries.map(({ shop }) => shop)
     : orderShopsForAreaRanking(shops, area, rankingEntries);
   const isParentArea = area.parent === 0;
   const characteristics = safeText(area.acf.area_characteristics, area.description);

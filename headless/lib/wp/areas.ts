@@ -11,7 +11,7 @@ import {
 } from "@/lib/managed-shop-source";
 import { useSupabaseManagedShopDirectory } from "@/lib/supabase/managed-shop-directory";
 import { getWordPressShopById } from "@/lib/wp/shops";
-import { isAreaInformationOrderingTarget, paginateAreaShopInformationOrder } from "@/lib/area-shop-ordering";
+import { getAreaInformationOrderingReferenceTimestamp, isAreaInformationOrderingTarget, paginateAreaShopInformationOrder } from "@/lib/area-shop-ordering";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
@@ -199,7 +199,8 @@ export async function getAreaShops(
         // Formal R1–R4 has to see the whole candidate set.  Cutting the WP
         // index first would permanently strand a better candidate on page 2.
         const candidates = await applyManagedShopFactsToList((await fetchAreaShopsInOrder(areaId, index)).map(normalizeShop));
-        const result = paginateAreaShopInformationOrder(candidates, area, page, perPage);
+        const referenceTimestamp = await getAreaInformationOrderingReferenceTimestamp();
+        const result = paginateAreaShopInformationOrder(candidates, area, page, perPage, referenceTimestamp);
         return { shops: result.shops, totalPages: result.totalPages };
       }
       const totalPages = Math.max(1, Math.ceil(index.length / perPage));
@@ -209,7 +210,8 @@ export async function getAreaShops(
     }
     const managedShops = await applyManagedShopFactsToList(await getManagedAreaShops(area));
     if (isAreaInformationOrderingTarget(area)) {
-      const result = paginateAreaShopInformationOrder(managedShops, area, page, perPage);
+      const referenceTimestamp = await getAreaInformationOrderingReferenceTimestamp();
+      const result = paginateAreaShopInformationOrder(managedShops, area, page, perPage, referenceTimestamp);
       return { shops: result.shops, totalPages: result.totalPages };
     }
     const totalPages = Math.max(1, Math.ceil(managedShops.length / perPage));

@@ -56,7 +56,7 @@ const registration = {
   createdAt: "2026-09-23T00:00:00.000Z",
   reviewedAt: null, reviewedBy: null, reviewReason: null,
   workspaceState: "active_partner",
-  shop: { id: 768, slug: "mrs-rank-up", title: "Mrs.Rank UP", canonicalUrl: "https://mens-esthe-kuchikomi.com/shops/mrs-rank-up/" },
+  shop: { identityKind: "legacy", appShopId: null, wpShopId: 768, slug: "mrs-rank-up", title: "Mrs.Rank UP", canonicalUrl: "https://mens-esthe-kuchikomi.com/shops/mrs-rank-up/" },
   campaigns: [
     { id: "33333333-3333-4333-8333-333333333333", channel: "counter_qr", token: "token-not-projected", isActive: true, createdAt: "2026-09-23T00:00:00.000Z" },
     { id: "44444444-4444-4444-8444-444444444444", channel: "shop_website", token: "token-not-projected", isActive: true, createdAt: "2026-09-23T00:00:00.000Z" },

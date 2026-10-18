@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cacheLife } from "next/cache";
 import { classifyShopRelation } from "@/lib/area-shop-utils";
 import { buildShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import { resolveVerifiedShopFactProvenance } from "@/lib/shop-information-coverage";
@@ -12,16 +13,34 @@ type OrderingArea = Pick<AreaView, "id" | "slug" | "name">;
 const SIGNALS = ["price", "hours", "access", "officialBooking"] as const;
 type Signal = typeof SIGNALS[number];
 const RELATION_PRIORITY = { core: 0, walkable: 0, nearby: 1, related: 2, dispatch: 3, unknown: 4 } as const;
+const FACT_FRESHNESS_WINDOW_MILLISECONDS = 180 * 24 * 60 * 60 * 1000;
+
+/**
+ * The freshness cutoff is intentionally cached with the same minute-level
+ * lifetime as area shop data.  Computing it in the route render would make a
+ * static area prerender depend on an unstable clock value.
+ */
+export async function getAreaInformationOrderingReferenceTimestamp(): Promise<number> {
+  "use cache";
+  try {
+    cacheLife("minutes");
+  } catch {
+    // Contract tests invoke this server module outside a Next render. The
+    // production route still configures the cache lifetime above.
+  }
+  return Date.now();
+}
 
 export function isAreaInformationOrderingTarget(area: Pick<AreaView, "id" | "slug">): boolean {
   return Boolean(area.slug);
 }
 
 /** Field evidence, never raw string volume, price, review count or business closing time. */
-export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea) {
+export function normalizeAreaOrderingFacts(shop: ShopView, area: OrderingArea, referenceTimestamp: number) {
   const model = buildShopDetailViewModel(shop, area.name);
   const lineVerified = buildAreaVerifiedLineComparison(area, [shop]).length === 1;
-  const verifiedWithin180Days = (value: ShopFactProvenance | null) => value !== null && Date.parse(value.reviewedAt) >= Date.now() - 180 * 24 * 60 * 60 * 1000;
+  const verifiedWithin180Days = (value: ShopFactProvenance | null) => value !== null
+    && Date.parse(value.reviewedAt) >= referenceTimestamp - FACT_FRESHNESS_WINDOW_MILLISECONDS;
   const breakdown = SIGNALS.map((signal) => {
     const officialEvidence = signal === "officialBooking" ? resolveVerifiedShopFactProvenance("official", model, shop.acf.shop_fact_provenance) : null;
     const bookingEvidence = signal === "officialBooking" ? resolveVerifiedShopFactProvenance("booking", model, shop.acf.shop_fact_provenance) : null;
@@ -81,9 +100,9 @@ function normalizedShopTitle(value: string): string {
 }
 
 /** R1–R4 lexicographic relation > four verified facts > oldest confirmation > normalized name > stable ID. PR has a separate display slot. */
-export function buildAreaShopOrdering(shops: readonly ShopView[], area: OrderingArea) {
+export function buildAreaShopOrdering(shops: readonly ShopView[], area: OrderingArea, referenceTimestamp: number) {
   const entries = shops.filter((shop) => !shop.ranking.isPr)
-    .map((shop) => ({ shop, ...normalizeAreaOrderingFacts(shop, area) }))
+    .map((shop) => ({ shop, ...normalizeAreaOrderingFacts(shop, area, referenceTimestamp) }))
     .sort((a, b) => comparison(a, b).difference);
   return {
     entries: entries.map((entry, index) => ({
@@ -100,9 +119,10 @@ export function paginateAreaShopInformationOrder(
   area: OrderingArea,
   page: number,
   perPage: number,
+  referenceTimestamp: number,
 ) {
   const ordered = isAreaInformationOrderingTarget(area)
-    ? buildAreaShopOrdering(shops, area).entries.map(({ shop }) => shop)
+    ? buildAreaShopOrdering(shops, area, referenceTimestamp).entries.map(({ shop }) => shop)
     : [...shops];
   const safePage = Math.max(1, Math.floor(page));
   const safePerPage = Math.max(1, Math.floor(perPage));

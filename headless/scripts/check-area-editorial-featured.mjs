@@ -12,6 +12,7 @@ const {buildAreaShopOrdering}=load(resolve(root,'lib/area-shop-ordering.ts'));
 const {buildAreaAfterMidnightComparison}=load(resolve(root,'lib/area-after-midnight-comparison.ts'));
 const {buildAreaVerifiedLineComparison}=load(resolve(root,'lib/area-verified-line-comparison.ts'));
 const area={id:13,slug:'shinosaka',name:'新大阪'};
+const orderingReferenceTimestamp=Date.parse('2026-10-18T00:00:00.000Z');
 let checks=0;
 const equal=(a,b,label)=>{checks++;assert.deepEqual(JSON.parse(JSON.stringify(a)),b,label);};
 const shop=(id,overrides={})=>normalizeShop({id,status:'publish',slug:`fixture-${id}`,title:{rendered:`店舗${id}`},content:{rendered:''},excerpt:{rendered:''},area:[13],acf:{shop_address:'新大阪'},_embedded:{'wp:term':[[{id:13,slug:'shinosaka',name:'新大阪',taxonomy:'area'}]]},...overrides});
@@ -27,8 +28,8 @@ equal(selected([shop(9,{title:{rendered:'SPALOT.Mrs 新大阪店（スパロッ�
 for(const slug of ['..','%2Fexternal','bad%'])equal(selected([shop(712,{slug})]),[],'unsafe slug excluded');
 equal(selected([shop(712),shop(712),shop(768)]),[768],'ambiguous duplicate excluded');
 equal(selected([]),[],'fetch failure empty input');
-const before=buildAreaShopOrdering(shops,area).entries.map(e=>e.shop.id);buildAreaEditorialFeature(area,shops);
-equal(buildAreaShopOrdering(shops,area).entries.map(e=>e.shop.id),before,'feature does not change natural order');
+const before=buildAreaShopOrdering(shops,area,orderingReferenceTimestamp).entries.map(e=>e.shop.id);buildAreaEditorialFeature(area,shops);
+equal(buildAreaShopOrdering(shops,area,orderingReferenceTimestamp).entries.map(e=>e.shop.id),before,'feature does not change natural order');
 equal(shops.map(s=>s.id),[768,9,712],'input membership and order not mutated');
 const html=renderToStaticMarkup(React.createElement(AreaEditorialFeaturedShops,{area,shops}));
 equal((html.match(/data-editorial-featured-shop=/g)??[]).length,2,'SSR cards2');
@@ -47,7 +48,7 @@ if(process.env.FEATURED_DATA_DIR){
  for(const [slug,id,name,total,midnight,line]of [['shinosaka',13,'新大阪',58,22,19],['sakai',17,'堺東',25,9,5]]){
   const raw=JSON.parse(readFileSync(resolve(process.env.FEATURED_DATA_DIR,`${slug}.json`)));const shops=raw.map(normalizeShop),a={id,slug,name};
   equal(shops.length,total,'public population');
-  const order=buildAreaShopOrdering(shops,a).entries.map(e=>e.shop.id);
+  const order=buildAreaShopOrdering(shops,a,orderingReferenceTimestamp).entries.map(e=>e.shop.id);
   const previous=JSON.parse(readFileSync(process.env.FEATURED_ORDERING_BASELINE)).find(a=>a.slug===slug).entries.map(e=>e.id);
   equal(order,previous,'accepted natural order unchanged');
   const feature=buildAreaEditorialFeature(a,shops);equal(feature?.shops.map(s=>s.id)??[],slug==='shinosaka'?[712,768]:[],'live featured IDs');

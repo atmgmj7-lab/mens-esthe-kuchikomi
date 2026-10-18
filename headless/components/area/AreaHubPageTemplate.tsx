@@ -96,6 +96,7 @@ export function AreaHubPageTemplate({
   areaFeatures = [],
   reviewResult = null,
   slots,
+  orderingReferenceTimestamp,
 }: {
   area: AreaView;
   allShops: ShopView[];
@@ -108,6 +109,7 @@ export function AreaHubPageTemplate({
   areaFeatures?: readonly AreaFeatureItem[];
   reviewResult?: PublicGlobalReviewResult | null;
   slots?: AreaHubSlots;
+  orderingReferenceTimestamp: number;
 }) {
   const hubContext = resolveAreaHubContext(area, parentArea);
   const areaPath = `/area/${area.slug}/`;
@@ -117,7 +119,7 @@ export function AreaHubPageTemplate({
     ? [...selectAreaRelationShops(allShops, area)]
     : allShops;
   const mainShops = informationOrder
-    ? buildAreaShopOrdering(relatedShops, area).entries.map(({ shop }) => shop)
+    ? buildAreaShopOrdering(relatedShops, area, orderingReferenceTimestamp).entries.map(({ shop }) => shop)
     : relatedShops;
   const afterMidnightShopIds = informationOrder
     ? buildAreaAfterMidnightComparison(area, relatedShops).map(({ shopId }) => shopId)

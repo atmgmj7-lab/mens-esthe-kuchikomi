@@ -10,6 +10,7 @@ import {
   resolveAreaHubPageTitle,
 } from "@/lib/area-shop-utils";
 import { resolveAreaRankingEntries } from "@/lib/area-shop-ranking";
+import { getAreaInformationOrderingReferenceTimestamp } from "@/lib/area-shop-ordering";
 import { loadPriorityAreaApprovedReviews } from "@/lib/priority-area-hub";
 import { shouldLoadLegacyAreaRanking } from "@/lib/priority-area-precision";
 import {
@@ -26,7 +27,7 @@ import { canonicalUrl, pageMetadata } from "@/lib/seo";
 import type { AreaView } from "@/lib/wp/types";
 
 export async function renderAreaHubRouteContent(area: AreaView, currentPage: number) {
-  const [childAreas, siblingAreas, parentArea, allShops, rankingMap, areaFeatures, areaReviewResult] = await Promise.all([
+  const [childAreas, siblingAreas, parentArea, allShops, rankingMap, areaFeatures, areaReviewResult, orderingReferenceTimestamp] = await Promise.all([
     withWpBuildFallback(`area hub children ${area.slug}`, () => getChildAreas(area.id), []),
     withWpBuildFallback(`area hub siblings ${area.slug}`, () => getSiblingAreas(area), []),
     withWpBuildFallback(`area hub parent ${area.slug}`, () => getParentArea(area), null),
@@ -40,6 +41,7 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
       () => loadPriorityAreaApprovedReviews(area),
       null,
     ),
+    getAreaInformationOrderingReferenceTimestamp(),
   ]);
   const lineComparison = buildAreaVerifiedLineComparison(area, allShops);
   const lineSlot = lineComparison.length > 0 ? <AreaVerifiedLineSection shops={lineComparison} /> : null;
@@ -60,6 +62,7 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
       rankingEntries={rankingEntries}
       areaFeatures={areaFeatures}
       reviewResult={areaReviewResult}
+      orderingReferenceTimestamp={orderingReferenceTimestamp}
       slots={{ afterComparison: comparisonSlot }}
     />
   );
