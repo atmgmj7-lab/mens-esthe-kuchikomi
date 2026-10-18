@@ -16,8 +16,11 @@ assert.match(script, /\/api\/partner\/auth\/complete-link/, "the test must exerc
 assert.match(script, /\/api\/partner\/listing/, "the test must exercise the normal Next listing endpoint");
 assert.match(script, /\/api\/dashboard\/managed-shops\//, "the test must exercise the normal Next canonical managed-shop dashboard review endpoint");
 assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercise normal Next therapist photo upload");
+assert.match(script, /\/shops\/fixture-partner-store\//, "the test must observe the canonical public shop route after dashboard approval");
+assert.match(script, /\/api\/therapists\/\$\{assignment\}\/photo\//, "the test must observe the public therapist photo proxy after normal upload and assignment");
 assert.match(script, /\/api\/partner\/review-links/, "the test must exercise normal Next review-link issuance");
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
+assert.match(script, /SHOP_DIRECTORY_SOURCE=supabase/, "the disposable Next process must opt into the canonical public directory only for the public-projection observation");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
 assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
@@ -37,5 +40,6 @@ assert.match(script, /runtime_volume_owned=0/, "the runner must track ownership 
 assert.match(script, /docker volume create "\$runtime_volume" >\/dev\/null; runtime_volume_owned=1/, "only a volume created by this runner may become cleanup-owned");
 assert.match(script, /\[ "\$runtime_volume_owned" -eq 1 \] && docker volume rm/, "cleanup must remove only a runner-owned runtime volume");
 assert.doesNotMatch(script, /runtime_volume_created/, "the obsolete availability flag must not be used as a cleanup ownership signal");
+assert.match(script, /tar -C \/source --exclude=node_modules --exclude=\.next --exclude=\.env --exclude=\.env\.\* --exclude=\.npmrc -cf - \./, "a runner-owned runtime volume must exclude dotenv and npm configuration files from the source copy");
 
 console.log("Eskomi v1.1 internal partner HTTP runner safety contract: PASS");

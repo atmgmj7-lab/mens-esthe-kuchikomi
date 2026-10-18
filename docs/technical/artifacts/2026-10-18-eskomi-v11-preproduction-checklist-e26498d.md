@@ -94,3 +94,36 @@ production-data migration, production non-change, device-camera QR, and the
 other acceptance boundaries above remain unproven or approval-gated. Main
 merge, deployment, read-source switching, production DB writes, and secret
 changes remain outside this task.
+
+## 2026-10-18 Mac continuation — narrowed browser and public-route evidence
+
+The internal Partner HTTP fixture was rerun after hardening its fresh-runtime
+copy to exclude `.env`, `.env.*`, and `.npmrc`. The runner contract confirms
+that exclusion and the existing `node_modules`/`.next` exclusions. This is
+forward-looking fixture evidence only: the earlier Mac source-copy path did
+not have this check, so it cannot establish a retroactive secret-copy claim.
+The name-only check found only the committed `.env.example` template, not an
+active `.env`, `.env.local`, `.env.production`, or `.npmrc`; no secret content
+was read or added to Git.
+
+That fresh loopback-only fixture passed its prior normal HTTP lifecycle again
+and additionally verified the published canonical shop page through
+`/shops/fixture-partner-store/` and the public therapist photo proxy as real
+JPEG bytes. `SHOP_DIRECTORY_SOURCE=supabase` was injected only into the
+ephemeral fixture Next container, never into production configuration.
+
+Temporary-profile headless Chrome 155 then passed browser fixtures for
+Partner authentication (including a second visible link request/resend),
+cookie/state boundaries and foreign-workspace denial; the listing editor's
+input/confirmation/back/save interaction; and the review-growth/POP flow at
+320/390/768/1280px as applicable. Screenshots were visually inspected and
+showed the intended single-column mobile layout and no horizontal overflow.
+The listing confirmation surface had no promotional banner or advertising
+input; the growth dashboard correctly retains its intended promotion banner.
+
+This does not upgrade browser scope beyond what was exercised. Browser admin
+approval is **not** passed (the stale harness follows the legacy review route;
+canonical approval remains internal-HTTP evidence). Therapist image error UI,
+login-email-management UI, camera/device QR, preview/public WordPress, and
+production checks remain open. Therefore this branch remains **not
+production-ready** and still requires the user's explicit production approval.

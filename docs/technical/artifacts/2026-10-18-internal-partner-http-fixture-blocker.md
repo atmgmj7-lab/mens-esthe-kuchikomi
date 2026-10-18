@@ -308,3 +308,54 @@ Chrome control extension is not connected to this execution environment, so no
 interactive desktop/mobile traversal, screenshots, device-camera QR scan, or
 production/preview check is claimed. No production action is authorized by
 this result.
+
+## 2026-10-18 Mac continuation — source-copy hardening and temporary-profile Chrome evidence
+
+The fresh-runtime source copy in
+`run-eskomi-v11-internal-partner-http-e2e.sh` now excludes `.env`, `.env.*`,
+and `.npmrc`, in addition to the existing `node_modules` and `.next`
+exclusions. Its static runner contract asserts all five exclusions. This is a
+fixture-only protection; it does not change any application authentication,
+hostname validation, or production configuration. A name-only inspection of
+this current `headless/` working tree found the committed `.env.example`
+template, but no active `.env`, `.env.local`, `.env.production`, or `.npmrc`.
+The prior Mac fresh-source run used the older copy command, so this new
+exclusion must not be presented as retrospective proof about that old runtime.
+The earlier prepared-volume route had its own documented exclusions; no secret
+value was inspected, committed, or deliberately logged here.
+
+The same fresh internal HTTP fixture was rerun after the hardening. Its
+ephemeral Next container alone receives `SHOP_DIRECTORY_SOURCE=supabase`, so
+the published canonical shop route can be exercised against its fixture data;
+no production setting is changed. It passed the existing normal login,
+listing-edit/approval, valid/invalid/oversized photo, therapist, review-link,
+and foreign-store denial checks, plus an actual `GET /shops/fixture-partner-store/`
+and actual public therapist photo proxy bytes (`200`, `image/jpeg`, JPEG
+magic). The runner safety contract, `bash -n`, and prefix-proxy regression all
+passed.
+
+Chrome 155 was launched through Playwright in headless mode with its own
+temporary profile against loopback-only mock fixtures. It did not read the
+normal Chrome profile, publish a port, access production, or retain the
+temporary screenshots. The following **browser** scopes passed and their
+screenshots were visually inspected at 390px and/or 1280px:
+
+- Partner login request and explicit repeated request (resend), provider
+  failure, state/cookie lifecycle, cross-user token rejection, successful
+  callback, unknown membership, foreign workspace denial, and separate
+  dashboard Basic-Auth boundary (390px and 1280px).
+- Partner listing editor input, confirmation, return-to-edit persistence, and
+  save (390px and 1280px). The obsolete legacy dashboard-review branch of that
+  browser harness still fails because current approval uses the canonical
+  managed-shop endpoint; it is not counted as a browser approval pass. The
+  canonical admin approval is instead covered by the internal HTTP fixture.
+- Review-growth/review-link flow, copy controls, local QR, responsive
+  320/390/768/1280 layouts, POP and print layout, public-token rejection, and
+  foreign-workspace denial. The normal dashboard contains the designated
+  promotion banner; the inspected listing confirmation UI contained no banner
+  or advertising field.
+
+The temporary-profile browser scope does not yet include an interactive
+therapist-photo error UI, an interactive login-email management UI, a real
+device-camera QR scan, preview/production pages, or a live external email
+delivery check. Image error handling is proven by real internal HTTP only.
