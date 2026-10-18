@@ -39,6 +39,22 @@
   design decision before implementation continues. No external resource or
   charge was incurred.
 
+## 2026-10-18 — Physical derived-source trial
+
+- The approved local derived-source path is now a tracked generator and an
+  ignored unique output directory. It preserves canonical source and refuses
+  to copy root dotenv/npm configuration. Its contract proves the transformed
+  public readers, route configs, and Worker-only invalidation no-op boundary.
+- A source-only dependency symlink was rejected by Turbopack and then caused
+  OpenNext traced-middleware copy failure. A full new copy inside the unique
+  derived run avoided that symlink boundary, but Next 16.3.8 Webpack with Cache
+  Components then threw `Expected workStore to be initialized` in unrelated
+  prerender routes. This is not a public-route behavior PASS.
+- Ruling: preserve all generated runs and keep the experiment at explicit
+  `workers:dynamic-build`; retain `workers:build` as the existing green
+  baseline. Cost if wrong: dynamic proof needs an explicit command, avoiding a
+  silent regression in the baseline Workers verification.
+
 ## 2026-10-18 — Cloudflare Workers preparation research
 
 - Dedicated branch: `codex/cloudflare-workers-prep-20261018`, starting from

@@ -59,6 +59,35 @@ constraint, not a route-test failure.
 3. Select the cache-parity path instead and defer dynamic-first until the
    Cache Components runtime issue is resolved.
 
+### Physical derived-source trial (2026-10-18)
+
+The user selected decision 1 for a local-only feasibility trial. The tracked
+generator creates a fresh ignored
+`headless/.eskomi-cloudflare-dynamic-builds/run-<timestamp>-<uuid>/` tree for
+every run; it never mutates canonical `app/`, `lib/`, `next.config.ts`, or
+`node_modules`. It copies only an allowlisted project skeleton, rejects missing
+or unexpected cache-reader shapes, keeps root dotenv/npm configuration out,
+and writes a manifest. The derived source removes public-reader cache
+directives, adds `instant = false` before Next discovers the affected public
+route modules (including the Sakai/Shin-Osaka static aliases), and substitutes
+only the four public mutation invalidators with a derived no-op adapter.
+
+The source contract passes and the canonical Node/Turbopack build plus the
+original offline OpenNext Workers build still pass. The derived `next build`
+also classifies the selected public pages as dynamic. It is **not** a usable
+Worker build yet: after a symlinked dependency variant exposed an OpenNext
+trace-copy failure, a fully copied dependency variant progressed further but
+Next 16.3.8 Webpack/Cache Components failed with `Expected workStore to be
+initialized` while prerendering unrelated `/area/osaka`, `/_global-error`, and
+`/partner/onboarding` routes. These derived trees are retained as ignored
+evidence; no HTTP, image, SEO, approval/unlisting, or latency item is a PASS.
+
+**Ruling:** keep the failed trial under explicit `workers:dynamic-build` and
+restore `workers:build` to the pre-existing offline baseline command. This
+prevents an experimental build blocker from replacing normal local Workers
+verification. Cost if wrong: a caller must choose the dynamic command
+explicitly, but no existing verification silently starts using a failed path.
+
 ### Task 2: Worker mutation revalidation compatibility
 
 **Files:**

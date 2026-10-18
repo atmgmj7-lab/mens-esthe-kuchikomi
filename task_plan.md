@@ -64,6 +64,18 @@ changing DNS, issuing credentials, or touching production.
 - [ ] Stop for a major design choice: maintained Worker staging source,
   shared Node/Vercel rendering-policy change, or cache-parity path.
 
+## 2026-10-18 — Physical derived-source dynamic trial
+
+- [x] Implement an allowlisted, unique, ignored derived-source generator and
+  a contract that preserves canonical sources and excludes root secret files.
+- [x] Transform selected readers, public route segment configuration, and
+  public mutation invalidation only in the generated source tree.
+- [x] Keep the regular baseline Workers command green and isolate the retained
+  trial at `workers:dynamic-build`.
+- [ ] Stop: the derived build reaches unrelated Next 16.3.8 Cache Components
+  `workStore` invariants before a Worker artifact exists; no HTTP acceptance
+  matrix item may be run or marked PASS.
+
 ## 2026-10-18 — v1.1 pre-production QA P2 correction
 
 - [x] Correct the first-pilot mapping packet so unbound → bind → re-read ready

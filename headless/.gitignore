@@ -2,6 +2,7 @@ node_modules/
 .next/
 .open-next/
 .wrangler/
+.eskomi-cloudflare-dynamic-builds/
 next-env.d.ts
 out/
 .env

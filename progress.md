@@ -16,6 +16,21 @@
 - Stopped before mutation changes, HTTP fixture execution, image work, or
   latency measurement. A material build architecture decision is required.
 
+## 2026-10-18 — Physical derived-source dynamic trial
+
+- Implemented the approved versioned source generator plus a fail-first
+  contract. Each invocation retains a unique ignored source tree, transforms
+  the selected public cache readers and route configs before discovery, and
+  writes no canonical source or root dotenv/npm config.
+- Derived Next compilation reached dynamic public route classification, but
+  OpenNext/Next 16.3.8 cannot complete this trial: trace-copy failed for the
+  symlinked dependency form; the copied-dependency form then failed a Next
+  `workStore` invariant during unrelated Cache Components prerendering.
+- Restored the normal `workers:build` command to its prior baseline and
+  isolated the retained failed experiment at `workers:dynamic-build`. No
+  HTTP fixture, external resource, production system, image write, or deletion
+  occurred.
+
 ## 2026-10-18 — Cloudflare cache decision record
 
 - Read the existing migration artifact, v1.1 evidence, PM status/blocker, and

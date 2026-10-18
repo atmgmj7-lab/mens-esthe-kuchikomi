@@ -4,6 +4,7 @@ const eslintConfig = [
       ".next/**",
       ".open-next/**",
       ".wrangler/**",
+      ".eskomi-cloudflare-dynamic-builds/**",
       "node_modules/**",
       "next-env.d.ts"
     ]
