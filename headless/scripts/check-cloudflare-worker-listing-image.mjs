@@ -27,19 +27,32 @@ if (result.ok) {
   assert.match(result.sha256, /^[a-f0-9]{64}$/u, "the Worker adapter must hash stored JPEG bytes");
 }
 
-const sourceJpeg = jpeg.encode({ data: rgba, width: 2, height: 1 }, 88).data;
-const oriented = await inspectWorkerListingImage(new File([withExifOrientation(sourceJpeg, 6)], "oriented.jpg", { type: "image/jpeg" }));
-assert.equal(oriented.ok, true, "an EXIF-oriented JPEG must be accepted");
-if (oriented.ok) {
-  assert.equal(oriented.width, 1, "orientation 6 must rotate width into height");
-  assert.equal(oriented.height, 2, "orientation 6 must rotate height into width");
-  assert.equal(Buffer.from(oriented.bytes).includes(Buffer.from("Exif")), false, "re-encoded JPEG must strip EXIF metadata");
+const orientationRgba = new Uint8Array(2 * 3 * 4).fill(0xff);
+const sourceJpeg = jpeg.encode({ data: orientationRgba, width: 2, height: 3 }, 88).data;
+for (let orientation = 1; orientation <= 8; orientation++) {
+  const oriented = await inspectWorkerListingImage(new File([withExifOrientation(sourceJpeg, orientation)], `orientation-${orientation}.jpg`, { type: "image/jpeg" }));
+  assert.equal(oriented.ok, true, `EXIF orientation ${orientation} must be accepted`);
+  if (oriented.ok) {
+    const swapsDimensions = orientation >= 5;
+    assert.deepEqual([oriented.width, oriented.height], swapsDimensions ? [3, 2] : [2, 3], `EXIF orientation ${orientation} must normalize output geometry`);
+    assert.equal(Buffer.from(oriented.bytes).includes(Buffer.from("Exif")), false, `EXIF orientation ${orientation} metadata must be stripped`);
+  }
 }
 
 const webp = encodeWebp({ data: rgba, width: 2, height: 1, hasAlpha: true });
 const webpResult = await inspectWorkerListingImage(new File([webp], "fixture.webp", { type: "image/webp" }));
 assert.equal(webpResult.ok, true, "a decoder-valid WebP must be accepted by the Worker image adapter");
 if (webpResult.ok) assert.deepEqual([webpResult.width, webpResult.height], [2, 1], "the Worker adapter must preserve decoded WebP dimensions");
+
+const metadataWebp = new Uint8Array(webp.length + 12);
+metadataWebp.set(webp);
+metadataWebp.set(Buffer.from("EXIF"), webp.length);
+new DataView(metadataWebp.buffer).setUint32(webp.length + 4, 4, true);
+metadataWebp.set([1, 2, 3, 4], webp.length + 8);
+new DataView(metadataWebp.buffer).setUint32(4, metadataWebp.length - 8, true);
+const metadataWebpResult = await inspectWorkerListingImage(new File([metadataWebp], "metadata.webp", { type: "image/webp" }));
+assert.equal(metadataWebpResult.ok, true, "a WebP with metadata must be re-encoded as a clean JPEG");
+if (metadataWebpResult.ok) assert.equal(Buffer.from(metadataWebpResult.bytes).includes(Buffer.from("Exif")), false, "WebP metadata must not survive JPEG normalization");
 
 const malformed = await inspectWorkerListingImage(new File([Buffer.from("not-an-image")], "fake.png", { type: "image/png" }));
 assert.deepEqual(malformed, { ok: false, error: "PNG・JPEG・WebPの実画像（最大4096px）を選択してください。" }, "the Worker adapter must reject a signature-free non-image");
@@ -53,5 +66,16 @@ new DataView(pixelBomb.buffer).setUint32(16, 4097);
 new DataView(pixelBomb.buffer).setUint32(20, 1);
 const rejectedBomb = await inspectWorkerListingImage(new File([pixelBomb], "bomb.png", { type: "image/png" }));
 assert.deepEqual(rejectedBomb, { ok: false, error: "PNG・JPEG・WebPの実画像（最大4096px）を選択してください。" }, "the Worker adapter must reject over-limit dimensions before allocating decoded pixels");
+
+const corruptPng = new Uint8Array(png);
+corruptPng[corruptPng.length - 1] ^= 0xff;
+assert.deepEqual(await inspectWorkerListingImage(new File([corruptPng], "corrupt.png", { type: "image/png" })), { ok: false, error: "PNG・JPEG・WebPの実画像（最大4096px）を選択してください。" }, "a PNG with an invalid checksum must be rejected");
+assert.deepEqual(await inspectWorkerListingImage(new File([sourceJpeg.subarray(0, 24)], "truncated.jpg", { type: "image/jpeg" })), { ok: false, error: "PNG・JPEG・WebPの実画像（最大4096px）を選択してください。" }, "a truncated JPEG must be rejected");
+assert.deepEqual(await inspectWorkerListingImage(new File([webp.subarray(0, 16)], "truncated.webp", { type: "image/webp" })), { ok: false, error: "PNG・JPEG・WebPの実画像（最大4096px）を選択してください。" }, "a truncated WebP must be rejected");
+
+const maxDimensionRgba = new Uint8Array(4096 * 4096 * 4).fill(0xff);
+const maxDimensionJpeg = jpeg.encode({ data: maxDimensionRgba, width: 4096, height: 4096 }, 50).data;
+const maxDimension = await inspectWorkerListingImage(new File([maxDimensionJpeg], "max-dimension.jpg", { type: "image/jpeg" }));
+assert.deepEqual(maxDimension, { ok: false, error: "PNG・JPEG・WebPの実画像（最大4096px）を選択してください。" }, "a maximum-dimension JPEG that exceeds the decoder memory budget must fail closed without an unbounded decode");
 
 console.log("Cloudflare Worker listing image adapter: PASS");

@@ -37,3 +37,28 @@ try {
 }
 
 console.log("Eskomi v1.1 internal prefix proxy verification forwarding: PASS");
+
+let restRequestUrl = null;
+const restUpstream = http.createServer((request, response) => {
+  restRequestUrl = request.url;
+  response.writeHead(200, { "content-type": "application/json" });
+  response.end("[]");
+});
+const restBase = await listen(restUpstream);
+process.env.ESKOMI_INTERNAL_PROXY_METRICS = "1";
+const measuredProxy = createInternalPrefixProxy({ "/rest/v1": restBase });
+const measuredProxyBase = await listen(measuredProxy);
+try {
+  assert.equal((await fetch(`${measuredProxyBase}/_eskomi-fixture/postgrest-metrics`, { method: "POST" })).status, 200);
+  assert.equal((await fetch(`${measuredProxyBase}/rest/v1/published_shops?select=id`, { headers: { authorization: "Bearer never-record-me" } })).status, 200);
+  assert.equal(restRequestUrl, "/published_shops?select=id", "the application proxy must keep PostgREST query forwarding unchanged");
+  const metrics = await (await fetch(`${measuredProxyBase}/_eskomi-fixture/postgrest-metrics`)).json();
+  assert.deepEqual(metrics, { requests: [{ method: "GET", path: "/rest/v1/published_shops", count: 1, totalMs: metrics.requests[0].totalMs, minMs: metrics.requests[0].minMs, maxMs: metrics.requests[0].maxMs }] }, "metrics must retain only method, path, count, and timing aggregates");
+  assert.equal(Object.keys(metrics.requests[0]).sort().join(","), "count,maxMs,method,minMs,path,totalMs", "metrics must never expose auth, query, body, response, or personal data");
+} finally {
+  await close(measuredProxy);
+  await close(restUpstream);
+  delete process.env.ESKOMI_INTERNAL_PROXY_METRICS;
+}
+
+console.log("Eskomi v1.1 internal prefix proxy PostgREST privacy-safe metrics: PASS");

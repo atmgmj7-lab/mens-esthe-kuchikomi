@@ -171,6 +171,9 @@ export async function inspectWorkerListingImage(file) {
 }
 
 function jpegDecode(bytes) {
-  const decoded = jpeg.decode(bytes, { useTArray: true, formatAsRGBA: true, tolerantDecoding: false, maxResolutionInMP: 17, maxMemoryUsageInMB: 80 });
+  // jpeg-js needs several intermediate planes for a 4096×4096 JPEG. Bound
+  // that allocation so a compressed image cannot exhaust a Worker isolate;
+  // the outer header check still rejects dimensions above 4096 before decode.
+  const decoded = jpeg.decode(bytes, { useTArray: true, formatAsRGBA: true, tolerantDecoding: false, maxResolutionInMP: 17, maxMemoryUsageInMB: 130 });
   return toRgba({ ...decoded, channels: 4, depth: 8 });
 }

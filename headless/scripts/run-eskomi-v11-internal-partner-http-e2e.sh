@@ -13,6 +13,7 @@ trap 'fixture_failure_diagnostics "$LINENO"' ERR
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 headless_root="$repo_root/headless"
 app_runtime="${ESKOMI_E2E_APP_RUNTIME:-next}"
+preserve_fixture="${ESKOMI_E2E_PRESERVE_FIXTURE:-0}"
 workers_artifact_root=""
 if [ "$app_runtime" = "workers" ]; then
   workers_artifact_root="${ESKOMI_E2E_WORKERS_ARTIFACT_ROOT:-$headless_root}"
@@ -42,6 +43,7 @@ dashboard_user="fixture-operator-${suffix}"
 dashboard_password="$(openssl rand -hex 24)"
 
 cleanup() {
+  [ "$preserve_fixture" = "1" ] && return 0
   [ "$next_created" -eq 1 ] && docker rm -f "$next_container" >/dev/null 2>&1 || true
   [ "$proxy_created" -eq 1 ] && docker rm -f "$proxy_container" >/dev/null 2>&1 || true
   [ "$storage_created" -eq 1 ] && docker rm -f "$storage_container" >/dev/null 2>&1 || true
@@ -112,6 +114,11 @@ do \$\$ declare v_shop uuid; v_workspace uuid; payload jsonb:=jsonb_build_object
   perform private.create_canonical_managed_shop('fixture-partner-store',payload,'fixture'); select id into v_shop from app.shops where slug='fixture-partner-store'; update app.shops set publication_status='published',published_at=now() where id=v_shop; update private.managed_shops set publication_state='published' where app_shop_id=v_shop; select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning'); update private.partner_workspaces set state='active_partner' where id=v_workspace; insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,'$primary_user','owner','active',now());
   perform private.create_canonical_managed_shop('fixture-other-store',payload||jsonb_build_object('shop_name','Other fixture'),'fixture'); select id into v_shop from app.shops where slug='fixture-other-store'; update app.shops set publication_status='published',published_at=now() where id=v_shop; update private.managed_shops set publication_state='published' where app_shop_id=v_shop; select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning'); update private.partner_workspaces set state='active_partner' where id=v_workspace; insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,'$other_user','owner','active',now());
 end \$\$;
+do \$\$ declare v_shop uuid; v_experience uuid; begin
+  select id into v_shop from app.shops where slug='fixture-partner-store';
+  insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,subject_snapshot) values(v_shop,'Fixture private reviewer',repeat('a',64),'submitted','{}'::jsonb) returning id into v_experience;
+  insert into private.review_assessments(experience_id,target_kind,shop_id,rating,body) values(v_experience,'shop',v_shop,5,'PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC');
+end \$\$;
 SQL
 
 common_app_args=(
@@ -120,6 +127,7 @@ common_app_args=(
   -e SHOP_DIRECTORY_SOURCE=supabase -e PARTNER_AUTH_REDIRECT_ORIGIN=http://localhost:57000
   -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password"
   -e ESKOMI_INTERNAL_PROXY_HOST=127.0.0.1
+  -e ESKOMI_INTERNAL_PROXY_METRICS=1 -e ESKOMI_E2E_DEFER_UNLIST=1
   -e 'ESKOMI_INTERNAL_PROXY_ROUTES={"/auth/v1":"http://api:8000/auth/v1","/rest/v1":"http://api:8000/rest/v1","/storage/v1":"http://api:8000/storage/v1","/verify":"http://auth:9999/verify"}'
   -e WP_API_BASE_URL=http://127.0.0.1:9/wp-json -e NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid
 )
@@ -136,8 +144,8 @@ case "$app_runtime" in
     ;;
 esac
 next_created=1
-for _ in $(seq 1 90); do next_logs="$(docker logs "$next_container" 2>&1)"; grep -Eq 'Ready|started server' <<<"$next_logs" && break; sleep 1; done
-grep -Eq 'Ready|started server' <<<"$next_logs"
+for _ in $(seq 1 90); do next_logs="$(docker logs "$next_container" 2>&1)"; grep -Eq 'Ready|started server|Starting local server' <<<"$next_logs" && break; sleep 1; done
+grep -Eq 'Ready|started server|Starting local server' <<<"$next_logs"
 
 docker run --rm -i --network "$network_name" -e ANON_KEY="$anon_key" -e PRIMARY_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$primary_user'")" -e OTHER_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$other_user'")" -e PRIMARY_MANAGED_SHOP_ID="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select id from private.managed_shops where shop_slug='fixture-partner-store'")" -e DASHBOARD_USER="$dashboard_user" -e DASHBOARD_PASSWORD="$dashboard_password" node:24-bookworm-slim node - <<'NODE'
 const assert=require('node:assert/strict'); const base='http://next:57000',origin=base,loginOrigin='http://localhost:57000'; const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgZGIGAAAOAAeCcsnOAAAAAElFTkSuQmCC','base64');
@@ -177,8 +185,27 @@ async function login(email){
  const changedEmail=`partner-change-${crypto.randomUUID()}@fixture.invalid`,mailBeforeChange=await mailIds();const requestedChange=await req('/partner/settings/login-email/',{method:'POST',headers:{Origin:loginOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:changedEmail})},202);assert.equal(requestedChange.j.ok,true);const confirmationLinks=await emailChangeLinks(changedEmail,mailBeforeChange);for(const confirmationLink of confirmationLinks){const confirmationUrl=new URL(confirmationLink);assert.equal(confirmationUrl.origin,'http://api:8000','email-change links must use the disposable gateway');assert.equal(confirmationUrl.pathname,'/verify','email-change links must preserve the real GoTrue verification path');assert.equal(confirmationUrl.searchParams.get('type'),'email_change','email-change links must have GoTrue email_change type');const confirmed=await fetch(confirmationLink,{redirect:'manual'});assert.ok(confirmed.status>=300&&confirmed.status<400,'each real GoTrue email-change confirmation must redirect')}const changedIdentity=await fetch('http://api:8000/auth/v1/user',{headers:{apikey:process.env.ANON_KEY,Authorization:`Bearer ${primaryAccessToken}`}});assert.equal(changedIdentity.status,200);assert.equal((await changedIdentity.json()).email,changedEmail,'Email-change confirmation must update the real GoTrue user');const mailBeforeOldLogin=await mailIds();await req('/api/partner/auth/request-link/',{method:'POST',headers:{Origin:loginOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:process.env.PRIMARY_EMAIL,returnTo:'/partner/listing/'})},202);await new Promise(resolve=>setTimeout(resolve,500));const mailAfterOldLogin=await mailIds();assert.deepEqual([...mailAfterOldLogin].filter(id=>!mailBeforeOldLogin.has(id)),[],'Old login email must be rejected after the confirmed change');assert.ok(!jar.eskomi_partner_login_state,'Old login email must not receive a usable Partner login handoff');console.log('Next login-email change, Mailpit confirmations, and old-email rejection: PASS');
  await login(process.env.OTHER_EMAIL);const foreign=await req('/api/partner/listing/');assert.equal(foreign.r.status,200);assert.notEqual(foreign.j.listing.store_id,store);const denied=await req('/api/partner/therapists/',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'partner-mutation-v1'},body:JSON.stringify({displayName:'Cross store',photoAssetId:up.j.assetId,permissionPolicyVersion:'fixture-v1',permissionConfirmed:true})},403);assert.equal(denied.j.ok,false);console.log('Foreign partner access to the primary store asset must be denied: PASS');
  const publicListing=await fetch(`${base}/shops/fixture-partner-store/`);const publicListingHtml=await publicListing.text();assert.equal(publicListing.status,200,publicListingHtml);assert.match(publicListingHtml,/Fixture corrected/);assert.match(publicListingHtml,/corrected after return/);console.log('Canonical corrected resubmission must publish through the normal dashboard review: PASS');
- const unlisted=await req('/api/dashboard/managed-shops/',{method:'POST',headers:{Authorization:basic,Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'managed-shop-write'},body:JSON.stringify({action:'unlist',managedShopId,confirmedShopName:'Fixture corrected'})},200);assert.equal(unlisted.j.ok,true);const afterUnlist=await fetch(`${base}/shops/fixture-partner-store/`);const afterUnlistHtml=await afterUnlist.text();assert.equal(afterUnlist.status,404,afterUnlistHtml);console.log('Canonical dashboard unlisting must remove the public shop route: PASS');
+ if(!process.env.ESKOMI_E2E_DEFER_UNLIST){const unlisted=await req('/api/dashboard/managed-shops/',{method:'POST',headers:{Authorization:basic,Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'managed-shop-write'},body:JSON.stringify({action:'unlist',managedShopId,confirmedShopName:'Fixture corrected'})},200);assert.equal(unlisted.j.ok,true);const afterUnlist=await fetch(`${base}/shops/fixture-partner-store/`);const afterUnlistHtml=await afterUnlist.text();assert.equal(afterUnlist.status,404,afterUnlistHtml);console.log('Canonical dashboard unlisting must remove the public shop route: PASS')}
 })().catch(e=>{console.error(e.stack||e.message);process.exit(1)});
+NODE
+
+metrics_output="/app/.eskomi-public-http-metrics-${suffix}.json"
+docker exec -e ESKOMI_PUBLIC_HTTP_METRICS_OUTPUT="$metrics_output" "$next_container" node scripts/measure-eskomi-v11-public-http.mjs
+docker exec "$next_container" node scripts/check-eskomi-v11-public-seo-http.mjs
+if [ -n "${ESKOMI_E2E_METRICS_ARTIFACT_DIR:-}" ]; then
+  [ -d "$ESKOMI_E2E_METRICS_ARTIFACT_DIR" ] || mkdir "$ESKOMI_E2E_METRICS_ARTIFACT_DIR"
+  docker cp "$next_container:$metrics_output" "$ESKOMI_E2E_METRICS_ARTIFACT_DIR/public-http-postgrest-metrics-${suffix}.json"
+fi
+
+docker run --rm -i --network "$network_name" -e PRIMARY_MANAGED_SHOP_ID="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select id from private.managed_shops where shop_slug='fixture-partner-store'")" -e DASHBOARD_USER="$dashboard_user" -e DASHBOARD_PASSWORD="$dashboard_password" node:24-bookworm-slim node - <<'NODE'
+const assert=require('node:assert/strict');
+const base='http://next:57000'; const basic=`Basic ${Buffer.from(`${process.env.DASHBOARD_USER}:${process.env.DASHBOARD_PASSWORD}`).toString('base64')}`;
+const unlisted=await fetch(`${base}/api/dashboard/managed-shops/`,{method:'POST',headers:{Authorization:basic,Origin:base,'Content-Type':'application/json','X-ESKOMI-CSRF':'managed-shop-write'},body:JSON.stringify({action:'unlist',managedShopId:process.env.PRIMARY_MANAGED_SHOP_ID,confirmedShopName:'Fixture corrected'})});
+assert.equal(unlisted.status,200,await unlisted.text());
+const details=await fetch(`${base}/shops/fixture-partner-store/`);assert.equal(details.status,404,'unlisted shop detail must return HTTP 404');
+const listing=await fetch(`${base}/shops/`);assert.equal(listing.status,200);assert.doesNotMatch(await listing.text(),/Fixture corrected/u,'unlisted shop must be omitted from public listing');
+const sitemap=await fetch(`${base}/sitemap.xml`);assert.equal(sitemap.status,200);assert.doesNotMatch(await sitemap.text(),/fixture-partner-store/u,'unlisted shop must be omitted from sitemap');
+console.log('Canonical dashboard unlisting removes public detail, listing, and sitemap: PASS');
 NODE
 
 # This assertion observes the fixture database only after the normal Next HTTP

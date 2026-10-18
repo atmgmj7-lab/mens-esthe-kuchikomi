@@ -101,6 +101,8 @@ function transformPublicReader(relativePath, original = readSource(relativePath)
     .replace(/^import \{ cacheLife, cacheTag \} from "next\/cache";\r?\n/gmu, "")
     .replace(/^import \{ cacheLife \} from "next\/cache";\r?\n/gmu, "");
 
+  if (relativePath.startsWith("app/")) transformed = `export const dynamic = "force-dynamic";\n${transformed}`;
+
   assert.doesNotMatch(transformed, /"use cache(?:: [^"]+)?";|\bcacheLife\(|\bcacheTag\(/u, `${relativePath} retained an unsupported public cache instruction`);
   assert.doesNotMatch(transformed, /from "next\/cache"/u, `${relativePath} retained an unused Cache Components import`);
   return transformed;
@@ -288,6 +290,8 @@ function buildDerivedSource(derivedDirectory) {
   if (result.error) throw result.error;
   if (result.status !== 0) process.exitCode = result.status ?? 1;
   if (result.status === 0) {
+    const worker = readFileSync(join(derivedDirectory, ".open-next", "worker.js"), "utf8");
+    assert.doesNotMatch(worker, /(?:\\bsharp\\b|\\.node["'])/u, "the generated Worker must not retain a native sharp import or binding");
     writeNewFile(join(derivedDirectory, "dynamic-build-result.json"), `${JSON.stringify({
       schema: 1,
       status: "success",

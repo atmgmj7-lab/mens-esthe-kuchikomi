@@ -65,6 +65,14 @@ assert.doesNotMatch(script, /docker run -d --rm --name "\$next_container"/, "the
 assert.match(script, /docker network rm/, "created-only cleanup must remove fixture network");
 assert.match(script, /ESKOMI_E2E_PREPARED_RUNTIME_VOLUME/, "a prebuilt disposable runtime volume must still be explicitly marked and cleaned by the runner");
 assert.match(script, /runtime_volume_owned=0/, "the runner must track ownership of a runtime volume separately from its availability");
+assert.match(script, /ESKOMI_E2E_PRESERVE_FIXTURE/, "the runner must offer an explicit evidence-preservation mode before deleting fixture resources");
+assert.match(script, /Starting local server/, "the Worker fixture readiness check must accept Wrangler's local-server startup message");
+assert.match(script, /ESKOMI_INTERNAL_PROXY_METRICS=1/, "the fixture must enable PostgREST-only aggregate metrics without logging request values");
+assert.match(script, /measure-eskomi-v11-public-http\.mjs/, "the fixture must measure the four representative public routes after API metrics become available");
+assert.match(script, /check-eskomi-v11-public-seo-http\.mjs/, "the fixture must verify canonical/title/body/robots/sitemap through real public HTTP");
+assert.match(script, /PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC/, "the fixture must seed a non-public review marker and verify it stays out of public HTTP");
+assert.match(script, /unlisting removes public detail, listing, and sitemap/, "the fixture must verify unlisting removes all public discovery routes");
+assert.match(script, /ESKOMI_E2E_METRICS_ARTIFACT_DIR/, "the runner must preserve optional public HTTP metric artifacts outside the fixture");
 assert.match(script, /docker volume create "\$runtime_volume" >\/dev\/null; runtime_volume_owned=1/, "only a volume created by this runner may become cleanup-owned");
 assert.match(script, /\[ "\$runtime_volume_owned" -eq 1 \] && docker volume rm/, "cleanup must remove only a runner-owned runtime volume");
 assert.doesNotMatch(script, /runtime_volume_created/, "the obsolete availability flag must not be used as a cleanup ownership signal");
