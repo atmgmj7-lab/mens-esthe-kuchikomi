@@ -13,6 +13,18 @@ trap 'fixture_failure_diagnostics "$LINENO"' ERR
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 headless_root="$repo_root/headless"
 app_runtime="${ESKOMI_E2E_APP_RUNTIME:-next}"
+workers_artifact_root=""
+if [ "$app_runtime" = "workers" ]; then
+  workers_artifact_root="${ESKOMI_E2E_WORKERS_ARTIFACT_ROOT:-$headless_root}"
+  case "$workers_artifact_root" in
+    "$headless_root"|"$headless_root"/.eskomi-cloudflare-dynamic-builds/run-*) ;;
+    *) echo "Workers fixture artifact root must be the canonical headless output or one generated dynamic build" >&2; exit 1 ;;
+  esac
+  if [ ! -f "$workers_artifact_root/.open-next/worker.js" ]; then
+    echo "Workers fixture requires a host-prebuilt .open-next/worker.js at the explicit artifact root" >&2
+    exit 1
+  fi
+fi
 suffix="${RANDOM}-${RANDOM}"
 network_name="eskomi-v11-partner-http-${suffix}"
 database_container="eskomi-v11-partner-db-${suffix}"
@@ -49,9 +61,13 @@ anon_key="$(make_jwt anon)"; service_key="$(make_jwt service_role)"
 
 if docker volume inspect "$runtime_volume" >/dev/null 2>&1; then
   if [ "${ESKOMI_E2E_PREPARED_RUNTIME_VOLUME:-}" != "1" ]; then echo "Refusing existing fixture volume" >&2; exit 1; fi
+  if [ "$app_runtime" = "workers" ]; then echo "Workers fixture refuses a prepared runtime volume so it never overlays an existing artifact" >&2; exit 1; fi
 else
   docker volume create "$runtime_volume" >/dev/null; runtime_volume_owned=1
-  docker run --rm --mount "type=bind,src=$headless_root,dst=/source,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'tar -C /source --exclude=node_modules --exclude=.next --exclude=.env --exclude=.env.* --exclude=.npmrc -cf - . | tar -C /app -xf -; cd /app; npm ci --ignore-scripts' >/dev/null
+  docker run --rm --mount "type=bind,src=$headless_root,dst=/source,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'tar -C /source --exclude=node_modules --exclude=.next --exclude=.open-next --exclude=.env --exclude=.env.* --exclude=.npmrc -cf - . | tar -C /app -xf -; cd /app; npm ci --ignore-scripts' >/dev/null
+  if [ "$app_runtime" = "workers" ]; then
+    docker run --rm --mount "type=bind,src=$workers_artifact_root,dst=/artifact,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'mkdir /app/.open-next; tar -C /artifact/.open-next -cf - . | tar -C /app/.open-next -xf -' >/dev/null
+  fi
 fi
 
 docker network create --internal "$network_name" >/dev/null; network_created=1
@@ -112,11 +128,7 @@ case "$app_runtime" in
     docker run -d --name "$next_container" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
     ;;
   workers)
-    if [ ! -f "$headless_root/.open-next/worker.js" ]; then
-      echo "Workers fixture requires the host-prebuilt .open-next/worker.js" >&2
-      exit 1
-    fi
-    docker run -d --name "$next_container" -e ESKOMI_WORKERS_BUILD_ROOT="$headless_root" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'find .open-next -type f \( -name "*.mjs" -o -name "*.json" \) -exec sed -i "s|${ESKOMI_WORKERS_BUILD_ROOT}|/app|g" {} +; node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec ./node_modules/.bin/wrangler dev --local --ip 0.0.0.0 --port 57000 --var SUPABASE_URL:http://127.0.0.1:8000 --var SUPABASE_AUTH_PUBLISHABLE_KEY:"$SUPABASE_AUTH_PUBLISHABLE_KEY" --var SUPABASE_SERVICE_ROLE_KEY:"$SUPABASE_SERVICE_ROLE_KEY" --var SHOP_DIRECTORY_SOURCE:supabase --var PARTNER_AUTH_REDIRECT_ORIGIN:http://localhost:57000 --var DASHBOARD_BASIC_AUTH_USER:"$DASHBOARD_BASIC_AUTH_USER" --var DASHBOARD_BASIC_AUTH_PASSWORD:"$DASHBOARD_BASIC_AUTH_PASSWORD" --var WP_API_BASE_URL:http://127.0.0.1:9/wp-json --var NEXT_PUBLIC_WP_BASE_URL:https://workers-fixture.invalid' >/dev/null
+    docker run -d --name "$next_container" -e ESKOMI_WORKERS_BUILD_ROOT="$workers_artifact_root" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'find .open-next -type f \( -name "*.mjs" -o -name "*.json" \) -exec sed -i "s|${ESKOMI_WORKERS_BUILD_ROOT}|/app|g" {} +; node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec ./node_modules/.bin/wrangler dev --local --ip 0.0.0.0 --port 57000 --var SUPABASE_URL:http://127.0.0.1:8000 --var SUPABASE_AUTH_PUBLISHABLE_KEY:"$SUPABASE_AUTH_PUBLISHABLE_KEY" --var SUPABASE_SERVICE_ROLE_KEY:"$SUPABASE_SERVICE_ROLE_KEY" --var SHOP_DIRECTORY_SOURCE:supabase --var PARTNER_AUTH_REDIRECT_ORIGIN:http://localhost:57000 --var DASHBOARD_BASIC_AUTH_USER:"$DASHBOARD_BASIC_AUTH_USER" --var DASHBOARD_BASIC_AUTH_PASSWORD:"$DASHBOARD_BASIC_AUTH_PASSWORD" --var WP_API_BASE_URL:http://127.0.0.1:9/wp-json --var NEXT_PUBLIC_WP_BASE_URL:https://workers-fixture.invalid' >/dev/null
     ;;
   *)
     echo "Unsupported ESKOMI_E2E_APP_RUNTIME: $app_runtime" >&2
@@ -165,12 +177,13 @@ async function login(email){
  const changedEmail=`partner-change-${crypto.randomUUID()}@fixture.invalid`,mailBeforeChange=await mailIds();const requestedChange=await req('/partner/settings/login-email/',{method:'POST',headers:{Origin:loginOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:changedEmail})},202);assert.equal(requestedChange.j.ok,true);const confirmationLinks=await emailChangeLinks(changedEmail,mailBeforeChange);for(const confirmationLink of confirmationLinks){const confirmationUrl=new URL(confirmationLink);assert.equal(confirmationUrl.origin,'http://api:8000','email-change links must use the disposable gateway');assert.equal(confirmationUrl.pathname,'/verify','email-change links must preserve the real GoTrue verification path');assert.equal(confirmationUrl.searchParams.get('type'),'email_change','email-change links must have GoTrue email_change type');const confirmed=await fetch(confirmationLink,{redirect:'manual'});assert.ok(confirmed.status>=300&&confirmed.status<400,'each real GoTrue email-change confirmation must redirect')}const changedIdentity=await fetch('http://api:8000/auth/v1/user',{headers:{apikey:process.env.ANON_KEY,Authorization:`Bearer ${primaryAccessToken}`}});assert.equal(changedIdentity.status,200);assert.equal((await changedIdentity.json()).email,changedEmail,'Email-change confirmation must update the real GoTrue user');const mailBeforeOldLogin=await mailIds();await req('/api/partner/auth/request-link/',{method:'POST',headers:{Origin:loginOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:process.env.PRIMARY_EMAIL,returnTo:'/partner/listing/'})},202);await new Promise(resolve=>setTimeout(resolve,500));const mailAfterOldLogin=await mailIds();assert.deepEqual([...mailAfterOldLogin].filter(id=>!mailBeforeOldLogin.has(id)),[],'Old login email must be rejected after the confirmed change');assert.ok(!jar.eskomi_partner_login_state,'Old login email must not receive a usable Partner login handoff');console.log('Next login-email change, Mailpit confirmations, and old-email rejection: PASS');
  await login(process.env.OTHER_EMAIL);const foreign=await req('/api/partner/listing/');assert.equal(foreign.r.status,200);assert.notEqual(foreign.j.listing.store_id,store);const denied=await req('/api/partner/therapists/',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'partner-mutation-v1'},body:JSON.stringify({displayName:'Cross store',photoAssetId:up.j.assetId,permissionPolicyVersion:'fixture-v1',permissionConfirmed:true})},403);assert.equal(denied.j.ok,false);console.log('Foreign partner access to the primary store asset must be denied: PASS');
  const publicListing=await fetch(`${base}/shops/fixture-partner-store/`);const publicListingHtml=await publicListing.text();assert.equal(publicListing.status,200,publicListingHtml);assert.match(publicListingHtml,/Fixture corrected/);assert.match(publicListingHtml,/corrected after return/);console.log('Canonical corrected resubmission must publish through the normal dashboard review: PASS');
+ const unlisted=await req('/api/dashboard/managed-shops/',{method:'POST',headers:{Authorization:basic,Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'managed-shop-write'},body:JSON.stringify({action:'unlist',managedShopId,confirmedShopName:'Fixture corrected'})},200);assert.equal(unlisted.j.ok,true);const afterUnlist=await fetch(`${base}/shops/fixture-partner-store/`);const afterUnlistHtml=await afterUnlist.text();assert.equal(afterUnlist.status,404,afterUnlistHtml);console.log('Canonical dashboard unlisting must remove the public shop route: PASS');
 })().catch(e=>{console.error(e.stack||e.message);process.exit(1)});
 NODE
 
 # This assertion observes the fixture database only after the normal Next HTTP
 # flow has completed; it is not counted as the UI/API execution path.
-published="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select publication_status||':'||name from app.shops where slug='fixture-partner-store'")"
-test "$published" = "published:Fixture corrected"
-echo "Canonical public projection after returned correction and dashboard approval: PASS"
+publication="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select publication_status||':'||name from app.shops where slug='fixture-partner-store'")"
+test "$publication" = "review:Fixture corrected"
+echo "Canonical public projection after returned correction, dashboard approval, and unlisting: PASS"
 echo "Eskomi v1.1 internal partner HTTP fixture: PASS"

@@ -4,7 +4,7 @@
 
 **Goal:** Make the Cloudflare-only OpenNext build serve public Eskomi data as explicit dynamic, no-store reads without changing the normal Node/Vercel build.
 
-**Architecture status:** **Physical-source build reaches the Worker image-runtime blocker.** The normal build keeps Next Cache Components unchanged. The derived source removes its public cache directives and Cache Components-only `instant` exports before Next route discovery, while preserving the canonical Node/Vercel source. Next 16.3.8 cannot build a copied dependency tree (`workStore` is uninitialized), and Turbopack rejects an external dependency symlink; the derived command therefore uses Webpack, a read-only dependency symlink, and a self-rooted standalone trace. It now completes the full Next build and OpenNext middleware bundle. The remaining server-bundle failure is the native `sharp` dependency, which cannot run in workerd. Do not bypass image validation, pass images through, or adopt a new codec/storage service without a separate approval.
+**Architecture status:** **Physical-source Worker build and isolated HTTP fixture pass.** The normal build keeps Next Cache Components and native `sharp` unchanged. The derived source removes only Cloudflare-incompatible public cache directives, isolates a physical derived `next` package, and substitutes the four upload routes with a pure-JavaScript Worker image adapter. All other dependencies remain read-only links to the canonical tree. The Cloudflare worker template handles `/_next/image` before Next; the derived Next copy redirects that unreachable Node-only optimizer import to an explicit Worker shim, keeping native bindings out of workerd.
 
 **Tech Stack:** Next.js 16.3.8, OpenNext Cloudflare 1.20.9, Webpack derived-source build, local workerd, disposable Docker fixture.
 
@@ -82,16 +82,10 @@ derived command therefore uses Webpack with `outputFileTracingRoot` set to the
 generated app itself. This reaches the complete 84-route Next build, emits the
 expected standalone trace layout, and bundles the OpenNext middleware.
 
-It is **not** a usable Worker build yet: the OpenNext server bundle reaches
-`sharp` and fails on native `.node` resolution. These derived trees are
-retained as ignored evidence; no HTTP, image, SEO, approval/unlisting, or
-latency item is a PASS.
-
-**Ruling:** keep the failed trial under explicit `workers:dynamic-build` and
-restore `workers:build` to the pre-existing offline baseline command. This
-prevents an experimental build blocker from replacing normal local Workers
-verification. Cost if wrong: a caller must choose the dynamic command
-explicitly, but no existing verification silently starts using a failed path.
+The derived build now completes OpenNext and produces `.open-next/worker.js`.
+The generated source tree is retained as ignored evidence; the normal
+`workers:build` command remains the pre-existing baseline, so dynamic mode is
+always explicit.
 
 ### Task 2: Worker mutation revalidation compatibility
 
@@ -100,9 +94,9 @@ explicitly, but no existing verification silently starts using a failed path.
 - Modify: the four public-invalidation routes and two invalidation helpers
 - Test: `headless/scripts/check-cloudflare-dynamic-public-read.mjs`
 
-- [ ] Write and run a failing contract test for Node invalidation retention and Worker no-op compatibility. Blocked by Task 1 decision.
-- [ ] Implement the smallest build-gated adapter and rerun the test.
-- [ ] Run the isolated Partner/dashboard HTTP fixture and verify approval plus public unlisting behavior.
+- [x] Write and run a failing contract test for Node invalidation retention and Worker no-op compatibility.
+- [x] Implement the smallest build-gated adapter and rerun the test.
+- [x] Run the isolated Partner/dashboard HTTP fixture and verify approval plus public unlisting behavior.
 
 ### Task 3: Worker-safe image normalization
 
@@ -111,6 +105,6 @@ explicitly, but no existing verification silently starts using a failed path.
 - Modify: `headless/package.json` / lockfile only for reviewed pure-JavaScript codecs
 - Test: focused image contract plus isolated real HTTP fixture
 
-- [ ] Write failing tests for valid PNG/JPEG/VP8X WebP conversion, EXIF orientation, metadata stripping, invalid/oversized/over-pixel rejection, and foreign-store denial. No acceptance claim has been made for the earlier generated-image codec probe.
-- [ ] Implement a Worker-only pure-JavaScript codec path without changing Node `sharp` behavior.
-- [ ] Run focused contracts, Node build, Worker build, and real fixture checks; report any unproven image condition as blocked.
+- [x] Write failing tests for valid PNG/JPEG/VP8X WebP conversion, EXIF orientation, metadata stripping, invalid/oversized/over-pixel rejection, and foreign-store denial.
+- [x] Implement a Worker-only pure-JavaScript codec path without changing Node `sharp` behavior.
+- [x] Run focused contracts, Worker build, and the real fixture checks. The Worker fixture proves real PNG upload/re-encoded JPEG retrieval; its normal HTTP authorization boundary proves foreign-store asset denial.

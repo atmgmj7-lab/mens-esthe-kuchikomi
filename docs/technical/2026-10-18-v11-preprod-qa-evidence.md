@@ -103,6 +103,33 @@ No Workers HTTP assertion was rerun after this build-only advance, so the
 existing worker public-page/image/review-link entries remain BLOCKED or NOT
 REACHED as listed above.
 
+## Cloudflare Worker completion — 2026-10-18
+
+The explicit `workers:dynamic-build` now completes with Next 16.3.8,
+OpenNext Cloudflare 1.20.9, and 84 discovered routes. It uses a physical
+derived `next` package only; the normal Node/Vercel source and native `sharp`
+path are unchanged. The four Worker upload routes use a pure-JavaScript
+PNG/JPEG/WebP normalizer that validates 5 MiB/4096px limits, applies EXIF
+orientation, removes metadata through JPEG re-encoding, and emits a SHA-256
+of the stored JPEG. The resulting Worker bundle contains no native sharp
+binding reference.
+
+Focused checks passed:
+
+- `npm run test:cloudflare-worker-listing-image`
+- `npm run test:cloudflare-dynamic-public-read`
+- `npm run test:eskomi-v11-internal-partner-http-runner`
+- `npm run workers:dynamic-build`
+
+The isolated internal-network Worker fixture also passed with real GoTrue,
+Mailpit, Storage API, PostgREST, and PostgreSQL. It verified normal Partner
+magic-link login, correction/re-submission/dashboard approval/public display,
+invalid and oversized image rejection, real PNG-to-JPEG asset retrieval and
+therapist profile, review-link issuance, confirmed login-email change plus
+old-email rejection, foreign-store asset denial, and dashboard unlisting
+removing the public shop route. These are disposable fixture results only:
+they do not deploy, write production data, or configure Cloudflare.
+
 Follow-up local minimal reproductions confirmed that the Cache Components
 failure is independent of the Eskomi proxy and fixture services: direct,
 Suspense-wrapped, and static `"use cache"` pages all return the same local

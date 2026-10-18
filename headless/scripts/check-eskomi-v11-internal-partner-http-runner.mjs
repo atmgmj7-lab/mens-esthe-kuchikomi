@@ -19,6 +19,7 @@ assert.match(script, /\/api\/partner\/listing/, "the test must exercise the norm
 assert.match(script, /\/api\/dashboard\/managed-shops\//, "the test must exercise the normal Next canonical managed-shop dashboard review endpoint");
 assert.match(script, /Canonical changes-requested reason must reach the Partner listing/, "the test must prove canonical changes-requested reason delivery through normal Next HTTP");
 assert.match(script, /Canonical corrected resubmission must publish through the normal dashboard review/, "the test must prove canonical correction, resubmission, and re-approval through normal Next HTTP");
+assert.match(script, /Canonical dashboard unlisting must remove the public shop route/, "the test must prove canonical unlisting removes the public projection through normal dashboard HTTP");
 assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercise normal Next therapist photo upload");
 assert.match(script, /\/shops\/fixture-partner-store\//, "the test must observe the canonical public shop route after dashboard approval");
 assert.match(script, /\/api\/therapists\/\$\{assignment\}\/photo\//, "the test must observe the public therapist photo proxy after normal upload and assignment");
@@ -30,12 +31,16 @@ assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use i
 assert.match(script, /SHOP_DIRECTORY_SOURCE=supabase/, "the disposable Next process must opt into the canonical public directory only for the public-projection observation");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /ESKOMI_E2E_APP_RUNTIME/, "the runner must select a Next or local Workers application runtime explicitly");
+assert.match(script, /ESKOMI_E2E_WORKERS_ARTIFACT_ROOT/, "Workers mode must accept one explicit host-built artifact root instead of assuming the canonical source output");
+assert.match(script, /\.eskomi-cloudflare-dynamic-builds\/run-\*/, "Workers artifact roots must be restricted to generated dynamic build directories");
 assert.match(script, /wrangler dev --local --ip 0\.0\.0\.0 --port 57000/, "the Workers mode must expose only the internal fixture network port");
 assert.match(script, /Unsupported ESKOMI_E2E_APP_RUNTIME/, "the runner must fail closed for an unknown runtime selector");
 assert.equal(packageJson.scripts?.["qa:eskomi-v11-internal-partner-workers"], "npm run workers:build && ESKOMI_E2E_APP_RUNTIME=workers bash scripts/run-eskomi-v11-internal-partner-http-e2e.sh", "Workers fixture must prebuild on the host before joining the internal network");
 assert.match(script, /\.open-next\/worker\.js/, "Workers mode must require the host-prebuilt Worker artifact in the disposable runtime volume");
 assert.match(script, /ESKOMI_WORKERS_BUILD_ROOT/, "Workers mode must rewrite host-only build paths before Wrangler resolves the copied output");
 assert.match(script, /find \.open-next -type f/, "Workers mode must rewrite only generated Worker artifacts in the disposable runtime volume");
+assert.match(script, /src=\$workers_artifact_root,dst=\/artifact,readonly/, "Workers mode must copy an explicitly mounted read-only artifact into the disposable runtime volume");
+assert.match(script, /--exclude=\.open-next/, "the runtime source copy must exclude any canonical Worker output before the explicit artifact is copied");
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
 assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
 assert.match(script, /node scripts\/eskomi-v11-internal-prefix-proxy\.mjs/, "the disposable adapters must use the tested prefix proxy");
@@ -49,6 +54,10 @@ assert.ok(
   script.indexOf("Foreign partner access to the primary store asset must be denied") < script.indexOf("Canonical corrected resubmission must publish through the normal dashboard review"),
   "the public shop assertion must run after the Workers-compatible API, image, and ownership boundaries",
 );
+assert.ok(
+  script.indexOf("Canonical corrected resubmission must publish through the normal dashboard review") < script.indexOf("Canonical dashboard unlisting must remove the public shop route"),
+  "the unlisting assertion must prove removal only after the approved public projection was observed",
+);
 assert.match(script, /invalid image must be rejected/i, "the test must prove invalid image rejection");
 assert.match(script, /oversized image must be rejected/i, "the test must prove oversized image rejection");
 assert.match(script, /docker rm -f/, "created-only cleanup must remove fixture containers");
@@ -59,6 +68,6 @@ assert.match(script, /runtime_volume_owned=0/, "the runner must track ownership 
 assert.match(script, /docker volume create "\$runtime_volume" >\/dev\/null; runtime_volume_owned=1/, "only a volume created by this runner may become cleanup-owned");
 assert.match(script, /\[ "\$runtime_volume_owned" -eq 1 \] && docker volume rm/, "cleanup must remove only a runner-owned runtime volume");
 assert.doesNotMatch(script, /runtime_volume_created/, "the obsolete availability flag must not be used as a cleanup ownership signal");
-assert.match(script, /tar -C \/source --exclude=node_modules --exclude=\.next --exclude=\.env --exclude=\.env\.\* --exclude=\.npmrc -cf - \./, "a runner-owned runtime volume must exclude dotenv and npm configuration files from the source copy");
+assert.match(script, /tar -C \/source --exclude=node_modules --exclude=\.next --exclude=\.open-next --exclude=\.env --exclude=\.env\.\* --exclude=\.npmrc -cf - \./, "a runner-owned runtime volume must exclude canonical Worker output, dotenv, and npm configuration files from the source copy");
 
 console.log("Eskomi v1.1 internal partner HTTP runner safety contract: PASS");

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -59,6 +59,13 @@ const mutationRoutePaths = Object.freeze([
   "app/api/dashboard/reviews/moderation/route.ts",
 ]);
 
+const workerImageRoutePaths = Object.freeze([
+  "app/api/dashboard/managed-shops/[id]/asset/route.ts",
+  "app/api/listing-applications/[id]/asset/route.ts",
+  "app/api/partner/listing/banner/route.ts",
+  "app/api/partner/therapists/photo/route.ts",
+]);
+
 const copyDirectories = Object.freeze(["app", "components", "lib", "public", "scripts", "tests", "types"]);
 const copyFiles = Object.freeze([
   "eslint.config.mjs",
@@ -113,6 +120,14 @@ function transformMutationRoute(relativePath, original = readSource(relativePath
   return transformed;
 }
 
+function transformWorkerImageRoute(relativePath, original = readSource(relativePath)) {
+  const sharpInspector = 'import { inspectListingImage } from "@/lib/listing-application-image";';
+  assert.match(original, new RegExp(sharpInspector.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"), `${relativePath} must use the canonical Node image inspector before transformation`);
+  const transformed = original.replace(sharpInspector, 'import { inspectWorkerListingImage as inspectListingImage } from "@/lib/cloudflare-worker-listing-image";');
+  assert.doesNotMatch(transformed, /listing-application-image|\bsharp\b/u, `${relativePath} retained the native image inspector`);
+  return transformed;
+}
+
 function transformNextConfig() {
   const original = readSource("next.config.ts");
   assert.match(original, /cacheComponents:\s*true/u, "canonical Next config must keep Cache Components enabled for Node/Vercel");
@@ -133,7 +148,7 @@ function transformPackageJson() {
 }
 
 function copyProjectSkeleton(derivedDirectory) {
-  const generatedPaths = new Set(["next.config.ts", "package.json", ...publicReaderPaths, ...instantRoutePaths, ...mutationRoutePaths]);
+  const generatedPaths = new Set(["next.config.ts", "package.json", ...publicReaderPaths, ...instantRoutePaths, ...mutationRoutePaths, ...workerImageRoutePaths]);
   for (const directory of copyDirectories) {
     const source = join(projectDirectory, directory);
     assert.equal(existsSync(source), true, `required source directory is missing: ${directory}`);
@@ -159,9 +174,49 @@ function linkReadOnlyDependencies(derivedDirectory) {
   assert.equal(existsSync(sourceDependencies), true, "the canonical dependency directory must exist before creating a derived source tree");
   const derivedDependencies = join(derivedDirectory, "node_modules");
   assert.equal(existsSync(derivedDependencies), false, "derived source must not replace a dependency directory");
-  // A copied tree makes Next 16.3.8 lose its build workStore. Webpack resolves
-  // this read-only link without broadening the generated source tree.
-  symlinkSync(sourceDependencies, derivedDependencies, "dir");
+  mkdirSync(derivedDependencies, { recursive: false });
+
+  // The rest of the dependency graph remains read-only. Next itself must be a
+  // physical derived copy so OpenNext can bundle the Worker-only replacement
+  // for its otherwise-unreachable Node image optimizer without touching Node
+  // deployments or the canonical dependency tree.
+  for (const entry of readdirSync(sourceDependencies)) {
+    if (entry === "next" || entry === ".bin") continue;
+    const source = join(sourceDependencies, entry);
+    const target = join(derivedDependencies, entry);
+    const type = lstatSync(source).isDirectory() ? "dir" : "file";
+    symlinkSync(source, target, type);
+  }
+  cpSync(join(sourceDependencies, "next"), join(derivedDependencies, "next"), {
+    recursive: true,
+    dereference: false,
+  });
+  mkdirSync(join(derivedDependencies, ".bin"), { recursive: false });
+  symlinkSync("../next/dist/bin/next", join(derivedDependencies, ".bin", "next"), "file");
+  patchDerivedNextImageOptimizer(derivedDependencies);
+}
+
+function patchDerivedNextImageOptimizer(derivedDependencies) {
+  const nextServerPath = join(derivedDependencies, "next", "dist", "server", "next-server.js");
+  const nextServer = readFileSync(nextServerPath, "utf8");
+  const nativeOptimizerRequire = "require('./image-optimizer')";
+  const occurrences = nextServer.split(nativeOptimizerRequire).length - 1;
+  assert.equal(occurrences, 3, "the supported Next runtime must expose all Node image optimizer imports before the Worker patch");
+  writeFileSync(nextServerPath, nextServer.replaceAll(nativeOptimizerRequire, "require('./cloudflare-image-optimizer-shim')"), { encoding: "utf8", flag: "w" });
+
+  writeNewFile(join(derivedDependencies, "next", "dist", "server", "cloudflare-image-optimizer-shim.js"), `"use strict";
+// Generated only for the Cloudflare Worker build. The worker template handles
+// /_next/image before the Next server is reached, so these Node-only exports
+// must remain unreachable. Keeping the boundary explicit prevents native sharp
+// from entering the Worker bundle while retaining normal Next image behavior.
+class ImageOptimizerCache {
+  static validateParams() { throw new Error("Cloudflare image adapter should intercept /_next/image before Next"); }
+  static getCacheKey() { throw new Error("Cloudflare image adapter should intercept /_next/image before Next"); }
+}
+class ImageError extends Error {}
+function unreachable() { throw new Error("Cloudflare image adapter should intercept /_next/image before Next"); }
+module.exports = { ImageOptimizerCache, ImageError, sendResponse: unreachable, imageOptimizer: unreachable, fetchExternalImage: unreachable, fetchInternalImage: unreachable };
+`);
 }
 
 function writeDerivedNoopInvalidationModule(derivedDirectory) {
@@ -196,6 +251,9 @@ function prepareDerivedSource() {
   for (const relativePath of mutationRoutePaths) {
     generatedSources.set(relativePath, transformMutationRoute(relativePath));
   }
+  for (const relativePath of workerImageRoutePaths) {
+    generatedSources.set(relativePath, transformWorkerImageRoute(relativePath));
+  }
   for (const [relativePath, contents] of generatedSources) {
     writeNewFile(join(derivedDirectory, relativePath), contents);
   }
@@ -209,6 +267,7 @@ function prepareDerivedSource() {
     publicReaderPaths,
     instantRoutePaths,
     mutationRoutePaths,
+    workerImageRoutePaths,
     copiedSecretFiles: false,
   }, null, 2)}\n`);
   return derivedDirectory;

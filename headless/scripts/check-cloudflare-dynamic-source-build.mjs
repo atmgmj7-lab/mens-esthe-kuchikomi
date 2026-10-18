@@ -47,8 +47,12 @@ assert.equal(existsSync(join(derivedRoot, ".env")), false, "derived source must 
 assert.equal(existsSync(join(derivedRoot, ".env.local")), false, "derived source must not copy .env.local");
 assert.equal(existsSync(join(derivedRoot, ".dev.vars")), false, "derived source must not copy .dev.vars");
 assert.equal(existsSync(join(derivedRoot, ".npmrc")), false, "derived source must not copy .npmrc");
-assert.equal(lstatSync(join(derivedRoot, "node_modules")).isSymbolicLink(), true, "derived source must link to the canonical read-only dependencies");
-assert.equal(existsSync(join(derivedRoot, "node_modules", "next", "package.json")), true, "derived source must resolve the canonical Next dependency");
+assert.equal(lstatSync(join(derivedRoot, "node_modules")).isDirectory(), true, "derived source must own a minimal dependency directory");
+assert.equal(lstatSync(join(derivedRoot, "node_modules", "next")).isSymbolicLink(), false, "derived source must physically isolate Next before applying Worker-only patches");
+assert.equal(lstatSync(join(derivedRoot, "node_modules", "fast-png")).isSymbolicLink(), true, "derived source must keep non-Next dependencies read-only links to the canonical tree");
+const derivedNextServer = readFileSync(join(derivedRoot, "node_modules", "next", "dist", "server", "next-server.js"), "utf8");
+assert.match(derivedNextServer, /cloudflare-image-optimizer-shim/u, "derived Next server must route unreachable Node image optimization imports to the Worker-only shim");
+assert.equal(existsSync(join(derivedRoot, "node_modules", "next", "dist", "server", "cloudflare-image-optimizer-shim.js")), true, "derived Next package must provide the Worker-only image optimizer shim");
 assert.match(readFileSync(join(derivedRoot, "next.config.ts"), "utf8"), /cacheComponents:\s*false/u, "derived config must disable Cache Components");
 assert.match(readFileSync(join(derivedRoot, "next.config.ts"), "utf8"), /output:\s*"standalone"/u, "derived config must emit OpenNext's required standalone trace tree");
 assert.match(readFileSync(join(derivedRoot, "next.config.ts"), "utf8"), /outputFileTracingRoot:\s*resolve\(process\.cwd\(\)\)/u, "derived config must root its standalone trace package at the generated app");
@@ -82,5 +86,19 @@ for (const mutationRoute of [
   const source = readFileSync(join(derivedRoot, mutationRoute), "utf8");
   assert.match(source, /@\/lib\/cloudflare-dynamic-public-cache/u, `${mutationRoute} must use the Worker-only no-op invalidation adapter`);
 }
+
+for (const workerImageRoute of [
+  "app/api/dashboard/managed-shops/[id]/asset/route.ts",
+  "app/api/listing-applications/[id]/asset/route.ts",
+  "app/api/partner/listing/banner/route.ts",
+  "app/api/partner/therapists/photo/route.ts",
+]) {
+  const canonical = readFileSync(join(projectDirectory, workerImageRoute), "utf8");
+  const derived = readFileSync(join(derivedRoot, workerImageRoute), "utf8");
+  assert.match(canonical, /listing-application-image/u, `${workerImageRoute} must retain the canonical Node image inspector`);
+  assert.match(derived, /cloudflare-worker-listing-image/u, `${workerImageRoute} must use the derived Worker image inspector`);
+  assert.doesNotMatch(derived, /listing-application-image|\bsharp\b/u, `${workerImageRoute} must not bundle native sharp`);
+}
+assert.doesNotMatch(readFileSync(join(derivedRoot, "lib/cloudflare-worker-listing-image.mjs"), "utf8"), /\bsharp\b/u, "the Worker image adapter must not import native sharp");
 
 console.log("Eskomi Cloudflare dynamic public-read source contract: PASS");
