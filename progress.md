@@ -957,3 +957,4 @@
 
 - Reconciled the redacted read-only production ledger boundary with the source migration manifest and existing fresh/representative-upgrade fixtures.
 - Added the ordered delta and mapping-preparation hard stops: a `20261015182000`-baseline rehearsal, exact managed projection, and canonical publication state are required before the one-row mapping preflight can pass.
+- Saved the reconciliation packet as `2755591759e95daa6ba0698f785f3b7dad33e19e`; remote `main` remained unchanged.
