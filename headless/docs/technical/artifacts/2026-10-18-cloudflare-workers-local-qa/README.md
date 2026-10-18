@@ -74,23 +74,16 @@ its runtime volume; artifact-copying itself was independently confirmed to
 succeed. The readiness check accepts Wrangler's `Starting local server` in
 addition to Next's `Ready`/`started server` messages.
 
-The remaining completion attempt was then cut short by the local execution
-wrapper while the Docker-contained `npm ci` child was still preparing the
-fresh volume. This is not an application or Docker artifact-path error, but it
-still prevents claiming new full-fixture HTTP/metric evidence.
+The earlier interrupted attempt remains preserved as a historical local
+artifact only. It must not be used as release evidence; the completed artifact
+above is the authoritative fixture result.
 
-Therefore, there is **no new trustworthy PostgREST measurement JSON in this
-directory yet**. Do not represent the historical page timings as API-call or
-SQL-count results. Re-run this command in a stable local Docker session to
-generate it, without deleting existing fixtures:
+## Cloudflare account-readiness follow-up
 
-```sh
-ESKOMI_E2E_PRESERVE_FIXTURE=1 \
-ESKOMI_E2E_APP_RUNTIME=workers \
-ESKOMI_E2E_WORKERS_ARTIFACT_ROOT=<latest-generated-root> \
-ESKOMI_E2E_METRICS_ARTIFACT_DIR=docs/technical/artifacts/2026-10-18-cloudflare-workers-local-qa \
-bash scripts/run-eskomi-v11-internal-partner-http-e2e.sh
-```
+[`CLOUDFLARE-ACCOUNT-READINESS-AUDIT.md`](CLOUDFLARE-ACCOUNT-READINESS-AUDIT.md)
+records the 2026-10-18 read-only account-access finding and the remaining
+account, data, email, analytics, and runtime gates. It contains no token,
+secret, private UUID, or production-row value.
 
 No Cloudflare account, DNS, secret, OAuth, production database/Auth, main
 merge, or deployment was used.
