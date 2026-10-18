@@ -945,3 +945,8 @@
 - Saved the packet as `7e9e961b3706cbdecd2cb6ce0b9dd5532e8e34ed` on
   `origin/codex/wp-independent-prep-20261017`; read-only remote verification
   confirmed `main` remains `78d7e06046953b493ec690231fede121cba0211a`.
+
+## 2026-10-18 — Mrs.Rank UP first-store visibility clarification
+
+- Traced the fixed WP Shop 768 target through the legacy native and v1.1 paths.  The direct v1.1 widget can display an approved v1.1 publication before the global source switch; the normal Eskomi shop/global review surfaces cannot.
+- Updated the release packet to prevent a widget-only result from being described as a completed store-page launch, and to offer the full-reader actual-data comparison/cutover as the only route to normal site visibility.

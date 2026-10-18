@@ -753,6 +753,12 @@ store-scoped.
 - [x] Add a harmless source/packet consistency check and run it.
 - [x] Update the acceptance packet, verify diffs, commit, push the approved branch, and confirm its remote SHA.
 
+## Post-completion visibility clarification
+
+- [x] Trace the fixed Mrs.Rank UP (WP Shop 768) review/link/widget/public-reader routes.
+- [x] Record that the direct v1.1 widget can show an approved canonical review, while the normal shop and global readers require the separate global v1.1 source cutover.
+- [ ] Save the clarification on the approved branch and confirm its remote SHA.
+
 ## Guardrails
 
 - No main merge, deployment, production DB/auth write, secret retrieval, backup upload, file deletion, or Docker resource change.

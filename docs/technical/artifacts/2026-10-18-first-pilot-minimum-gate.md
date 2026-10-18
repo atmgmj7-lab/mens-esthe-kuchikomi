@@ -10,17 +10,20 @@ that separate authorization.
 | Required manifest item | Value to record (no secrets) |
 | --- | --- |
 | Immutable application SHA | `<approved branch commit SHA>` |
-| Pilot legacy WP shop ID | `<one positive integer>` |
-| Pilot legacy slug | `<exact existing slug>` |
-| Pilot legacy canonical URL | `https://mens-esthe-kuchikomi.com/shops/<slug>/` |
+| Pilot legacy WP shop ID | `768` — Mrs.Rank UP（ミセスランクアップ） |
+| Pilot legacy slug | `mrs-rank-up%ef%bc%88%e3%83%9f%e3%82%bb%e3%82%b9%e3%83%a9%e3%83%b3%e3%82%af%e3%82%a2%e3%83%83%e3%83%97%ef%bc%89` |
+| Pilot legacy canonical URL | `https://mens-esthe-kuchikomi.com/shops/mrs-rank-up%EF%BC%88%E3%83%9F%E3%82%BB%E3%82%B9%E3%83%A9%E3%83%B3%E3%82%AF%E3%82%A2%E3%83%83%E3%83%97%EF%BC%89/` |
 | Expected `workspace_id`, `managed_shop_id`, `app_shop_id` | `<three UUIDs from the read-only candidate result>` |
 | Operator / reviewer / rollback owner | `<named accountable roles>` |
 | Backup evidence | `<provider snapshot ID, timestamp, retention, restore authority>` |
 
 The three values identifying a legacy store are its WP ID, slug, and canonical
 URL.  Names, partial slugs, and visual similarity are never identity evidence.
-Of the three existing legacy workspace/managed-shop candidates, exactly one is
-in scope for this pilot; the other two remain read-only and unmapped.
+The target is already fixed by existing repository records and the current
+public URL; the user does not need to re-supply an ID.  Of the three existing
+legacy workspace/managed-shop candidates, exactly this one is in scope; the
+other two remain read-only and unmapped.  The three private UUIDs still require
+the secured read-only preflight because they cannot be inferred from a URL.
 
 ## Public-reader impact assessment
 
@@ -57,6 +60,48 @@ without mapping all three legacy workspaces.  It does not permit regressions
 for the already-existing stores, nor does it relax their future exact-mapping
 requirement.
 
+## Where an approved v1.1 review is actually visible
+
+The v1.1 individual review URL is `https://mens-esthe-kuchikomi.com/r/<review_handle>/`.
+After human approval, its row is published in
+`app.review_experience_publications`.  That alone does **not** make it appear
+on the normal public shop page.
+
+| Surface | With the minimum pilot flags unchanged | What this proves |
+| --- | --- | --- |
+| Individual entry URL `/r/<review_handle>/` | Accepts the selected shop's v1.1 review flow. | Collection only; it is not a public review list. |
+| v1.1 widget `/partner/widget/<widget_handle>/` | **Displays the approved v1.1 review.** Its route first calls `getV11Widget`, which reads `get_public_review_widget_v11` directly. It requires an active widget handle, published canonical shop, and published managed-shop projection. | The shop can show the approved review in its external widget without `ESKOMI_V11_PUBLIC_REVIEW_SOURCE`. |
+| Normal Mrs.Rank UP shop page and `/shops/<slug>/reviews/` | **Does not display the v1.1 review.** With the flag unchanged, `publicReviewAdapter` remains on the legacy/native path. | The minimum route is not a completed “review visible on the Eskomi store page” launch. |
+| `/reviews/`, home cards, area latest-review sections | **Does not display the v1.1 review.** These use the global legacy/native path until the v1.1 flag changes. | The minimum route is not a completed site-wide review launch. |
+
+The existing `RANKUP_NATIVE_REVIEW_READ_SOURCE=supabase` can instead show
+**legacy native** Rank UP reviews on the shop page, the legacy widget route,
+and the global review route.  It cannot display the v1.1 individual-link
+reviews above because those are in the canonical v1.1 publication model.  In
+addition, its global-reader branch fail-closes unless the current WordPress
+global review total is exactly zero; a fresh authorized preflight must prove
+that condition, rather than relying on the public snapshot in this document.
+
+### Recommendation for the stated first-store goal
+
+If “店舗導入完成” means both collection and the approved review being readable
+on the normal Eskomi Mrs.Rank UP page **and** in the widget, the minimum
+unchanged-reader route is insufficient.  There are only two safe choices:
+
+1. **Widget-only operational pilot:** use the v1.1 entry and widget handles;
+   label it explicitly as “collection + external widget proof, Eskomi store
+   page pending.”  It is appropriate only if that limited outcome is accepted.
+2. **Complete first-store introduction:** do the actual-data comparison for
+   every global v1.1 reader listed above, preserve the zero/deny/tombstone
+   checks, then obtain a separate approval to set
+   `ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase`.  This is a global reader
+   cutover, not a store-level action; it must be rolled back as a reader/config
+   change if comparison or post-publish checks fail.
+
+The native Rank UP flag is a third, legacy-model alternative, not a substitute
+for the requested canonical therapist/individual-link flow.  No new feature
+flag is proposed.
+
 ## Migration application order — operator runbook
 
 Do not select individual SQL files or alter migration history.  The source of
@@ -87,9 +132,10 @@ any production migration ledger.
 ## Read-only, one-store binding preflight
 
 Run the following only through the approved read-only production replica or
-snapshot after the canonical schema is present.  Replace the manifest
-placeholders in the operator's secured console; do not include the returned
-UUIDs in public tickets or source control.
+snapshot after the canonical schema is present.  The target WP ID, slug, and
+URL are fixed above; enter only those values into the operator's secured
+console.  Do not include the returned UUIDs in public tickets or source
+control.
 
 ```sql
 select *
@@ -146,18 +192,22 @@ recovery decision.
 
 ## Pilot URL and post-publish checks
 
-After a separately approved pilot mapping, use only the signed pilot URL:
-`https://mens-esthe-kuchikomi.com/shops/<pilot_slug>/`.  The operator performs
-and records:
+After a separately approved pilot mapping, use only the signed pilot URL in
+the manifest.  The operator performs and records:
 
 1. an authenticated partner login for the pilot workspace, followed by a
    canonical listing change request and ordinary administrator review;
-2. a public GET of the signed pilot URL, canonical tag, JSON-LD, and the
-   selected pilot's approved projection after review;
-3. a public GET of `/reviews/`, the home review cards, a relevant area page,
-   and any active widget.  Their reader/source setting and baseline counts
-   must be unchanged for the minimum pilot; and
-4. a cross-workspace denial check against an unrelated store, with identifiers
+2. a public GET of the v1.1 widget URL from the authenticated partner growth
+   readback.  It must show the human-approved review and link back to the
+   signed pilot URL; record the handle only in the restricted release record;
+3. for the widget-only pilot, a public GET of the signed pilot URL,
+   `/reviews/`, home review cards, and a relevant area page.  Their legacy
+   reader/source and baseline counts must remain unchanged, and the release
+   record must state that the v1.1 review is intentionally absent there; or
+4. for the complete-introduction option, the same public GETs must show the
+   approved v1.1 review only after the full global-reader comparison and the
+   separately approved reader cutover; and
+5. a cross-workspace denial check against an unrelated store, with identifiers
    redacted from the release record.
 
 The **camera QR** check is a manual user/device check: scan the issued QR with

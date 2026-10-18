@@ -31,6 +31,9 @@ It keeps `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` unchanged because that flag switches
 both shop-detail and global public-review readers.  A selected operational
 pilot may therefore map only its exact approved workspace after separate
 production approval, but it cannot claim a one-store public-review cutover.
+The packet now explicitly distinguishes the direct v1.1 widget (which can
+display an approved v1.1 review) from the normal Eskomi shop/global readers
+(which cannot until the global reader cutover is separately approved).
 
 ## Evidence
 

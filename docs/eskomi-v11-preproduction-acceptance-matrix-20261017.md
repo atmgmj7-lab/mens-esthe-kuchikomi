@@ -104,7 +104,10 @@ review readers, so the flag remains unchanged until the full existing-reader
 comparison is accepted.  The packet does not add a per-store public-review
 flag.  T43 remains `collection status unknown / comparison not possible`;
 neither fixture evidence nor GA4/GSC is a substitute for its independent
-collector.
+collector.  The direct v1.1 widget is an independent published-review surface;
+it may prove a limited external-widget pilot, but it does not make the same
+v1.1 review visible on the normal shop page or `/reviews/` while the global
+reader flag remains unchanged.
 
 1. preview の fresh/upgrade/権限/HTTP smoke を対象 SHA で保存する。
 2. 承認済みの additive migration を一回だけ適用し、ledger と mapping 件数を確認する。

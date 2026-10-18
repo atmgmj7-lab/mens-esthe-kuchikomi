@@ -8,6 +8,7 @@ const headlessDirectory = resolve(scriptsDirectory, "..");
 const repositoryDirectory = resolve(headlessDirectory, "..");
 const packetPath = join(repositoryDirectory, "docs/technical/artifacts/2026-10-18-first-pilot-minimum-gate.md");
 const adapterPath = join(headlessDirectory, "lib/reviews/public-adapter.ts");
+const widgetPath = join(headlessDirectory, "lib/supabase/eskomi-widget-v11.ts");
 const migrationDirectory = join(repositoryDirectory, "supabase/migrations");
 
 const migrations = readdirSync(migrationDirectory)
@@ -35,6 +36,9 @@ assert.match(
   /environment\.ESKOMI_V11_PUBLIC_REVIEW_SOURCE === "supabase"/u,
   "v1.1 source switch must remain opt-in",
 );
+
+const widget = readFileSync(widgetPath, "utf8");
+assert.match(widget, /get_public_review_widget_v11/u, "v1.1 widget must retain its direct publication reader");
 assert.match(
   adapter,
   /if \(v11PublicShopReviews\) \{\n        const global = await eskomiReviewV2Repository\.listGlobalPublications/u,
@@ -53,6 +57,9 @@ for (const [label, required] of [
   ["no backup handling boundary", /No backup\s+retrieval or upload/u],
   ["no new per-store reader flag", /No per-store public-review flag/u],
   ["manual QR boundary", /camera QR/u],
+  ["fixed Mrs.Rank UP target", /\| Pilot legacy WP shop ID \| `768`/u],
+  ["widget-only limitation", /not a completed “review visible on the Eskomi store page” launch/u],
+  ["complete introduction option", /Complete first-store introduction/u],
 ]) {
   assert.match(packet, required, `pilot packet is missing required gate: ${label}`);
 }

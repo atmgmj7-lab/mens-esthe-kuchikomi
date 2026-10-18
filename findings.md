@@ -554,3 +554,8 @@
 - `ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase` is global (`public-adapter.ts:133-134`).  It drives both individual shop and global review reads; it is not a one-store pilot control.  The existing `RANKUP_NATIVE_REVIEW_READ_SOURCE` remains a distinct pilot and must not be represented as the v1.1 global cutover.
 - Approved design E02 requires exact legacy ID + slug + canonical confirmation and isolation on any mismatch.  M06 prohibits synthetic posts in real public stores; M08 requires feature/read rollback without destructive down-migrations and an evidenced backup/recovery authority.
 - No production connection or production backup access is authorized.  All new validation must therefore be repository-local and static.
+
+## 2026-10-18 — Mrs.Rank UP visibility trace
+
+- The fixed pilot is Mrs.Rank UP: WP ID `768`, its percent-encoded canonical slug, and the current public URL are recorded in the first-pilot packet.  The public page read showed zero approved reviews; the public `/reviews/` snapshot also showed zero, but the native pilot's zero-total precondition must be rechecked in the authorized release window.
+- An approved v1.1 individual-link review is visible through the direct v1.1 widget handle, but normal shop/global readers do not read that v1.1 publication until the global `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` cutover.  The pre-publication packet now makes this limitation and the two viable release choices explicit.
