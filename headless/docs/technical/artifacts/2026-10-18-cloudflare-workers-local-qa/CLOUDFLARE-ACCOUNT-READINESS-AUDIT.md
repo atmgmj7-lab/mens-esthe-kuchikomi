@@ -23,9 +23,24 @@ following target-account facts remain **unverified**:
 | Existing Workers / Pages / KV / R2 / D1 / Queues resources | Unverified | Account-specific resource lists, recorded as names/counts only |
 | Domains and zones | Unverified | Websites / Zones list, recorded as zones and status only |
 
+### User-Mac browser connection follow-up
+
+The authorized Mac device is online and Google Chrome is running. However, this
+task session exposes only generic terminal/process inspection for that device;
+it does not expose a Chrome tab, screenshot, accessibility, or browser-client
+binding capable of reading the authenticated Dashboard. The required
+browser-client `node_repl` surface is also not available to this task.
+
 No browser was controlled during this audit. In particular, no user-Mac browser
-session was opened or used, so there is no claim that its Cloudflare session
-was inspected.
+session, cookies, saved passwords, local storage, or Cloudflare tab content was
+opened or read. Generic remote-terminal control must not be used to bypass that
+missing browser binding.
+
+The minimum non-Cloudflare-auth setup to continue is to attach the already
+running Chrome to the ChatGPT browser-control extension/session, with the
+target Dashboard tab selected. That does not require creating a new Cloudflare
+OAuth grant, CLI login, token, or secret. Once attached, this audit may navigate
+only within the supplied account URL and read the inventory listed below.
 
 ## Read-only target-account survey
 
