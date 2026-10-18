@@ -22,7 +22,7 @@ postgrest_container="eskomi-v11-partner-rest-${suffix}"
 proxy_container="eskomi-v11-partner-api-${suffix}"
 next_container="eskomi-v11-partner-next-${suffix}"
 runtime_volume="${ESKOMI_E2E_RUNTIME_VOLUME:-eskomi-v11-partner-runtime-${suffix}}"
-database_created=0; auth_created=0; storage_created=0; mailpit_created=0; postgrest_created=0; proxy_created=0; next_created=0; network_created=0; runtime_volume_created=0
+database_created=0; auth_created=0; storage_created=0; mailpit_created=0; postgrest_created=0; proxy_created=0; next_created=0; network_created=0; runtime_volume_owned=0
 postgres_password="$(openssl rand -hex 32)"
 jwt_secret="$(openssl rand -hex 32)"
 dashboard_user="fixture-operator-${suffix}"
@@ -37,7 +37,7 @@ cleanup() {
   [ "$mailpit_created" -eq 1 ] && docker rm -f "$mailpit_container" >/dev/null 2>&1 || true
   [ "$database_created" -eq 1 ] && docker rm -f "$database_container" >/dev/null 2>&1 || true
   [ "$network_created" -eq 1 ] && docker network rm "$network_name" >/dev/null 2>&1 || true
-  [ "$runtime_volume_created" -eq 1 ] && docker volume rm "$runtime_volume" >/dev/null 2>&1 || true
+  [ "$runtime_volume_owned" -eq 1 ] && docker volume rm "$runtime_volume" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 for resource in "$network_name" "$database_container" "$auth_container" "$storage_container" "$mailpit_container" "$postgrest_container" "$proxy_container" "$next_container"; do
@@ -48,9 +48,8 @@ anon_key="$(make_jwt anon)"; service_key="$(make_jwt service_role)"
 
 if docker volume inspect "$runtime_volume" >/dev/null 2>&1; then
   if [ "${ESKOMI_E2E_PREPARED_RUNTIME_VOLUME:-}" != "1" ]; then echo "Refusing existing fixture volume" >&2; exit 1; fi
-  runtime_volume_created=1
 else
-  docker volume create "$runtime_volume" >/dev/null; runtime_volume_created=1
+  docker volume create "$runtime_volume" >/dev/null; runtime_volume_owned=1
   docker run --rm --mount "type=bind,src=$headless_root,dst=/source,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'tar -C /source --exclude=node_modules --exclude=.next -cf - . | tar -C /app -xf -; cd /app; npm ci --ignore-scripts' >/dev/null
 fi
 
@@ -97,8 +96,8 @@ end \$\$;
 SQL
 
 docker run -d --rm --name "$next_container" --network "$network_name" --network-alias next --mount "type=volume,src=$runtime_volume,dst=/app" -w /app \
-  -e SUPABASE_URL=http://api:8000 -e SUPABASE_AUTH_PUBLISHABLE_KEY="$anon_key" -e SUPABASE_SERVICE_ROLE_KEY="$service_key" -e PARTNER_AUTH_REDIRECT_ORIGIN=http://localhost:57000 -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password" \
-  node:24-bookworm-slim sh -c 'npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null; next_created=1
+  -e SUPABASE_URL=http://127.0.0.1:8000 -e SUPABASE_AUTH_PUBLISHABLE_KEY="$anon_key" -e SUPABASE_SERVICE_ROLE_KEY="$service_key" -e PARTNER_AUTH_REDIRECT_ORIGIN=http://localhost:57000 -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password" \
+  node:24-bookworm-slim sh -ceu 'node -e '\''const http=require("node:http");const routes={"/auth/v1":"http://api:8000/auth/v1","/rest/v1":"http://api:8000/rest/v1","/storage/v1":"http://api:8000/storage/v1"};http.createServer(async(q,s)=>{const hit=Object.entries(routes).find(([p])=>q.url.startsWith(p));if(!hit){s.writeHead(404);return s.end()}const[p,b]=hit,body=["GET","HEAD"].includes(q.method)?undefined:await new Promise((ok,bad)=>{const a=[];q.on("data",x=>a.push(x));q.on("end",()=>ok(Buffer.concat(a)));q.on("error",bad)}),h={...q.headers};delete h.host;const r=await fetch(b+q.url.slice(p.length),{method:q.method,headers:h,body,redirect:"manual"});s.writeHead(r.status,Object.fromEntries(r.headers));s.end(Buffer.from(await r.arrayBuffer()))}).listen(8000,"127.0.0.1")'\'' & exec npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null; next_created=1
 for _ in $(seq 1 90); do next_logs="$(docker logs "$next_container" 2>&1)"; grep -Eq 'Ready|started server' <<<"$next_logs" && break; sleep 1; done
 grep -Eq 'Ready|started server' <<<"$next_logs"
 
