@@ -39,11 +39,19 @@ requests. It writes a JSON artifact only when the entire run succeeds.
 
 The source contracts, Worker bundle, lint, and typecheck passed in this
 continuation. The existing preserved Docker fixtures were intentionally not
-removed. Repeated attempts to complete the new full fixture were interrupted
-after Wrangler's local server start: the app container exited before the
-fixture's client/metrics script could retain its JSON output. The initial
-runner issue was fixed: it now accepts Wrangler's `Starting local server`
-readiness log in addition to Next's `Ready`/`started server` messages.
+removed. Container inspection established that the exited Worker fixtures had
+`OOMKilled=true` after Wrangler's local server start; their exit code alone was
+therefore misleading. A still-running older Worker fixture consumed about
+845 MiB, so it was **stopped but not removed** before retrying. The runner now
+also excludes ignored `.eskomi-cloudflare-dynamic-builds/` output when making
+its runtime volume; artifact-copying itself was independently confirmed to
+succeed. The readiness check accepts Wrangler's `Starting local server` in
+addition to Next's `Ready`/`started server` messages.
+
+The remaining completion attempt was then cut short by the local execution
+wrapper while the Docker-contained `npm ci` child was still preparing the
+fresh volume. This is not an application or Docker artifact-path error, but it
+still prevents claiming new full-fixture HTTP/metric evidence.
 
 Therefore, there is **no new trustworthy PostgREST measurement JSON in this
 directory yet**. Do not represent the historical page timings as API-call or

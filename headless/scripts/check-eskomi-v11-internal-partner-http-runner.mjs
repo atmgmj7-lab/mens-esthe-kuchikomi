@@ -67,6 +67,7 @@ assert.match(script, /ESKOMI_E2E_PREPARED_RUNTIME_VOLUME/, "a prebuilt disposabl
 assert.match(script, /runtime_volume_owned=0/, "the runner must track ownership of a runtime volume separately from its availability");
 assert.match(script, /ESKOMI_E2E_PRESERVE_FIXTURE/, "the runner must offer an explicit evidence-preservation mode before deleting fixture resources");
 assert.match(script, /Starting local server/, "the Worker fixture readiness check must accept Wrangler's local-server startup message");
+assert.match(script, /--exclude=\.eskomi-cloudflare-dynamic-builds/, "fixture preparation must not copy ignored derived Worker builds into its runtime volume");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_METRICS=1/, "the fixture must enable PostgREST-only aggregate metrics without logging request values");
 assert.match(script, /measure-eskomi-v11-public-http\.mjs/, "the fixture must measure the four representative public routes after API metrics become available");
 assert.match(script, /check-eskomi-v11-public-seo-http\.mjs/, "the fixture must verify canonical/title/body/robots/sitemap through real public HTTP");
@@ -76,6 +77,6 @@ assert.match(script, /ESKOMI_E2E_METRICS_ARTIFACT_DIR/, "the runner must preserv
 assert.match(script, /docker volume create "\$runtime_volume" >\/dev\/null; runtime_volume_owned=1/, "only a volume created by this runner may become cleanup-owned");
 assert.match(script, /\[ "\$runtime_volume_owned" -eq 1 \] && docker volume rm/, "cleanup must remove only a runner-owned runtime volume");
 assert.doesNotMatch(script, /runtime_volume_created/, "the obsolete availability flag must not be used as a cleanup ownership signal");
-assert.match(script, /tar -C \/source --exclude=node_modules --exclude=\.next --exclude=\.open-next --exclude=\.env --exclude=\.env\.\* --exclude=\.npmrc -cf - \./, "a runner-owned runtime volume must exclude canonical Worker output, dotenv, and npm configuration files from the source copy");
+assert.match(script, /tar -C \/source --exclude=node_modules --exclude=\.next --exclude=\.open-next --exclude=\.eskomi-cloudflare-dynamic-builds --exclude=\.env --exclude=\.env\.\* --exclude=\.npmrc -cf - \./, "a runner-owned runtime volume must exclude generated Worker builds, dotenv, and npm configuration files from the source copy");
 
 console.log("Eskomi v1.1 internal partner HTTP runner safety contract: PASS");

@@ -66,7 +66,7 @@ if docker volume inspect "$runtime_volume" >/dev/null 2>&1; then
   if [ "$app_runtime" = "workers" ]; then echo "Workers fixture refuses a prepared runtime volume so it never overlays an existing artifact" >&2; exit 1; fi
 else
   docker volume create "$runtime_volume" >/dev/null; runtime_volume_owned=1
-  docker run --rm --mount "type=bind,src=$headless_root,dst=/source,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'tar -C /source --exclude=node_modules --exclude=.next --exclude=.open-next --exclude=.env --exclude=.env.* --exclude=.npmrc -cf - . | tar -C /app -xf -; cd /app; npm ci --ignore-scripts' >/dev/null
+  docker run --rm --mount "type=bind,src=$headless_root,dst=/source,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'tar -C /source --exclude=node_modules --exclude=.next --exclude=.open-next --exclude=.eskomi-cloudflare-dynamic-builds --exclude=.env --exclude=.env.* --exclude=.npmrc -cf - . | tar -C /app -xf -; cd /app; npm ci --ignore-scripts' >/dev/null
   if [ "$app_runtime" = "workers" ]; then
     docker run --rm --mount "type=bind,src=$workers_artifact_root,dst=/artifact,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'mkdir /app/.open-next; tar -C /artifact/.open-next -cf - . | tar -C /app/.open-next -xf -' >/dev/null
   fi
