@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -24,24 +24,32 @@ const publicReaderPaths = Object.freeze([
   "lib/wp/posts.ts",
   "lib/wp/reviews.ts",
   "lib/wp/shops.ts",
+  "lib/analytics/snapshot-cache.ts",
 ]);
 
-const dynamicPagePaths = Object.freeze([
-  "app/page.tsx",
-  "app/[slug]/page.tsx",
-  "app/area/[slug]/page.tsx",
+const instantRoutePaths = Object.freeze([
   "app/area/[slug]/community/page.tsx",
-  "app/area/sakai/page.tsx",
-  "app/area/shinosaka/page.tsx",
-  "app/column/page.tsx",
-  "app/column/[slug]/page.tsx",
-  "app/partner/register/page.tsx",
-  "app/reviews/page.tsx",
+  "app/dashboard/listing-applications/[id]/page.tsx",
+  "app/dashboard/partners/page.tsx",
+  "app/dashboard/shops/[id]/edit/page.tsx",
+  "app/dashboard/shops/[id]/page.tsx",
+  "app/dashboard/shops/managed/[id]/page.tsx",
+  "app/dashboard/shops/page.tsx",
+  "app/listing/[id]/page.tsx",
+  "app/partner/growth/page.tsx",
+  "app/partner/growth/pop/page.tsx",
+  "app/partner/listing/page.tsx",
+  "app/partner/onboarding/page.tsx",
+  "app/partner/page.tsx",
+  "app/partner/settings/page.tsx",
+  "app/partner/therapists/page.tsx",
+  "app/partner/widget/[token]/page.tsx",
+  "app/partner/workspace/[workspaceId]/page.tsx",
+  "app/reviews/entry/[entryHandle]/page.tsx",
   "app/reviews/submit/page.tsx",
-  "app/shops/page.tsx",
-  "app/shops/[slug]/page.tsx",
   "app/shops/[slug]/community/page.tsx",
-  "app/shops/[slug]/reviews/page.tsx",
+  "app/shops/[slug]/page.tsx",
+  "app/therapists/[assignmentId]/page.tsx",
 ]);
 
 const mutationRoutePaths = Object.freeze([
@@ -75,29 +83,26 @@ function writeNewFile(path, contents) {
 }
 
 function transformPublicReader(relativePath, original = readSource(relativePath)) {
-  assert.match(original, /"use cache";/u, `${relativePath} must contain a cache directive before transformation`);
+  assert.match(original, /"use cache(?:: [^"]+)?";/u, `${relativePath} must contain a cache directive before transformation`);
   assert.match(original, /from "next\/cache"/u, `${relativePath} must import Cache Components helpers before transformation`);
 
   let transformed = original
-    .replace(/^\s*"use cache";\r?\n/gmu, "")
+    .replace(/^\s*"use cache(?:: [^"]+)?";\r?\n/gmu, "")
     .replace(/^\s*cacheLife\([^\n]*\);\r?\n/gmu, "")
     .replace(/^\s*cacheTag\([^\n]*\);\r?\n/gmu, "")
     .replace(/^\s*cacheTag\([\s\S]*?^\s*\);\r?\n/gmu, "")
     .replace(/^import \{ cacheLife, cacheTag \} from "next\/cache";\r?\n/gmu, "")
     .replace(/^import \{ cacheLife \} from "next\/cache";\r?\n/gmu, "");
 
-  assert.doesNotMatch(transformed, /"use cache";|\bcacheLife\(|\bcacheTag\(/u, `${relativePath} retained an unsupported public cache instruction`);
+  assert.doesNotMatch(transformed, /"use cache(?:: [^"]+)?";|\bcacheLife\(|\bcacheTag\(/u, `${relativePath} retained an unsupported public cache instruction`);
   assert.doesNotMatch(transformed, /from "next\/cache"/u, `${relativePath} retained an unused Cache Components import`);
   return transformed;
 }
 
-function transformDynamicPage(relativePath, original = readSource(relativePath)) {
-  assert.doesNotMatch(original, /^"use client";/mu, `${relativePath} must be a server route before adding the dynamic route config`);
-  if (/export const instant\s*=\s*false;/u.test(original)) return original;
-  const insertionIndex = original.indexOf("\n");
-  assert.notEqual(insertionIndex, -1, `${relativePath} must have an import header before adding its dynamic route config`);
-  const transformed = `${original.slice(0, insertionIndex + 1)}export const instant = false;\n${original.slice(insertionIndex + 1)}`;
-  assert.match(transformed, /export const instant\s*=\s*false;/u, `${relativePath} did not receive its Cloudflare dynamic route config`);
+function transformInstantRoute(relativePath, original = readSource(relativePath)) {
+  assert.match(original, /^export const instant\s*=\s*false;\r?\n/mu, `${relativePath} must contain an instant export before Cache Components are disabled`);
+  const transformed = original.replace(/^export const instant\s*=\s*false;\r?\n/gmu, "");
+  assert.doesNotMatch(transformed, /^export const instant\s*=/mu, `${relativePath} retained a Cache Components-only instant export`);
   return transformed;
 }
 
@@ -110,12 +115,13 @@ function transformMutationRoute(relativePath, original = readSource(relativePath
 
 function transformNextConfig() {
   const original = readSource("next.config.ts");
-  assert.match(original, /const nextConfig: NextConfig = \{/u, "canonical Next config must expose its config object");
-  assert.doesNotMatch(original, /turbopack:\s*\{\s*root:/u, "canonical Next config must not be rewritten for the derived build root");
+  assert.match(original, /cacheComponents:\s*true/u, "canonical Next config must keep Cache Components enabled for Node/Vercel");
   const transformed = original
     .replace('import type { NextConfig } from "next";\n', 'import { resolve } from "node:path";\nimport type { NextConfig } from "next";\n')
-    .replace("const nextConfig: NextConfig = {", "const nextConfig: NextConfig = {\n  // This run directory is two levels below the canonical dependency root.\n  turbopack: { root: resolve(process.cwd(), \"../..\") },");
-  assert.match(transformed, /turbopack:\s*\{\s*root:/u, "derived Next config must set an enclosing Turbopack root");
+    .replace("const nextConfig: NextConfig = {", "const nextConfig: NextConfig = {\n  // Keep the standalone package rooted at this generated app, not its parent workspace.\n  outputFileTracingRoot: resolve(process.cwd()),\n  // OpenNext external Node middleware copies its trace through this Next output.\n  output: \"standalone\",")
+    .replace(/cacheComponents:\s*true/u, "cacheComponents: false");
+  assert.match(transformed, /cacheComponents:\s*false/u, "derived Next config must disable Cache Components");
+  assert.match(transformed, /output:\s*"standalone"/u, "derived Next config must emit the standalone trace tree required by OpenNext");
   return transformed;
 }
 
@@ -127,7 +133,7 @@ function transformPackageJson() {
 }
 
 function copyProjectSkeleton(derivedDirectory) {
-  const generatedPaths = new Set(["next.config.ts", "package.json", ...publicReaderPaths, ...dynamicPagePaths, ...mutationRoutePaths]);
+  const generatedPaths = new Set(["next.config.ts", "package.json", ...publicReaderPaths, ...instantRoutePaths, ...mutationRoutePaths]);
   for (const directory of copyDirectories) {
     const source = join(projectDirectory, directory);
     assert.equal(existsSync(source), true, `required source directory is missing: ${directory}`);
@@ -148,12 +154,14 @@ function copyProjectSkeleton(derivedDirectory) {
   }
 }
 
-function copyReadOnlyDependencies(derivedDirectory) {
+function linkReadOnlyDependencies(derivedDirectory) {
   const sourceDependencies = join(projectDirectory, "node_modules");
   assert.equal(existsSync(sourceDependencies), true, "the canonical dependency directory must exist before creating a derived source tree");
   const derivedDependencies = join(derivedDirectory, "node_modules");
   assert.equal(existsSync(derivedDependencies), false, "derived source must not replace a dependency directory");
-  cpSync(sourceDependencies, derivedDependencies, { recursive: true, force: false, errorOnExist: true });
+  // A copied tree makes Next 16.3.8 lose its build workStore. Webpack resolves
+  // this read-only link without broadening the generated source tree.
+  symlinkSync(sourceDependencies, derivedDependencies, "dir");
 }
 
 function writeDerivedNoopInvalidationModule(derivedDirectory) {
@@ -173,7 +181,7 @@ function prepareDerivedSource() {
   const derivedDirectory = join(buildBaseDirectory, `run-${runId}`);
   mkdirSync(derivedDirectory, { recursive: false });
   copyProjectSkeleton(derivedDirectory);
-  copyReadOnlyDependencies(derivedDirectory);
+  linkReadOnlyDependencies(derivedDirectory);
 
   const generatedSources = new Map([
     ["next.config.ts", transformNextConfig()],
@@ -182,8 +190,8 @@ function prepareDerivedSource() {
   for (const relativePath of publicReaderPaths) {
     generatedSources.set(relativePath, transformPublicReader(relativePath));
   }
-  for (const relativePath of dynamicPagePaths) {
-    generatedSources.set(relativePath, transformDynamicPage(relativePath, generatedSources.get(relativePath)));
+  for (const relativePath of instantRoutePaths) {
+    generatedSources.set(relativePath, transformInstantRoute(relativePath, generatedSources.get(relativePath)));
   }
   for (const relativePath of mutationRoutePaths) {
     generatedSources.set(relativePath, transformMutationRoute(relativePath));
@@ -199,7 +207,7 @@ function prepareDerivedSource() {
     kind: "eskomi-cloudflare-dynamic-public-read",
     sourceRoot: relative(projectDirectory, derivedDirectory),
     publicReaderPaths,
-    dynamicPagePaths,
+    instantRoutePaths,
     mutationRoutePaths,
     copiedSecretFiles: false,
   }, null, 2)}\n`);

@@ -4,9 +4,9 @@
 
 **Goal:** Make the Cloudflare-only OpenNext build serve public Eskomi data as explicit dynamic, no-store reads without changing the normal Node/Vercel build.
 
-**Architecture status:** **Blocked at the Next build-system boundary.** The normal build keeps Next Cache Components unchanged. A feasibility implementation proved that a webpack source loader can transform reader bodies, but Next extracts App Router segment configuration before that loader runs. Therefore the loader cannot safely supply the required `export const instant = false` to public pages after it removes Cache Components. Disabling Cache Components globally also invalidates existing `instant` exports. Do not implement a source-only loader or mutation no-op until the user chooses a physical Worker staging-source strategy or accepts a shared-route rendering-policy change. The image compatibility path remains a separate task and must retain the existing validation contract.
+**Architecture status:** **Physical-source build reaches the Worker image-runtime blocker.** The normal build keeps Next Cache Components unchanged. The derived source removes its public cache directives and Cache Components-only `instant` exports before Next route discovery, while preserving the canonical Node/Vercel source. Next 16.3.8 cannot build a copied dependency tree (`workStore` is uninitialized), and Turbopack rejects an external dependency symlink; the derived command therefore uses Webpack, a read-only dependency symlink, and a self-rooted standalone trace. It now completes the full Next build and OpenNext middleware bundle. The remaining server-bundle failure is the native `sharp` dependency, which cannot run in workerd. Do not bypass image validation, pass images through, or adopt a new codec/storage service without a separate approval.
 
-**Tech Stack:** Next.js 16.3.8, OpenNext Cloudflare 1.20.9, webpack-only source loader, local workerd, disposable Docker fixture.
+**Tech Stack:** Next.js 16.3.8, OpenNext Cloudflare 1.20.9, Webpack derived-source build, local workerd, disposable Docker fixture.
 
 **Spec:** `docs/technical/artifacts/2026-10-18-cloudflare-workers-offline-migration-plan.md`
 
@@ -72,15 +72,20 @@ directives, adds `instant = false` before Next discovers the affected public
 route modules (including the Sakai/Shin-Osaka static aliases), and substitutes
 only the four public mutation invalidators with a derived no-op adapter.
 
-The source contract passes and the canonical Node/Turbopack build plus the
-original offline OpenNext Workers build still pass. The derived `next build`
-also classifies the selected public pages as dynamic. It is **not** a usable
-Worker build yet: after a symlinked dependency variant exposed an OpenNext
-trace-copy failure, a fully copied dependency variant progressed further but
-Next 16.3.8 Webpack/Cache Components failed with `Expected workStore to be
-initialized` while prerendering unrelated `/area/osaka`, `/_global-error`, and
-`/partner/onboarding` routes. These derived trees are retained as ignored
-evidence; no HTTP, image, SEO, approval/unlisting, or latency item is a PASS.
+The source contract passes. The `workStore` error was reproduced with a
+metadata-only minimal Next app when `node_modules` was copied into a nested
+derived tree, and disappears when the same app resolves the canonical
+dependencies or uses an in-root symlink with Webpack. Turbopack rejects that
+symlink unless its root expands to the parent workspace; doing so makes
+Next's standalone tree parent-relative, which OpenNext cannot locate. The
+derived command therefore uses Webpack with `outputFileTracingRoot` set to the
+generated app itself. This reaches the complete 84-route Next build, emits the
+expected standalone trace layout, and bundles the OpenNext middleware.
+
+It is **not** a usable Worker build yet: the OpenNext server bundle reaches
+`sharp` and fails on native `.node` resolution. These derived trees are
+retained as ignored evidence; no HTTP, image, SEO, approval/unlisting, or
+latency item is a PASS.
 
 **Ruling:** keep the failed trial under explicit `workers:dynamic-build` and
 restore `workers:build` to the pre-existing offline baseline command. This

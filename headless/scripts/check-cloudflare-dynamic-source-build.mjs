@@ -47,32 +47,30 @@ assert.equal(existsSync(join(derivedRoot, ".env")), false, "derived source must 
 assert.equal(existsSync(join(derivedRoot, ".env.local")), false, "derived source must not copy .env.local");
 assert.equal(existsSync(join(derivedRoot, ".dev.vars")), false, "derived source must not copy .dev.vars");
 assert.equal(existsSync(join(derivedRoot, ".npmrc")), false, "derived source must not copy .npmrc");
-assert.equal(lstatSync(join(derivedRoot, "node_modules")).isDirectory(), true, "derived source must provide an isolated node_modules copy for traceable OpenNext middleware output");
-assert.equal(lstatSync(join(derivedRoot, "node_modules")).isSymbolicLink(), false, "derived source must not retain a symlink that escapes its trace root");
-assert.equal(existsSync(join(derivedRoot, "node_modules", "next", "package.json")), true, "derived source must contain its Next dependency copy");
-assert.match(
-  readFileSync(join(derivedRoot, "next.config.ts"), "utf8"),
-  /turbopack:\s*\{\s*root:/u,
-  "derived config must keep its app and read-only dependency reference inside one Turbopack filesystem root",
-);
-assert.equal(
-  JSON.parse(readFileSync(join(derivedRoot, "package.json"), "utf8")).scripts?.build,
-  "next build --webpack",
-  "derived build must use webpack so OpenNext receives the completed middleware trace",
-);
+assert.equal(lstatSync(join(derivedRoot, "node_modules")).isSymbolicLink(), true, "derived source must link to the canonical read-only dependencies");
+assert.equal(existsSync(join(derivedRoot, "node_modules", "next", "package.json")), true, "derived source must resolve the canonical Next dependency");
+assert.match(readFileSync(join(derivedRoot, "next.config.ts"), "utf8"), /cacheComponents:\s*false/u, "derived config must disable Cache Components");
+assert.match(readFileSync(join(derivedRoot, "next.config.ts"), "utf8"), /output:\s*"standalone"/u, "derived config must emit OpenNext's required standalone trace tree");
+assert.match(readFileSync(join(derivedRoot, "next.config.ts"), "utf8"), /outputFileTracingRoot:\s*resolve\(process\.cwd\(\)\)/u, "derived config must root its standalone trace package at the generated app");
+assert.equal(JSON.parse(readFileSync(join(derivedRoot, "package.json"), "utf8")).scripts?.build, "next build --webpack", "derived build must use Webpack because Turbopack rejects the read-only dependency link");
 
 const originalHome = readFileSync(join(projectDirectory, "app/page.tsx"), "utf8");
 const derivedHome = readFileSync(join(derivedRoot, "app/page.tsx"), "utf8");
 assert.match(originalHome, /"use cache";/u, "canonical source must retain its Cache Components directive");
 assert.doesNotMatch(derivedHome, /"use cache";|\bcacheLife\(|\bcacheTag\(/u, "derived public reader must remove Cache Components calls");
-assert.match(derivedHome, /export const instant\s*=\s*false;/u, "derived public route must declare its dynamic route config before Next discovery");
+assert.doesNotMatch(derivedHome, /export const instant\s*=/u, "derived public route must not retain Cache Components-only instant config");
 
-for (const staticAreaRoute of ["app/area/sakai/page.tsx", "app/area/shinosaka/page.tsx"]) {
+for (const staticAreaRoute of ["app/area/sakai/page.tsx", "app/area/shinosaka/page.tsx", "app/partner/onboarding/page.tsx"]) {
   assert.match(
     readFileSync(join(derivedRoot, staticAreaRoute), "utf8"),
-    /export const instant\s*=\s*false;/u,
-    `${staticAreaRoute} must opt out of the static shell because its shared area component reads dynamic public data`,
+    /export default/u,
+    `${staticAreaRoute} must remain a generated route module`,
   );
+  assert.doesNotMatch(readFileSync(join(derivedRoot, staticAreaRoute), "utf8"), /export const instant\s*=/u, `${staticAreaRoute} must remove Cache Components-only instant config`);
+}
+
+for (const relativePath of ["lib/analytics/snapshot-cache.ts", "lib/wp/shops.ts"]) {
+  assert.doesNotMatch(readFileSync(join(derivedRoot, relativePath), "utf8"), /"use cache(?:: [^"]+)?";|\bcacheLife\(|\bcacheTag\(/u, `${relativePath} must not retain a Cache Components directive in conventional dynamic mode`);
 }
 
 for (const mutationRoute of [

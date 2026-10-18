@@ -83,6 +83,26 @@ The Worker run intentionally remains failing for these blockers. No missing
 feature is recorded as PASS and no account, cache binding, deployment, DNS,
 or production Auth/DB change is implied.
 
+## Derived dynamic-public-read build follow-up
+
+This is build evidence only; it is not fixture HTTP evidence. A fresh ignored
+derived source tree now disables Cache Components, removes every selected
+public-reader cache directive and every existing `instant = false` export, and
+uses a derived-only invalidation no-op. The canonical Node/Vercel source and
+its Turbopack command are unchanged.
+
+| Boundary | Result | Interpretation |
+| --- | --- | --- |
+| Minimal metadata app, copied nested `node_modules`, Next 16.3.8 | FAIL: `Expected workStore to be initialized` | Reproduces the earlier unrelated-route prerender failure without Eskomi code. |
+| Minimal app, read-only `node_modules` symlink inside a valid workspace root | PASS (Cache Components both on and off) | The failure is the copied dependency tree, not metadata, cache mode, or the app routes. |
+| Full derived app, Webpack + self-rooted standalone trace | PASS through 84-route Next build and OpenNext Node-middleware bundle | Solves the workStore and missing standalone-trace boundaries without modifying normal source. |
+| Full derived OpenNext server bundle | BLOCKED: native `sharp` `.node` cannot be resolved for workerd | Image validation/conversion remains incompatible; no pass-through or validation relaxation was introduced. |
+
+The failed and passing build trees remain in ignored timestamped directories.
+No Workers HTTP assertion was rerun after this build-only advance, so the
+existing worker public-page/image/review-link entries remain BLOCKED or NOT
+REACHED as listed above.
+
 Follow-up local minimal reproductions confirmed that the Cache Components
 failure is independent of the Eskomi proxy and fixture services: direct,
 Suspense-wrapped, and static `"use cache"` pages all return the same local
