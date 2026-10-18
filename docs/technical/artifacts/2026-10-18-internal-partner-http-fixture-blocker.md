@@ -227,16 +227,20 @@ At that point no installed QR decoder existed in the lockfile or host image
 was present). The next follow-up records the approved test-only decoder used
 for a generated-image URL check; a camera/device scan remains unverified.
 
-## 2026-10-18 follow-up — partial-only access collection and POP QR decode
+## 2026-10-18 follow-up — partial-only access finalizer helper and POP QR decode
 
-The smallest safe collector is now implemented without a cron, new credential,
-or production run. `scripts/run-eskomi-v11-access-collection.mjs --observed-on
-YYYY-MM-DD` requires the existing observation endpoint URL and existing
-observation secret, accepts only a past JST date, and sends only
+The smallest safe **finalizer helper** is now implemented without a cron, new
+credential, or production run. `scripts/run-eskomi-v11-access-collection.mjs
+--observed-on YYYY-MM-DD` requires the existing observation endpoint URL and
+existing observation secret, accepts only a past JST date, and sends only
 `{ observedOn, state: "partial" }`. A successful call is recorded by the
 existing collection-run/finalizer; a missing run or unreachable endpoint writes
-nothing and therefore remains `unknown` in the report. The internal route now
+nothing and therefore remains `unknown` in the report. The internal route
 rejects caller-supplied `complete` with HTTP 400 and always forwards `partial`.
+The helper sets `redirect: "error"`: 307/308 responses are rejected rather
+than followed, so its observation secret is not forwarded to a redirect target
+on another origin. This is a request-boundary safeguard, not observation or
+failure detection.
 This establishes failure/partial evidence without treating a health response or
 a single event as complete coverage.
 

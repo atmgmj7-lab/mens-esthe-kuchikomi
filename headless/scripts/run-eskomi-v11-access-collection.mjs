@@ -21,7 +21,9 @@ export async function runPartialAccessCollection({ observedOn, environment = pro
   const secret = environment.ESKOMI_ACCESS_OBSERVATION_SECRET;
   if (!validEndpoint(endpoint)) throw new Error("ESKOMI_ACCESS_OBSERVATION_URL must be an HTTPS internal observation endpoint");
   if (typeof secret !== "string" || !secret.trim()) throw new Error("ESKOMI_ACCESS_OBSERVATION_SECRET is required");
-  const response = await fetchImpl(endpoint, { method: "POST", headers: { "Content-Type": "application/json", "x-eskomi-access-observation-secret": secret }, body: JSON.stringify({ observedOn, state: "partial" }), cache: "no-store" });
+  // Never follow a redirect: this request bears the finalizer secret and the
+  // configured endpoint is the sole origin authorized to receive it.
+  const response = await fetchImpl(endpoint, { method: "POST", headers: { "Content-Type": "application/json", "x-eskomi-access-observation-secret": secret }, body: JSON.stringify({ observedOn, state: "partial" }), cache: "no-store", redirect: "error" });
   if (response.status !== 204) throw new Error(`partial access collection failed with HTTP ${response.status}`);
 }
 
