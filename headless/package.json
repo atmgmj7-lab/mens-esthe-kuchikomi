@@ -46,6 +46,7 @@
     "test:listing-application-migration-security": "node scripts/check-listing-application-migration-security.mjs",
     "test:partner-listing-editor": "node scripts/check-partner-listing-editor-contract.mjs",
     "test:partner-listing-editor-ui": "node scripts/check-partner-listing-editor-ui.mjs",
+    "test:eskomi-v11-runner-cleanup": "node scripts/check-eskomi-v11-replay-runner-cleanup.mjs",
     "qa:partner-listing-editor": "npm run build && node scripts/check-partner-listing-editor-browser.mjs",
     "qa:partner-listing-editor-local-supabase": "npm run build && node scripts/check-partner-listing-editor-local-supabase-browser.mjs",
     "test:partner-listing-editor-local-supabase": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_partner_listing_editor.sql",

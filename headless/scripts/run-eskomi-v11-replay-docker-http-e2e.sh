@@ -13,6 +13,11 @@ next_container="${ESKOMI_NEXT_CONTAINER:-eskomi-next-v11-http-e2e}"
 browser_container="${ESKOMI_BROWSER_CONTAINER:-eskomi-browser-v11-http-e2e}"
 runtime_volume="${ESKOMI_E2E_RUNTIME_VOLUME:-eskomi-v11-runtime-${RANDOM}-${RANDOM}}"
 runtime_volume_created=0
+network_created=0
+database_created=0
+postgrest_created=0
+next_created=0
+browser_created=0
 database_name="${ESKOMI_PG17_DATABASE:-eskomi_verify}"
 jwt_secret="e2e-only-local-postgrest-jwt-secret-012345678901234567890123456789"
 replay_key="${ESKOMI_REVIEW_REPLAY_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}"
@@ -24,10 +29,16 @@ other_partner_user="22222222-2222-4222-8222-222222222222"
 operator_partner_user="33333333-3333-4333-8333-333333333333"
 
 cleanup() {
-  docker rm -f "$browser_container" "$next_container" "$postgrest_container" "$database_container" >/dev/null 2>&1 || true
-  docker network rm "$network_name" >/dev/null 2>&1 || true
+  [ "$browser_created" -eq 1 ] && docker rm -f "$browser_container" >/dev/null 2>&1 || true
+  [ "$next_created" -eq 1 ] && docker rm -f "$next_container" >/dev/null 2>&1 || true
+  [ "$postgrest_created" -eq 1 ] && docker rm -f "$postgrest_container" >/dev/null 2>&1 || true
+  [ "$database_created" -eq 1 ] && docker rm -f "$database_container" >/dev/null 2>&1 || true
+  [ "$network_created" -eq 1 ] && docker network rm "$network_name" >/dev/null 2>&1 || true
   if [ "$runtime_volume_created" -eq 1 ]; then docker volume rm "$runtime_volume" >/dev/null 2>&1 || true; fi
 }
+for resource in "$network_name" "$database_container" "$postgrest_container" "$next_container" "$browser_container"; do
+  if docker network inspect "$resource" >/dev/null 2>&1 || docker container inspect "$resource" >/dev/null 2>&1; then echo "Refusing existing Docker resource: $resource" >&2; exit 1; fi
+done
 trap cleanup EXIT
 
 service_role_jwt="$(node -e 'const c=require("node:crypto");const b=(x)=>Buffer.from(JSON.stringify(x)).toString("base64url");const h=b({alg:"HS256",typ:"JWT"});const p=b({role:"service_role"});process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.argv[1]).update(h+"."+p).digest("base64url"));' "$jwt_secret")"
@@ -51,8 +62,10 @@ docker run --rm \
   ' >/dev/null
 
 docker network create --internal "$network_name" >/dev/null
+network_created=1
 docker run -d --rm --name "$database_container" --network "$network_name" --network-alias postgres \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB="$database_name" postgres:17 >/dev/null
+database_created=1
 for _ in $(seq 1 30); do
   if docker exec "$database_container" pg_isready -U postgres -d "$database_name" >/dev/null 2>&1; then break; fi
   sleep 1
@@ -191,6 +204,7 @@ docker run -d --rm --name "$postgrest_container" --network "$network_name" --net
   -e PGRST_DB_URI="postgres://authenticator:fixture-authenticator-password@postgres:5432/$database_name" \
   -e PGRST_DB_SCHEMAS=api -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$jwt_secret" \
   postgrest/postgrest:v16.4 >/dev/null
+postgrest_created=1
 for _ in $(seq 1 30); do
   postgrest_logs="$(docker logs "$postgrest_container" 2>&1)"
   grep -q 'API server listening' <<<"$postgrest_logs" && break
@@ -220,6 +234,7 @@ docker run -d --rm --name "$next_container" --network "$network_name" --network-
   -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password" -e ESKOMI_ACCESS_CONTEXT_SECRET="$access_context_secret" \
   -e SHOP_OWNER_REQUEST_DRY_RUN=true \
   node:24-bookworm-slim sh -c 'npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
+next_created=1
 for _ in $(seq 1 90); do
   next_logs="$(docker logs "$next_container" 2>&1)"
   grep -Eq 'Ready|started server' <<<"$next_logs" && break
@@ -449,6 +464,7 @@ docker run -d --rm --name "$browser_container" --network "$network_name" --netwo
   --entrypoint /usr/bin/google-chrome browserless/chrome:latest \
   --headless=new --no-sandbox --disable-gpu --proxy-server=direct:// --proxy-bypass-list='*' \
   --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222 >/dev/null
+browser_created=1
 sleep 2
 browser_logs="$(docker logs "$browser_container" 2>&1)"
 cdp_path="$(sed -n 's@.*ws://127\.0\.0\.1:9222\(/devtools/browser/.*\)@\1@p' <<<"$browser_logs" | tail -n 1)"
