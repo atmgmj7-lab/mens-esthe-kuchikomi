@@ -942,3 +942,6 @@
 
 - Added the first-pilot gate, an acceptance-matrix link, and a static check that verifies migration timestamp order, the legacy mapping anchor, the global-reader implementation anchor, and all stated safety/unknown boundaries.
 - `npm run test:review-public-adapter`, `npm run test:eskomi-v11-first-pilot-gate`, and `npm run lint` passed.  No production or external-environment action was run.
+- Saved the packet as `7e9e961b3706cbdecd2cb6ce0b9dd5532e8e34ed` on
+  `origin/codex/wp-independent-prep-20261017`; read-only remote verification
+  confirmed `main` remains `78d7e06046953b493ec690231fede121cba0211a`.

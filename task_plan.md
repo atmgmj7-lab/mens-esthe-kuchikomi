@@ -751,7 +751,7 @@ store-scoped.
 - [x] Inspect the legacy workspace mapping contract and public-review source switch scope.
 - [x] Write the minimal pilot gate, including migration ordering, read-only binding, backup/recovery, and global-reader impact gates.
 - [x] Add a harmless source/packet consistency check and run it.
-- [ ] Update the acceptance packet, verify diffs, commit, push the approved branch, and confirm its remote SHA.
+- [x] Update the acceptance packet, verify diffs, commit, push the approved branch, and confirm its remote SHA.
 
 ## Guardrails
 
