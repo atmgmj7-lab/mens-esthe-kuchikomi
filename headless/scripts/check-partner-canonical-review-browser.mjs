@@ -36,6 +36,14 @@ async function assertNoHorizontalOverflow(page, label) {
   assert.ok(dimensions.document <= dimensions.viewport, `${label} must not overflow horizontally: ${JSON.stringify(dimensions)}`);
 }
 
+async function waitForReviewRequests(count) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (reviewRequests.length === count) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  assert.equal(reviewRequests.length, count, `expected ${count} review request(s) before allowing the delayed response`);
+}
+
 const mockPort = await freePort();
 const appPort = await freePort();
 const mock = http.createServer(async (request, response) => {
@@ -50,7 +58,7 @@ const mock = http.createServer(async (request, response) => {
   }
   if (url.pathname === "/rest/v1/rpc/review_canonical_managed_shop_revision" && request.method === "POST") {
     reviewRequests.push(body);
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    await new Promise((resolve) => setTimeout(resolve, 750));
     return json(response, 200, "ok");
   }
   return json(response, 404, { message: "not found" });
@@ -88,11 +96,14 @@ try {
   assert.equal(reviewRequests.length, 0, "cancelling an approval note must not create a review request");
 
   page.once("dialog", (dialog) => dialog.accept(""));
-  const [approval] = await Promise.all([
-    page.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST"),
-    page.getByRole("button", { name: "承認して公開" }).click(),
-  ]);
+  const approvalPromise = page.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST");
+  await page.getByRole("button", { name: "承認して公開" }).click();
+  await waitForReviewRequests(1);
+  assert.equal(await page.getByRole("button", { name: "承認して公開" }).isDisabled(), true, "approval controls must remain disabled while the delayed response is in flight");
   await page.getByRole("button", { name: "承認して公開" }).evaluate((button) => button.click());
+  await page.waitForTimeout(100);
+  assert.equal(reviewRequests.length, 1, "a repeat approval click during the delayed response must not create a second request");
+  const approval = await approvalPromise;
   assert.equal(approval.status(), 200, await approval.text());
   await page.getByRole("status").getByText("申請を承認して公開しました").waitFor({ state: "visible" });
   assert.equal(reviewRequests.length, 1, "an in-flight approval must ignore a repeat click");
@@ -109,11 +120,14 @@ try {
   assert.equal(reviewRequests.length, 1, "an empty changes-requested note must not create a review request");
 
   page.once("dialog", (dialog) => dialog.accept("fixture correction reason"));
-  const [changesRequested] = await Promise.all([
-    page.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST"),
-    page.getByRole("button", { name: "差し戻し" }).click(),
-  ]);
+  const changesRequestedPromise = page.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST");
+  await page.getByRole("button", { name: "差し戻し" }).click();
+  await waitForReviewRequests(2);
+  assert.equal(await page.getByRole("button", { name: "差し戻し" }).isDisabled(), true, "changes-requested controls must remain disabled while the delayed response is in flight");
   await page.getByRole("button", { name: "差し戻し" }).evaluate((button) => button.click());
+  await page.waitForTimeout(100);
+  assert.equal(reviewRequests.length, 2, "a repeat changes-requested click during the delayed response must not create a second request");
+  const changesRequested = await changesRequestedPromise;
   assert.equal(changesRequested.status(), 200, await changesRequested.text());
   await page.getByRole("status").getByText("申請を差し戻しました").waitFor({ state: "visible" });
   assert.equal(reviewRequests.length, 2, "an in-flight changes-requested action must ignore a repeat click");

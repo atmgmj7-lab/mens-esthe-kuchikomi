@@ -196,9 +196,10 @@ production release.
   one Docker `--internal` network, no published ports): normal Next
   login-email change returns 202; both real GoTrue confirmation links are
   consumed; `/user` reports the new fixture email; and the old email receives
-  no usable Partner login handoff. The run also proves canonical approval/
-  public projection, image handling, review-link issuance, and foreign-store
-  denial.
+  no usable Partner login handoff. It also proves canonical
+  changes-requested reason → Partner listing → corrected draft → resubmission
+  → re-approval → public projection, plus image handling, review-link
+  issuance, and foreign-store denial.
 - Migration `20261018100000_partner_login_email_canonical_audit.sql` keeps
   exactly one audit identity: legacy `wp_shop_id` or canonical `app_shop_id`.
   It is not applied to production.

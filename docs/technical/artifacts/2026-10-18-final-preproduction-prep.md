@@ -27,9 +27,9 @@ server-side Supabase/Auth configuration.
 
 | Evidence | Result | Scope |
 | --- | --- | --- |
-| Canonical review cancellation/repeat | PASS | Loopback Next + mock RPC + Chrome: PC/SP approval and return; cancelled/empty/repeat writes blocked. |
-| Returned listing lifecycle | PASS | Loopback Next + mock RPC + Chrome: reason display → correction → resubmission → approval → 390px/1280px public result. |
-| Partner HTTP lifecycle | PASS | Fresh PostgreSQL, GoTrue, Mailpit, Storage, and Next on one disposable Docker `--internal` network: real email change confirmation, old-email rejection, canonical shop/image/review-link flow, and cross-store denial. |
+| Canonical review cancellation/repeat | PASS | Loopback Next + mock RPC + Chrome: PC/SP approval and return; cancelled/empty writes blocked. The mock RPC response is held open while repeat clicks occur; exactly one write is asserted. |
+| Returned listing lifecycle | PASS | Loopback fixture preserves the display workflow at 390px/1280px. Separately, the real canonical HTTP fixture proves the matching canonical reason → correction → resubmission → re-approval → public-projection RPC path. |
+| Partner HTTP lifecycle | PASS | Fresh PostgreSQL, GoTrue, Mailpit, Storage, and Next on one disposable Docker `--internal` network: real email change confirmation, old-email rejection, canonical return/correction lifecycle, therapist/review-link flow, and cross-store denial. |
 
 Screenshots remain locally under
 `headless/docs/technical/artifacts/v11-fixture-qa/2026-10-18-continuation/`.

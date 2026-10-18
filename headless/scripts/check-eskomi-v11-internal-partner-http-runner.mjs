@@ -15,6 +15,8 @@ assert.match(script, /\/api\/partner\/auth\/request-link/, "the test must exerci
 assert.match(script, /\/api\/partner\/auth\/complete-link/, "the test must exercise the normal Next login completion endpoint");
 assert.match(script, /\/api\/partner\/listing/, "the test must exercise the normal Next listing endpoint");
 assert.match(script, /\/api\/dashboard\/managed-shops\//, "the test must exercise the normal Next canonical managed-shop dashboard review endpoint");
+assert.match(script, /Canonical changes-requested reason must reach the Partner listing/, "the test must prove canonical changes-requested reason delivery through normal Next HTTP");
+assert.match(script, /Canonical corrected resubmission must publish through the normal dashboard review/, "the test must prove canonical correction, resubmission, and re-approval through normal Next HTTP");
 assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercise normal Next therapist photo upload");
 assert.match(script, /\/shops\/fixture-partner-store\//, "the test must observe the canonical public shop route after dashboard approval");
 assert.match(script, /\/api\/therapists\/\$\{assignment\}\/photo\//, "the test must observe the public therapist photo proxy after normal upload and assignment");
