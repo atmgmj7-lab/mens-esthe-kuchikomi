@@ -22,6 +22,9 @@ assert.match(script, /listen\(8000,"127\.0\.0\.1"\)/, "the test adapter must bin
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
 assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
 assert.match(script, /"\/verify":"http:\/\/auth:9999"/, "the loopback adapter must forward the GoTrue email verification path");
+assert.match(script, /--network-alias api node:24-bookworm-slim node -e 'const http=require\("node:http"\);const routes=\{[^}]*"\/verify":"http:\/\/auth:9999"/, "the disposable API gateway must forward verification links for the separate Mailpit consumer");
+assert.match(script, /assert\.equal\(verificationUrl\.origin,'http:\/\/api:8000','real Mailpit link must be consumed through the disposable gateway'\)/, "the real Mailpit verification URL must be asserted as a gateway URL without exposing its token");
+assert.match(script, /assert\.ok\(verified\.status >= 300 && verified\.status < 400,'magic link verification through the gateway must redirect'\)/, "the Mailpit verification request must prove that the gateway produces the normal redirect");
 assert.match(script, /redirect lacks callback fragment session/, "a redirect without the callback session fragment must fail without logging its token value");
 assert.match(script, /verification did not redirect; status=/, "a non-redirect verification response must expose only safe diagnostic shape");
 assert.match(script, /foreign .*must be denied/i, "the test must prove a foreign partner is denied");

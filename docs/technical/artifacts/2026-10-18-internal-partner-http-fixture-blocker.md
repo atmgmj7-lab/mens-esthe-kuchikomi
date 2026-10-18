@@ -68,6 +68,45 @@ completed; a read-only Docker listing found no containers, networks, or volumes
 matching the runner's `eskomi-v11-partner-http-` prefix. The untracked
 `banner-library/` and fixture screenshots were left untouched.
 
+## 2026-10-18 cloud follow-up — gateway fix applied; runtime dependency boundary
+
+The disposable `proxy_container` now includes `/verify` → `http://auth:9999`,
+matching the GoTrue verification path already exposed by the Next container's
+loopback-only adapter. The application-level `SUPABASE_URL` hostname validator
+was not changed. The HTTP client now asserts, without logging a token, that the
+real URL extracted from Mailpit has the disposable `http://api:8000/verify`
+origin/path, that consuming it through the gateway returns a 3xx response, and
+that this redirects to the normal `/partner/auth/callback/` origin/path before
+the existing session-fragment and one-use completion checks run.
+
+`npm run test:eskomi-v11-internal-partner-http-runner` passed after the change,
+and `bash -n scripts/run-eskomi-v11-internal-partner-http-e2e.sh` passed.
+
+The requested real fixture command was then started in the cloud:
+
+```bash
+npm run qa:eskomi-v11-internal-partner-http
+```
+
+It could not reach the application checks because the runner's fresh,
+fixture-owned volume failed at its isolated `npm ci --ignore-scripts` step:
+
+```text
+npm error code SELF_SIGNED_CERT_IN_CHAIN
+npm error request to https://registry.npmjs.org/... failed, reason: self-signed certificate in certificate chain
+```
+
+The Docker daemon itself was usable (the Node image was pulled and the command
+entered the runner), but this environment cannot currently establish the
+verified npm registry chain inside the disposable container. No `strict-ssl`
+or certificate-bypass setting was added. The runner cleanup was checked after
+the attempt: no `eskomi-v11-partner-*` containers, networks, or runtime volumes
+remained. Full real GoTrue/Mailpit/Next pass therefore remains **blocked**, not
+passed. A separate source-level partner-auth contract test is also unavailable
+in this workspace because `headless/node_modules` is absent and its checker
+requires the `typescript` package; this was not treated as a substitute for
+the real fixture.
+
 Resume from `headless/` after the focused test-first change with:
 
 ```bash
