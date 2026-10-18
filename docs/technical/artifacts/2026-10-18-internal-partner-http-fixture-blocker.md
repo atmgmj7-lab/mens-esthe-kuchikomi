@@ -261,3 +261,50 @@ Resume from `headless/` after the focused test-first change with:
 npm run test:eskomi-v11-internal-partner-http-runner
 npm run qa:eskomi-v11-internal-partner-http
 ```
+
+## 2026-10-18 Mac continuation — complete internal Partner HTTP fixture
+
+The disposable fixture was rerun with the pinned images already available on
+the Mac and completed successfully. It remains one fresh internal-only Docker
+network with no published ports, host networking, Docker socket mount,
+production connection, or change to an existing local Supabase resource.
+
+The initial red runs found three fixture/data-flow defects rather than a
+production hostname-validator issue:
+
+1. Canonical fixture shops were still draft when their workspaces were seeded;
+   the real authorization RPC correctly rejected them. The fixture now marks
+   both fake canonical shops and their managed rows published before login.
+2. Saving the listing advances its revision. The fixture now reads the returned
+   revision before submitting, as the production editor already does.
+3. The canonical approval path is `/api/dashboard/managed-shops/`, not the
+   legacy listing-revision dashboard route. The fixture now supplies its own
+   managed-shop UUID only to that normal dashboard endpoint.
+
+A header-valid but decoder-invalid PNG fixture also failed the actual `sharp`
+inspection in the photo route. It was replaced with a locally generated,
+decoder-verified one-pixel PNG; this changes only test bytes, not image policy.
+
+The final command completed all normal HTTP checks:
+
+```text
+npm run qa:eskomi-v11-internal-partner-http
+  Next login, canonical draft, dashboard approval, and reflected listing: PASS
+  Invalid image must be rejected: PASS
+  Oversized image must be rejected: PASS
+  Next therapist real image save, assignment, and individual review link: PASS
+  Foreign partner access to the primary store asset must be denied: PASS
+  Canonical public projection after dashboard approval: PASS
+  Eskomi v1.1 internal partner HTTP fixture: PASS
+```
+
+Related fresh checks also passed: the internal Auth/Mailpit/Storage fixture,
+the tested proxy regression contract, POP QR independent decode, widget SSR
+HTTP (empty, fewer-than-three ratings, unavailable backend), and Partner
+membership/return-to/login-email/listing/growth/widget source contracts.
+
+This is real internal Next HTTP evidence, not a PC/SP browser result. The Mac
+Chrome control extension is not connected to this execution environment, so no
+interactive desktop/mobile traversal, screenshots, device-camera QR scan, or
+production/preview check is claimed. No production action is authorized by
+this result.

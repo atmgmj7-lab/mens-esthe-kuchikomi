@@ -69,3 +69,28 @@ No permission change was made. The following failures were observed:
 When the two read-only fixture prerequisites are supplied, rerun the internal
 partner HTTP fixture and browser QA. Do not call the result production-ready
 until those real paths and the remaining acceptance boundaries are evidenced.
+
+## 2026-10-18 Mac continuation — evidence update after `e26498d`
+
+The previously blocked internal Partner HTTP fixture is now complete on the
+dedicated branch. It used fresh fake data only and an internal Docker network;
+it did not deploy, contact production, alter a production or existing local
+Supabase database, publish a port, or change the application hostname
+validator.
+
+Normal Next HTTP evidence now covers: magic-link request and Mailpit/GoTrue
+verification; callback completion; canonical listing GET/save/submit; canonical
+dashboard approval; the reflected public projection; valid therapist photo
+upload and storage through the normal route; therapist creation; individual
+review-link issuance; invalid and oversized-image rejection; and cross-store
+asset denial. The separate internal Auth/Mailpit/Storage fixture was rerun and
+passed. POP QR independent decoding and local widget SSR HTTP also passed.
+
+This improves the status of the normal Auth/Storage and core T55 lifecycle
+paths from blocked to internal-HTTP proven. It does **not** make the branch
+production-ready: no connected Chrome control surface was available for PC/SP
+interactive traversal or screenshots, and preview/public WordPress,
+production-data migration, production non-change, device-camera QR, and the
+other acceptance boundaries above remain unproven or approval-gated. Main
+merge, deployment, read-source switching, production DB writes, and secret
+changes remain outside this task.

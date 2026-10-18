@@ -14,7 +14,7 @@ assert.match(script, /public\.ecr\.aws\/supabase\/mailpit:v1\.31\.3/, "the runne
 assert.match(script, /\/api\/partner\/auth\/request-link/, "the test must exercise the normal Next login request endpoint");
 assert.match(script, /\/api\/partner\/auth\/complete-link/, "the test must exercise the normal Next login completion endpoint");
 assert.match(script, /\/api\/partner\/listing/, "the test must exercise the normal Next listing endpoint");
-assert.match(script, /\/api\/dashboard\/partner-listing-revisions/, "the test must exercise the normal Next dashboard review endpoint");
+assert.match(script, /\/api\/dashboard\/managed-shops\//, "the test must exercise the normal Next canonical managed-shop dashboard review endpoint");
 assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercise normal Next therapist photo upload");
 assert.match(script, /\/api\/partner\/review-links/, "the test must exercise normal Next review-link issuance");
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
