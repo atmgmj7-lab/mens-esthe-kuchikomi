@@ -28,7 +28,7 @@ the user Mac Google Chrome and not the real database/Auth/Storage/email stack.
 
 | Check | Result | Boundary |
 | --- | --- | --- |
-| v1.1 entry route: input → confirm → back, person switch → shop-only, committed-response loss → same receipt replay, target-change rejection, PC/SP layout | PASS | `npm run qa:eskomi-review-entry-v11` fixture; actual `/r/[token] → /reviews/entry/[entryHandle]` components and v1.1 API routes |
+| v1.1 entry route: input → confirm → back, A rating → B switch clears the rating → B rating, shop-only omits person rating, committed-response loss → UI retry restores the same receipt, target-change rejection, PC/SP layout | PASS | `npm run qa:eskomi-review-entry-v11` fixture; actual `/r/[token] → /reviews/entry/[entryHandle]` components and v1.1 API routes. The replay assertion clicks the rendered retry button; it does not inject headers with `page.evaluate`. |
 | Legacy Partner review-growth flow | PASS — legacy only | `check-partner-review-growth-browser.mjs` fixture, which targets `/reviews/submit/`; it is not v1.1 entry-route evidence |
 | Partner review link, QR image, POP/print, canonical widget snippet, ready/unavailable partner states | PASS | `check-partner-review-growth-kit-browser.mjs` fixture |
 | Listing editor confirmation → back → changed input → confirmation → draft save; public value unchanged | PASS | `check-partner-listing-editor-browser.mjs` fixture |
