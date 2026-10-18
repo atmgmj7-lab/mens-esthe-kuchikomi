@@ -222,10 +222,34 @@ case resolves through Next partial prerendering's embedded 404 fallback (the
 initial streamed shell is HTTP 200, while the widget segment is not rendered);
 it is recorded as an SSR fallback observation, not as an HTTP-404 assertion.
 
-No installed QR decoder exists in the lockfile or host image (`qrcode` is an
-encoder only; no `zbarimg`, `qrencode`, or QR-decoder package is present).
-No new decoding dependency was introduced merely to claim a scan pass, so POP
-QR decode remains blocked pending an approved decoder/browser environment.
+At that point no installed QR decoder existed in the lockfile or host image
+(`qrcode` is an encoder only; no `zbarimg`, `qrencode`, or QR-decoder package
+was present). The next follow-up records the approved test-only decoder used
+for a generated-image URL check; a camera/device scan remains unverified.
+
+## 2026-10-18 follow-up — partial-only access collection and POP QR decode
+
+The smallest safe collector is now implemented without a cron, new credential,
+or production run. `scripts/run-eskomi-v11-access-collection.mjs --observed-on
+YYYY-MM-DD` requires the existing observation endpoint URL and existing
+observation secret, accepts only a past JST date, and sends only
+`{ observedOn, state: "partial" }`. A successful call is recorded by the
+existing collection-run/finalizer; a missing run or unreachable endpoint writes
+nothing and therefore remains `unknown` in the report. The internal route now
+rejects caller-supplied `complete` with HTTP 400 and always forwards `partial`.
+This establishes failure/partial evidence without treating a health response or
+a single event as complete coverage.
+
+The runner and route were verified with local HTTP fixtures. The route sent one
+partial finalizer call and refused a complete request before the finalizer.
+Complete remains reserved for a future independently validated coverage manifest
+and its monitoring; it is not implemented here.
+
+For POP, `jsqr@1.4.0` was added as a test-only dev dependency using the normal
+TLS-verified npm path. The test generates the same 720px/error-correction-M PNG
+configuration as the POP route and independently decodes it, requiring an
+exact match to the expected `/r/{UUID}/` URL. This is an encoder/decoder URL
+contract, not a camera/device scan or an authenticated POP download pass.
 
 Resume from `headless/` after the focused test-first change with:
 

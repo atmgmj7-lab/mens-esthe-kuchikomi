@@ -101,6 +101,9 @@
     "test:eskomi-v11-internal-auth-storage-runner": "node scripts/check-eskomi-v11-internal-auth-storage-runner.mjs",
     "test:eskomi-v11-internal-partner-http-proxy": "node scripts/test-eskomi-v11-internal-prefix-proxy.mjs",
     "test:eskomi-v11-internal-partner-http-runner": "node scripts/check-eskomi-v11-internal-partner-http-runner.mjs",
+    "test:eskomi-v11-access-collection-runner": "node scripts/test-eskomi-v11-access-collection-runner.mjs",
+    "test:eskomi-v11-access-collection-http": "node scripts/test-eskomi-v11-access-collection-http.mjs",
+    "test:eskomi-v11-pop-qr-decode": "node scripts/test-eskomi-v11-pop-qr-decode.mjs",
     "test:eskomi-v11-widget-http": "node scripts/test-eskomi-v11-widget-http.mjs",
     "qa:eskomi-v11-replay-browser": "bash scripts/run-eskomi-v11-replay-e2e.sh",
     "qa:eskomi-v11-docker-network": "bash scripts/run-eskomi-v11-docker-network-e2e.sh",
@@ -209,6 +212,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "jsqr": "^1.4.0",
     "server-only": "^0.0.1",
     "typescript": "^5"
   },
