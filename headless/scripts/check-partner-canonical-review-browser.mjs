@@ -11,7 +11,7 @@ if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
 const managedShopId = "33333333-3333-4333-8333-333333333333";
 const appShopId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const revision = 7;
-let reviewRequest = null;
+const reviewRequests = [];
 
 function freePort() {
   return new Promise((resolve) => {
@@ -49,7 +49,8 @@ const mock = http.createServer(async (request, response) => {
     });
   }
   if (url.pathname === "/rest/v1/rpc/review_canonical_managed_shop_revision" && request.method === "POST") {
-    reviewRequest = body;
+    reviewRequests.push(body);
+    await new Promise((resolve) => setTimeout(resolve, 150));
     return json(response, 200, "ok");
   }
   return json(response, 404, { message: "not found" });
@@ -81,14 +82,42 @@ try {
   assert.equal(response?.status(), 200);
   await page.getByText("店舗からの申請を確認し、承認または差し戻しを選択してください。").waitFor({ state: "visible" });
   await assertNoHorizontalOverflow(page, "1280px canonical approval");
-  page.once("dialog", (dialog) => dialog.accept("fixture approval"));
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("button", { name: "承認して公開" }).click();
+  await page.waitForTimeout(200);
+  assert.equal(reviewRequests.length, 0, "cancelling an approval note must not create a review request");
+
+  page.once("dialog", (dialog) => dialog.accept(""));
   const [approval] = await Promise.all([
     page.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST"),
     page.getByRole("button", { name: "承認して公開" }).click(),
   ]);
+  await page.getByRole("button", { name: "承認して公開" }).evaluate((button) => button.click());
   assert.equal(approval.status(), 200, await approval.text());
   await page.getByRole("status").getByText("申請を承認して公開しました").waitFor({ state: "visible" });
-  assert.deepEqual(reviewRequest, { p_managed_shop_id: managedShopId, p_expected_revision: revision, p_decision: "approved", p_reviewer_label: "dashboard-operator", p_note: "fixture approval" });
+  assert.equal(reviewRequests.length, 1, "an in-flight approval must ignore a repeat click");
+  assert.deepEqual(reviewRequests[0], { p_managed_shop_id: managedShopId, p_expected_revision: revision, p_decision: "approved", p_reviewer_label: "dashboard-operator", p_note: "" });
+
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("button", { name: "差し戻し" }).click();
+  await page.waitForTimeout(200);
+  assert.equal(reviewRequests.length, 1, "cancelling a changes-requested note must not create a review request");
+
+  page.once("dialog", (dialog) => dialog.accept("   "));
+  await page.getByRole("button", { name: "差し戻し" }).click();
+  await page.getByRole("status").getByText("差し戻し理由を入力してください。").waitFor({ state: "visible" });
+  assert.equal(reviewRequests.length, 1, "an empty changes-requested note must not create a review request");
+
+  page.once("dialog", (dialog) => dialog.accept("fixture correction reason"));
+  const [changesRequested] = await Promise.all([
+    page.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST"),
+    page.getByRole("button", { name: "差し戻し" }).click(),
+  ]);
+  await page.getByRole("button", { name: "差し戻し" }).evaluate((button) => button.click());
+  assert.equal(changesRequested.status(), 200, await changesRequested.text());
+  await page.getByRole("status").getByText("申請を差し戻しました").waitFor({ state: "visible" });
+  assert.equal(reviewRequests.length, 2, "an in-flight changes-requested action must ignore a repeat click");
+  assert.deepEqual(reviewRequests[1], { p_managed_shop_id: managedShopId, p_expected_revision: revision, p_decision: "changes_requested", p_reviewer_label: "dashboard-operator", p_note: "fixture correction reason" });
   if (screenshotDir) await page.screenshot({ path: `${screenshotDir}/partner-canonical-approval-1280.png`, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await assertNoHorizontalOverflow(page, "390px canonical approval");
@@ -97,6 +126,30 @@ try {
     await page.screenshot({ path: `${screenshotDir}/partner-canonical-approval-390-viewport.png` });
   }
   await context.close();
+  const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, httpCredentials: { username: "operator", password: "fixture-password" } });
+  const mobile = await mobileContext.newPage();
+  assert.equal((await mobile.goto(`${baseUrl}/dashboard/shops/managed/${managedShopId}/`, { waitUntil: "domcontentloaded" }))?.status(), 200);
+  await mobile.getByText("店舗からの申請を確認し、承認または差し戻しを選択してください。").waitFor({ state: "visible" });
+  await assertNoHorizontalOverflow(mobile, "390px independent canonical review");
+  mobile.once("dialog", (dialog) => dialog.accept("mobile approval"));
+  const [mobileApproval] = await Promise.all([
+    mobile.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST"),
+    mobile.getByRole("button", { name: "承認して公開" }).click(),
+  ]);
+  assert.equal(mobileApproval.status(), 200, await mobileApproval.text());
+  await mobile.getByRole("status").getByText("申請を承認して公開しました").waitFor({ state: "visible" });
+  mobile.once("dialog", (dialog) => dialog.accept("mobile correction reason"));
+  const [mobileChangesRequested] = await Promise.all([
+    mobile.waitForResponse((candidate) => candidate.url().endsWith("/api/dashboard/managed-shops/") && candidate.request().method() === "POST"),
+    mobile.getByRole("button", { name: "差し戻し" }).click(),
+  ]);
+  assert.equal(mobileChangesRequested.status(), 200, await mobileChangesRequested.text());
+  await mobile.getByRole("status").getByText("申請を差し戻しました").waitFor({ state: "visible" });
+  assert.equal(reviewRequests.length, 4, "PC and SP must each execute approval and changes-requested actions exactly once");
+  assert.deepEqual(reviewRequests[2], { p_managed_shop_id: managedShopId, p_expected_revision: revision, p_decision: "approved", p_reviewer_label: "dashboard-operator", p_note: "mobile approval" });
+  assert.deepEqual(reviewRequests[3], { p_managed_shop_id: managedShopId, p_expected_revision: revision, p_decision: "changes_requested", p_reviewer_label: "dashboard-operator", p_note: "mobile correction reason" });
+  if (screenshotDir) await mobile.screenshot({ path: `${screenshotDir}/partner-canonical-changes-requested-390.png`, fullPage: true });
+  await mobileContext.close();
   console.log("partner canonical approval browser QA: PASS");
 } finally {
   await browser.close();

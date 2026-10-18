@@ -177,10 +177,45 @@ approval and public projection.
 The retained local screenshots and exact mock boundaries are documented in
 `docs/technical/artifacts/2026-10-18-partner-browser-qa-continuation.md`.
 They are not production evidence and are not Git-uploaded binary artifacts.
-The open release boundaries are device-camera QR, real email-change delivery,
-preview/production browser traversal, production non-change, WordPress public
-data checks, and every deployment or production database action. No PASS in
-this update authorizes production release.
+The open release boundaries are device-camera QR, preview/production browser
+traversal, production non-change, WordPress public data checks, and every
+deployment or production database action. No PASS in this update authorizes
+production release.
+
+## 2026-10-18 final preparation — additional evidence and release boundary
+
+- Canonical managed-shop review (temporary loopback Chrome fixture): PC and SP
+  each execute approval and changes-requested actions. Cancellation and an
+  empty changes-requested reason make no request; repeat clicks while in flight
+  make no second request. This is mock UI evidence only.
+- Listing lifecycle (temporary loopback Chrome fixture): a changes-requested
+  reason is displayed to the Partner, then a corrected draft is saved,
+  resubmitted, approved, and public at 390px/1280px. This is mock UI evidence
+  only.
+- Canonical HTTP fixture (fresh disposable PostgreSQL/GoTrue/Mailpit/Storage,
+  one Docker `--internal` network, no published ports): normal Next
+  login-email change returns 202; both real GoTrue confirmation links are
+  consumed; `/user` reports the new fixture email; and the old email receives
+  no usable Partner login handoff. The run also proves canonical approval/
+  public projection, image handling, review-link issuance, and foreign-store
+  denial.
+- Migration `20261018100000_partner_login_email_canonical_audit.sql` keeps
+  exactly one audit identity: legacy `wp_shop_id` or canonical `app_shop_id`.
+  It is not applied to production.
+- Read-only boundary check: `origin/main` was
+  `78d7e06046953b493ec690231fede121cba0211a`; the latest successful headless
+  deploy recorded that main SHA. This is Git/GitHub history, not production DB
+  inspection.
+- No safe existing preview was run. Branch pushes do not trigger the workflow,
+  non-preflight dispatch uses `vercel deploy --prod`, and this checkout has no
+  `.vercel` mapping. A verified non-production project/environment and
+  non-production server configuration are required before preview browser QA.
+
+The unreduced release blockers are device-camera QR; the independent
+access-coverage collector/health manifest (T43), which is unimplemented; the
+three legacy workspaces requiring explicit WP-ID+slug mapping; production
+migrations and production DB evidence; and every main merge, deploy, and
+production browser traversal.
 
 ## B01--B10 の公開条件
 

@@ -19,6 +19,9 @@ assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercis
 assert.match(script, /\/shops\/fixture-partner-store\//, "the test must observe the canonical public shop route after dashboard approval");
 assert.match(script, /\/api\/therapists\/\$\{assignment\}\/photo\//, "the test must observe the public therapist photo proxy after normal upload and assignment");
 assert.match(script, /\/api\/partner\/review-links/, "the test must exercise normal Next review-link issuance");
+assert.match(script, /\/partner\/settings\/login-email\//, "the test must exercise the normal Next Partner login-email change endpoint");
+assert.match(script, /Email-change confirmation must update the real GoTrue user/, "the test must prove real GoTrue email-change completion");
+assert.match(script, /Old login email must be rejected after the confirmed change/, "the test must prove the old email cannot request a new Partner login link after confirmation");
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
 assert.match(script, /SHOP_DIRECTORY_SOURCE=supabase/, "the disposable Next process must opt into the canonical public directory only for the public-projection observation");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
