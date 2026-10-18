@@ -33,3 +33,44 @@ The production hostname validator remains unchanged. The follow-up run starts a 
 The runner also distinguishes a runtime volume it creates from an explicitly marked borrowed prepared volume. Cleanup removes only the former.
 
 The earlier removal of `eskomi-v11-partner-prep-112-26641` was verified from the task's own Docker commands: it was a disposable volume created by this task for Linux dependency installation, not an existing or user-supplied volume. No existing volume was passed as `ESKOMI_E2E_RUNTIME_VOLUME` during those runs.
+
+## 2026-10-18 handoff snapshot — root cause isolated, fix not applied
+
+The runner was repeated at commit `6c6a5c000ca4ebe94dacc77c187ef7fe3dc7e531`.
+The normal Next request-link route again returned `202`; GoTrue recorded the
+corresponding `/otp` request as `200`. Consuming the real Mailpit link then
+returned the existing safe diagnostic:
+
+```text
+magic link verification did not redirect; status=404 contentType=none responseKeys=non-json
+```
+
+The 404 is now attributable to the disposable **gateway** proxy, not the
+production hostname validator, the Next loopback adapter, or GoTrue's
+verification handler. GoTrue is configured with `API_EXTERNAL_URL=http://api:8000`,
+so its generated confirmation link targets `api:8000/verify`. The Mailpit
+consumer runs in a separate fixture client container and therefore reaches the
+network `api` proxy directly. That proxy currently forwards only `/auth/v1`,
+`/rest/v1`, and `/storage/v1`; it has no `/verify` entry and deliberately
+returns its bare 404 for unmatched paths. The previous `/verify` entry was
+added only to the Next container's loopback adapter, which this confirmation
+request never traverses.
+
+The minimal follow-up is to add the same `/verify` → `http://auth:9999`
+forwarding entry to the disposable `proxy_container` route map, and to add a
+behavioral regression assertion that verifies the real Mailpit URL is consumed
+through that proxy and produces the normal callback redirect. Do not weaken the
+application's hostname validator or add a Docker hostname to application
+configuration.
+
+No further run was started after this diagnosis. The runner's EXIT cleanup
+completed; a read-only Docker listing found no containers, networks, or volumes
+matching the runner's `eskomi-v11-partner-http-` prefix. The untracked
+`banner-library/` and fixture screenshots were left untouched.
+
+Resume from `headless/` after the focused test-first change with:
+
+```bash
+npm run test:eskomi-v11-internal-partner-http-runner
+npm run qa:eskomi-v11-internal-partner-http
+```
