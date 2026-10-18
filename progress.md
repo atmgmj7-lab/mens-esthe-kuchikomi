@@ -1,5 +1,21 @@
 # Progress Log
 
+## 2026-10-18 — Dynamic-first Worker feasibility stopped at build boundary
+
+- Ran a fail-first local contract and a disposable Cloudflare-only source-loader
+  experiment. The normal Node build passed during the experiment; the original
+  source configuration was then restored.
+- The Worker build cannot be made explicit-dynamic using a webpack module-body
+  loader alone: route-segment configuration is extracted before loader output.
+  Disabling Cache Components rejects existing `instant` exports; keeping it
+  enabled rejects newly uncached public data during prerendering.
+- Re-ran the restored baseline: `npm run test:cloudflare-workers-contract` and
+  `npm run workers:build` pass with the isolated unreachable WordPress origin
+  fallbacks. No Cloudflare resource, account, network setting, or production
+  system changed.
+- Stopped before mutation changes, HTTP fixture execution, image work, or
+  latency measurement. A material build architecture decision is required.
+
 ## 2026-10-18 — Cloudflare cache decision record
 
 - Read the existing migration artifact, v1.1 evidence, PM status/blocker, and

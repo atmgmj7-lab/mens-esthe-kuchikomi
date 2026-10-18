@@ -53,6 +53,17 @@ changing DNS, issuing credentials, or touching production.
 - [ ] Stop for the user's choice between dynamic-first and cache-parity before
   an implementation proposal or any Cloudflare resource request.
 
+## 2026-10-18 — Dynamic-first build-boundary result
+
+- [x] Attempt the approved Cloudflare-only dynamic-read build path as an
+  uncommitted local feasibility experiment.
+- [x] Prove that a webpack body loader runs after Next's route-segment
+  configuration extraction and cannot safely add `instant = false`.
+- [x] Restore the original source/build configuration and rerun the baseline
+  Workers contract and Worker bundle.
+- [ ] Stop for a major design choice: maintained Worker staging source,
+  shared Node/Vercel rendering-policy change, or cache-parity path.
+
 ## 2026-10-18 — v1.1 pre-production QA P2 correction
 
 - [x] Correct the first-pilot mapping packet so unbound → bind → re-read ready

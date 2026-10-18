@@ -21,6 +21,24 @@
   authorization.
 - Exact remote branch SHA confirmed: `6d6b6fdfd23f9ead260b0479e87f3e583f39c6d7`.
 
+## 2026-10-18 — Dynamic-first feasibility blocker
+
+- A Worker-only webpack loader can transform a public reader's emitted module
+  body, but it runs too late to change Next App Router segment configuration.
+  The attempted injected `instant = false` was not observed by route
+  classification.
+- `cacheComponents: false` rejects existing public `instant` exports; retaining
+  Cache Components after removing reader cache directives makes `/[slug]`
+  reject uncached runtime data while prerendering. Neither configuration is a
+  valid complete dynamic-first build.
+- The original Workers contract and offline build were restored and pass. This
+  is a source/build-pipeline blocker, so no real HTTP workflow, performance
+  measurement, or image acceptance condition is a PASS.
+- A physical Worker staging tree/pre-discovery transform, a Node-impacting
+  shared route-policy change, or cache-parity selection requires an explicit
+  design decision before implementation continues. No external resource or
+  charge was incurred.
+
 ## 2026-10-18 — Cloudflare Workers preparation research
 
 - Dedicated branch: `codex/cloudflare-workers-prep-20261018`, starting from

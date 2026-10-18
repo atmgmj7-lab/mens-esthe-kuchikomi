@@ -341,3 +341,35 @@ The actual checked remote branch SHA is
 transcription error). Repository content remains unchanged by this comparison;
 the pre-existing untracked `banner-library/` and
 `headless/docs/technical/artifacts/v11-fixture-qa/` remain preserved.
+
+### Dynamic-first source-loader feasibility result (2026-10-18)
+
+The approved dynamic-first investigation was implemented only as an uncommitted
+local feasibility experiment and then restored to the original source state.
+It established a build-pipeline blocker:
+
+- With Cache Components globally disabled, the full Worker build stops at
+  `/area/[slug]/community/page` because the existing `instant` segment export
+  requires Cache Components.
+- With Cache Components left enabled while a Worker-only webpack loader removes
+  cache directives and inserts an explicit dynamic boundary, `/[slug]` fails
+  during prerendering for uncached/runtime data.
+- Injecting `export const instant = false` from the loader does not change that
+  result. Next extracts App Router segment configuration before this loader is
+  applied, so its route classification has already occurred.
+
+Consequently, a loader that only rewrites module bodies cannot provide a
+Cloudflare-only explicit-dynamic path for this application. The original
+offline Worker contract and `opennextjs-cloudflare build` pass again after the
+experiment was restored; this proves the baseline remains buildable, not that
+dynamic public HTTP is working. No real Workers HTTP fixture, latency result,
+listing/review/admin workflow, or image-acceptance result is claimed here.
+
+The next implementation requires a deliberate architecture choice: (a) a
+maintained physical Worker staging tree/pre-discovery transform, (b) a shared
+source `instant = false` policy that also changes Node/Vercel behavior, or (c)
+the cache-parity option. Option (a) changes build ownership and artifact
+maintenance; option (b) changes existing hosting performance semantics; option
+(c) remains blocked on the Cache Components runtime issue and requires a
+separately approved resource/cost decision. No Cloudflare account, binding,
+deployment, DNS, credential, or paid resource was created.
