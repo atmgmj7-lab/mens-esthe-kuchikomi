@@ -46,14 +46,17 @@ const restUpstream = http.createServer((request, response) => {
 });
 const restBase = await listen(restUpstream);
 process.env.ESKOMI_INTERNAL_PROXY_METRICS = "1";
-const measuredProxy = createInternalPrefixProxy({ "/rest/v1": restBase });
+const measuredProxy = createInternalPrefixProxy({ "/rest/v1": restBase, "/rpc": `${restBase}/rpc` });
 const measuredProxyBase = await listen(measuredProxy);
 try {
   assert.equal((await fetch(`${measuredProxyBase}/_eskomi-fixture/postgrest-metrics`, { method: "POST" })).status, 200);
   assert.equal((await fetch(`${measuredProxyBase}/rest/v1/published_shops?select=id`, { headers: { authorization: "Bearer never-record-me" } })).status, 200);
   assert.equal(restRequestUrl, "/published_shops?select=id", "the application proxy must keep PostgREST query forwarding unchanged");
+  assert.equal((await fetch(`${measuredProxyBase}/rpc/public_reviews?select=id`, { method: "POST", body: "never-record-me" })).status, 200);
+  assert.equal(restRequestUrl, "/rpc/public_reviews?select=id", "the application proxy must forward raw local PostgREST RPC reads unchanged");
   const metrics = await (await fetch(`${measuredProxyBase}/_eskomi-fixture/postgrest-metrics`)).json();
-  assert.deepEqual(metrics, { requests: [{ method: "GET", path: "/rest/v1/published_shops", count: 1, totalMs: metrics.requests[0].totalMs, minMs: metrics.requests[0].minMs, maxMs: metrics.requests[0].maxMs }] }, "metrics must retain only method, path, count, and timing aggregates");
+  assert.equal(metrics.requests.length, 2, "both gateway and raw local PostgREST paths must be measured");
+  assert.deepEqual(metrics.requests.map((entry) => ({ method: entry.method, path: entry.path, count: entry.count })), [{ method: "GET", path: "/rest/v1/published_shops", count: 1 }, { method: "POST", path: "/rest/v1/rpc/public_reviews", count: 1 }], "raw local RPC metrics must normalize to the gateway PostgREST path");
   assert.equal(Object.keys(metrics.requests[0]).sort().join(","), "count,maxMs,method,minMs,path,totalMs", "metrics must never expose auth, query, body, response, or personal data");
 } finally {
   await close(measuredProxy);

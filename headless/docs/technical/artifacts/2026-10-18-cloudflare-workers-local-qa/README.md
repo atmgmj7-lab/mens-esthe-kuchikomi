@@ -37,6 +37,32 @@ requests. It writes a JSON artifact only when the entire run succeeds.
 
 ## Current execution evidence
 
+### Completed canonical public-review HTTP proof
+
+The preserved prepared Linux runtime volume was reused after the fresh `npm ci`
+attempt was OOM-killed. The successful isolated Next fixture generated
+`public-http-postgrest-metrics-27235-27770.json` and passed every runner
+assertion:
+
+- one v1.1 review was approved through `private.moderate_review_experience_v11`;
+  a separate pending review remained private, and a second shop remained at
+  zero public reviews;
+- `/reviews/`, `/shops/fixture-partner-store/`, and the public Partner widget
+  rendered the approved marker and rejected the private marker over HTTP;
+- the metric report observed the canonical global list/count RPCs and the
+  shop-detail list/summary RPCs. It counts PostgREST HTTP calls, never SQL
+  statements;
+- after normal dashboard unlisting, the shop detail returned 404 and the shop
+  was absent from both `/shops/` and `/sitemap.xml`;
+- the final source passed the fixture-runner contract, proxy privacy-metrics
+  contract, typecheck, lint, offline `npm run build`, and `npm run workers:build`.
+
+The top-page 5-run follow-up was 214.254, 94.233, 68.764, 70.639, and
+70.228 ms in the same isolated fixture. The historical 5661.013 ms repeat
+outlier did not recur. The detail's `get_public_listing_store_by_slug` call is
+now one call in the first HTTP request via request-local `React.cache`; this
+does not create a cross-request cache.
+
 The source contracts, Worker bundle, lint, and typecheck passed in this
 continuation. The existing preserved Docker fixtures were intentionally not
 removed. Container inspection established that the exited Worker fixtures had

@@ -29,6 +29,8 @@ assert.match(script, /Email-change confirmation must update the real GoTrue user
 assert.match(script, /Old login email must be rejected after the confirmed change/, "the test must prove the old email cannot request a new Partner login link after confirmation");
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
 assert.match(script, /SHOP_DIRECTORY_SOURCE=supabase/, "the disposable Next process must opt into the canonical public directory only for the public-projection observation");
+assert.match(script, /ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase/, "the fixture must select the canonical public-review source");
+assert.match(script, /--var ESKOMI_V11_PUBLIC_REVIEW_SOURCE:supabase/, "the local Worker must receive the canonical public-review source explicitly");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /ESKOMI_E2E_APP_RUNTIME/, "the runner must select a Next or local Workers application runtime explicitly");
 assert.match(script, /ESKOMI_E2E_WORKERS_ARTIFACT_ROOT/, "Workers mode must accept one explicit host-built artifact root instead of assuming the canonical source output");
@@ -44,6 +46,8 @@ assert.match(script, /--exclude=\.open-next/, "the runtime source copy must excl
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
 assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
 assert.match(script, /node scripts\/eskomi-v11-internal-prefix-proxy\.mjs/, "the disposable adapters must use the tested prefix proxy");
+assert.match(script, /"\/rpc":"http:\/\/postgrest:3000\/rpc"/, "the disposable gateway must route local raw PostgREST RPC reads");
+assert.match(script, /"\/rpc":"http:\/\/api:8000\/rest\/v1\/rpc"/, "the application loopback proxy must route local raw PostgREST RPC reads through the gateway");
 assert.match(script, /"\/verify":"http:\/\/auth:9999\/verify"/, "the gateway and loopback adapters must preserve GoTrue's verification path");
 assert.match(script, /assert\.equal\(verificationUrl\.origin,'http:\/\/api:8000','real Mailpit link must be consumed through the disposable gateway'\)/, "the real Mailpit verification URL must be asserted as a gateway URL without exposing its token");
 assert.match(script, /assert\.ok\(verified\.status >= 300 && verified\.status < 400,'magic link verification through the gateway must redirect'\)/, "the Mailpit verification request must prove that the gateway produces the normal redirect");
@@ -73,6 +77,14 @@ assert.match(script, /ESKOMI_INTERNAL_PROXY_METRICS=1/, "the fixture must enable
 assert.match(script, /measure-eskomi-v11-public-http\.mjs/, "the fixture must measure the four representative public routes after API metrics become available");
 assert.match(script, /check-eskomi-v11-public-seo-http\.mjs/, "the fixture must verify canonical/title/body/robots/sitemap through real public HTTP");
 assert.match(script, /PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC/, "the fixture must seed a non-public review marker and verify it stays out of public HTTP");
+assert.match(script, /PUBLIC_REVIEW_MUST_BE_VISIBLE/, "the fixture must seed an approved canonical public-review marker");
+assert.match(script, /create_and_publish_canonical_managed_shop/, "the fixture must create the canonical directory publication required by the global review projection");
+assert.match(script, /moderate_review_experience_v11\(v_experience,'approved','fixture qa',null,1\)/, "the fixture must create the public review through the v1.1 moderation flow");
+assert.match(script, /list_public_review_experience_publications_global/, "the fixture must prove the global public-review RPC is reached through public HTTP");
+assert.match(script, /count_public_review_experience_publications_global/, "the fixture must prove the global public-review count RPC is reached through public HTTP");
+assert.match(script, /list_public_shop_detail_reviews_v11/, "the fixture must prove the shop-detail public-review RPC is reached through public HTTP");
+assert.match(script, /get_public_shop_detail_review_summary_v11/, "the fixture must prove the shop-detail review summary RPC is reached through public HTTP");
+assert.match(script, /partner\/widget\/11111111-1111-4111-8111-111111111111/, "the fixture must prove the public partner widget renders the approved review");
 assert.match(script, /unlisting removes public detail, listing, and sitemap/, "the fixture must verify unlisting removes all public discovery routes");
 assert.match(script, /ESKOMI_E2E_METRICS_ARTIFACT_DIR/, "the runner must preserve optional public HTTP metric artifacts outside the fixture");
 assert.match(script, /docker volume create "\$runtime_volume" >\/dev\/null; runtime_volume_owned=1/, "only a volume created by this runner may become cleanup-owned");

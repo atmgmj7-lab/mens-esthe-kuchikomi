@@ -41,9 +41,12 @@ export function createInternalPrefixProxy(routes) {
       .sort((left, right) => `${left.method} ${left.path}`.localeCompare(`${right.method} ${right.path}`)),
   });
   const recordMetric = (request, startedAt) => {
-    if (!request.url?.startsWith("/rest/v1")) return;
+    if (!request.url?.startsWith("/rest/v1") && !request.url?.startsWith("/rpc/")) return;
     const method = request.method ?? "GET";
-    const path = new URL(request.url, "http://fixture.invalid").pathname;
+    const requestPath = new URL(request.url, "http://fixture.invalid").pathname;
+    // The app's localhost-safe reader calls raw PostgREST `/rpc/*`; report it
+    // under the same canonical metric path as the gateway `/rest/v1/rpc/*`.
+    const path = requestPath.startsWith("/rpc/") ? `/rest/v1${requestPath}` : requestPath;
     const elapsedMs = Math.max(0, Math.round((performance.now() - startedAt) * 1000) / 1000);
     const key = `${method} ${path}`;
     const current = metrics.get(key) ?? { method, path, count: 0, totalMs: 0, minMs: elapsedMs, maxMs: elapsedMs };

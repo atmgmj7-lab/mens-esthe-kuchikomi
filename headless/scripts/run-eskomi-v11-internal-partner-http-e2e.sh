@@ -105,7 +105,7 @@ SQL
 # forwards to real GoTrue, PostgREST, Storage, and the GoTrue verification
 # redirect; it is not an Auth or Storage mock.  `/verify` remains part of the
 # upstream path so GoTrue receives its token query unchanged.
-docker run -d --rm --name "$proxy_container" --network "$network_name" --network-alias api --mount "type=volume,src=$runtime_volume,dst=/app,readonly" -w /app -e 'ESKOMI_INTERNAL_PROXY_ROUTES={"/auth/v1":"http://auth:9999","/rest/v1":"http://postgrest:3000","/storage/v1":"http://storage:5000","/verify":"http://auth:9999/verify"}' node:24-bookworm-slim node scripts/eskomi-v11-internal-prefix-proxy.mjs >/dev/null; proxy_created=1
+docker run -d --rm --name "$proxy_container" --network "$network_name" --network-alias api --mount "type=volume,src=$runtime_volume,dst=/app,readonly" -w /app -e 'ESKOMI_INTERNAL_PROXY_ROUTES={"/auth/v1":"http://auth:9999","/rest/v1":"http://postgrest:3000","/rpc":"http://postgrest:3000/rpc","/storage/v1":"http://storage:5000","/verify":"http://auth:9999/verify"}' node:24-bookworm-slim node scripts/eskomi-v11-internal-prefix-proxy.mjs >/dev/null; proxy_created=1
 
 users="$(docker run --rm -i --network "$network_name" -e SERVICE_KEY="$service_key" node:24-bookworm-slim node - <<'NODE'
 const crypto=require('node:crypto'); const h={apikey:process.env.SERVICE_KEY,Authorization:`Bearer ${process.env.SERVICE_KEY}`,'Content-Type':'application/json'};
@@ -116,24 +116,49 @@ IFS=, read -r primary_user other_user <<< "$users"
 docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<SQL
 insert into app.areas(slug,name,is_published,published_at) values('fixture-area','Fixture area',true,now());
 do \$\$ declare v_shop uuid; v_workspace uuid; payload jsonb:=jsonb_build_object('shop_name','Fixture original','area_slug','fixture-area','area_name','Fixture area','official_url','https://example.test/original','introduction','original','address',null,'business_hours',null,'phone',null,'line_url',null,'booking_url',null,'basic_price',null,'price_90',null,'banner_asset_id',null,'gallery_asset_ids','[]'::jsonb); begin
-  perform private.create_canonical_managed_shop('fixture-partner-store',payload,'fixture'); select id into v_shop from app.shops where slug='fixture-partner-store'; update app.shops set publication_status='published',published_at=now() where id=v_shop; update private.managed_shops set publication_state='published' where app_shop_id=v_shop; select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning'); update private.partner_workspaces set state='active_partner' where id=v_workspace; insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,'$primary_user','owner','active',now());
-  perform private.create_canonical_managed_shop('fixture-other-store',payload||jsonb_build_object('shop_name','Other fixture'),'fixture'); select id into v_shop from app.shops where slug='fixture-other-store'; update app.shops set publication_status='published',published_at=now() where id=v_shop; update private.managed_shops set publication_state='published' where app_shop_id=v_shop; select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning'); update private.partner_workspaces set state='active_partner' where id=v_workspace; insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,'$other_user','owner','active',now());
+  perform private.create_and_publish_canonical_managed_shop('fixture-partner-store',payload,'fixture'); select id into v_shop from app.shops where slug='fixture-partner-store'; select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning'); update private.partner_workspaces set state='active_partner' where id=v_workspace; insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,'$primary_user','owner','active',now());
+  perform private.create_and_publish_canonical_managed_shop('fixture-other-store',payload||jsonb_build_object('shop_name','Other fixture'),'fixture'); select id into v_shop from app.shops where slug='fixture-other-store'; select workspace_id into v_workspace from private.provision_partner_workspace_for_app_shop(v_shop,'provisioning'); update private.partner_workspaces set state='active_partner' where id=v_workspace; insert into private.partner_memberships(workspace_id,auth_user_id,role,status,accepted_at) values(v_workspace,'$other_user','owner','active',now());
 end \$\$;
 do \$\$ declare v_shop uuid; v_experience uuid; begin
   select id into v_shop from app.shops where slug='fixture-partner-store';
   insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,subject_snapshot) values(v_shop,'Fixture private reviewer',repeat('a',64),'submitted','{}'::jsonb) returning id into v_experience;
   insert into private.review_assessments(experience_id,target_kind,shop_id,rating,body) values(v_experience,'shop',v_shop,5,'PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC');
 end \$\$;
+do \$\$ declare v_shop uuid; v_workspace uuid; v_experience uuid; v_result text; begin
+  select shop.id,workspace.id into v_shop,v_workspace
+  from app.shops shop join private.partner_workspaces workspace on workspace.app_shop_id=shop.id
+  where shop.slug='fixture-partner-store';
+  insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,subject_snapshot)
+  values(v_shop,'Fixture public reviewer',repeat('b',64),'submitted','{}'::jsonb) returning id into v_experience;
+  insert into private.review_experience_revisions(experience_id,revision,nickname,experience_comment)
+  values(v_experience,1,'Fixture public reviewer','PUBLIC_REVIEW_MUST_BE_VISIBLE');
+  insert into private.review_assessments(experience_id,target_kind,shop_id,rating,body)
+  values(v_experience,'shop',v_shop,5,'PUBLIC_REVIEW_MUST_BE_VISIBLE');
+  select private.moderate_review_experience_v11(v_experience,'approved','fixture qa',null,1) into v_result;
+  if v_result <> 'approved' then raise exception 'fixture public review approval failed'; end if;
+  insert into private.review_widget_settings_v11(workspace_id,shop_id,public_handle)
+  values(v_workspace,v_shop,'11111111-1111-4111-8111-111111111111');
+  if (select count(*) from api.list_public_review_experience_publications_global(20,0,null)) <> 1 then
+    raise exception 'fixture global public review projection must contain exactly one approved review';
+  end if;
+  if (select count(*) from api.list_public_shop_detail_reviews_v11('fixture-partner-store',20,0)) <> 1 then
+    raise exception 'fixture shop public review projection must contain exactly one approved review';
+  end if;
+  if (select review_count from api.get_public_shop_detail_review_summary_v11('fixture-other-store')) <> 0 then
+    raise exception 'fixture zero-review shop must remain empty';
+  end if;
+end \$\$;
 SQL
 
 common_app_args=(
   --network "$network_name" --network-alias next --mount "type=volume,src=$runtime_volume,dst=/app" -w /app
   -e SUPABASE_URL=http://127.0.0.1:8000 -e SUPABASE_AUTH_PUBLISHABLE_KEY="$anon_key" -e SUPABASE_SERVICE_ROLE_KEY="$service_key"
+  -e ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase
   -e SHOP_DIRECTORY_SOURCE=supabase -e PARTNER_AUTH_REDIRECT_ORIGIN=http://localhost:57000
   -e DASHBOARD_BASIC_AUTH_USER="$dashboard_user" -e DASHBOARD_BASIC_AUTH_PASSWORD="$dashboard_password"
   -e ESKOMI_INTERNAL_PROXY_HOST=127.0.0.1
   -e ESKOMI_INTERNAL_PROXY_METRICS=1 -e ESKOMI_E2E_DEFER_UNLIST=1
-  -e 'ESKOMI_INTERNAL_PROXY_ROUTES={"/auth/v1":"http://api:8000/auth/v1","/rest/v1":"http://api:8000/rest/v1","/storage/v1":"http://api:8000/storage/v1","/verify":"http://auth:9999/verify"}'
+  -e 'ESKOMI_INTERNAL_PROXY_ROUTES={"/auth/v1":"http://api:8000/auth/v1","/rest/v1":"http://api:8000/rest/v1","/rpc":"http://api:8000/rest/v1/rpc","/storage/v1":"http://api:8000/storage/v1","/verify":"http://auth:9999/verify"}'
   -e WP_API_BASE_URL=http://127.0.0.1:9/wp-json -e NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid
 )
 case "$app_runtime" in
@@ -141,7 +166,7 @@ case "$app_runtime" in
     docker run -d --name "$next_container" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
     ;;
   workers)
-    docker run -d --name "$next_container" -e ESKOMI_WORKERS_BUILD_ROOT="$workers_artifact_root" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'find .open-next -type f \( -name "*.mjs" -o -name "*.json" \) -exec sed -i "s|${ESKOMI_WORKERS_BUILD_ROOT}|/app|g" {} +; node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec ./node_modules/.bin/wrangler dev --local --ip 0.0.0.0 --port 57000 --var SUPABASE_URL:http://127.0.0.1:8000 --var SUPABASE_AUTH_PUBLISHABLE_KEY:"$SUPABASE_AUTH_PUBLISHABLE_KEY" --var SUPABASE_SERVICE_ROLE_KEY:"$SUPABASE_SERVICE_ROLE_KEY" --var SHOP_DIRECTORY_SOURCE:supabase --var PARTNER_AUTH_REDIRECT_ORIGIN:http://localhost:57000 --var DASHBOARD_BASIC_AUTH_USER:"$DASHBOARD_BASIC_AUTH_USER" --var DASHBOARD_BASIC_AUTH_PASSWORD:"$DASHBOARD_BASIC_AUTH_PASSWORD" --var WP_API_BASE_URL:http://127.0.0.1:9/wp-json --var NEXT_PUBLIC_WP_BASE_URL:https://workers-fixture.invalid' >/dev/null
+    docker run -d --name "$next_container" -e ESKOMI_WORKERS_BUILD_ROOT="$workers_artifact_root" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'find .open-next -type f \( -name "*.mjs" -o -name "*.json" \) -exec sed -i "s|${ESKOMI_WORKERS_BUILD_ROOT}|/app|g" {} +; node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec ./node_modules/.bin/wrangler dev --local --ip 0.0.0.0 --port 57000 --var SUPABASE_URL:http://127.0.0.1:8000 --var SUPABASE_AUTH_PUBLISHABLE_KEY:"$SUPABASE_AUTH_PUBLISHABLE_KEY" --var SUPABASE_SERVICE_ROLE_KEY:"$SUPABASE_SERVICE_ROLE_KEY" --var ESKOMI_V11_PUBLIC_REVIEW_SOURCE:supabase --var SHOP_DIRECTORY_SOURCE:supabase --var PARTNER_AUTH_REDIRECT_ORIGIN:http://localhost:57000 --var DASHBOARD_BASIC_AUTH_USER:"$DASHBOARD_BASIC_AUTH_USER" --var DASHBOARD_BASIC_AUTH_PASSWORD:"$DASHBOARD_BASIC_AUTH_PASSWORD" --var WP_API_BASE_URL:http://127.0.0.1:9/wp-json --var NEXT_PUBLIC_WP_BASE_URL:https://workers-fixture.invalid' >/dev/null
     ;;
   *)
     echo "Unsupported ESKOMI_E2E_APP_RUNTIME: $app_runtime" >&2
@@ -190,12 +215,32 @@ async function login(email){
  const changedEmail=`partner-change-${crypto.randomUUID()}@fixture.invalid`,mailBeforeChange=await mailIds();const requestedChange=await req('/partner/settings/login-email/',{method:'POST',headers:{Origin:loginOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:changedEmail})},202);assert.equal(requestedChange.j.ok,true);const confirmationLinks=await emailChangeLinks(changedEmail,mailBeforeChange);for(const confirmationLink of confirmationLinks){const confirmationUrl=new URL(confirmationLink);assert.equal(confirmationUrl.origin,'http://api:8000','email-change links must use the disposable gateway');assert.equal(confirmationUrl.pathname,'/verify','email-change links must preserve the real GoTrue verification path');assert.equal(confirmationUrl.searchParams.get('type'),'email_change','email-change links must have GoTrue email_change type');const confirmed=await fetch(confirmationLink,{redirect:'manual'});assert.ok(confirmed.status>=300&&confirmed.status<400,'each real GoTrue email-change confirmation must redirect')}const changedIdentity=await fetch('http://api:8000/auth/v1/user',{headers:{apikey:process.env.ANON_KEY,Authorization:`Bearer ${primaryAccessToken}`}});assert.equal(changedIdentity.status,200);assert.equal((await changedIdentity.json()).email,changedEmail,'Email-change confirmation must update the real GoTrue user');const mailBeforeOldLogin=await mailIds();await req('/api/partner/auth/request-link/',{method:'POST',headers:{Origin:loginOrigin,'Content-Type':'application/json'},body:JSON.stringify({email:process.env.PRIMARY_EMAIL,returnTo:'/partner/listing/'})},202);await new Promise(resolve=>setTimeout(resolve,500));const mailAfterOldLogin=await mailIds();assert.deepEqual([...mailAfterOldLogin].filter(id=>!mailBeforeOldLogin.has(id)),[],'Old login email must be rejected after the confirmed change');assert.ok(!jar.eskomi_partner_login_state,'Old login email must not receive a usable Partner login handoff');console.log('Next login-email change, Mailpit confirmations, and old-email rejection: PASS');
  await login(process.env.OTHER_EMAIL);const foreign=await req('/api/partner/listing/');assert.equal(foreign.r.status,200);assert.notEqual(foreign.j.listing.store_id,store);const denied=await req('/api/partner/therapists/',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'partner-mutation-v1'},body:JSON.stringify({displayName:'Cross store',photoAssetId:up.j.assetId,permissionPolicyVersion:'fixture-v1',permissionConfirmed:true})},403);assert.equal(denied.j.ok,false);console.log('Foreign partner access to the primary store asset must be denied: PASS');
  const publicListing=await fetch(`${base}/shops/fixture-partner-store/`);const publicListingHtml=await publicListing.text();assert.equal(publicListing.status,200,publicListingHtml);assert.match(publicListingHtml,/Fixture corrected/);assert.match(publicListingHtml,/corrected after return/);console.log('Canonical corrected resubmission must publish through the normal dashboard review: PASS');
+ const publicReviews=await fetch(`${base}/reviews/`);const publicReviewsHtml=await publicReviews.text();assert.equal(publicReviews.status,200,publicReviewsHtml);assert.match(publicReviewsHtml,/PUBLIC_REVIEW_MUST_BE_VISIBLE/,'the Supabase canonical public review must render in the global reviews hub');assert.doesNotMatch(publicReviewsHtml,/PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC/,'the private Supabase review must not render in the global reviews hub');assert.match(publicListingHtml,/PUBLIC_REVIEW_MUST_BE_VISIBLE/,'the Supabase canonical public review must render in the shop detail');assert.doesNotMatch(publicListingHtml,/PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC/,'the private Supabase review must not render in the shop detail');
+ const publicWidget=await fetch(`${base}/partner/widget/11111111-1111-4111-8111-111111111111/`);const publicWidgetHtml=await publicWidget.text();assert.equal(publicWidget.status,200,publicWidgetHtml);assert.match(publicWidgetHtml,/PUBLIC_REVIEW_MUST_BE_VISIBLE/,'the canonical public review must render in the partner widget');assert.doesNotMatch(publicWidgetHtml,/PRIVATE_REVIEW_MUST_NOT_BE_PUBLIC/,'the private Supabase review must not render in the partner widget');console.log('Supabase canonical public review renders in reviews hub, shop detail, and partner widget; private review is excluded: PASS');
  if(!process.env.ESKOMI_E2E_DEFER_UNLIST){const unlisted=await req('/api/dashboard/managed-shops/',{method:'POST',headers:{Authorization:basic,Origin:origin,'Content-Type':'application/json','X-ESKOMI-CSRF':'managed-shop-write'},body:JSON.stringify({action:'unlist',managedShopId,confirmedShopName:'Fixture corrected'})},200);assert.equal(unlisted.j.ok,true);const afterUnlist=await fetch(`${base}/shops/fixture-partner-store/`);const afterUnlistHtml=await afterUnlist.text();assert.equal(afterUnlist.status,404,afterUnlistHtml);console.log('Canonical dashboard unlisting must remove the public shop route: PASS')}
 })().catch(e=>{console.error(e.stack||e.message);process.exit(1)});
 NODE
 
 metrics_output="/app/.eskomi-public-http-metrics-${suffix}.json"
 docker exec -e ESKOMI_PUBLIC_HTTP_METRICS_OUTPUT="$metrics_output" "$next_container" node scripts/measure-eskomi-v11-public-http.mjs
+docker exec -i "$next_container" node - "$metrics_output" <<'NODE'
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const report = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const callsFor = (path, rpc) => report.measurements
+  .filter((measurement) => measurement.path === path)
+  .flatMap((measurement) => measurement.postgrest)
+  .filter((call) => call.path === `/rest/v1/rpc/${rpc}`)
+  .reduce((total, call) => total + call.count, 0);
+assert.ok(callsFor('/reviews/', 'list_public_review_experience_publications_global') > 0, 'reviews hub must call the canonical global public-review RPC');
+assert.ok(callsFor('/reviews/', 'count_public_review_experience_publications_global') > 0, 'reviews hub must call the canonical global public-review count RPC');
+assert.ok(callsFor('/shops/fixture-partner-store/', 'list_public_shop_detail_reviews_v11') > 0, 'shop detail must call the canonical shop public-review RPC');
+assert.ok(callsFor('/shops/fixture-partner-store/', 'get_public_shop_detail_review_summary_v11') > 0, 'shop detail must call the canonical shop public-review summary RPC');
+const firstDetail = report.measurements.find((measurement) => measurement.path === '/shops/fixture-partner-store/' && measurement.mode === 'first');
+const firstDetailListingCalls = (firstDetail?.postgrest ?? []).find((call) => call.path === '/rest/v1/rpc/get_public_listing_store_by_slug')?.count ?? 0;
+assert.equal(firstDetailListingCalls, 1, 'metadata and page must share the partner listing read within one HTTP request');
+console.log('Measured Supabase public-review RPCs through actual HTTP: PASS');
+NODE
 docker exec "$next_container" node scripts/check-eskomi-v11-public-seo-http.mjs
 if [ -n "${ESKOMI_E2E_METRICS_ARTIFACT_DIR:-}" ]; then
   [ -d "$ESKOMI_E2E_METRICS_ARTIFACT_DIR" ] || mkdir "$ESKOMI_E2E_METRICS_ARTIFACT_DIR"
@@ -203,7 +248,7 @@ if [ -n "${ESKOMI_E2E_METRICS_ARTIFACT_DIR:-}" ]; then
 fi
 
 docker run --rm -i --network "$network_name" -e PRIMARY_MANAGED_SHOP_ID="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select id from private.managed_shops where shop_slug='fixture-partner-store'")" -e DASHBOARD_USER="$dashboard_user" -e DASHBOARD_PASSWORD="$dashboard_password" node:24-bookworm-slim node - <<'NODE'
-const assert=require('node:assert/strict');
+import assert from 'node:assert/strict';
 const base='http://next:57000'; const basic=`Basic ${Buffer.from(`${process.env.DASHBOARD_USER}:${process.env.DASHBOARD_PASSWORD}`).toString('base64')}`;
 const unlisted=await fetch(`${base}/api/dashboard/managed-shops/`,{method:'POST',headers:{Authorization:basic,Origin:base,'Content-Type':'application/json','X-ESKOMI-CSRF':'managed-shop-write'},body:JSON.stringify({action:'unlist',managedShopId:process.env.PRIMARY_MANAGED_SHOP_ID,confirmedShopName:'Fixture corrected'})});
 assert.equal(unlisted.status,200,await unlisted.text());
