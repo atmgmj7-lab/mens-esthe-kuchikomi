@@ -548,3 +548,9 @@
 - current Production deploymentはread-only Vercel inspectで`dpl_EvzCCy4yE3LJGoYR6RoAu4B85NVU` / READY。旧staged `dpl_2GfYVLYxA216A8pX9kmWXE3HfbzS`はpromotion対象外。今回の実行によるProduction変更は0。
 - Area browser timeoutは製品DOM不在ではなく、同じ`127.0.0.1:3113`をfixture/production serverへ差し替えつつChromiumを保持し、さらに5 Area×11幅で外部依存SSRを反復するharness条件に限定された。単独minimal-env production serverはSakai 200、precision marker 1、fallback 0。browser再起動とAreaごと1回のnavigationへ縮めても全11幅のlayout/canonical/overflow assertionは維持され、最終110/2,687 PASS。
 - isolated E2E runnerはfixtureを自動削除しないため、phase close手順側で直後にlocal resetする必要がある。今回もreset後`0|0|0`と全6 migrationをreadbackし、Production synthetic data 0を維持した。
+# 2026-10-18 first-pilot gate findings
+
+- `private.list_legacy_partner_workspace_mapping_candidates_v11()` is the safe read-only candidate source.  It classifies each legacy workspace as `ready` only when WP ID, managed-shop binding, slug, app shop slug, and canonical path all agree; the mutating bind/map functions are deliberately out of scope for this packet.
+- `ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase` is global (`public-adapter.ts:133-134`).  It drives both individual shop and global review reads; it is not a one-store pilot control.  The existing `RANKUP_NATIVE_REVIEW_READ_SOURCE` remains a distinct pilot and must not be represented as the v1.1 global cutover.
+- Approved design E02 requires exact legacy ID + slug + canonical confirmation and isolation on any mismatch.  M06 prohibits synthetic posts in real public stores; M08 requires feature/read rollback without destructive down-migrations and an evidenced backup/recovery authority.
+- No production connection or production backup access is authorized.  All new validation must therefore be repository-local and static.

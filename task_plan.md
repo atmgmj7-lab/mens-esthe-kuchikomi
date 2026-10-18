@@ -736,3 +736,25 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 | planning session catchupがCodex session非対応 | 1 | Git、既存planning files、current task packetを直接照合した |
 | Supabase公式Markdown直読がunsupported content-type | 1 | 同じ取得を繰り返さず、公式domain限定HTML検索へ切り替えた |
 | T1 commitの`git add`を`headless/`からroot相対pathで実行 | 1 | stage 0を確認し、repository rootから同じ明示pathだけをstageする |
+# 2026-10-18 first-pilot minimum gate packet
+
+## Objective
+
+Produce a branch-local, executable release packet for one first pilot store.
+It must separate disposable-fixture evidence from production proof, make no
+production change, and not imply that the global public-review cutover is
+store-scoped.
+
+## Phases
+
+- [x] Read repository instructions, approved design, acceptance matrix, and current evidence.
+- [x] Inspect the legacy workspace mapping contract and public-review source switch scope.
+- [x] Write the minimal pilot gate, including migration ordering, read-only binding, backup/recovery, and global-reader impact gates.
+- [x] Add a harmless source/packet consistency check and run it.
+- [ ] Update the acceptance packet, verify diffs, commit, push the approved branch, and confirm its remote SHA.
+
+## Guardrails
+
+- No main merge, deployment, production DB/auth write, secret retrieval, backup upload, file deletion, or Docker resource change.
+- The existing `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` is a global reader cutover; do not add a new per-store flag in this task.
+- Keep T43 explicitly unknown/unimplemented and preserve untracked screenshots and `banner-library/`.

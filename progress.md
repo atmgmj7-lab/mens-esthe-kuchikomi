@@ -930,3 +930,15 @@
 - Production Supabase migration、WordPress write、Vercel deploy/promotion、main push、Secret変更は実施していない。次はlocal exact candidateに対するmain pushを独立承認するgate。
 - Area browserの最終fresh runでは、同一origin/portでfixture serverからproduction serverへ切替えた後、live routeを幅ごとに55回SSRする旧harnessが外部WordPress応答timeoutを再現した。製品route単独は200/markerありを確認し、server切替時にChromiumを再起動、live取得はAreaごと1回＋11幅resizeへ修正して110 scenarios/2,687 assertions/failures 0へ戻した。
 - isolated E2Eのfresh run後はlocal fixtureが残るため、明示`supabase db reset --local --no-seed`を再実行した。最終readbackはShop/Review/workspace `0|0|0`、migration ledger 6件順序一致。
+# 2026-10-18 first-pilot minimum gate packet
+
+## 2026-10-18 — scope reset and impact assessment
+
+- Confirmed that the desired first-store packet cannot treat `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` as a per-store flag: it switches public individual-shop and global-review readers together.
+- Confirmed that the legacy candidate RPC gives an exact, read-only preflight surface; no production RPC or database action was run.
+- Next: document the two safe pilot choices (non-public/canonical workflow proof versus a global public-reader cutover only after all-reader comparison), then validate the packet locally.
+
+## 2026-10-18 — local release-packet verification
+
+- Added the first-pilot gate, an acceptance-matrix link, and a static check that verifies migration timestamp order, the legacy mapping anchor, the global-reader implementation anchor, and all stated safety/unknown boundaries.
+- `npm run test:review-public-adapter`, `npm run test:eskomi-v11-first-pilot-gate`, and `npm run lint` passed.  No production or external-environment action was run.

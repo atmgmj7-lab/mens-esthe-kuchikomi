@@ -7,7 +7,7 @@ It does not authorize a main merge, Vercel promotion, XServer deploy,
 production database change, paid-plan change, or network-security change.
 
 - Branch checked: `codex/wp-independent-prep-20261017` at
-  `72ffddf2116c3739bc326fa7d9104d8617e0fe50` before this packet's final
+  `27196af79a587726ed14c518d6d21df10c2ef4f3` before this packet's final
   commit.
 - Remote `main` checked read-only:
   `78d7e06046953b493ec690231fede121cba0211a`.
@@ -22,6 +22,15 @@ push-triggers on `main`; non-preflight dispatch uses `vercel deploy --prod`.
 No Vercel deployment was attempted. A safe preview needs an existing
 non-production project/environment, its verified mapping, and non-production
 server-side Supabase/Auth configuration.
+
+## First-pilot release gate
+
+The executable one-store gate is
+[`2026-10-18-first-pilot-minimum-gate.md`](2026-10-18-first-pilot-minimum-gate.md).
+It keeps `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` unchanged because that flag switches
+both shop-detail and global public-review readers.  A selected operational
+pilot may therefore map only its exact approved workspace after separate
+production approval, but it cannot claim a one-store public-review cutover.
 
 ## Evidence
 

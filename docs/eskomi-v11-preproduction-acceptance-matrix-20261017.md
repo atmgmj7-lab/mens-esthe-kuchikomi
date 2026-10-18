@@ -93,6 +93,19 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 
 ## release / rollback
 
+### 2026-10-18: first-pilot minimum gate
+
+The branch-local executable packet is
+[`technical/artifacts/2026-10-18-first-pilot-minimum-gate.md`](technical/artifacts/2026-10-18-first-pilot-minimum-gate.md).
+It makes the first operational pilot a one-workspace exact-identity procedure,
+not a one-store public-reader switch.  In particular,
+`ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase` changes both shop-detail and global
+review readers, so the flag remains unchanged until the full existing-reader
+comparison is accepted.  The packet does not add a per-store public-review
+flag.  T43 remains `collection status unknown / comparison not possible`;
+neither fixture evidence nor GA4/GSC is a substitute for its independent
+collector.
+
 1. preview の fresh/upgrade/権限/HTTP smoke を対象 SHA で保存する。
 2. 承認済みの additive migration を一回だけ適用し、ledger と mapping 件数を確認する。
 3. read source flag を段階的に上げ、公開 reader の詳細、地域、sitemap、JSON-LD、widget を監視する。
