@@ -963,3 +963,4 @@
 
 - Added and passed a disposable repository-schema + synthetic-data rehearsal: 48 migrations after the ledger boundary, legacy managed creation, exact mapping, and normal publication all execute without touching production or the local Supabase stack.
 - Recorded the limited public legacy-reader baseline (`/reviews/` returned `全0件`) separately from v1.1/public-projection proof and from all production-write gates.
+- Saved the rehearsal implementation and evidence as `07068e0f785847a63f6ba7148e422d9238bc6c98`; remote `main` remained unchanged.

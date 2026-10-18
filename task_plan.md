@@ -771,7 +771,7 @@ store-scoped.
 - [x] Inspect and reuse the existing fresh/populated-upgrade runners and write a failing safety/contract check.
 - [x] Implement the disposable baseline fixture: apply the post-ledger suffix, then normal managed projection, exact mapping, and publication flow.
 - [x] Run the isolated rehearsal and public legacy-reader aggregate check when available; retain only local evidence.
-- [ ] Record scope/evidence, commit, push the approved branch, and confirm its remote SHA.
+- [x] Record scope/evidence, commit, push the approved branch, and confirm its remote SHA.
 
 ## Guardrails
 
