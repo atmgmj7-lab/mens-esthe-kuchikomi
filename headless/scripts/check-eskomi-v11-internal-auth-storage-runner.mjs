@@ -23,6 +23,11 @@ assert.match(script, /GOTRUE_SMTP_HOST=mailpit/, "GoTrue must send only to Mailp
 assert.match(script, /GOTRUE_MAILER_TEMPLATES_CONFIRMATION_CONTENT=Your fixture verification code is \{\{ \.Token \}\}/, "the signup confirmation email must contain the configured OTP code");
 assert.match(script, /http:\/\/auth:9999\/otp/, "the client must request an actual email OTP from GoTrue");
 assert.match(script, /http:\/\/auth:9999\/verify/, "the client must verify the Mailpit-captured OTP with GoTrue");
+assert.match(script, /http:\/\/auth:9999\/user/, "the client must prove the verified session resolves to its Auth user");
+assert.match(script, /consumed GoTrue OTP must not issue another session/, "the runner must reject a reused OTP");
+assert.match(script, /consumed confirmation link must not issue another access token/, "the runner must reject a reused confirmation link");
+assert.match(script, /iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAY/, "the Storage fixture must use a decoder-valid PNG rather than a signature-only byte sequence");
+assert.match(script, /fixture PNG width must be 1px/, "the fixture must assert its PNG dimensions");
 assert.match(script, /http:\/\/storage:5000\/object\//, "the client must store and retrieve an object through Storage HTTP");
 assert.match(script, /docker run --rm -i --network "\$network_name"[\s\S]*node:24-bookworm-slim node - <<'NODE'/, "the internal test client must receive and execute its heredoc program");
 assert.match(script, /test "\$services_ready" -eq 1/, "the runner must stop when Auth, Storage, or Mailpit is not ready");

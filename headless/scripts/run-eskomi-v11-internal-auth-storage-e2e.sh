@@ -174,7 +174,9 @@ const serviceHeaders = { apikey: process.env.SERVICE_KEY, Authorization: `Bearer
 const email = `otp-${crypto.randomUUID()}@fixture.invalid`;
 const bucket = "fixture-images";
 const objectKey = "otp-proof.png";
-const bytes = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
+  // A decoder-valid 1x1 PNG, not merely a PNG signature.  The later partner
+  // HTTP fixture sends this through the application's Sharp-based image gate.
+  const bytes = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL0hAAAAABJRU5ErkJggg==", "base64");
 
 async function expectOk(response, label) {
   if (!response.ok) throw new Error(`${label}: ${response.status} ${await response.text()}`);
@@ -209,22 +211,43 @@ async function waitForMail() {
   const otpResponse = await expectOk(await fetch("http://auth:9999/otp", { method: "POST", headers: anonHeaders, body: JSON.stringify({ email, create_user: true }) }), "requesting GoTrue email OTP");
   assert.equal(otpResponse.status, 200, "GoTrue email OTP request must succeed");
   const delivery = await waitForMail();
+  let accessToken;
   if (delivery.kind === "otp") {
     const verified = await expectOk(await fetch("http://auth:9999/verify", { method: "POST", headers: anonHeaders, body: JSON.stringify({ type: "email", email, token: delivery.token }) }), "verifying Mailpit-captured GoTrue OTP");
     const session = await verified.json();
     assert.equal(typeof session.access_token, "string", "verified OTP must issue a real Auth session token");
+    accessToken = session.access_token;
+    const reused = await fetch("http://auth:9999/verify", { method: "POST", headers: anonHeaders, body: JSON.stringify({ type: "email", email, token: delivery.token }) });
+    assert.equal(reused.ok, false, "a consumed GoTrue OTP must not issue another session");
   } else {
     const confirmed = await fetch(delivery.url, { redirect: "manual" });
     assert.ok(confirmed.status >= 300 && confirmed.status < 400, `consuming Mailpit confirmation link must redirect, got ${confirmed.status}`);
+    const location = confirmed.headers.get("location");
+    assert.equal(typeof location, "string", "successful confirmation must redirect with a session location");
+    const target = new URL(location, "http://client");
+    assert.equal(target.searchParams.has("error"), false, "successful confirmation must not redirect to an error");
+    accessToken = new URLSearchParams(target.hash.slice(1)).get("access_token");
+    assert.equal(typeof accessToken, "string", "successful confirmation must include an Auth access token");
+    const reused = await fetch(delivery.url, { redirect: "manual" });
+    const reusedLocation = reused.headers.get("location") || "";
+    assert.ok(reused.status >= 300 && reused.status < 400, "a consumed confirmation link must redirect instead of becoming a second session");
+    assert.equal(/access_token=/.test(reusedLocation), false, "a consumed confirmation link must not issue another access token");
   }
+
+  const identity = await expectOk(await fetch("http://auth:9999/user", { headers: { apikey: process.env.ANON_KEY, Authorization: `Bearer ${accessToken}` } }), "reading Auth user from the verified session");
+  const user = await identity.json();
+  assert.equal(user.email, email, "the verified Auth session must identify the Mailpit fixture user");
+  assert.equal(bytes.readUInt32BE(16), 1, "fixture PNG width must be 1px");
+  assert.equal(bytes.readUInt32BE(20), 1, "fixture PNG height must be 1px");
 
   await expectOk(await fetch("http://storage:5000/bucket", { method: "POST", headers: { ...serviceHeaders, "Content-Type": "application/json" }, body: JSON.stringify({ id: bucket, name: bucket, public: false }) }), "creating fixture Storage bucket");
   await expectOk(await fetch(`http://storage:5000/object/${bucket}/${objectKey}`, { method: "POST", headers: { ...serviceHeaders, "Content-Type": "image/png", "x-upsert": "false" }, body: bytes }), "writing fixture image through Storage");
   const fetched = await expectOk(await fetch(`http://storage:5000/object/${bucket}/${objectKey}`, { headers: serviceHeaders }), "reading fixture image through Storage");
+  assert.equal(fetched.headers.get("content-type"), "image/png", "Storage must preserve the fixture image MIME type");
   assert.deepEqual(Buffer.from(await fetched.arrayBuffer()), bytes, "Storage retrieval must return exactly the uploaded fixture bytes");
 
-  console.log("GoTrue email OTP via Mailpit capture and verification: PASS");
-  console.log("Storage fixture image write and byte-for-byte retrieval: PASS");
+  console.log("GoTrue Mailpit verification, session /user identity, and consumed-token rejection: PASS");
+  console.log("Storage service-role valid PNG MIME and byte-for-byte retrieval: PASS");
 })().catch((error) => { console.error(error.stack || error.message); process.exit(1); });
 NODE
 
