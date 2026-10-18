@@ -1,5 +1,26 @@
 # Findings & Decisions
 
+## 2026-10-18 — Cloudflare cache-path comparison update
+
+- The user selected Cloudflare as the target. Do not frame the current
+  compatibility blocker as a decision to continue on Vercel; compare
+  Cloudflare options and distinguish local proof from account-required proof.
+- Fresh local minimal runtime result: Next 16.4.2 + OpenNext 1.20.12 still
+  hangs for `"use cache"` in both Turbopack and webpack. This is independent
+  of the old 16.3.8/1.20.9 pin and does not establish anything about remote
+  R2/D1/DO bindings because no app response is reached.
+- OpenNext's documented revalidation topology is R2 incremental cache, DO
+  queue, and D1/DO tag cache. A no-cache dynamic SSR path is also documented
+  as requiring no caching configuration. Preserve this distinction in the
+  design record; do not claim that removing cache directives alone must cause
+  inconsistency when every public read is explicitly dynamic/no-store.
+- Temporary probe cleanup occurred before the later user instruction: only
+  `/tmp/eskomi-webpack-wasm` and agent-created response captures were removed.
+  They contained no repository file, prepared Docker resource, fixture asset,
+  secret, or user file. Do not delete any future probe without explicit user
+  authorization.
+- Exact remote branch SHA confirmed: `6d6b6fdfd23f9ead260b0479e87f3e583f39c6d7`.
+
 ## 2026-10-18 — Cloudflare Workers preparation research
 
 - Dedicated branch: `codex/cloudflare-workers-prep-20261018`, starting from

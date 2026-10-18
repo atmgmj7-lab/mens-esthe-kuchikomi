@@ -1,5 +1,16 @@
 # Progress Log
 
+## 2026-10-18 — Cloudflare cache decision record
+
+- Read the existing migration artifact, v1.1 evidence, PM status/blocker, and
+  confirmed the branch plus remote SHA.
+- Re-checked current official OpenNext cache requirements and Cloudflare
+  Workers/R2/D1/Durable Object pricing pages. Added a three-option comparison
+  to the existing Cloudflare migration artifact; no app, infrastructure, or
+  account setting changed.
+- Recorded the corrected scope of earlier temporary cleanup and the new rule:
+  retain all future temporary probes unless explicitly authorized to delete.
+
 ## 2026-10-18 — Cloudflare Workers offline preparation started
 
 - Preserved the P2 baseline and untracked artifacts, then created

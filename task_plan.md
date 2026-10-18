@@ -43,6 +43,16 @@ changing DNS, issuing credentials, or touching production.
 | ESLint included generated `.open-next`/`.wrangler` files after a Workers build | 1 | Root cause was missing ignores, not application lint. Explicitly ignore only generated outputs and regression-test those ignores. |
 | Existing WordPress TLS contract positive preflight needs the live origin and failed in isolation | 1 | Do not retry against production in this task; record the test as outside the offline proof boundary. |
 
+## 2026-10-18 — Cloudflare cache decision record
+
+- [x] Re-check exact branch/remote state and preserve existing untracked QA assets.
+- [x] Compare documented shared-cache, dynamic-first, and explicit
+  compatibility-layer Cloudflare paths without changing an account or runtime.
+- [x] Record resources, cost conditions, SEO/auth/consistency effects, local
+  evidence limits, and the corrected temporary-file handling rule.
+- [ ] Stop for the user's choice between dynamic-first and cache-parity before
+  an implementation proposal or any Cloudflare resource request.
+
 ## 2026-10-18 — v1.1 pre-production QA P2 correction
 
 - [x] Correct the first-pilot mapping packet so unbound → bind → re-read ready

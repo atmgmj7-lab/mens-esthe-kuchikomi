@@ -247,3 +247,97 @@ and production traffic remain outside this task.
    enabling them.
 5. Perform preview/staging parity, then obtain explicit approval for DNS and
    production traffic. This document does not authorize those actions.
+
+## 2026-10-18 — Cloudflare cache-path decision comparison (design only)
+
+### Evidence boundary and correction
+
+This section is a decision record, not an implementation approval. It compares
+Cloudflare paths while keeping the selected deployment target as Cloudflare;
+it does **not** recommend switching the application back to Vercel. No
+production system, DNS record, Cloudflare account, auth setting, secret,
+payment setting, or remote binding was changed.
+
+The prior local evidence is now extended with a fresh disposable minimal app
+on **Next 16.4.2 + OpenNext 1.20.12**. Its one `"use cache"` page was built
+and served by local workerd twice: once through Turbopack and once through
+webpack. Both requests emitted Next's Cache Components/`setTimeout()` warning
+and finished as the workerd "code had hung" 500. Therefore neither a current
+adapter upgrade nor a Cloudflare-only webpack build resolves this application's
+Cache Components runtime blocker by itself. The result does not test a remote
+R2/D1/DO binding because execution hangs before a cache backend can establish
+an application response.
+
+OpenNext documents that an SSR route can work without a caching configuration,
+while SSG/ISR/data caching with on-demand invalidation needs an incremental
+cache, a revalidation queue, and a tag cache. Its small-site example specifies
+R2, a Durable-Object queue, and `D1NextModeTagCache`.
+([OpenNext caching guide](https://opennext.js.org/cloudflare/caching))
+
+### Current change surface
+
+The repository has 28 ordinary `"use cache"` public/data readers across 13
+files: the home page, managed-shop source, priority/area/review adapters, and
+the `lib/wp/*` readers. It also has one separate dashboard-only
+`"use cache: remote"` analytics snapshot. Public update invalidation is
+called from four routes (`/api/revalidate`, dashboard managed shops, dashboard
+official facts, and dashboard review moderation), via the two explicit cache
+scope helpers. The public readers use both shared tags (for example `wp`,
+`shops`, and `reviews:native`) and per-shop/per-area tags, so a replacement
+must retain an explicit key-to-tag index rather than merely remove calls.
+
+All three options below retain `private, no-store` for Partner, dashboard,
+upload, email, and other authenticated responses. None authorizes caching
+session-dependent output.
+
+| Option | What changes | SEO / authentication / update consistency | Required Cloudflare resources and charge condition | Local result / unverified work |
+| --- | --- | --- | --- | --- |
+| 1. OpenNext standard shared cache | Retain Cache Components and add the documented R2 incremental cache, D1 tag cache, DO queue, self-reference service binding, and deployment cache initialization. Keep current tags/path invalidation. | Intended to preserve current SSR/ISR/tag semantics and public SEO behavior. Auth boundaries stay no-store. It cannot be accepted until the Cache Components hang is fixed: the local current-version proof still 500s before backend behavior is usable. | One R2 bucket, one D1 database, Durable Object classes/bindings, self-reference service binding; cache purge additionally needs a zone plus purge-token approval if Cache API-backed layers are enabled. R2 has a monthly free tier; D1/SQLite DO have Free-plan limits, while Workers Paid has a $5/month minimum and overage rates. Actual cost depends on traffic, operations, storage, plan, and any custom-domain purge setup. | Local binding topology has not been created because account/binding creation is unapproved. Remote preview must prove tag/path invalidation, queue retry/deduplication, cold cache, and purge. **Not currently viable as a workaround for the runtime hang.** |
+| 2. Explicit dynamic public reads, cache later | Remove Cache Components only from the 28 public/data readers; make every public source read explicit `no-store`/dynamic SSR and remove tag/path invalidation only after the associated cache entry no longer exists. Keep the analytics remote cache outside this public path pending its own dashboard decision. | Canonical, JSON-LD, robots, sitemap, and public HTML can remain equivalent if dynamic response tests pass. Each request reads the canonical origin, so approval/withdrawal/update visibility is immediate and does not require a distributed invalidator. Auth is unaffected if private routes remain no-store. Trade-off: higher origin request volume, TTFB, Worker CPU, and origin outage exposure; origin/CDN headers must forbid stale public HTML. | No R2/D1/DO cache resource is required for this option. Worker request/CPU usage and the existing WordPress/Supabase origin usage still apply; their cost/performance needs traffic measurements. | A plain no-Cache-Components minimal Worker returned 200, but the full Eskomi public routes, dynamic SEO headers, failure behavior, load envelope, and source-specific no-store enforcement have not been tested. This is a valid consistency-preserving candidate, not a simple feature disable. |
+| 3. Worker cache compatibility layer | Replace the 28 `"use cache"` readers with a server-side cache interface that records stable key, TTL, and tags; replace the four mutation routes/two helper scopes with explicit tag/path invalidation. Use a Worker-only implementation while keeping Node's current path until parity tests pass. | Can retain current explicit update propagation and public SEO performance if key/tag/purge behavior is proven. Auth/private routes must bypass the interface. Risk is semantic drift around stale values, deployment initialization, failures, and path fan-out; it needs a full mutation-to-public-read matrix. | Same durable topology as option 1 is the practical baseline: R2 for values, D1 or sharded DO for tags, DO queue/self binding, with optional region/purge components only after correctness. KV is not selected because OpenNext warns it is eventually consistent. Resource creation and any paid-plan/overage exposure require separate approval. | No implementation yet. Local unit tests can prove key/tag behavior using local bindings, but distributed invalidation, purge, retries, and capacity require an approved preview account. This is the strongest cache-preserving path, but substantially broader than an adapter/config change. |
+
+### Image blocker remains independent
+
+The isolated pure-JavaScript codec probe used `fast-png`,
+`@stacksjs/ts-webp`, and `jpeg-js`. In local current Turbopack/OpenNext
+workerd it completed a generated 1×1 PNG → VP8X WebP → JPEG decode/re-encode
+with HTTP 200. This is evidence that a non-WASM, non-Cloudflare-Images Worker
+path may be feasible. It is **not** sufficient to replace `sharp`: real
+PNG/JPEG/WebP corpus coverage, JPEG EXIF orientation, pixel/size limits,
+malformed inputs, alpha/color behavior, output metadata absence, and memory/
+latency limits remain unverified. The failed jSquash experiment used runtime
+Wasm compilation and was rejected by workerd; Cloudflare documents static,
+precompiled Wasm module handling instead.
+([Cloudflare WebAssembly guide](https://developers.cloudflare.com/workers/runtime-apis/webassembly/javascript/))
+
+### Decision gates before implementation
+
+1. Choose option 2 (dynamic-first) or option 3 (cache-parity) for a dedicated
+   implementation proposal. Option 1 remains contingent on an upstream/runtime
+   Cache Components fix and must not be represented as currently working.
+2. If option 1 or 3 is selected, separately approve a preview-only Cloudflare
+   account, the named R2/D1/DO resources, and any cost ceiling. This document
+   does not create them.
+3. Before an image replacement, approve a focused test corpus and acceptance
+   criteria matching the existing `sharp` contract. Do not substitute an
+   upload pass-through or relax dimensions/type/metadata rules.
+4. In every option, run the existing real GoTrue/Mailpit/Supabase fixture and
+   the public SEO/auth/cache evidence separately; no blocked Worker item is a
+   PASS until that HTTP evidence succeeds.
+
+### Temporary-probe handling and Git state
+
+Before the user's later no-deletion instruction arrived, the only paths removed
+were agent-created disposable probes under `/tmp/eskomi-webpack-wasm` and their
+agent-created `/tmp/eskomi-*-headers` / `/tmp/eskomi-*-body` response captures.
+That directory contained only copied dependency files plus generated probe
+source, `.next`, `.open-next`, and `.wrangler` outputs; it was not a repository
+path, prepared Docker volume, fixture artifact, or user asset. Nothing has
+been removed after the instruction. Future temporary probes will be retained
+unless the user explicitly authorizes deletion.
+
+The actual checked remote branch SHA is
+`6d6b6fdfd23f9ead260b0479e87f3e583f39c6d7` (the earlier report contained a
+transcription error). Repository content remains unchanged by this comparison;
+the pre-existing untracked `banner-library/` and
+`headless/docs/technical/artifacts/v11-fixture-qa/` remain preserved.
