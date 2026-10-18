@@ -62,6 +62,9 @@ for (const [label, required] of [
   ["fixed Mrs.Rank UP target", /\| Pilot legacy WP shop ID \| `768`/u],
   ["widget-only limitation", /not a completed “review visible on the Eskomi store page” launch/u],
   ["complete introduction option", /Complete first-store introduction/u],
+  ["unbound then bind sequence", /mapping_status =\s*'managed_shop_unbound'/u],
+  ["already-bound no-rebind rule", /Do \*\*not\*\* call the\s+bind function again/u],
+  ["post-map audit state", /already_canonical/u],
 ]) {
   assert.match(packet, required, `pilot packet is missing required gate: ${label}`);
 }

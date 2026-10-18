@@ -1,5 +1,19 @@
 # Task Plan: SEOを守るSupabase段階移行
 
+## 2026-10-18 — v1.1 pre-production QA P2 correction
+
+- [x] Correct the first-pilot mapping packet so unbound → bind → re-read ready
+  → map is distinct from the already-bound no-rebind path.
+- [x] State the synthetic rehearsal's superuser/private-function evidence
+  boundary and explicitly exclude Next/Auth/RLS/PostgREST/migration-ledger
+  proof.
+- [x] Retain the two non-target workspace UUIDs and assert their legacy
+  identity, null canonical ID, and no alias after the selected mapping.
+- [x] Prove that an intentional disposable non-target mutation is rejected,
+  then rerun the clean synthetic rehearsal.
+- [ ] Stop before production hosting/cutover choice; no production action is
+  authorized by this correction.
+
 ## Goal
 
 公開中のURL・検索向け設定・WordPress表示を変えずに、承認済みの本番SupabaseへWordPress全382店舗・34地域を非公開で移し、検証後にSEOと視認性改善の次実装へ進む。

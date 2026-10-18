@@ -1,5 +1,24 @@
 # Findings & Decisions
 
+## 2026-10-18 — P2 mapping and synthetic-guard correction
+
+- `ready` means the managed projection is already bound; the operator packet
+  now separates `managed_shop_unbound` → bind → re-read `ready` → map from the
+  already-bound path, which must not call bind again. A post-map
+  `already_canonical` result is audit-only.
+- The synthetic rehearsal is superuser `psql` plus direct `private.*`
+  evidence, not normal Next/Auth/session/RLS/PostgREST/production-ledger
+  proof.
+- The regression guard captures synthetic workspace UUIDs 725 and 766 before
+  the selected 768 mapping and requires each to retain its original WP ID, a
+  null app-shop ID, and no alias. This catches the prior false-negative shape
+  where the old WP ID had been nulled.
+- `ESKOMI_SYNTHETIC_BASELINE_PROVE_NON_TARGET_GUARD=1` intentionally changed
+  captured workspace 725 in the disposable verification transaction. The
+  exact normal verification rejected it with `out-of-scope legacy workspaces
+  were modified`; the runner then exited successfully as an expected-failure
+  proof. A separate clean runner invocation passed.
+
 ## 2026-08-22 UX-PROD Final Close
 
 - mainへのfast-forward同期commitは`132cd95c17d0de5be25b2ca6dc5033da90a8f32b`。Vercel run `32537810709`のhead SHAと一致し、同runがdeployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`をproductionへ出した。alias inspectも同deployment ID / READYを返した。

@@ -63,6 +63,20 @@ docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -
 for migration in "${upgrade_migrations[@]}"; do
   docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$migration"
 done
-docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/verify_eskomi_20261015182000_synthetic_rehearsal.sql"
+
+verification_sql="$repo_root/supabase/tests/verify_eskomi_20261015182000_synthetic_rehearsal.sql"
+if [[ "${ESKOMI_SYNTHETIC_BASELINE_PROVE_NON_TARGET_GUARD:-0}" == "1" ]]; then
+  if {
+    printf "set eskomi_rehearsal.inject_non_target_mapping = 'on';\\n"
+    cat "$verification_sql"
+  } | docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name"; then
+    echo "non-target workspace guard unexpectedly accepted the abnormal fixture" >&2
+    exit 1
+  fi
+  echo "Eskomi synthetic non-target workspace guard proof: PASS (expected rejection)"
+  exit 0
+fi
+
+docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$verification_sql"
 
 echo "Eskomi synthetic 20261015182000 baseline rehearsal: PASS"

@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-10-18 — P2 correction complete; awaiting hosting/cutover direction
+
+- Updated first-pilot mapping sequencing and the synthetic evidence boundary.
+- Added UUID-retained non-target workspace and alias checks to the actual
+  verification SQL, plus the disposable expected-failure runner mode.
+- Evidence: synthetic contract PASS; first-pilot contract PASS; shell syntax
+  PASS; intentional abnormal fixture rejected; clean synthetic rehearsal PASS.
+- No production database, Auth, deployment, main merge, or hosting change was
+  made. Next decision is the user's approved production hosting/cutover choice.
+
 ## 2026-08-22 UX-PROD-FINAL-CLOSE-01
 
 - `132cd95c17d0de5be25b2ca6dc5033da90a8f32b`を`origin/main`へfast-forward同期した。Vercel run `32537810709`はsuccess、deployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`はREADYでproduction aliasと一致した。

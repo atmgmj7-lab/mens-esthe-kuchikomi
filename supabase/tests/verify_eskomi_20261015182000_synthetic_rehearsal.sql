@@ -3,8 +3,11 @@
 do $$
 declare
   v_workspace uuid;
+  v_workspace_725 uuid;
+  v_workspace_766 uuid;
   v_managed uuid;
   v_app_shop uuid;
+  v_non_target_app_shop uuid;
   v_candidate record;
   v_status text;
 begin
@@ -22,7 +25,29 @@ begin
   end if;
 
   select id into v_workspace from private.partner_workspaces where wp_shop_id=768;
+  select id into v_workspace_725 from private.partner_workspaces where wp_shop_id=725;
+  select id into v_workspace_766 from private.partner_workspaces where wp_shop_id=766;
   select id into v_app_shop from app.shops where slug='synthetic-pilot-768';
+  if v_workspace is null or v_workspace_725 is null or v_workspace_766 is null
+    or v_app_shop is null then
+    raise exception 'synthetic baseline identity capture failed';
+  end if;
+
+  -- The runner's intentional-abnormal-fixture mode sets this local custom
+  -- setting.  It changes a non-target workspace after its UUID is captured;
+  -- the exact UUID-based guard below must reject it.  The whole DO block
+  -- rolls back on that expected failure, leaving no fixture mutation behind.
+  if current_setting('eskomi_rehearsal.inject_non_target_mapping', true) = 'on' then
+    select id into v_non_target_app_shop
+    from app.shops
+    where id <> v_app_shop
+    order by slug
+    limit 1;
+    update private.partner_workspaces
+    set wp_shop_id=null, app_shop_id=v_non_target_app_shop
+    where id=v_workspace_725;
+  end if;
+
   select private.import_managed_shop_from_legacy(
     768,
     'synthetic-pilot-768',
@@ -82,8 +107,24 @@ begin
   if (select count(*) from private.partner_workspace_legacy_aliases_v11 where legacy_wp_shop_id=768) <> 1 then
     raise exception 'selected workspace did not retain exactly one legacy alias';
   end if;
-  if exists(select 1 from private.partner_workspaces where wp_shop_id in (725,766) and app_shop_id is not null) then
+  if not exists(
+    select 1
+    from private.partner_workspaces
+    where id=v_workspace_725 and wp_shop_id=725 and app_shop_id is null
+  ) or not exists(
+    select 1
+    from private.partner_workspaces
+    where id=v_workspace_766 and wp_shop_id=766 and app_shop_id is null
+  ) then
     raise exception 'out-of-scope legacy workspaces were modified';
+  end if;
+  if exists(
+    select 1
+    from private.partner_workspace_legacy_aliases_v11
+    where workspace_id in (v_workspace_725,v_workspace_766)
+       or legacy_wp_shop_id in (725,766)
+  ) then
+    raise exception 'out-of-scope legacy workspaces gained aliases';
   end if;
   if (select count(*) from app.review_publications) <> 0
     or (select count(*) from app.review_experience_publications) <> 0 then

@@ -151,25 +151,32 @@ where legacy_wp_shop_id = :pilot_wp_shop_id
   and legacy_canonical_url = :pilot_canonical_url;
 ```
 
-The preflight passes only when the query returns **exactly one** row and all of
-the following are true:
+The query must return **exactly one** row with the signed legacy WP ID, slug,
+and canonical URL. The full unfiltered candidate report is restricted release
+evidence; its other two candidates remain **out of scope / no write**.
 
-- `mapping_status = 'ready'`;
-- returned legacy WP ID, slug, and canonical URL equal the signed manifest;
-- the three returned UUIDs equal the manifest's `workspace_id`,
-  `managed_shop_id`, and `app_shop_id`;
-- `app_shop_slug` equals the legacy slug and `app_canonical_path` equals
-  `/shops/<pilot_slug>/` exactly; and
-- the full unfiltered candidate report has been attached as restricted release
-  evidence, with the remaining two candidates marked **out of scope / no
-  write**.
+The separately approved write has two mutually exclusive cases:
 
-Zero rows, more than one row, any `mapping_status` other than `ready`, or any
-identity mismatch is a hard stop.  Do not substitute a name match.  The later
-write, if separately authorized, must pass the same three UUIDs first to
-`api.bind_legacy_managed_shop_to_app_shop_v11(...)` and then to
-`api.map_legacy_partner_workspace_to_canonical_v11(...)`; this packet neither
-executes nor authorizes either call.
+1. **Not yet bound:** the first read must be `mapping_status =
+   'managed_shop_unbound'`, with its returned `managed_shop_id` matching the
+   signed manifest. The operator first calls
+   `api.bind_legacy_managed_shop_to_app_shop_v11(managed_shop_id, app_shop_id,
+   actor)`, then repeats this read-only query. Only the second read may be
+   `mapping_status = 'ready'`; it must show the signed three UUIDs,
+   `app_shop_slug` equal to the legacy slug, and `app_canonical_path` exactly
+   `/shops/<pilot_slug>/`. The operator then calls
+   `api.map_legacy_partner_workspace_to_canonical_v11(...)` with that same
+   triple.
+2. **Already bound:** the first read is already `mapping_status = 'ready'` and
+   its three UUIDs/slug/path match the signed manifest. Do **not** call the
+   bind function again: it rejects a non-null `app_shop_id`. Call the mapping
+   function once only while the workspace still has its legacy WP identity.
+
+After a successful mapping, a re-read reports `already_canonical`; it is an
+audit confirmation, not a condition to call bind or map again. Zero rows, more
+than one row, an unexpected status, or any identity mismatch is a hard stop.
+Do not substitute a name match. This packet neither executes nor authorizes
+either write.
 
 ## Backup, recovery, and release evidence
 
