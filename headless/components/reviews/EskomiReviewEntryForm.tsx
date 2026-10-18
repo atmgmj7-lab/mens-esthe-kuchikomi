@@ -30,6 +30,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
   const [context, setContext] = useState<{ shopName: string; therapistName: string | null }>({ shopName, therapistName });
   const [therapists, setTherapists] = useState<Array<{ id: string; display_name: string }>>([]);
   const [selectedTherapistId, setSelectedTherapistId] = useState<string | null>(null);
+  const [resolvedTherapistId, setResolvedTherapistId] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<{ receipt: string | null; benefitCode: string | null; benefit: { status: string; expiresAt: string | null; terms: Record<string, unknown> } | null } | null>(null);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
       .then((payload) => { if (active && payload?.ok && payload.context?.shop_name && typeof payload.replayCredential === "string") {
         replayCredentialRef.current = payload.replayCredential;
         setContext({ shopName: payload.context.shop_name, therapistName: typeof payload.context.therapist_display_name === "string" ? payload.context.therapist_display_name : null });
+        setResolvedTherapistId(selectedTherapistId);
         if (payload.context.therapist_unavailable === true) setMessage("担当者は現在投稿対象ではありません。店舗のみの口コミとして続けられます。");
         setContextReady(true);
       } })
@@ -58,7 +60,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const shopRating = rating(data.get("shopRating"));
-    const therapistRating = context.therapistName ? rating(data.get("therapistRating")) : null;
+    const therapistRating = contextReady && resolvedTherapistId === selectedTherapistId && context.therapistName ? rating(data.get("therapistRating")) : null;
     const displayName = String(data.get("displayName") ?? "").trim();
     const commonComment = String(data.get("commonComment") ?? "").trim();
     if (displayName.length > 30 || commonComment.length > 400 || (!shopRating && !therapistRating && !commonComment)) {
@@ -135,7 +137,7 @@ export function EskomiReviewEntryForm({ entryHandle, shopName, therapistName }: 
     <label className="hl-contact-field">ニックネーム（任意）<input name="displayName" maxLength={30} defaultValue={savedInput?.displayName ?? ""} /></label>
     <label className="hl-contact-field">店舗の総合評価（任意）<select name="shopRating" defaultValue={savedInput?.shopRating?.toString() ?? ""}><option value="">評価しない</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
     <label className="hl-contact-field">利用体験コメント（任意）<textarea name="commonComment" rows={7} maxLength={400} defaultValue={savedInput?.commonComment ?? ""} /></label>
-    {context.therapistName ? <fieldset className="hl-contact-field"><legend>{context.therapistName}さんの評価（任意）</legend><select key={selectedTherapistId ?? "store"} name="therapistRating" defaultValue={savedInput?.therapistRating?.toString() ?? ""}><option value="">評価しない</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value}</option>)}</select></fieldset> : null}
+    {contextReady && resolvedTherapistId === selectedTherapistId && context.therapistName ? <fieldset className="hl-contact-field"><legend>{context.therapistName}さんの評価（任意）</legend><select key={selectedTherapistId ?? "store"} name="therapistRating" defaultValue={savedInput?.therapistRating?.toString() ?? ""}><option value="">評価しない</option>{[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value}</option>)}</select></fieldset> : null}
     <button type="submit" className="hl-contact-submit" disabled={!contextReady}>{contextReady ? "内容を確認する" : "投稿先を確認中…"}</button>{message ? <p role="alert">{message}</p> : null}
   </form>;
 }
