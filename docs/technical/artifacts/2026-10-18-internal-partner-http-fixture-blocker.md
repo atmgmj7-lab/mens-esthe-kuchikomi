@@ -107,6 +107,39 @@ in this workspace because `headless/node_modules` is absent and its checker
 requires the `typescript` package; this was not treated as a substitute for
 the real fixture.
 
+## 2026-10-18 cloud continuation — safe dependency reuse probe
+
+No existing `headless/node_modules`, lockfile-matching npm cache, or Docker
+runtime volume was present in the cloud workspace. The only lockfiles found
+were the repository's `headless/package-lock.json` and unrelated dashboard
+lockfile. No `.env`, authentication file, or user-supplied volume was read,
+copied, or reused.
+
+To distinguish an unavailable registry from a reusable approved cache, a new
+volume owned solely by this check received only `package.json` and
+`package-lock.json` as read-only-source copies. `npm ci --offline
+--ignore-scripts` ran with Docker `--network none` and failed before installation
+with `ENOTCACHED` for the lockfile's `zod-validation-error` tarball. The probe
+volume, container, and network were then verified absent. This confirms that
+there is no safe offline dependency source in the workspace or pinned Node 24
+image. TLS verification was not disabled and no CA was added.
+
+Independent checks that do not need the missing dependency tree passed:
+
+```text
+npm run test:partner-launch-readiness                 PASS
+npm run test:eskomi-v11-internal-auth-storage-runner PASS
+npm run test:eskomi-v11-internal-partner-http-runner PASS
+bash -n both internal fixture runners                 PASS
+```
+
+The POP source still creates its private SVG QR with the pinned `qrcode`
+package and the public widget remains covered by source contracts, but actual
+QR decoding, widget HTTP/browser behavior, and the fixed partner HTTP flow
+cannot be claimed in this cloud workspace until a platform-provided,
+certificate-valid dependency source is available. These remain blocked rather
+than converted to static-only PASS results.
+
 Resume from `headless/` after the focused test-first change with:
 
 ```bash
