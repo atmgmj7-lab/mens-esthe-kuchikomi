@@ -32,6 +32,8 @@ assert.doesNotMatch(apiSource, /requestedWorkspaceId:\s*body/);
 assert.match(pageSource, /PartnerListingEditor/);
 assert.match(editorSource, /差し戻し理由/);
 assert.match(editorSource, /下書きを保存/);
+assert.match(editorSource, /入力内容を確認する/);
+assert.match(editorSource, /戻って修正/);
 assert.match(editorSource, /変更を申請する/);
 assert.match(editorSource, /credentials:\s*["']include/);
 assert.match(editorSource, /api\/partner\/listing\/banner/);

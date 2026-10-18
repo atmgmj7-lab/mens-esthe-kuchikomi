@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function PartnerLoginForm() {
+export function PartnerLoginForm({ returnTo = "/partner/" }: { returnTo?: string }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -15,7 +15,7 @@ export function PartnerLoginForm() {
       const response = await fetch("/api/partner/auth/request-link/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, returnTo }),
       });
       const result = await response.json() as { message?: unknown };
       setMessage(typeof result.message === "string" ? result.message : "現在ログインを開始できません。");

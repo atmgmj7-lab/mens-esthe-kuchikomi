@@ -7,8 +7,9 @@ export function EskomiBannerV2Slot({ id, href }: { id: EskomiBannerV2["id"]; hre
   const resolvedHref = href ?? banner.href;
   if (banner.assetStatus !== "ready" || !banner.imageSrc || !resolvedHref) return null;
   return <aside className="hl-eskomi-banner-v2">
-    <Link href={resolvedHref} aria-label={banner.title}>
-      <img src={banner.imageSrc} alt="" />
+    <Link href={resolvedHref} aria-label={`${banner.title}：${banner.cta}`}>
+      <img src={banner.imageSrc} alt={banner.title} />
+      <span className="hl-eskomi-banner-v2__copy"><span>{banner.body}</span><strong>{banner.cta} <span aria-hidden="true">→</span></strong></span>
     </Link>
   </aside>;
 }

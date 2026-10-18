@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
+import { PARTNER_LOGIN_RETURN_TO_COOKIE, PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
+import { partnerLoginReturnTo } from "@/lib/partner/partner-login-return-to";
 import { partnerAuthRedirectOrigin } from "@/lib/partner/partner-auth-server";
 import { PARTNER_LOGIN_STATE_COOKIE, PARTNER_SESSION_COOKIE, authorizePartnerLoginCompletion } from "@/lib/partner/partner-session";
 import { secretsMatch } from "@/lib/server/secure-secret";
@@ -25,6 +26,13 @@ function clearLoginState(response: NextResponse) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/partner/auth/callback/",
+    maxAge: 0,
+  });
+  response.cookies.set(PARTNER_LOGIN_RETURN_TO_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/api/partner/auth/complete-link",
     maxAge: 0,
   });
   return response;
@@ -64,7 +72,8 @@ export async function POST(request: NextRequest) {
   const authorization = await authorizePartnerLoginCompletion({ accessToken, state });
   if (authorization.status !== "allowed") return failedCompletion();
 
-  const response = clearLoginState(noStoreJson({ ok: true }, 200));
+  const returnTo = partnerLoginReturnTo(request.cookies.get(PARTNER_LOGIN_RETURN_TO_COOKIE)?.value);
+  const response = clearLoginState(noStoreJson({ ok: true, returnTo }, 200));
   response.cookies.set(PARTNER_SESSION_COOKIE, accessToken, {
     httpOnly: true,
     sameSite: "lax",

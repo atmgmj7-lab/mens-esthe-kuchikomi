@@ -115,9 +115,9 @@ export function ShopDetail({
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />
-            <p id="contribute"><Link href={`/shops/${shop.slug}/community/`}>未確認の利用者情報を交換・掲載情報を訂正する</Link></p>
+            <section id="contribute" aria-labelledby="shop-contribute-heading"><h2 id="shop-contribute-heading">感想・訂正を送る</h2><p>利用した感想は口コミとして投稿できます。掲載情報の違いは非公開の訂正依頼へ、未確認の利用者情報は情報交換へ進んでください。情報交換は口コミ評価や通常順位に使いません。</p><p><Link href={reviewSubmitUrl}>この店舗について口コミを投稿する</Link> <Link href={`/shops/${shop.slug}/community/`}>情報交換・掲載情報を訂正する</Link></p><p><small>店舗専用の投稿リンクが案内されている場合は、そのリンクから投稿してください。</small></p></section>
             <PublicTherapistList therapists={therapists} />
-            <EskomiBannerV2Slot id="B09" href={`/shops/${shop.slug}/community/`} />
+            <EskomiBannerV2Slot id="B09" href="#contribute" />
             <ShopOwnerCta shop={shop} />
           </div>
         </article>

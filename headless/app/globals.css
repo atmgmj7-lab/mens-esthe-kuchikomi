@@ -4346,6 +4346,24 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
   display: block;
 }
 
+.hl-eskomi-banner-v2__copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  color: #143d4d;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.hl-eskomi-banner-v2__copy strong { flex: 0 0 auto; color: #7a5b1b; }
+
+@media (max-width: 600px) {
+  .hl-eskomi-banner-v2__copy { display: block; padding: 10px 12px; font-size: 0.82rem; }
+  .hl-eskomi-banner-v2__copy strong { display: block; margin-top: 4px; }
+}
+
 .hl-eskomi-banner-v2 img {
   width: 100%;
   height: auto;

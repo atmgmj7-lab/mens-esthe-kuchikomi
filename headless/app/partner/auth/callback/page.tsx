@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
+import { partnerLoginReturnTo } from "@/lib/partner/partner-login-return-to";
 
 function loginError() {
   window.location.replace("/partner/login/?error=invalid-link");
@@ -41,12 +42,12 @@ export default function PartnerAuthCallbackPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ state, accessToken }),
     }).then(async (response) => {
-      const body = await response.json().catch(() => null) as { ok?: unknown } | null;
+      const body = await response.json().catch(() => null) as { ok?: unknown; returnTo?: unknown } | null;
       if (!response.ok || body?.ok !== true) {
         loginError();
         return;
       }
-      window.location.replace("/partner/");
+      window.location.replace(partnerLoginReturnTo(body.returnTo));
     }).catch(() => {
       clearHandoffCookie();
       loginError();

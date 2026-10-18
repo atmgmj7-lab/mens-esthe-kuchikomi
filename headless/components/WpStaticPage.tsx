@@ -29,12 +29,12 @@ export function WpStaticPage({ slug, page, ownerRequestInitial }: WpStaticPagePr
         <article className="hl-static-page-card hl-surface">
           <h1 className="hl-static-page-title">{title}</h1>
           <div className="rich-text hl-static-page-body" dangerouslySetInnerHTML={{ __html: contentHtml }} />
-          {slug === "contact" ? (
+          {slug === "contact" || slug === "advertise" ? (
             <section className="hl-contact-section" aria-labelledby="contact-form-heading">
               <h2 id="contact-form-heading" className="hl-contact-heading">
-                お問い合わせフォーム
+                {slug === "advertise" ? "広告掲載の相談フォーム" : "お問い合わせフォーム"}
               </h2>
-              <ContactForm />
+              <ContactForm defaultType={slug === "advertise" ? "掲載希望" : undefined} sourcePath={`/${slug}/`} />
             </section>
           ) : null}
           {slug === "storelisting" ? <StoreListingGuide existingInitial={hasOwnerRequestTarget ? ownerRequestInitial : undefined} /> : null}

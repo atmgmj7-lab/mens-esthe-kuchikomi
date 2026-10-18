@@ -9,6 +9,7 @@ import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
 import { buildPartnerWidgetIframeSnippet } from "@/lib/partner/partner-review-widget";
 import { resolvePartnerReviewGrowthCenter } from "@/lib/partner/partner-review-growth-kit";
 import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/lib/partner/partner-session";
+import { partnerLoginUrl } from "@/lib/partner/partner-login-return-to";
 import { pageMetadata } from "@/lib/seo";
 
 export const instant = false;
@@ -24,9 +25,9 @@ export default async function PartnerReviewGrowthCenterPage() {
   await connection();
   const accessToken = (await cookies()).get(PARTNER_SESSION_COOKIE)?.value ?? null;
   const dashboard = await authorizePartnerReviewGrowthSession({ accessToken });
-  if (dashboard.status !== "allowed") redirect("/partner/login/");
+  if (dashboard.status !== "allowed") redirect(partnerLoginUrl("/partner/growth/"));
   const center = resolvePartnerReviewGrowthCenter(dashboard.identity, dashboard.metrics);
-  if (center.status !== "allowed") redirect("/partner/login/");
+  if (center.status !== "allowed") redirect(partnerLoginUrl("/partner/growth/"));
   const asset = (key: (typeof center.assets)[number]["key"]) => center.assets.find((item) => item.key === key);
   const qr = asset("qr");
   const qrDataUrl = qr?.status === "available"

@@ -12,6 +12,7 @@ postgrest_container="${ESKOMI_POSTGREST_CONTAINER:-eskomi-postgrest-v164-http-e2
 next_container="${ESKOMI_NEXT_CONTAINER:-eskomi-next-v11-http-e2e}"
 browser_container="${ESKOMI_BROWSER_CONTAINER:-eskomi-browser-v11-http-e2e}"
 runtime_volume="${ESKOMI_E2E_RUNTIME_VOLUME:-eskomi-v11-runtime-${RANDOM}-${RANDOM}}"
+runtime_volume_created=0
 database_name="${ESKOMI_PG17_DATABASE:-eskomi_verify}"
 jwt_secret="e2e-only-local-postgrest-jwt-secret-012345678901234567890123456789"
 replay_key="${ESKOMI_REVIEW_REPLAY_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}"
@@ -25,7 +26,7 @@ operator_partner_user="33333333-3333-4333-8333-333333333333"
 cleanup() {
   docker rm -f "$browser_container" "$next_container" "$postgrest_container" "$database_container" >/dev/null 2>&1 || true
   docker network rm "$network_name" >/dev/null 2>&1 || true
-  docker volume rm "$runtime_volume" >/dev/null 2>&1 || true
+  if [ "$runtime_volume_created" -eq 1 ]; then docker volume rm "$runtime_volume" >/dev/null 2>&1 || true; fi
 }
 trap cleanup EXIT
 
@@ -34,7 +35,12 @@ service_role_jwt="$(node -e 'const c=require("node:crypto");const b=(x)=>Buffer.
 # The host's node_modules may contain macOS-native SWC binaries. Install the
 # lockfile-pinned Linux runtime before the application joins the internal test
 # network, so Next never needs outbound registry access while exercising data.
+if docker volume inspect "$runtime_volume" >/dev/null 2>&1; then
+  echo "Refusing to use existing runtime volume: $runtime_volume" >&2
+  exit 1
+fi
 docker volume create "$runtime_volume" >/dev/null
+runtime_volume_created=1
 docker run --rm \
   --mount "type=bind,src=$headless_root,dst=/source,readonly" \
   --mount "type=volume,src=$runtime_volume,dst=/app" \

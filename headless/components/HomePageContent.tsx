@@ -226,6 +226,7 @@ export function HomePageContent({
 
       <div className="escomi-home-container-v2">
         <EskomiBannerV2Slot id="B08" />
+        <EskomiBannerV2Slot id="B10" />
       </div>
 
       {latestReviews.length > 0 ? (

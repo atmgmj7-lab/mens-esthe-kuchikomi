@@ -11,6 +11,7 @@ import { PARTNER_SESSION_COOKIE, authorizePartnerReviewGrowthSession } from "@/l
 import { pageMetadata } from "@/lib/seo";
 import { PartnerAccessReport } from "@/components/partner/PartnerAccessReport";
 import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
+import { partnerLoginUrl } from "@/lib/partner/partner-login-return-to";
 
 export const instant = false;
 
@@ -37,7 +38,7 @@ export default async function PartnerDashboardPage() {
       </div>
     </main>;
   }
-  if (dashboard.status !== "allowed") redirect("/partner/login/");
+  if (dashboard.status !== "allowed") redirect(partnerLoginUrl("/partner/"));
   const { identity, growthKit } = dashboard;
   const home = resolvePartnerActionFirstHome(identity, growthKit);
   const asset = (key: (typeof home.collection)[number]["key"]) => home.collection.find((item) => item.key === key);

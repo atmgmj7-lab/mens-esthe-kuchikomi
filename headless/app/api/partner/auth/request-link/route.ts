@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
+import { PARTNER_LOGIN_RETURN_TO_COOKIE, PARTNER_LOGIN_STATE_HANDOFF_COOKIE } from "@/lib/partner/partner-auth-cookies";
 import { createPartnerLoginState } from "@/lib/partner/partner-auth-login-state";
+import { partnerLoginReturnTo } from "@/lib/partner/partner-login-return-to";
 import { createPartnerMagicLinkClient, partnerAuthRedirectOrigin } from "@/lib/partner/partner-auth-server";
 import { PARTNER_LOGIN_STATE_COOKIE } from "@/lib/partner/partner-session";
 
@@ -31,6 +32,13 @@ function clearLoginState(response: NextResponse) {
     path: "/partner/auth/callback/",
     maxAge: 0,
   });
+  response.cookies.set(PARTNER_LOGIN_RETURN_TO_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/api/partner/auth/complete-link",
+    maxAge: 0,
+  });
   return response;
 }
 
@@ -52,6 +60,7 @@ export async function POST(request: NextRequest) {
   const email = body && typeof body === "object" && "email" in body && typeof body.email === "string"
     ? body.email.trim()
     : null;
+  const returnTo = partnerLoginReturnTo(body && typeof body === "object" && "returnTo" in body ? body.returnTo : null);
   const client = createPartnerMagicLinkClient(process.env);
   if (!client || !email) return noStoreJson({ ok: false, message: "現在ログインを開始できません。" }, 503);
 
@@ -73,6 +82,13 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/partner/auth/callback/",
+      maxAge: 10 * 60,
+    });
+    response.cookies.set(PARTNER_LOGIN_RETURN_TO_COOKIE, returnTo, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/api/partner/auth/complete-link",
       maxAge: 10 * 60,
     });
   } else {

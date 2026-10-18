@@ -14,7 +14,7 @@ export type EskomiBannerV2 = Readonly<{
  * feature that has not been delivered yet.
  */
 export const ESKOMI_BANNER_V2: Readonly<Record<EskomiBannerV2["id"], EskomiBannerV2>> = {
-  B01: { id: "B01", title: "お店を無料掲載しませんか", body: "掲載条件と利用できる機能を、確認できる範囲でご案内します。", cta: "無料掲載の特典を見る", href: "#shop-owner-request", imageSrc: "/images/eskomi-banners/B01-eskomi-functional-v2.png", assetStatus: "ready" },
+  B01: { id: "B01", title: "お店を無料掲載しませんか", body: "口コミ案内リンク、QR・POP、承認公開済み口コミの表示を、条件を満たす店舗向けに案内します。", cta: "無料掲載の特典を見る", href: "#listing-benefits", imageSrc: "/images/eskomi-banners/B01-eskomi-functional-v2.png", assetStatus: "ready" },
   B02: { id: "B02", title: "お礼の一通で口コミをお願い", body: "専用リンク入りの案内文をコピーして、普段のLINE・メールでお送りできます。", cta: "案内文の作り方を見る", href: "/partner/growth/#growth-line-heading", imageSrc: "/images/eskomi-banners/B02-eskomi-functional-v2.png", assetStatus: "ready" },
   B03: { id: "B03", title: "次回予約で使える特典コード", body: "特典内容・提供条件が確認できるまで、発行を案内しません。", cta: "クーポンの仕組みを見る", href: "/partner/operations/", imageSrc: "/images/eskomi-banners/B03-eskomi-functional-v2.png", assetStatus: "ready" },
   B04: { id: "B04", title: "お店のホームページに口コミを表示", body: "承認公開された自店の口コミだけを、更新・取り下げに追従して表示します。", cta: "ホームページでの表示を見る", href: "/partner/growth/#growth-widget-heading", imageSrc: "/images/eskomi-banners/B04-eskomi-functional-v2.png", assetStatus: "ready" },
@@ -44,8 +44,8 @@ export const ESKOMI_BANNER_V2: Readonly<Record<EskomiBannerV2["id"], EskomiBanne
     title: "関西でお店を探す人に、広告でご案内",
     body: "広告掲載の相談先・料金・表示場所は、提供条件を確認してから案内します。",
     cta: "広告掲載について相談",
-    href: null,
+    href: "/advertise/",
     imageSrc: "/images/eskomi-banners/B10-eskomi-functional-v2.png",
-    assetStatus: "pending_destination_validation",
+    assetStatus: "ready",
   },
 };
