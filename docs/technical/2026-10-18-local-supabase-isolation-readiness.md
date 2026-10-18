@@ -14,16 +14,36 @@
   do not start the Supabase Auth or Storage services and therefore are not a
   real Auth/Storage/email verification path.
 
+## 2026-10-18 operator update
+
+- With the user's explicit pre-production authorization, a read-only Docker and
+  Supabase status check confirmed that the existing local Supabase stack is
+  healthy. It was not modified.
+- Its API, database, Studio, and mail-catcher ports are already allocated.
+  The existing database has no v1.1 fixture schema, shop rows, or required
+  v1.1 RPCs, so it is not a valid substitute for an isolated verification.
+- A disposable project directory was initialized under `/tmp` only. Its first
+  `supabase start` stopped before a stack was created because its default
+  database port (`54322`) was already allocated by another existing project.
+  A follow-up read-only Docker inspection found no fixture containers or
+  fixture networks left behind.
+- The standard Supabase CLI start path publishes its service ports on all host
+  interfaces. Retrying it on different ports would violate the approved
+  constraint of no new network exposure, so it was not retried. No existing
+  project was stopped, reconfigured, reset, or migrated.
+
 ## Current blocker
 
-`supabase status` and `docker ps` could not inspect the local Docker daemon:
-`operation not permitted` for the Docker socket. No retry, configuration,
-network, or security change was attempted.
+The requested real local Auth/Storage/Mailpit/API/DB verification needs an
+isolated service topology that remains internal to Docker (with any test client
+in that same network). The standard Supabase CLI stack cannot provide that
+topology here without host port publishing. Building an explicit internal-only
+compose fixture is the remaining implementation path; it must keep all
+credentials ephemeral and must not alter the existing local stack.
 
 ## Safe next path
 
-The user must make the existing Docker daemon available to this task, then the
-operator may run only `supabase status` and inspect the local stack. If it is
-not already running, explicit approval is required before `supabase start`.
-For email capture, use a local-only mail catcher configured in the existing
-Supabase stack; do not add an external SMTP credential or third-party service.
+Implement a disposable, internal-only Docker fixture with database, Auth,
+Storage, API, and a local mail catcher, then run its client from the same
+network. Do not publish ports, add external SMTP credentials, use a third-party
+service, or change the existing Supabase project.
