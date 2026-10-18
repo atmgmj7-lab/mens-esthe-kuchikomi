@@ -167,6 +167,40 @@ introduced four High findings through `@opennextjs/aws` →
 deployment, DNS, remote cache binding, production database/Auth change, or
 Cloudflare account action was attempted.
 
+### Additional local compatibility investigation (not a workaround)
+
+This follow-up used fresh temporary directories and a loopback-only Wrangler
+server. It did not use the Eskomi proxy, Supabase, Mailpit, Storage, an
+account, or any remote service. The minimal app contained only a cached value
+with `"use cache"`, `cacheLife("minutes")`, and `cacheTag()`.
+
+| Variant | Local workerd result | Decision |
+| --- | --- | --- |
+| Dynamic request, Cache Components, direct cached value | `500`: workerd canceled the hung request | Reproduces the public-shop failure without Eskomi route code. |
+| Same cached value inside a React `Suspense` boundary | `500`: same timeout warning and cancellation | A Suspense refactor is not a safe workaround. |
+| Static page with Cache Components still enabled | `500`: same cancellation | The failure is Cache Components itself, not `connection()` or authentication. |
+| Plain page with Cache Components disabled and no `"use cache"` directive | `200` | This proves the Worker shell is viable, but disabling the feature would require removing the application's tag/cache semantics and is not adopted. |
+
+The message/stack boundary in each failing variant was the Next warning about
+Cache Components and `setTimeout()`, followed by the local workerd
+"code had hung" cancellation. This is evidence against changing the
+production hostname validator, proxy routes, Cookie/Auth behavior, or cache
+security headers: none participate in the reproduction.
+
+For the image blocker, `@jsquash/jpeg` 1.6.0, `@jsquash/png` 3.1.1, and
+`@jsquash/webp` 1.5.0 were evaluated only in temporary directories. A direct
+Workerd micro-test successfully performed PNG decode → JPEG encode → JPEG
+decode, proving the codec can preserve the required raster conversion and
+metadata-stripping property in isolation. However, importing its Wasm binaries
+from this Next 16.3.8/Turbopack application makes `npm run workers:build`
+fail: Turbopack treats those files as Wasm module exports while the codecs
+require binary/module loading. Node's automatic codec path also cannot load
+its file URL. Therefore the candidate cannot be used without a new bundling
+adapter or a larger image-runtime design. It was removed completely; the
+existing `sharp` validation, dimension bounds, re-encode, metadata strip, and
+size limits remain unchanged. No pass-through or reduced validation path was
+introduced.
+
 ### Cache backend decision for a future approved preview
 
 Do not add cache bindings to this branch while the public page and image route

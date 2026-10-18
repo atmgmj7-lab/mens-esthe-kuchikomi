@@ -82,3 +82,12 @@ checked without logging the link token.
 The Worker run intentionally remains failing for these blockers. No missing
 feature is recorded as PASS and no account, cache binding, deployment, DNS,
 or production Auth/DB change is implied.
+
+Follow-up local minimal reproductions confirmed that the Cache Components
+failure is independent of the Eskomi proxy and fixture services: direct,
+Suspense-wrapped, and static `"use cache"` pages all return the same local
+workerd hang `500`; a no-cache plain page returns `200`. A Worker-only
+jSquash/WASM image micro-test can re-encode PNG to JPEG, but the actual
+Next 16.3.8/Turbopack build cannot bundle its Wasm imports, so it is not a
+safe replacement for `sharp`. The full analysis and explicit non-adoption are
+recorded in the Cloudflare offline migration plan artifact.
