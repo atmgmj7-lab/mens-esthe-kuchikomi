@@ -958,3 +958,8 @@
 - Reconciled the redacted read-only production ledger boundary with the source migration manifest and existing fresh/representative-upgrade fixtures.
 - Added the ordered delta and mapping-preparation hard stops: a `20261015182000`-baseline rehearsal, exact managed projection, and canonical publication state are required before the one-row mapping preflight can pass.
 - Saved the reconciliation packet as `2755591759e95daa6ba0698f785f3b7dad33e19e`; remote `main` remained unchanged.
+
+## 2026-10-18 — synthetic 20261015182000 rehearsal
+
+- Added and passed a disposable repository-schema + synthetic-data rehearsal: 48 migrations after the ledger boundary, legacy managed creation, exact mapping, and normal publication all execute without touching production or the local Supabase stack.
+- Recorded the limited public legacy-reader baseline (`/reviews/` returned `全0件`) separately from v1.1/public-projection proof and from all production-write gates.

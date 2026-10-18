@@ -83,8 +83,10 @@ Accordingly, the first authorized migration window needs an additional,
 disposable **`20261015182000`-baseline upgrade rehearsal**. It must start from
 a sanitized schema/data snapshot that represents the production boundary,
 apply the exact suffix above with the normal tool, and run the existing
-read-only candidate and public-projection checks. Creating this rehearsal is
-not authorized by this document.
+read-only candidate and public-projection checks. The repository-only synthetic
+rehearsal is now recorded in
+[`2026-10-18-synthetic-20261015182000-rehearsal.md`](2026-10-18-synthetic-20261015182000-rehearsal.md);
+it is evidence of the code path, not a production snapshot or approval.
 
 ## Mrs.Rank UP mapping readiness: current hard stops
 

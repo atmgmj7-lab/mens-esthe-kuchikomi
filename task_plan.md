@@ -765,6 +765,14 @@ store-scoped.
 - [x] Compare fresh/representative-upgrade fixture scope with the actual boundary and record Mrs.Rank UP mapping hard stops without private identifiers.
 - [x] Verify, commit, push the reconciliation packet, and confirm its remote SHA.
 
+## Synthetic `20261015182000` baseline rehearsal
+
+- [x] Fix scope: repository pre-v1.1 schema plus synthetic 382-shop/zero-native-review shape only; no production snapshot or identifiers.
+- [x] Inspect and reuse the existing fresh/populated-upgrade runners and write a failing safety/contract check.
+- [x] Implement the disposable baseline fixture: apply the post-ledger suffix, then normal managed projection, exact mapping, and publication flow.
+- [x] Run the isolated rehearsal and public legacy-reader aggregate check when available; retain only local evidence.
+- [ ] Record scope/evidence, commit, push the approved branch, and confirm its remote SHA.
+
 ## Guardrails
 
 - No main merge, deployment, production DB/auth write, secret retrieval, backup upload, file deletion, or Docker resource change.

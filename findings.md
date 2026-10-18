@@ -564,3 +564,14 @@
 
 - The authorized read-only ledger ends at `20261015182000`; the pending ordered suffix begins with the canonical foundation and ends with the canonical email-audit migration. Existing fresh and representative populated-upgrade fixtures do not reproduce that actual starting boundary.
 - Mrs.Rank UP is not mapping-ready after migration alone: the current managed projection has no exact candidate, and the canonical shop is draft. Both facts are documented as hard stops; no production identifier or row value is committed.
+
+## 2026-10-18 — synthetic 20261015182000 rehearsal design
+
+- The existing populated-upgrade runner starts from the historical `bf46aa1` repository boundary, not the authorized `20261015182000` boundary. The internal partner HTTP runner applies all current migrations to an empty disposable database, so neither directly proves the requested path.
+- The new rehearsal must apply only source migrations through `20261015182000`, seed synthetic production-shaped data, then apply the timestamp suffix. It must be an owned temporary PostgreSQL container and must not reuse the local Supabase stack, volumes, or an external endpoint.
+- The canonical managed creation wrapper creates a new app shop and therefore cannot establish a legacy exact mapping to the pre-existing draft app shop. The rehearsal must use the existing legacy managed-shop projection path before `bind_legacy_managed_shop_to_app_shop_v11`, then publish through the normal reviewed managed-shop flow.
+
+## 2026-10-18 — synthetic baseline rehearsal result
+
+- The first run failed only because the old repository schema constrains workspace canonical URLs to the site host; changing the synthetic URLs to match that schema contract made the second run pass. No external database was contacted in either attempt.
+- The isolated runner passed the full synthetic `20261015182000` → current suffix, legacy managed creation, exact bind/map, and normal publication path. A public unauthenticated `/reviews/` GET returned `全0件`; this is recorded only as a legacy aggregate baseline.
