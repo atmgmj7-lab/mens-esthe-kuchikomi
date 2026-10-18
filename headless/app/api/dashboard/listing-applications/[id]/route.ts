@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authorizeListingDashboardRequest } from "@/lib/dashboard/content-admin-auth";
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 const noStore = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" };
@@ -14,7 +14,7 @@ async function context(request: NextRequest) {
 }
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const id = (await params).id; if (!UUID.test(id)) return response("申請を確認してください。", 400); const c = await context(request); if ("error" in c) return c.error;
-  const detail = await fetch(`${c.base}/rest/v1/rpc/get_listing_application_operator_detail`, { method: "POST", headers: { ...c.headers, "Content-Type": "application/json" }, body: JSON.stringify({ p_application_id: id }), cache: "no-store" });
+  const detail = await fetch(supabaseRpcUrl(c.base, "get_listing_application_operator_detail"), { method: "POST", headers: { ...c.headers, "Content-Type": "application/json" }, body: JSON.stringify({ p_application_id: id }), cache: "no-store" });
   if (!detail.ok) return response("申請を取得できませんでした。", 503); const body = await detail.json(); if (!body || typeof body !== "object" || !body.application) return response("申請が見つかりません。", 404);
   return NextResponse.json({ ok: true, ...body }, { headers: noStore });
 }
@@ -23,7 +23,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return response("編集内容を確認してください。", 400); }
   const expected = Number(body.expectedRevision); const shopName = safeText(body.shopName, 120); const area = safeText(body.area, 120); const websiteUrl = validUrl(body.websiteUrl); const introduction = typeof body.introduction === "string" && body.introduction.trim().length <= 5000 ? body.introduction.trim() : null; const editPreference = body.editPreference === "operator" || body.editPreference === "shop" ? body.editPreference : null;
   if (!Number.isSafeInteger(expected) || expected < 1 || !shopName || !area || !websiteUrl || !editPreference || (typeof body.introduction === "string" && !introduction && body.introduction.trim())) return response("編集内容を確認してください。", 400);
-  const result = await fetch(`${c.base}/rest/v1/rpc/update_listing_application`, { method: "POST", headers: { ...c.headers, "Content-Type": "application/json", "Content-Profile": "api" }, body: JSON.stringify({ p_application_id: id, p_expected_revision: expected, p_payload: { shop_name: shopName, area, website_url: websiteUrl, introduction, edit_preference: editPreference } }), cache: "no-store" });
+  const result = await fetch(supabaseRpcUrl(c.base, "update_listing_application"), { method: "POST", headers: { ...c.headers, "Content-Type": "application/json", "Content-Profile": "api" }, body: JSON.stringify({ p_application_id: id, p_expected_revision: expected, p_payload: { shop_name: shopName, area, website_url: websiteUrl, introduction, edit_preference: editPreference } }), cache: "no-store" });
   if (!result.ok) return response("編集を保存できませんでした。", 503); if (await result.json() !== "ok") return response("ほかの確認者が内容を更新しました。再読み込みして確認してください。", 409);
   return NextResponse.json({ ok: true, message: "確認待ちの編集内容を保存しました。公開内容は承認まで変わりません。" }, { headers: noStore });
 }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let body: Record<string, unknown>; try { body = await request.json(); } catch { return response("判断内容を確認してください。", 400); }
   const expected = Number(body.expectedRevision); const decision = body.decision; const note = typeof body.note === "string" && body.note.trim().length <= 5000 ? body.note.trim() : null;
   if (!Number.isSafeInteger(expected) || expected < 1 || !["approved", "changes_requested", "rejected"].includes(String(decision))) return response("判断内容を確認してください。", 400);
-  const result = await fetch(`${c.base}/rest/v1/rpc/review_listing_application`, { method: "POST", headers: { ...c.headers, "Content-Type": "application/json" }, body: JSON.stringify({ p_application_id: id, p_expected_revision: expected, p_decision: decision, p_reviewer_label: "dashboard_listing_operator", p_note: note }), cache: "no-store" });
+  const result = await fetch(supabaseRpcUrl(c.base, "review_listing_application"), { method: "POST", headers: { ...c.headers, "Content-Type": "application/json" }, body: JSON.stringify({ p_application_id: id, p_expected_revision: expected, p_decision: decision, p_reviewer_label: "dashboard_listing_operator", p_note: note }), cache: "no-store" });
   if (!result.ok) return response("判断を保存できませんでした。", 503); if (await result.json() !== "ok") return response("ほかの確認者が内容を更新しました。再読み込みして確認してください。", 409);
   return NextResponse.json({ ok: true, message: decision === "approved" ? "承認しました。承認済みの公開候補だけが表示されます。" : "判断を保存しました。" }, { headers: noStore });
 }

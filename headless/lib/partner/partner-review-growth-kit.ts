@@ -1,9 +1,14 @@
-import type {
-  PartnerReviewCampaignChannel,
-  PartnerReviewGrowthCampaignMetrics,
-  PartnerReviewGrowthMetrics,
-} from "@/lib/partner/provisioning-service";
-import type { PartnerWorkspaceIdentity } from "@/lib/partner/partner-dashboard";
+import type { CanonicalPartnerWorkspaceIdentity } from "@/lib/partner/partner-dashboard";
+
+export type PartnerCanonicalGrowthMetrics = Readonly<{
+  workspaceId: string;
+  appShopId: string;
+  reviewHandle: string;
+  widgetHandle: string;
+  submittedReviews: number;
+  pendingReviews: number;
+  publicReviews: number;
+}>;
 
 type Available<T> = Readonly<{ status: "available"; value: T }>;
 type Unavailable = Readonly<{ status: "unavailable" }>;
@@ -17,7 +22,7 @@ export type PartnerReviewGrowthKit = Readonly<{
   websiteCta: GrowthKitValue<string>;
   widgetUrl: GrowthKitValue<string>;
   reviewMetrics: Readonly<{ status: "available"; submitted: number; pending: number; published: number }> | Unavailable;
-  campaignMetrics: Readonly<{ status: "available"; value: ReadonlyArray<Readonly<{ channel: PartnerReviewCampaignChannel; open: number; conversion: number }>> }> | Unavailable;
+  campaignMetrics: Unavailable;
 }>;
 
 export type PartnerReviewGrowthKitResult = PartnerReviewGrowthKit | Readonly<{ status: "forbidden" }>;
@@ -36,7 +41,6 @@ export type PartnerReviewGrowthCenter = Readonly<{
 export type PartnerReviewGrowthCenterResult = PartnerReviewGrowthCenter | Readonly<{ status: "forbidden" }>;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const CHANNELS = ["counter_qr", "line_after_visit", "shop_website", "eskomi_shop_page"] as const;
 
 function unavailable(): Unavailable {
   return { status: "unavailable" };
@@ -52,7 +56,7 @@ function validCount(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
-function validMetrics(metrics: PartnerReviewGrowthMetrics): boolean {
+function validMetrics(metrics: PartnerCanonicalGrowthMetrics): boolean {
   return validCount(metrics.submittedReviews)
     && validCount(metrics.pendingReviews)
     && validCount(metrics.publicReviews)
@@ -60,48 +64,17 @@ function validMetrics(metrics: PartnerReviewGrowthMetrics): boolean {
     && metrics.publicReviews <= metrics.submittedReviews;
 }
 
-function activeCanonicalCampaign(
-  metrics: PartnerReviewGrowthMetrics,
-  channel: PartnerReviewCampaignChannel,
-): PartnerReviewGrowthCampaignMetrics | null {
-  const candidates = metrics.campaigns.filter((campaign) => campaign.channel === channel && campaign.isActive);
-  if (candidates.length !== 1) return null;
-  const campaign = candidates[0];
-  const reviewUrl = canonicalReviewUrl(campaign.token);
-  return reviewUrl !== null && campaign.reviewUrl === reviewUrl
-    && validCount(campaign.openCount) && validCount(campaign.conversionCount)
-    ? campaign
-    : null;
-}
-
 function growthCenterAsset(
-  metrics: PartnerReviewGrowthMetrics | null,
-  channel: PartnerReviewCampaignChannel,
+  metrics: PartnerCanonicalGrowthMetrics | null,
   key: GrowthCenterAssetKey,
   title: string,
   distribution: string,
-  toValue: (campaign: PartnerReviewGrowthCampaignMetrics) => string | null,
+  toValue: (metrics: PartnerCanonicalGrowthMetrics) => string | null,
 ): PartnerReviewGrowthCenter["assets"][number] {
   if (metrics === null) {
     return { key, title, distribution, status: "unavailable", message: "口コミ導線のデータを現在確認できません。", prerequisite: "時間をおいて再度確認してください。" };
   }
-  const matching = metrics.campaigns.filter((campaign) => campaign.channel === channel);
-  const active = matching.filter((campaign) => campaign.isActive);
-  if (active.length === 0) {
-    return {
-      key,
-      title,
-      distribution,
-      status: "unavailable",
-      message: matching.length === 0 ? "このご案内はまだ準備中です。" : "このご案内は現在利用できません。",
-      prerequisite: "運営で正しいご案内を準備するまでお待ちください。",
-    };
-  }
-  if (active.length !== 1) {
-    return { key, title, distribution, status: "misconfigured", message: "このご案内の設定を確認できません。", prerequisite: "運営へお問い合わせください。" };
-  }
-  const canonical = activeCanonicalCampaign(metrics, channel);
-  const value = canonical ? toValue(canonical) : null;
+  const value = toValue(metrics);
   return value === null
     ? { key, title, distribution, status: "misconfigured", message: "このご案内の設定を確認できません。", prerequisite: "運営へお問い合わせください。" }
     : { key, title, distribution, status: "available", value };
@@ -122,8 +95,8 @@ function widgetUrl(token: string): string | null {
 }
 
 export function resolvePartnerReviewGrowthKit(
-  identity: PartnerWorkspaceIdentity,
-  metrics: PartnerReviewGrowthMetrics | null,
+  identity: CanonicalPartnerWorkspaceIdentity,
+  metrics: PartnerCanonicalGrowthMetrics | null,
 ): PartnerReviewGrowthKitResult {
   if (metrics === null) {
     return {
@@ -138,36 +111,28 @@ export function resolvePartnerReviewGrowthKit(
     };
   }
 
-  if (metrics.workspaceId !== identity.workspaceId || metrics.shopId !== identity.shopId || !validMetrics(metrics)) {
+  if (metrics.workspaceId !== identity.workspaceId || metrics.appShopId !== identity.appShopId || !validMetrics(metrics)) {
     return { status: "forbidden" };
   }
 
-  const qrCampaign = activeCanonicalCampaign(metrics, "counter_qr");
-  const lineCampaign = activeCanonicalCampaign(metrics, "line_after_visit");
-  const websiteCampaign = activeCanonicalCampaign(metrics, "shop_website");
-  const campaignMetrics = CHANNELS.flatMap((channel) => {
-    const campaign = activeCanonicalCampaign(metrics, channel);
-    return campaign ? [{ channel, open: campaign.openCount, conversion: campaign.conversionCount }] : [];
-  });
+  const reviewUrl = canonicalReviewUrl(metrics.reviewHandle);
+  const widget = widgetUrl(metrics.widgetHandle);
+  if (!reviewUrl || !widget) return { status: "forbidden" };
 
   return {
     status: "allowed",
-    reviewUrl: qrCampaign ? { status: "available", value: qrCampaign.reviewUrl } : unavailable(),
-    qr: qrCampaign ? { status: "available", value: qrCampaign.reviewUrl } : unavailable(),
-    lineMessage: lineCampaign ? { status: "available", value: lineMessage(lineCampaign.reviewUrl) } : unavailable(),
-    websiteCta: websiteCampaign ? { status: "available", value: websiteCta(websiteCampaign.reviewUrl) } : unavailable(),
-    widgetUrl: websiteCampaign && widgetUrl(websiteCampaign.token)
-      ? { status: "available", value: widgetUrl(websiteCampaign.token) as string }
-      : unavailable(),
+    reviewUrl: { status: "available", value: reviewUrl },
+    qr: { status: "available", value: reviewUrl },
+    lineMessage: { status: "available", value: lineMessage(reviewUrl) },
+    websiteCta: { status: "available", value: websiteCta(reviewUrl) },
+    widgetUrl: { status: "available", value: widget },
     reviewMetrics: {
       status: "available",
       submitted: metrics.submittedReviews,
       pending: metrics.pendingReviews,
       published: metrics.publicReviews,
     },
-    campaignMetrics: campaignMetrics.length > 0
-      ? { status: "available", value: campaignMetrics }
-      : unavailable(),
+    campaignMetrics: unavailable(),
   };
 }
 
@@ -177,21 +142,21 @@ export function resolvePartnerReviewGrowthKit(
  * or changes a campaign while rendering.
  */
 export function resolvePartnerReviewGrowthCenter(
-  identity: PartnerWorkspaceIdentity,
-  metrics: PartnerReviewGrowthMetrics | null,
+  identity: CanonicalPartnerWorkspaceIdentity,
+  metrics: PartnerCanonicalGrowthMetrics | null,
 ): PartnerReviewGrowthCenterResult {
-  if (metrics !== null && (metrics.workspaceId !== identity.workspaceId || metrics.shopId !== identity.shopId || !validMetrics(metrics))) {
+  if (metrics !== null && (metrics.workspaceId !== identity.workspaceId || metrics.appShopId !== identity.appShopId || !validMetrics(metrics))) {
     return { status: "forbidden" };
   }
   return {
     status: "allowed",
     context: { shopName: identity.shopName, canonicalUrl: identity.canonicalUrl },
     assets: [
-      growthCenterAsset(metrics, "counter_qr", "review_url", "口コミURL", "お客様へ直接案内", (campaign) => campaign.reviewUrl),
-      growthCenterAsset(metrics, "counter_qr", "qr", "店頭QR", "店頭・会計後に案内", (campaign) => campaign.reviewUrl),
-      growthCenterAsset(metrics, "line_after_visit", "line", "LINE案内文", "来店後のメッセージで案内", (campaign) => lineMessage(campaign.reviewUrl)),
-      growthCenterAsset(metrics, "shop_website", "website_cta", "Webサイト用CTA", "店舗サイトに掲載", (campaign) => websiteCta(campaign.reviewUrl)),
-      growthCenterAsset(metrics, "shop_website", "widget", "口コミWidget", "店舗サイトに任意で設置", (campaign) => widgetUrl(campaign.token)),
+      growthCenterAsset(metrics, "review_url", "口コミURL", "お客様へ直接案内", (value) => canonicalReviewUrl(value.reviewHandle)),
+      growthCenterAsset(metrics, "qr", "店頭QR", "店頭・会計後に案内", (value) => canonicalReviewUrl(value.reviewHandle)),
+      growthCenterAsset(metrics, "line", "LINE案内文", "来店後のメッセージで案内", (value) => { const url = canonicalReviewUrl(value.reviewHandle); return url ? lineMessage(url) : null; }),
+      growthCenterAsset(metrics, "website_cta", "Webサイト用CTA", "店舗サイトに掲載", (value) => { const url = canonicalReviewUrl(value.reviewHandle); return url ? websiteCta(url) : null; }),
+      growthCenterAsset(metrics, "widget", "口コミWidget", "店舗サイトに任意で設置", (value) => widgetUrl(value.widgetHandle)),
     ],
   };
 }

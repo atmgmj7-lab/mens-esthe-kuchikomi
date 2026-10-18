@@ -122,11 +122,13 @@ export function ShopReviewDashboard({ model }: ShopReviewDashboardProps) {
               return (
                 <article key={review.id}>
                   <p>{review.body}</p>
+                  {review.therapistDisplayName ? <small>担当セラピスト：{review.therapistDisplayName}</small> : null}
                   {submittedAtLabel && review.submittedAt ? (
                     <small>
                       投稿日 <time dateTime={review.submittedAt}>{submittedAtLabel}</time>
                     </small>
                   ) : null}
+                  {review.reply ? <p><strong>店舗からの返信</strong><br />{review.reply.body}</p> : null}
                 </article>
               );
             })}

@@ -37,6 +37,12 @@ function currentRevision(detail: Record<string, unknown> | null): number | null 
     ? (revision as Record<string, unknown>).revision as number : null;
 }
 
+function isCanonicalManagedShop(detail: Record<string, unknown> | null): boolean {
+  const shop = detail?.shop;
+  return Boolean(shop && typeof shop === "object" && !Array.isArray(shop)
+    && typeof (shop as Record<string, unknown>).app_shop_id === "string");
+}
+
 function legacyPayload(shop: NonNullable<Awaited<ReturnType<typeof getWordPressShopById>>>): ManagedShopPayload | null {
   const primary = shop.primaryArea ?? shop.terms.find((term) => term.slug === shop.areaSlug) ?? shop.terms[0];
   const areaSlug = primary?.slug ?? shop.areaSlug;
@@ -136,7 +142,9 @@ export async function POST(request: NextRequest) {
       detail = await managedShopDirectoryRepository.getDetail(id);
     }
     const revision = currentRevision(detail);
-    const result = revision ? await managedShopDirectoryRepository.setVisibility({ managedShopId: id, expectedRevision: revision, visibility: "unlisted", actorLabel }) : null;
+    const result = revision ? (isCanonicalManagedShop(detail)
+      ? await managedShopDirectoryRepository.setCanonicalVisibility({ managedShopId: id, expectedRevision: revision, visibility: "unlisted", actorLabel })
+      : await managedShopDirectoryRepository.setVisibility({ managedShopId: id, expectedRevision: revision, visibility: "unlisted", actorLabel })) : null;
     if (result === "ok") {
       await revalidateManagedShop(id);
       return NextResponse.json({ ok: true, managedShopId: id, state: result }, { headers });
@@ -153,7 +161,9 @@ export async function POST(request: NextRequest) {
     const actualShopName = current && typeof current === "object" && !Array.isArray(current) ? (current as Record<string, unknown>).shop_name : null;
     if (typeof actualShopName !== "string") return fail("削除済みに移動する店舗を確認できません。", 404);
     if (confirmedShopName !== actualShopName) return fail("確認欄に対象の店舗名を正確に入力してください。", 409);
-    const result = await managedShopDirectoryRepository.archive({ managedShopId, expectedRevision, actorLabel });
+    const result = isCanonicalManagedShop(detail)
+      ? await managedShopDirectoryRepository.archiveCanonical({ managedShopId, expectedRevision, actorLabel })
+      : await managedShopDirectoryRepository.archive({ managedShopId, expectedRevision, actorLabel });
     if (result === "ok") {
       await revalidateManagedShop(managedShopId);
       return NextResponse.json({ ok: true, state: result }, { headers });
@@ -161,7 +171,10 @@ export async function POST(request: NextRequest) {
     return fail(result === "conflict" ? "掲載状態が更新されています。再読込してからやり直してください。" : "削除済みに移動できませんでした。", result === "conflict" ? 409 : 400);
   }
   if (body.action === "restore_archive") {
-    const result = await managedShopDirectoryRepository.restoreArchiveToUnlisted({ managedShopId, expectedRevision, actorLabel });
+    const detail = await managedShopDirectoryRepository.getDetail(managedShopId);
+    const result = isCanonicalManagedShop(detail)
+      ? await managedShopDirectoryRepository.restoreCanonicalArchiveToUnlisted({ managedShopId, expectedRevision, actorLabel })
+      : await managedShopDirectoryRepository.restoreArchiveToUnlisted({ managedShopId, expectedRevision, actorLabel });
     if (result === "ok") {
       await revalidateManagedShop(managedShopId);
       return NextResponse.json({ ok: true, state: result }, { headers });
@@ -170,7 +183,10 @@ export async function POST(request: NextRequest) {
   }
   if (body.action === "save_and_publish") {
     const value = payload(body.payload);
-    const result = value ? await managedShopDirectoryRepository.saveAndPublish({ managedShopId, expectedRevision, payload: value, actorLabel }) : null;
+    const detail = await managedShopDirectoryRepository.getDetail(managedShopId);
+    const result = value ? (isCanonicalManagedShop(detail)
+      ? await managedShopDirectoryRepository.saveCanonicalAndPublish({ managedShopId, expectedRevision, payload: value, actorLabel })
+      : await managedShopDirectoryRepository.saveAndPublish({ managedShopId, expectedRevision, payload: value, actorLabel })) : null;
     if (result === "ok") {
       await revalidateManagedShop(managedShopId);
       return NextResponse.json({ ok: true, state: result }, { headers });
@@ -191,7 +207,10 @@ export async function POST(request: NextRequest) {
   if (body.action === "review") {
     const decision = body.decision === "approved" || body.decision === "changes_requested" ? body.decision : null;
     const note = typeof body.note === "string" ? body.note : null;
-    const result = decision ? await managedShopDirectoryRepository.review({ managedShopId, expectedRevision, decision, note, actorLabel }) : null;
+    const detail = await managedShopDirectoryRepository.getDetail(managedShopId);
+    const result = decision ? (isCanonicalManagedShop(detail)
+      ? await managedShopDirectoryRepository.reviewCanonical({ managedShopId, expectedRevision, decision, note, actorLabel })
+      : await managedShopDirectoryRepository.review({ managedShopId, expectedRevision, decision, note, actorLabel })) : null;
     if (result === "ok") {
       await revalidateManagedShop(managedShopId);
       return NextResponse.json({ ok: true, state: result }, { headers });
@@ -199,7 +218,10 @@ export async function POST(request: NextRequest) {
     return fail(result === "conflict" ? "対象の下書きが更新されています。再読込してください。" : "審査結果を保存できませんでした。", result === "conflict" ? 409 : 400);
   }
   if (body.action === "restore") {
-    const result = await managedShopDirectoryRepository.setVisibility({ managedShopId, expectedRevision, visibility: "published", actorLabel });
+    const detail = await managedShopDirectoryRepository.getDetail(managedShopId);
+    const result = isCanonicalManagedShop(detail)
+      ? await managedShopDirectoryRepository.setCanonicalVisibility({ managedShopId, expectedRevision, visibility: "published", actorLabel })
+      : await managedShopDirectoryRepository.setVisibility({ managedShopId, expectedRevision, visibility: "published", actorLabel });
     if (result === "ok") {
       await revalidateManagedShop(managedShopId);
       return NextResponse.json({ ok: true, state: result }, { headers });

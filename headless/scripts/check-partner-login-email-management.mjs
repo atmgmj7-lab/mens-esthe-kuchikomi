@@ -7,6 +7,7 @@ import vm from "node:vm";
 const root = process.cwd();
 const read = (path) => readFileSync(join(root, path), "utf8");
 const migrationPath = join(root, "..", "supabase/migrations/20260923000000_partner_login_email_management.sql");
+const canonicalAuditMigrationPath = join(root, "..", "supabase/migrations/20261018100000_partner_login_email_canonical_audit.sql");
 
 function loadPureModule(path) {
   const output = ts.transpileModule(read(path), {
@@ -31,7 +32,9 @@ for (const path of [
 }
 
 assert.equal(existsSync(migrationPath), true, "login emailのprivate migrationが必要です");
+assert.equal(existsSync(canonicalAuditMigrationPath), true, "canonical Partner login-email audit migrationが必要です");
 const migration = readFileSync(migrationPath, "utf8");
+const canonicalAuditMigration = readFileSync(canonicalAuditMigrationPath, "utf8");
 assert.match(migration, /create table private\.partner_login_email_intents/i);
 assert.match(migration, /create table private\.partner_login_email_audit_events/i);
 assert.match(migration, /wp_shop_id bigint not null/i);
@@ -45,6 +48,11 @@ assert.match(migration, /api\.record_partner_login_email_change_request/i);
 assert.match(migration, /multiple active memberships require a dedicated operator flow/i);
 assert.doesNotMatch(migration, /grant .* to anon|grant .* to authenticated/i);
 assert.doesNotMatch(migration, /security definer/i);
+assert.match(canonicalAuditMigration, /add column if not exists app_shop_id uuid references app\.shops/i);
+assert.match(canonicalAuditMigration, /alter column wp_shop_id drop not null/i);
+assert.match(canonicalAuditMigration, /num_nonnulls\(wp_shop_id, app_shop_id\) = 1/i);
+assert.match(canonicalAuditMigration, /v_app_shop_id uuid/i);
+assert.match(canonicalAuditMigration, /values \(p_workspace_id, v_wp_shop_id, v_app_shop_id, 'partner_change_requested', 'partner', 'recorded'\)/i);
 
 const server = read("lib/partner/partner-login-email-server.ts");
 assert.match(server, /\/auth\/v1\/user/);

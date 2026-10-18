@@ -248,6 +248,7 @@ export default async function PriorityFixturePage({ params }: { params: Promise<
       rankingEntries={[...fixture.legacyRankingEntries]}
       formalRankingEntries={[...fixture.formalRankingEntries]}
       reviewResult={reviewResult}
+      orderingReferenceTimestamp={Date.parse("2026-10-18T00:00:00.000Z")}
     />
   );
 }

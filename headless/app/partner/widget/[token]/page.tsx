@@ -7,6 +7,7 @@ import { resolvePublicPartnerWidget } from "@/lib/partner/partner-review-widget"
 import { publicReviewAdapter } from "@/lib/reviews/public-adapter";
 import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
 import { getShopById } from "@/lib/wp/shops";
+import { getV11Widget } from "@/lib/supabase/eskomi-widget-v11";
 
 export const instant = false;
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -30,6 +31,8 @@ function WidgetHeightReporter() {
 export default async function PartnerReviewWidgetPage({ params }: Readonly<{ params: Promise<{ token: string }> }>) {
   await connection();
   const token = (await params).token;
+  const v11=await getV11Widget(token);
+  if(v11) { const showAverage=v11.reviewCount>=3&&v11.averageRating!==null&&v11.averageRating>=1&&v11.averageRating<=5; return <><main className="hl-partner-widget" aria-label={`${v11.shopName}のEskomi口コミ`}><p className="hl-partner-widget__shop">{v11.shopName}</p><h2 className="hl-partner-widget__heading">Eskomiに寄せられた口コミ</h2><p>{showAverage?`評価 ${v11.averageRating} / 5（${v11.reviewCount}件）`:`有効な評価 ${v11.reviewCount}件`}</p>{v11.reviews.length===0?<p>公開済みの口コミはまだありません。</p>:<ul className="hl-partner-widget__reviews">{v11.reviews.map((review,index)=><li key={`${review.publishedAt}-${index}`}><p>{excerpt(review.body)}</p><small>{[formatDate(review.publishedAt),review.rating===null?null:`評価 ${review.rating} / 5`].filter(Boolean).join(" ・ ")}</small>{review.replyBody&&<p><strong>店舗からの返信</strong><br/>{review.replyBody}</p>}<small className="hl-partner-widget__source">出典：Eskomi</small></li>)}</ul>}<p className="hl-partner-widget__actions"><a href={v11.canonicalPath} target="_blank" rel="nofollow noopener noreferrer">Eskomiで口コミをもっと見る</a></p></main><WidgetHeightReporter/></>; }
   const campaign = await getPublicPartnerReviewWidget(token, partnerReviewGrowthRepository);
   if (!campaign) notFound();
   const shop = await getShopById(campaign.shopId);

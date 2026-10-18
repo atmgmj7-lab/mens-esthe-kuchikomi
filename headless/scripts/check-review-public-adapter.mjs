@@ -110,6 +110,8 @@ const module = loadTypeScript("lib/reviews/public-adapter.ts", {
     useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
   },
   "@/lib/supabase/review-native": { reviewNativeRepository: repository },
+  "@/lib/supabase/eskomi-review-v2": { eskomiReviewV2Repository: { listGlobalPublications: async () => null } },
+  "@/lib/supabase/eskomi-public-shop-detail-reviews-v11": { getPublicShopDetailReviewsV11: async () => null },
   "@/lib/wp/reviews": {
     getApprovedShopReviews: async (...args) => { calls.push(["wp-shop", args]); return wpShopResult; },
     getApprovedReviewsPage: async (...args) => { calls.push(["wp-global", args]); return wpGlobalResult; },
@@ -123,6 +125,8 @@ assert.equal(module.resolveReviewReadSource({}), "wordpress");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "wordpress" }), "wordpress");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "supabase" }), "supabase");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "unexpected" }), "wordpress");
+assert.equal(module.useV11PublicShopReviewSource({}), false);
+assert.equal(module.useV11PublicShopReviewSource({ ESKOMI_V11_PUBLIC_REVIEW_SOURCE: "supabase" }), true);
 assert.equal(module.useRankUpNativeReviewPilot({}), false);
 assert.equal(module.useRankUpNativeReviewPilot({ RANKUP_NATIVE_REVIEW_READ_SOURCE: "supabase" }), true);
 assert.equal(module.useRankUpNativeReviewPilot({ RANKUP_NATIVE_REVIEW_READ_SOURCE: "wordpress" }), false);
@@ -160,6 +164,36 @@ assert.equal(result.page.total, 1);
 assert.equal(result.page.metrics.total.responseCount, 1);
 assert.deepEqual(Object.keys(result.page.reviews[0]).sort(), ["body", "id", "ratings", "submittedAt"].sort());
 
+const v11Calls = [];
+adapter = module.createPublicReviewAdapter({
+  repository,
+  readWordPressShopReviews: async () => { throw new Error("v1.1 shop detail must not fall back to WordPress"); },
+  readWordPressGlobalReviews: async () => wpGlobalResult,
+  listWordPressShops: async () => [publishedShop],
+  readV11ShopReviews: async (slug, limit, offset) => {
+    v11Calls.push([slug, limit, offset]);
+    return {
+      reviews: [{ id: "22222222-2222-4222-8222-222222222222", rating: 1, body: "低評価も同じ公開投影", displayName: "利用者", therapistDisplayName: "担当者", publishedAt: "2026-10-17T00:00:00.000Z", reply: { body: "確認して改善します。", publishedAt: "2026-10-17T01:00:00.000Z" } }],
+      summary: { reviewCount: 1, ratingCount: 1, averageRating: 1, oldestPublishedAt: "2026-10-17T00:00:00.000Z", latestPublishedAt: "2026-10-17T00:00:00.000Z" },
+    };
+  },
+  environment: { ESKOMI_V11_PUBLIC_REVIEW_SOURCE: "supabase" },
+});
+result = await adapter.getShopReviews(publishedShop, 1, 20);
+assert.equal(result.status, "available");
+assert.equal(result.source, "supabase");
+assert.deepEqual(v11Calls, [["current-slug", 20, 0]], "v1.1 reads must use the canonical slug, not a WordPress ID");
+assert.equal(result.page.metrics.total.average, 1);
+assert.equal(result.page.reviews[0].therapistDisplayName, "担当者");
+assert.equal(result.page.reviews[0].reply.body, "確認して改善します。");
+
+adapter = module.createPublicReviewAdapter({
+  repository,
+  readWordPressShopReviews: async () => wpShopResult,
+  readWordPressGlobalReviews: async () => wpGlobalResult,
+  listWordPressShops: async () => [publishedShop, draftShop],
+  environment: { REVIEW_READ_SOURCE: "supabase" },
+});
 calls.length = 0;
 result = await adapter.getGlobalReviews(1, 20, "umeda");
 assert.equal(result.status, "available");

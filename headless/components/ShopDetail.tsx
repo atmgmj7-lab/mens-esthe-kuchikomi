@@ -6,6 +6,7 @@ import { ShopDetailSections } from "@/components/shop-detail/ShopDetailSections"
 import { ShopOwnerCta } from "@/components/shop-detail/ShopOwnerCta";
 import { ShopRelatedLinks } from "@/components/shop-detail/ShopRelatedLinks";
 import { ShopSectionNav } from "@/components/shop-detail/ShopSectionNav";
+import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
 import styles from "@/components/shop-detail/ShopDetail.module.css";
 import { serializeJsonLd } from "@/lib/json-ld";
 import { outboundRelForPromotion } from "@/lib/promotion-disclosure";
@@ -23,15 +24,19 @@ import { buildShopReviewViewModel } from "@/lib/shop-review-view-model";
 import type { PublicShopReviewResult } from "@/lib/reviews/public-adapter";
 import { buildShopDetailViewModel } from "@/lib/shop-detail-view-model";
 import type { AreaView, ShopView } from "@/lib/wp/types";
+import type { PublicTherapistSummary } from "@/lib/public-therapist";
+import { PublicTherapistList } from "@/components/therapists/PublicTherapistList";
 
 export function ShopDetail({
   shop,
   parentArea,
-  reviewResult
+  reviewResult,
+  therapists = []
 }: {
   shop: ShopView;
   parentArea?: AreaView | null;
   reviewResult: PublicShopReviewResult;
+  therapists?: readonly PublicTherapistSummary[];
 }) {
   const primaryArea = shop.primaryArea;
   const areaName = primaryArea?.name ?? "";
@@ -110,6 +115,9 @@ export function ShopDetail({
               reviewSubmitUrl={reviewSubmitUrl}
               rel={officialRel}
             />
+            <section id="contribute" aria-labelledby="shop-contribute-heading"><h2 id="shop-contribute-heading">感想・訂正を送る</h2><p>利用した感想は口コミとして投稿できます。掲載情報の違いは非公開の訂正依頼へ、未確認の利用者情報は情報交換へ進んでください。情報交換は口コミ評価や通常順位に使いません。</p><p><Link href={reviewSubmitUrl}>この店舗について口コミを投稿する</Link> <Link href={`/shops/${shop.slug}/community/`}>情報交換・掲載情報を訂正する</Link></p><p><small>店舗専用の投稿リンクが案内されている場合は、そのリンクから投稿してください。</small></p></section>
+            <PublicTherapistList therapists={therapists} />
+            <EskomiBannerV2Slot id="B09" href="#contribute" />
             <ShopOwnerCta shop={shop} />
           </div>
         </article>

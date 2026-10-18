@@ -6,7 +6,7 @@ import { CONTACT_TYPES } from "@/lib/contact-validation";
 
 type FormStatus = "idle" | "submitting" | "success" | "error";
 
-export function ContactForm() {
+export function ContactForm({ defaultType, sourcePath = "/contact/" }: { defaultType?: string; sourcePath?: string }) {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -51,7 +51,7 @@ export function ContactForm() {
       form.reset();
       gaEvent("contact_form_submit", {
         contact_type: payload.type,
-        page_path: "/contact/"
+        page_path: sourcePath
       });
     } catch {
       setStatus("error");
@@ -89,7 +89,7 @@ export function ContactForm() {
         <label htmlFor="contact-type">
           お問い合わせ種別 <span className="hl-contact-required">必須</span>
         </label>
-        <select id="contact-type" name="type" required defaultValue="">
+        <select id="contact-type" name="type" required defaultValue={defaultType ?? ""}>
           <option value="" disabled>
             選択してください
           </option>

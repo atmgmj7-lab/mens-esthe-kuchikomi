@@ -13,6 +13,8 @@ const workspaceB = "22222222-2222-4222-8222-222222222222";
 const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const userB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const userNone = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const appShopA = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+const appShopB = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
 const otpRequests = [];
 const serverStateCookieName = "eskomi_partner_login_state";
 const handoffStateCookieName = "eskomi_partner_login_state_handoff";
@@ -48,6 +50,15 @@ async function assertNoHorizontalOverflow(page, label) {
   assert.ok(dimensions.document <= dimensions.viewport, `${label} must not overflow horizontally: ${JSON.stringify(dimensions)}`);
 }
 
+async function waitForCondition(condition, message) {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    if (condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(message);
+}
+
 const mockPort = await freePort();
 const appPort = await freePort();
 const mock = http.createServer(async (request, response) => {
@@ -67,41 +78,48 @@ const mock = http.createServer(async (request, response) => {
     if (token === "partner-none-session-token") return json(response, 200, { id: userNone, email: "none@example.invalid" });
     return json(response, 401, { message: "invalid" });
   }
-  if (request.url === "/rest/v1/rpc/get_partner_auth_membership" && request.method === "POST") {
+  if (request.url === "/rest/v1/rpc/get_partner_compatible_auth_membership" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const authUserId = JSON.parse(body).p_auth_user_id;
     return json(response, 200, authUserId === userA || authUserId === userB ? [{
       workspace_id: authUserId === userA ? workspaceA : workspaceB,
-      wp_shop_id: authUserId === userA ? rankUpFixture.id : 202,
+      identity_kind: "canonical",
+      app_shop_id: authUserId === userA ? appShopA : appShopB,
+      wp_shop_id: null,
       shop_slug: authUserId === userA ? rankUpFixture.slug : "shop-b",
       role: "owner",
     }] : []);
   }
-  if (request.url === "/rest/v1/rpc/get_partner_workspace_identity" && request.method === "POST") {
+  if (request.url === "/rest/v1/rpc/get_partner_compatible_workspace_identity" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const workspaceId = JSON.parse(body).p_workspace_id;
     return json(response, 200, workspaceId === workspaceA || workspaceId === workspaceB ? [{
       workspace_id: workspaceId,
-      wp_shop_id: workspaceId === workspaceA ? rankUpFixture.id : 202,
+      identity_kind: "canonical",
+      app_shop_id: workspaceId === workspaceA ? appShopA : appShopB,
+      wp_shop_id: null,
       shop_slug: workspaceId === workspaceA ? rankUpFixture.slug : "shop-b",
       shop_name: workspaceId === workspaceA ? rankUpFixture.name : "Shop B",
       canonical_url: `https://mens-esthe-kuchikomi.com/shops/${workspaceId === workspaceA ? rankUpFixture.slug : "shop-b"}/`,
       state: "free_official_partner",
     }] : []);
   }
-  if (request.url === "/rest/v1/rpc/get_partner_review_growth_metrics" && request.method === "POST") {
+  if (request.url === "/rest/v1/rpc/get_partner_canonical_growth_v11" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const workspaceId = JSON.parse(body).p_workspace_id;
     return json(response, 200, workspaceId === workspaceA || workspaceId === workspaceB ? [{
       workspace_id: workspaceId,
-      wp_shop_id: workspaceId === workspaceA ? rankUpFixture.id : 202,
+      app_shop_id: workspaceId === workspaceA ? appShopA : appShopB,
+      review_handle: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      widget_handle: "99999999-9999-4999-8999-999999999999",
+      shop_name: workspaceId === workspaceA ? rankUpFixture.name : "Shop B",
+      canonical_path: `/shops/${workspaceId === workspaceA ? rankUpFixture.slug : "shop-b"}/`,
       submitted_reviews: 0,
       pending_reviews: 0,
-      public_reviews: 0,
-      campaigns: [],
+      published_reviews: 0,
     }] : []);
   }
   return json(response, 404, { message: "not found" });
@@ -127,7 +145,7 @@ let log = "";
 next.stdout.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 next.stderr.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}) });
 try {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
@@ -168,6 +186,17 @@ try {
   assert.equal(handoffCookie.value, stateCookie.value, "both state cookies must carry the same nonce");
   assert.equal(stateCookie.path, "/api/partner/auth/complete-link");
   assert.equal(handoffCookie.path, "/partner/auth/callback/");
+
+  // A partner may request the link again before consuming it. Exercise the
+  // same visible control rather than inferring resend behavior from the API.
+  await loginFlow.getByRole("button", { name: "ログイン用リンクを送信" }).click();
+  await waitForCondition(() => otpRequests.length === 2, "the repeated login-link request did not reach Supabase Auth");
+  assert.equal(otpRequests.length, 2, "a repeated login-link request must send another magic link");
+  assert.equal(
+    otpRequests[1].redirectTo,
+    `${baseUrl}/partner/auth/callback/`,
+    "a repeated login-link request must preserve the allow-listed callback URL",
+  );
 
   const failedProvider = await browser.newContext();
   const failedProviderPage = await failedProvider.newPage({ viewport: { width: 390, height: 844 } });
@@ -215,9 +244,9 @@ try {
   await loginFlow.setViewportSize({ width: 1280, height: 900 });
   await loginFlow.getByRole("heading", { name: rankUpFixture.name }).waitFor({ state: "visible" });
   await assertNoHorizontalOverflow(loginFlow, "1280px Partner Home");
-  const correctionRequest = loginFlow.getByRole("link", { name: "掲載情報の修正を申請" });
+  const correctionRequest = loginFlow.getByRole("link", { name: "掲載情報を編集・申請" });
   await correctionRequest.waitFor({ state: "visible" });
-  assert.match(await correctionRequest.getAttribute("href"), /^\/storelisting\/\?shop_id=768&shop_slug=mrs-rank-up-fixture&shop_name=/, "the Partner correction link must be bound to the authenticated Partner's own canonical shop");
+  assert.equal(await correctionRequest.getAttribute("href"), "/partner/listing/", "the Partner listing link must stay scoped to the authenticated canonical shop");
   if (screenshotDir) await loginFlow.screenshot({ path: `${screenshotDir}/partner-correction-1280.png`, fullPage: true });
   await loginFlow.setViewportSize({ width: 390, height: 844 });
   await assertNoHorizontalOverflow(loginFlow, "390px Partner correction link");
@@ -263,8 +292,11 @@ try {
   assert.equal(new URL(partnerA.url()).pathname, "/partner/login/");
 
   const operatorBoundary = await browser.newPage();
-  const operatorResponse = await operatorBoundary.goto(`${baseUrl}/dashboard/`, { waitUntil: "domcontentloaded" });
-  assert.equal(operatorResponse?.status(), 401, "Partner Auth must not satisfy operator Basic Auth");
+  await assert.rejects(
+    () => operatorBoundary.goto(`${baseUrl}/dashboard/`, { waitUntil: "domcontentloaded" }),
+    /ERR_INVALID_AUTH_CREDENTIALS/,
+    "Partner Auth must not satisfy the separate operator Basic Auth challenge",
+  );
 
   await Promise.all([anonymous.close(), loginFlow.close(), partnerA.close(), noMembership.close(), operatorBoundary.close()]);
   console.log("partner auth membership browser QA passed");

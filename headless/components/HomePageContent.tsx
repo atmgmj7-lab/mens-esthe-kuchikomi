@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AreaFeatureSection } from "@/components/AreaFeatureSection";
+import { EskomiBannerV2Slot } from "@/components/EskomiBannerV2Slot";
 import { KansaiAreaGrid } from "@/components/KansaiAreaGrid";
 import { ShopImageWithFallback } from "@/components/common/ShopImageWithFallback";
 import { HomeShopSearch } from "@/components/home/HomeShopSearch";
@@ -222,6 +223,11 @@ export function HomePageContent({
           </div>
         </div>
       </section>
+
+      <div className="escomi-home-container-v2">
+        <EskomiBannerV2Slot id="B08" />
+        <EskomiBannerV2Slot id="B10" />
+      </div>
 
       {latestReviews.length > 0 ? (
         <section className="escomi-home-reviews-v2 hl-fade-in" aria-labelledby="home-latest-reviews-title">

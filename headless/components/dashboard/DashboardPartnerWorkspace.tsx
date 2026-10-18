@@ -10,7 +10,7 @@ type DashboardReview = {
   status: "received" | "under_review" | "approved" | "rejected";
   createdAt: string;
   workspaceState: string;
-  shop: { id: number; slug: string; title: string; canonicalUrl: string };
+  shop: { identityKind: "canonical"; appShopId: string; wpShopId: null; slug: string; title: string; canonicalUrl: string } | { identityKind: "legacy"; appShopId: null; wpShopId: number; slug: string; title: string; canonicalUrl: string };
   campaigns: Array<{ id: string; channel: CampaignChannel; token: string; isActive: boolean; createdAt: string }>;
 };
 

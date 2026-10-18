@@ -1,5 +1,15 @@
 # Progress Log
 
+## 2026-10-18 — P2 correction complete; awaiting hosting/cutover direction
+
+- Updated first-pilot mapping sequencing and the synthetic evidence boundary.
+- Added UUID-retained non-target workspace and alias checks to the actual
+  verification SQL, plus the disposable expected-failure runner mode.
+- Evidence: synthetic contract PASS; first-pilot contract PASS; shell syntax
+  PASS; intentional abnormal fixture rejected; clean synthetic rehearsal PASS.
+- No production database, Auth, deployment, main merge, or hosting change was
+  made. Next decision is the user's approved production hosting/cutover choice.
+
 ## 2026-08-22 UX-PROD-FINAL-CLOSE-01
 
 - `132cd95c17d0de5be25b2ca6dc5033da90a8f32b`を`origin/main`へfast-forward同期した。Vercel run `32537810709`はsuccess、deployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`はREADYでproduction aliasと一致した。
@@ -930,3 +940,37 @@
 - Production Supabase migration、WordPress write、Vercel deploy/promotion、main push、Secret変更は実施していない。次はlocal exact candidateに対するmain pushを独立承認するgate。
 - Area browserの最終fresh runでは、同一origin/portでfixture serverからproduction serverへ切替えた後、live routeを幅ごとに55回SSRする旧harnessが外部WordPress応答timeoutを再現した。製品route単独は200/markerありを確認し、server切替時にChromiumを再起動、live取得はAreaごと1回＋11幅resizeへ修正して110 scenarios/2,687 assertions/failures 0へ戻した。
 - isolated E2Eのfresh run後はlocal fixtureが残るため、明示`supabase db reset --local --no-seed`を再実行した。最終readbackはShop/Review/workspace `0|0|0`、migration ledger 6件順序一致。
+# 2026-10-18 first-pilot minimum gate packet
+
+## 2026-10-18 — scope reset and impact assessment
+
+- Confirmed that the desired first-store packet cannot treat `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` as a per-store flag: it switches public individual-shop and global-review readers together.
+- Confirmed that the legacy candidate RPC gives an exact, read-only preflight surface; no production RPC or database action was run.
+- Next: document the two safe pilot choices (non-public/canonical workflow proof versus a global public-reader cutover only after all-reader comparison), then validate the packet locally.
+
+## 2026-10-18 — local release-packet verification
+
+- Added the first-pilot gate, an acceptance-matrix link, and a static check that verifies migration timestamp order, the legacy mapping anchor, the global-reader implementation anchor, and all stated safety/unknown boundaries.
+- `npm run test:review-public-adapter`, `npm run test:eskomi-v11-first-pilot-gate`, and `npm run lint` passed.  No production or external-environment action was run.
+- Saved the packet as `7e9e961b3706cbdecd2cb6ce0b9dd5532e8e34ed` on
+  `origin/codex/wp-independent-prep-20261017`; read-only remote verification
+  confirmed `main` remains `78d7e06046953b493ec690231fede121cba0211a`.
+
+## 2026-10-18 — Mrs.Rank UP first-store visibility clarification
+
+- Traced the fixed WP Shop 768 target through the legacy native and v1.1 paths.  The direct v1.1 widget can display an approved v1.1 publication before the global source switch; the normal Eskomi shop/global review surfaces cannot.
+- Updated the release packet to prevent a widget-only result from being described as a completed store-page launch, and to offer the full-reader actual-data comparison/cutover as the only route to normal site visibility.
+- Saved the clarification as `840707259d2f68ee8e7fbb5470d609263ec5f9da` on the
+  approved branch; remote `main` remained unchanged.
+
+## 2026-10-18 — migration gap reconciliation
+
+- Reconciled the redacted read-only production ledger boundary with the source migration manifest and existing fresh/representative-upgrade fixtures.
+- Added the ordered delta and mapping-preparation hard stops: a `20261015182000`-baseline rehearsal, exact managed projection, and canonical publication state are required before the one-row mapping preflight can pass.
+- Saved the reconciliation packet as `2755591759e95daa6ba0698f785f3b7dad33e19e`; remote `main` remained unchanged.
+
+## 2026-10-18 — synthetic 20261015182000 rehearsal
+
+- Added and passed a disposable repository-schema + synthetic-data rehearsal: 48 migrations after the ledger boundary, legacy managed creation, exact mapping, and normal publication all execute without touching production or the local Supabase stack.
+- Recorded the limited public legacy-reader baseline (`/reviews/` returned `全0件`) separately from v1.1/public-projection proof and from all production-write gates.
+- Saved the rehearsal implementation and evidence as `07068e0f785847a63f6ba7148e422d9238bc6c98`; remote `main` remained unchanged.

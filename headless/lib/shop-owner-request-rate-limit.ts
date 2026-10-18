@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 
 type HeaderReader = Pick<Headers, "get">;
 
@@ -85,7 +85,7 @@ export async function claimShopOwnerRequestRateLimit({
 
   try {
     const response = await fetch(
-      `${baseUrl}/rest/v1/rpc/claim_shop_owner_request_rate_limit`,
+      supabaseRpcUrl(baseUrl, "claim_shop_owner_request_rate_limit"),
       {
         method: "POST",
         headers,

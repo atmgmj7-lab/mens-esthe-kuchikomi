@@ -543,6 +543,7 @@ img {
 }
 .hl-partner-home__metric dt { color: #596675; font-size: .88rem; font-weight: 700; }
 .hl-partner-home__metric dd {
+  font-family: var(--hl-sans, system-ui, sans-serif);
   margin: 4px 0 0;
   color: var(--color-luxury-text, #1a2830);
   font-size: clamp(1.7rem, 4vw, 2.2rem);
@@ -4331,6 +4332,48 @@ body:has([data-area-comparison-launcher][data-active="true"]) .hl-back-to-top {
   line-height: 1.7;
 }
 /* ── Luxury area hub UI ── */
+.hl-eskomi-banner-v2 {
+  margin: clamp(24px, 4vw, 48px) 0;
+  overflow: hidden;
+  border: 1px solid rgba(176, 141, 62, 0.25);
+  border-radius: 14px;
+  background: #f8f4ea;
+  box-shadow: 0 10px 28px rgba(20, 40, 56, 0.08);
+}
+
+.hl-eskomi-banner-v2 a,
+.hl-eskomi-banner-v2 img {
+  display: block;
+}
+
+.hl-eskomi-banner-v2__copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  color: #143d4d;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.hl-eskomi-banner-v2__copy strong { flex: 0 0 auto; color: #7a5b1b; }
+
+@media (max-width: 600px) {
+  .hl-eskomi-banner-v2__copy { display: block; padding: 10px 12px; font-size: 0.82rem; }
+  .hl-eskomi-banner-v2__copy strong { display: block; margin-top: 4px; }
+}
+
+.hl-eskomi-banner-v2 img {
+  width: 100%;
+  height: auto;
+}
+
+.hl-eskomi-banner-v2 a:focus-visible {
+  outline: 3px solid #b08d3e;
+  outline-offset: -3px;
+}
+
 .hl-area-hub-page {
   --hl-area-container-max: 1280px;
   --hl-area-banner-max: 1360px;

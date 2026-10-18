@@ -33,15 +33,15 @@ export function shouldLoadLegacyAreaRanking(area: Pick<AreaView, "id">): boolean
   return !isPriorityAreaPrecisionTarget(area);
 }
 
-function hasAreaRelation(shop: ShopView, areaId: number): boolean {
+function hasAreaRelation(shop: ShopView, area: Pick<AreaView, "id"> & Partial<Pick<AreaView, "slug">>): boolean {
   return shop.terms.some((term) => (
-    term.id === areaId && (term.taxonomy === undefined || term.taxonomy === "area")
-  ));
+    term.id === area.id && (term.taxonomy === undefined || term.taxonomy === "area")
+  )) || (typeof area.slug === "string" && shop.areaSlug === area.slug);
 }
 
 export function classifyPriorityAreaShops(
   shops: readonly ShopView[],
-  area: Pick<AreaView, "id">,
+  area: Pick<AreaView, "id"> & Partial<Pick<AreaView, "slug">>,
 ): PriorityAreaShopGroups {
   const ids = new Set<number>();
   const exact: ShopView[] = [];
@@ -55,11 +55,11 @@ export function classifyPriorityAreaShops(
     }
     ids.add(shop.id);
 
-    if (shop.primaryArea?.id === area.id) {
+    if (shop.primaryArea?.id === area.id || (typeof area.slug === "string" && shop.primaryArea === null && shop.areaSlug === area.slug)) {
       exact.push(shop);
       continue;
     }
-    if (!hasAreaRelation(shop, area.id)) {
+    if (!hasAreaRelation(shop, area)) {
       outside.push(shop);
       continue;
     }
@@ -80,7 +80,7 @@ export function classifyPriorityAreaShops(
 
 export function selectAreaRelationShops(
   shops: readonly ShopView[],
-  area: Pick<AreaView, "id">,
+  area: Pick<AreaView, "id"> & Partial<Pick<AreaView, "slug">>,
 ): readonly ShopView[] {
   const ids = new Set<number>();
   const relatedShops: ShopView[] = [];
@@ -91,7 +91,7 @@ export function selectAreaRelationShops(
     }
     ids.add(shop.id);
 
-    if (hasAreaRelation(shop, area.id)) {
+    if (hasAreaRelation(shop, area)) {
       relatedShops.push(shop);
     }
   }

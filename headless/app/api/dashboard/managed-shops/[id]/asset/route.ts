@@ -27,7 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const image = await inspectListingImage(candidate); if (!image.ok) return fail(image.error, 400);
   const base = process.env.SUPABASE_URL?.replace(/\/$/, ""); const secret = resolveSupabaseServerSecret();
   if (!base || !secret || !managedShopDirectoryRepository.configured()) return fail("画像保存のサーバー設定を確認してください。", 503);
-  const assetId = randomUUID(); const extension = image.type === "image/png" ? "png" : image.type === "image/jpeg" ? "jpg" : "webp";
+  const assetId = randomUUID(); const extension = "jpg";
   const objectKey = `managed-shops/${managedShopId}/${assetId}.${extension}`;
   const body = image.bytes.buffer.slice(image.bytes.byteOffset, image.bytes.byteOffset + image.bytes.byteLength) as ArrayBuffer;
   const stored = await fetch(`${base}/storage/v1/object/listing-application-private/${objectKey}`, { method: "POST", headers: createSupabaseServerHeaders(secret.value, { "Content-Type": image.type, "x-upsert": "false" }), body: new Blob([body], { type: image.type }) });

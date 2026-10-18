@@ -222,6 +222,7 @@ export function normalizeShop(post: WpShop): ShopView {
   const terms = embeddedTerms(post);
   return {
     id: post.id,
+    canonicalShopId: typeof acf.app_shop_id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(acf.app_shop_id) ? acf.app_shop_id.toLowerCase() : undefined,
     publicationStatus: post.status,
     slug: post.slug,
     link: post.link,

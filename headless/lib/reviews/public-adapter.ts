@@ -7,6 +7,8 @@ import type {
   ReviewRepository,
 } from "@/lib/reviews/repository";
 import { reviewNativeRepository } from "@/lib/supabase/review-native";
+import { eskomiReviewV2Repository } from "@/lib/supabase/eskomi-review-v2";
+import { getPublicShopDetailReviewsV11 } from "@/lib/supabase/eskomi-public-shop-detail-reviews-v11";
 import {
   getApprovedReviewsPage,
   getApprovedShopReviews,
@@ -22,6 +24,9 @@ export type PublicReview = Readonly<{
   id: PublicReviewId;
   body: string;
   submittedAt: string | null;
+  displayName?: string | null;
+  therapistDisplayName?: string | null;
+  reply?: Readonly<{ body: string; publishedAt: string | null }> | null;
   ratings: Readonly<{
     total: number | null;
     price: number | null;
@@ -90,6 +95,7 @@ type PublicReviewAdapterDependencies = Readonly<{
   readWordPressShopReviews: typeof getApprovedShopReviews;
   readWordPressGlobalReviews: typeof getApprovedReviewsPage;
   listWordPressShops: typeof getAllShopsForListing;
+  readV11ShopReviews?: typeof getPublicShopDetailReviewsV11;
   environment: Environment;
 }>;
 
@@ -121,6 +127,11 @@ const CANONICAL_AREA_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function resolveReviewReadSource(environment: Environment): ReviewReadSource {
   return environment.REVIEW_READ_SOURCE === "supabase" ? "supabase" : "wordpress";
+}
+
+/** The canonical v1.1 projection is opt-in until its migration/backfill audit is approved. */
+export function useV11PublicShopReviewSource(environment: Environment): boolean {
+  return environment.ESKOMI_V11_PUBLIC_REVIEW_SOURCE === "supabase";
 }
 
 export { useRankUpNativeReviewPilot } from "@/lib/reviews/rankup-native-review-pilot";
@@ -191,6 +202,47 @@ function toPublicReview(review: PublishedReview): PublicReview {
       price: review.ratingPrice,
       service: review.ratingService,
       cleanliness: review.ratingCleanliness,
+    },
+  };
+}
+
+async function readV11ShopDetail(
+  shop: ShopView,
+  page: number,
+  perPage: number,
+  reader: typeof getPublicShopDetailReviewsV11,
+): Promise<PublicShopReviewResult> {
+  if (!isCurrentPublicShop(shop)) return unavailable("supabase", "invalid-response");
+  const result = await reader(shop.slug, perPage, (page - 1) * perPage);
+  if (!result || result.reviews.length !== expectedPageSize(result.summary.reviewCount, page, perPage)) {
+    return unavailable("supabase", "invalid-response");
+  }
+  const { summary } = result;
+  return {
+    status: "available",
+    source: "supabase",
+    page: {
+      reviews: result.reviews.map((review) => ({
+        id: review.id,
+        body: review.body,
+        submittedAt: review.publishedAt,
+        displayName: review.displayName,
+        therapistDisplayName: review.therapistDisplayName,
+        reply: review.reply,
+        ratings: { total: review.rating, price: null, service: null, cleanliness: null },
+      })),
+      total: summary.reviewCount,
+      totalPages: summary.reviewCount === 0 ? 0 : Math.ceil(summary.reviewCount / perPage),
+      page,
+      metrics: {
+        total: { average: summary.averageRating, responseCount: summary.ratingCount },
+        price: { average: null, responseCount: 0 },
+        service: { average: null, responseCount: 0 },
+        cleanliness: { average: null, responseCount: 0 },
+      },
+      dateRange: summary.oldestPublishedAt && summary.latestPublishedAt
+        ? { oldestSubmittedAt: summary.oldestPublishedAt, latestSubmittedAt: summary.latestPublishedAt }
+        : null,
     },
   };
 }
@@ -287,11 +339,14 @@ export function createPublicReviewAdapter(
 ): PublicReviewAdapter {
   const source = resolveReviewReadSource(dependencies.environment);
   const rankUpPilot = source === "wordpress" && useRankUpNativeReviewPilot(dependencies.environment);
+  const v11PublicShopReviews = useV11PublicShopReviewSource(dependencies.environment);
+  const v11Reader = dependencies.readV11ShopReviews ?? getPublicShopDetailReviewsV11;
   return {
     source,
 
     async getShopReviews(shop, page = 1, perPage = 20) {
       if (!validPageRequest(page, perPage)) return unavailable(source, "invalid-response");
+      if (v11PublicShopReviews) return readV11ShopDetail(shop, page, perPage, v11Reader);
       const shopSource: ReviewReadSource = source === "supabase"
         || (rankUpPilot && shop.id === RANK_UP_WP_SHOP_ID)
         ? "supabase"
@@ -330,6 +385,38 @@ export function createPublicReviewAdapter(
       if (!validPageRequest(page, perPage)
         || (primaryAreaSlug !== null && !CANONICAL_AREA_SLUG_RE.test(primaryAreaSlug))) {
         return unavailable(source, "invalid-response");
+      }
+      // V1.1 shop details and the global list must not split the approved
+      // corpus.  The canonical projection carries its own directory identity
+      // and area, so this path makes no WordPress request.
+      if (v11PublicShopReviews) {
+        const global = await eskomiReviewV2Repository.listGlobalPublications(page, perPage, primaryAreaSlug);
+        if (!global) return unavailable("supabase", "request-failed");
+        return {
+          status: "available",
+          source: "supabase",
+          page: {
+            reviews: global.reviews.map((review) => ({
+              id: review.publicHandle,
+              body: review.body,
+              submittedAt: review.publishedAt,
+              displayName: review.displayName,
+              therapistDisplayName: review.therapistDisplayName,
+              reply: null,
+              ratings: { total: review.rating, price: null, service: null, cleanliness: null },
+              shop: {
+                id: review.directoryId,
+                slug: review.shopSlug,
+                name: review.shopName,
+                primaryArea: { id: 0, slug: review.areaSlug, name: review.areaName },
+              },
+              areas: [{ id: 0, slug: review.areaSlug, name: review.areaName }],
+            })),
+            total: global.total,
+            totalPages: global.total === 0 ? 0 : Math.ceil(global.total / perPage),
+            page,
+          },
+        };
       }
       if (source === "wordpress") {
         if (rankUpPilot) {
@@ -421,5 +508,6 @@ export const publicReviewAdapter = createPublicReviewAdapter({
   readWordPressShopReviews: getApprovedShopReviews,
   readWordPressGlobalReviews: getApprovedReviewsPage,
   listWordPressShops: getAllShopsForListing,
+  readV11ShopReviews: getPublicShopDetailReviewsV11,
   environment: process.env,
 });

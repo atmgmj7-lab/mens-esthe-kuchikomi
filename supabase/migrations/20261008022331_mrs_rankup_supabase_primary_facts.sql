@@ -1,3 +1,8 @@
+-- Historical duplicate of 20261007170536_mrs_rankup_supabase_primary_facts.
+-- Keep this versioned filename because it is recorded remotely, but skip its
+-- second foundation creation during a clean local reset.  The succeeding
+-- 20261008022352/416/438 and 24000 migrations retain the intended fixes.
+/*
 -- Mrs.Rank UP local verification: Supabase is the management source of truth
 -- for the existing WP 768 identity. Nothing in this migration exposes a new
 -- browser API or changes the public WordPress reader.
@@ -278,3 +283,4 @@ revoke all on function private.save_partner_shop_fact_snapshot(bigint, bigint, j
 grant execute on function private.get_partner_shop_fact_snapshot(bigint) to service_role;
 grant execute on function private.import_partner_shop_fact_snapshot(bigint, text, jsonb, text) to service_role;
 grant execute on function private.save_partner_shop_fact_snapshot(bigint, bigint, jsonb, text) to service_role;;
+*/

@@ -157,7 +157,9 @@ function operatorListingShops(
 }
 
 function registrationFor(shop: OperatorProjectionShop, registrations: PartnerRegistrationReview[]): PartnerRegistrationReview | null {
-  return registrations.find((registration) => registration.shop.id === shop.id) ?? null;
+  return registrations.find((registration) => registration.shop.identityKind === "legacy"
+    ? registration.shop.wpShopId === shop.id
+    : registration.shop.slug === shop.slug && registration.shop.canonicalUrl === canonicalUrl(shop)) ?? null;
 }
 
 function hasSameShopIdentity(
@@ -165,10 +167,10 @@ function hasSameShopIdentity(
   registration: PartnerRegistrationReview,
   metrics: PartnerReviewGrowthMetrics | null,
 ): boolean {
-  return registration.shop.id === shop.id
+  return (registration.shop.identityKind === "legacy" ? registration.shop.wpShopId === shop.id : true)
     && registration.shop.slug === shop.slug
     && registration.shop.canonicalUrl === canonicalUrl(shop)
-    && (metrics === null || (metrics.workspaceId === registration.workspaceId && metrics.shopId === shop.id));
+    && (metrics === null || (registration.shop.identityKind === "legacy" && metrics.workspaceId === registration.workspaceId && metrics.shopId === shop.id));
 }
 
 function unavailableRecord(
@@ -263,7 +265,9 @@ async function metricsByWorkspace(
   shops: OperatorProjectionShop[],
   getMetrics: OperatorProjectionDependencies["getMetrics"],
 ): Promise<Map<string, PartnerReviewGrowthMetrics | null>> {
-  const relevant = registrations.filter((registration) => shops.some((shop) => shop.id === registration.shop.id));
+  const relevant = registrations.filter((registration) => shops.some((shop) => registration.shop.identityKind === "legacy"
+    ? shop.id === registration.shop.wpShopId
+    : shop.slug === registration.shop.slug && canonicalUrl(shop) === registration.shop.canonicalUrl));
   const pairs = await Promise.all(relevant.map(async (registration) => [
     registration.workspaceId,
     await getMetrics(registration.workspaceId),

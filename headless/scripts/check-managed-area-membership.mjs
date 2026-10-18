@@ -48,6 +48,13 @@ vm.runInNewContext(output, {
       getAllWordPressShops: async () => [multiAreaLegacy, movedOutLegacy],
       getWordPressShopById: async (id) => id === 3 ? movedInLegacy : null,
     },
+    "@/lib/area-shop-ordering": {
+      getAreaInformationOrderingReferenceTimestamp: async () => Date.parse("2026-10-18T00:00:00.000Z"),
+      isAreaInformationOrderingTarget: () => false,
+      paginateAreaShopInformationOrder: (shops, _area, page, perPage) => ({
+        shops: shops.slice((page - 1) * perPage, page * perPage), total: shops.length, page, totalPages: Math.max(1, Math.ceil(shops.length / perPage)),
+      }),
+    },
   }[id] ?? (() => { throw new Error(`Unexpected import: ${id}`); })()),
 }, { filename: "lib/wp/areas.ts.cjs" });
 

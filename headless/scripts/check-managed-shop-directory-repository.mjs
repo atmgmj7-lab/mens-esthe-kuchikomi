@@ -44,7 +44,7 @@ const repository = createManagedShopDirectoryRepository({
     if (method === "list_managed_shop_legacy_listing_states") return new Response(JSON.stringify([{ existing_wp_shop_id: 999, shop_slug: "paused-legacy-shop", publication_state: "deleted" }]), { status: 200 });
     if (method === "list_managed_shop_nonpublic_listing_states") return new Response(JSON.stringify([archivedState]), { status: 200 });
     if (method === "import_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
-    if (method === "create_and_publish_managed_shop" || method === "import_and_publish_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
+    if (method === "create_and_publish_canonical_managed_shop" || method === "import_and_publish_managed_shop_from_legacy") return new Response(JSON.stringify("11111111-1111-4111-8111-111111111111"), { status: 200 });
     if (method === "save_managed_shop_draft") return new Response(JSON.stringify("conflict"), { status: 200 });
     if (method === "save_and_publish_managed_shop") return new Response(JSON.stringify("ok"), { status: 200 });
     return new Response(JSON.stringify("ok"), { status: 200 });

@@ -1,12 +1,13 @@
 import "server-only";
 
 import type { PartnerRegistrationData } from "@/lib/partner/registration-validation";
-import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
+import { createSupabaseServerHeaders, resolveSupabaseServerSecret, supabaseRpcUrl } from "@/lib/supabase/server-secret";
 import {
   PARTNER_REVIEW_CAMPAIGN_CHANNELS,
   PARTNER_WORKSPACE_STATES,
   buildPartnerReviewCampaignUrl,
   type PartnerRegistrationReview,
+  type PartnerRegistrationReviewDecision,
   type PartnerReviewCampaign,
   type PartnerReviewGrowthCampaignMetrics,
   type PartnerReviewGrowthMetrics,
@@ -15,6 +16,7 @@ import {
   type PartnerWorkspace,
   type PartnerWorkspaceRepository,
 } from "@/lib/partner/provisioning-service";
+import type { PartnerCanonicalGrowthMetrics } from "@/lib/partner/partner-review-growth-kit";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -38,7 +40,26 @@ export const partnerWorkspaceRepository: PartnerWorkspaceRepository = {
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return null;
     try {
-      const response = await fetch(`${baseUrl}/rest/v1/rpc/provision_partner_workspace`, {
+      // The canonical endpoint returns no rows for an unmapped legacy shop.
+      // A non-OK response is never allowed to fall through to the legacy RPC:
+      // doing so could treat a managed directory id as a WordPress id.
+      const canonical = await fetch(supabaseRpcUrl(baseUrl, "provision_partner_workspace_for_published_managed_shop"), {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          p_shop_slug: input.shopSlug,
+          p_source: input.source,
+        }),
+        cache: "no-store",
+      });
+      const canonicalRows = canonical.ok ? await canonical.json() as unknown : null;
+      if (!canonical.ok || !Array.isArray(canonicalRows) || canonicalRows.length > 1) return null;
+      const canonicalRow = canonicalRows[0] as { workspace_id?: string; state?: PartnerWorkspace["state"]; initialized?: boolean } | undefined;
+      if (canonicalRow?.workspace_id && canonicalRow.state) {
+        return { id: canonicalRow.workspace_id, state: canonicalRow.state, initialized: canonicalRow.initialized === true };
+      }
+
+      const response = await fetch(supabaseRpcUrl(baseUrl, "provision_partner_workspace"), {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -51,7 +72,7 @@ export const partnerWorkspaceRepository: PartnerWorkspaceRepository = {
         cache: "no-store",
       });
       const rows = await response.json() as Array<{ workspace_id?: string; state?: PartnerWorkspace["state"]; initialized?: boolean }>;
-      const row = response.ok && Array.isArray(rows) ? rows[0] : null;
+      const row = response.ok && Array.isArray(rows) && rows.length === 1 ? rows[0] : null;
       return row?.workspace_id && row.state
         ? { id: row.workspace_id, state: row.state, initialized: row.initialized === true }
         : null;
@@ -82,6 +103,45 @@ function hasExactKeys(value: Record<string, unknown>, expected: readonly string[
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function parseCanonicalGrowth(value: unknown): PartnerCanonicalGrowthMetrics | null {
+  if (!isRecord(value) || !hasExactKeys(value, [
+    "workspace_id", "app_shop_id", "review_handle", "widget_handle", "shop_name", "canonical_path", "submitted_reviews", "pending_reviews", "published_reviews",
+  ]) || typeof value.workspace_id !== "string" || !UUID_RE.test(value.workspace_id)
+    || typeof value.app_shop_id !== "string" || !UUID_RE.test(value.app_shop_id)
+    || typeof value.review_handle !== "string" || !UUID_RE.test(value.review_handle)
+    || typeof value.widget_handle !== "string" || !UUID_RE.test(value.widget_handle)
+    || !isNonNegativeInteger(value.submitted_reviews) || !isNonNegativeInteger(value.pending_reviews)
+    || !isNonNegativeInteger(value.published_reviews)
+    || value.pending_reviews > value.submitted_reviews || value.published_reviews > value.submitted_reviews) return null;
+  return {
+    workspaceId: value.workspace_id,
+    appShopId: value.app_shop_id,
+    reviewHandle: value.review_handle,
+    widgetHandle: value.widget_handle,
+    submittedReviews: value.submitted_reviews,
+    pendingReviews: value.pending_reviews,
+    publicReviews: value.published_reviews,
+  };
+}
+
+/** Canonical v1.1 Partner read: no WordPress store/review identifier crosses this boundary. */
+export async function getPartnerCanonicalGrowth(input: Readonly<{ workspaceId: string; authUserId: string }>): Promise<PartnerCanonicalGrowthMetrics | null> {
+  const baseUrl = supabaseUrl();
+  const headers = serviceHeaders();
+  if (!baseUrl || !headers || !UUID_RE.test(input.workspaceId) || !UUID_RE.test(input.authUserId)) return null;
+  try {
+    const response = await fetch(`${baseUrl}/rest/v1/rpc/get_partner_canonical_growth_v11`, {
+      method: "POST", headers,
+      body: JSON.stringify({ p_workspace_id: input.workspaceId, p_auth_user_id: input.authUserId }),
+      cache: "no-store",
+    });
+    const rows = response.ok ? await response.json() as unknown : null;
+    return Array.isArray(rows) && rows.length === 1 ? parseCanonicalGrowth(rows[0]) : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseCanonicalShop(value: unknown) {
@@ -178,12 +238,20 @@ function parseReview(value: unknown): PartnerRegistrationReview | null {
     || typeof row.contact_name !== "string" || typeof row.contact_email !== "string"
     || typeof row.confirmation_details !== "string" || typeof row.source_url !== "string"
     || typeof row.created_at !== "string" || !isWorkspaceState(row.workspace_state)
-    || typeof row.wp_shop_id !== "number" || typeof row.shop_slug !== "string"
+    || (row.identity_kind !== "canonical" && row.identity_kind !== "legacy") || typeof row.shop_slug !== "string"
     || typeof row.shop_name !== "string" || typeof row.canonical_url !== "string"
     || !campaigns || campaigns.some((campaign) => campaign === null)) return null;
   if ((row.reviewed_at !== null && typeof row.reviewed_at !== "string")
     || (row.reviewed_by !== null && typeof row.reviewed_by !== "string")
     || (row.review_reason !== null && typeof row.review_reason !== "string")) return null;
+  const shop = row.identity_kind === "canonical"
+    && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id) && row.wp_shop_id === null
+    ? { identityKind: "canonical" as const, appShopId: row.app_shop_id, wpShopId: null, slug: row.shop_slug, title: row.shop_name, canonicalUrl: row.canonical_url }
+    : row.identity_kind === "legacy" && row.app_shop_id === null
+      && Number.isSafeInteger(row.wp_shop_id) && (row.wp_shop_id as number) > 0
+      ? { identityKind: "legacy" as const, appShopId: null, wpShopId: row.wp_shop_id as number, slug: row.shop_slug, title: row.shop_name, canonicalUrl: row.canonical_url }
+      : null;
+  if (!shop) return null;
   return {
     submissionId: row.submission_id,
     workspaceId: row.workspace_id,
@@ -198,7 +266,7 @@ function parseReview(value: unknown): PartnerRegistrationReview | null {
     reviewedBy: row.reviewed_by as string | null,
     reviewReason: row.review_reason as string | null,
     workspaceState: row.workspace_state,
-    shop: { id: row.wp_shop_id, slug: row.shop_slug, title: row.shop_name, canonicalUrl: row.canonical_url },
+    shop,
     campaigns: campaigns as PartnerReviewCampaign[],
   };
 }
@@ -209,7 +277,7 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return [];
     try {
-      const response = await fetch(`${baseUrl}/rest/v1/rpc/list_partner_registration_reviews`, {
+      const response = await fetch(supabaseRpcUrl(baseUrl, "list_partner_registration_reviews_v11"), {
         method: "POST",
         headers,
         body: "{}",
@@ -226,7 +294,7 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
     const headers = serviceHeaders();
     if (!baseUrl || !headers) return null;
     try {
-      const response = await fetch(`${baseUrl}/rest/v1/rpc/review_partner_registration`, {
+      const response = await fetch(supabaseRpcUrl(baseUrl, "review_partner_registration_v11"), {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -237,11 +305,19 @@ export const partnerReviewGrowthRepository: PartnerReviewGrowthRepository = {
         }),
         cache: "no-store",
       });
-      const rows = await response.json() as Array<{ state?: unknown; status?: unknown }>;
+      const rows = await response.json() as Array<Record<string, unknown>>;
       const row = response.ok && Array.isArray(rows) ? rows[0] : null;
-      return row && isWorkspaceState(row.state) && (row.status === "approved" || row.status === "rejected")
-        ? { state: row.state, status: row.status }
-        : null;
+      if (!row || !isWorkspaceState(row.state) || (row.status !== "approved" && row.status !== "rejected")
+        || typeof row.workspace_id !== "string" || !UUID_RE.test(row.workspace_id)
+        || typeof row.shop_slug !== "string" || typeof row.canonical_url !== "string"
+        || (row.identity_kind !== "canonical" && row.identity_kind !== "legacy")) return null;
+      const shop = row.identity_kind === "canonical"
+        && typeof row.app_shop_id === "string" && UUID_RE.test(row.app_shop_id) && row.wp_shop_id === null
+        ? { identityKind: "canonical" as const, appShopId: row.app_shop_id, wpShopId: null, slug: row.shop_slug, canonicalUrl: row.canonical_url }
+        : row.identity_kind === "legacy" && row.app_shop_id === null && Number.isSafeInteger(row.wp_shop_id) && (row.wp_shop_id as number) > 0
+          ? { identityKind: "legacy" as const, appShopId: null, wpShopId: row.wp_shop_id as number, slug: row.shop_slug, canonicalUrl: row.canonical_url }
+          : null;
+      return shop ? { state: row.state, status: row.status, workspaceId: row.workspace_id, shop } satisfies PartnerRegistrationReviewDecision : null;
     } catch {
       return null;
     }
@@ -354,7 +430,7 @@ export async function savePartnerRegistration(input: {
   const headers = serviceHeaders();
   if (!baseUrl || !headers) return { ok: false };
   try {
-    const response = await fetch(`${baseUrl}/rest/v1/rpc/register_partner_submission`, {
+    const response = await fetch(supabaseRpcUrl(baseUrl, "register_partner_submission"), {
       method: "POST",
       headers,
       body: JSON.stringify({

@@ -1,5 +1,24 @@
 # Findings & Decisions
 
+## 2026-10-18 — P2 mapping and synthetic-guard correction
+
+- `ready` means the managed projection is already bound; the operator packet
+  now separates `managed_shop_unbound` → bind → re-read `ready` → map from the
+  already-bound path, which must not call bind again. A post-map
+  `already_canonical` result is audit-only.
+- The synthetic rehearsal is superuser `psql` plus direct `private.*`
+  evidence, not normal Next/Auth/session/RLS/PostgREST/production-ledger
+  proof.
+- The regression guard captures synthetic workspace UUIDs 725 and 766 before
+  the selected 768 mapping and requires each to retain its original WP ID, a
+  null app-shop ID, and no alias. This catches the prior false-negative shape
+  where the old WP ID had been nulled.
+- `ESKOMI_SYNTHETIC_BASELINE_PROVE_NON_TARGET_GUARD=1` intentionally changed
+  captured workspace 725 in the disposable verification transaction. The
+  exact normal verification rejected it with `out-of-scope legacy workspaces
+  were modified`; the runner then exited successfully as an expected-failure
+  proof. A separate clean runner invocation passed.
+
 ## 2026-08-22 UX-PROD Final Close
 
 - mainへのfast-forward同期commitは`132cd95c17d0de5be25b2ca6dc5033da90a8f32b`。Vercel run `32537810709`のhead SHAと一致し、同runがdeployment `dpl_AdhG8oZwkctSCuay5nnXLqihXqLF`をproductionへ出した。alias inspectも同deployment ID / READYを返した。
@@ -548,3 +567,30 @@
 - current Production deploymentはread-only Vercel inspectで`dpl_EvzCCy4yE3LJGoYR6RoAu4B85NVU` / READY。旧staged `dpl_2GfYVLYxA216A8pX9kmWXE3HfbzS`はpromotion対象外。今回の実行によるProduction変更は0。
 - Area browser timeoutは製品DOM不在ではなく、同じ`127.0.0.1:3113`をfixture/production serverへ差し替えつつChromiumを保持し、さらに5 Area×11幅で外部依存SSRを反復するharness条件に限定された。単独minimal-env production serverはSakai 200、precision marker 1、fallback 0。browser再起動とAreaごと1回のnavigationへ縮めても全11幅のlayout/canonical/overflow assertionは維持され、最終110/2,687 PASS。
 - isolated E2E runnerはfixtureを自動削除しないため、phase close手順側で直後にlocal resetする必要がある。今回もreset後`0|0|0`と全6 migrationをreadbackし、Production synthetic data 0を維持した。
+# 2026-10-18 first-pilot gate findings
+
+- `private.list_legacy_partner_workspace_mapping_candidates_v11()` is the safe read-only candidate source.  It classifies each legacy workspace as `ready` only when WP ID, managed-shop binding, slug, app shop slug, and canonical path all agree; the mutating bind/map functions are deliberately out of scope for this packet.
+- `ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase` is global (`public-adapter.ts:133-134`).  It drives both individual shop and global review reads; it is not a one-store pilot control.  The existing `RANKUP_NATIVE_REVIEW_READ_SOURCE` remains a distinct pilot and must not be represented as the v1.1 global cutover.
+- Approved design E02 requires exact legacy ID + slug + canonical confirmation and isolation on any mismatch.  M06 prohibits synthetic posts in real public stores; M08 requires feature/read rollback without destructive down-migrations and an evidenced backup/recovery authority.
+- No production connection or production backup access is authorized.  All new validation must therefore be repository-local and static.
+
+## 2026-10-18 — Mrs.Rank UP visibility trace
+
+- The fixed pilot is Mrs.Rank UP: WP ID `768`, its percent-encoded canonical slug, and the current public URL are recorded in the first-pilot packet.  The public page read showed zero approved reviews; the public `/reviews/` snapshot also showed zero, but the native pilot's zero-total precondition must be rechecked in the authorized release window.
+- An approved v1.1 individual-link review is visible through the direct v1.1 widget handle, but normal shop/global readers do not read that v1.1 publication until the global `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` cutover.  The pre-publication packet now makes this limitation and the two viable release choices explicit.
+
+## 2026-10-18 — read-only production migration reconciliation
+
+- The authorized read-only ledger ends at `20261015182000`; the pending ordered suffix begins with the canonical foundation and ends with the canonical email-audit migration. Existing fresh and representative populated-upgrade fixtures do not reproduce that actual starting boundary.
+- Mrs.Rank UP is not mapping-ready after migration alone: the current managed projection has no exact candidate, and the canonical shop is draft. Both facts are documented as hard stops; no production identifier or row value is committed.
+
+## 2026-10-18 — synthetic 20261015182000 rehearsal design
+
+- The existing populated-upgrade runner starts from the historical `bf46aa1` repository boundary, not the authorized `20261015182000` boundary. The internal partner HTTP runner applies all current migrations to an empty disposable database, so neither directly proves the requested path.
+- The new rehearsal must apply only source migrations through `20261015182000`, seed synthetic production-shaped data, then apply the timestamp suffix. It must be an owned temporary PostgreSQL container and must not reuse the local Supabase stack, volumes, or an external endpoint.
+- The canonical managed creation wrapper creates a new app shop and therefore cannot establish a legacy exact mapping to the pre-existing draft app shop. The rehearsal must use the existing legacy managed-shop projection path before `bind_legacy_managed_shop_to_app_shop_v11`, then publish through the normal reviewed managed-shop flow.
+
+## 2026-10-18 — synthetic baseline rehearsal result
+
+- The first run failed only because the old repository schema constrains workspace canonical URLs to the site host; changing the synthetic URLs to match that schema contract made the second run pass. No external database was contacted in either attempt.
+- The isolated runner passed the full synthetic `20261015182000` → current suffix, legacy managed creation, exact bind/map, and normal publication path. A public unauthenticated `/reviews/` GET returned `全0件`; this is recorded only as a legacy aggregate baseline.

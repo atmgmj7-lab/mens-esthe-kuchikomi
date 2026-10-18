@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { mkdirSync } from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
 
 const root = process.cwd();
+const screenshotDir = process.env.PARTNER_LOGIN_EMAIL_QA_SCREENSHOT_DIR;
+if (screenshotDir) mkdirSync(screenshotDir, { recursive: true });
 const workspaceId = "11111111-1111-4111-8111-111111111111";
 const authUserId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const appShopId = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 
 function freePort() {
   return new Promise((resolve) => {
@@ -47,11 +51,11 @@ const mock = http.createServer(async (request, response) => {
       ? json(response, 200, { id: authUserId, email: "owner@example.invalid", new_email: parsed.email })
       : json(response, 400, { message: "invalid" });
   }
-  if (request.url === "/rest/v1/rpc/get_partner_auth_membership" && request.method === "POST") {
-    return json(response, 200, [{ workspace_id: workspaceId, wp_shop_id: 101, shop_slug: "shop-a", role: "owner" }]);
+  if (request.url === "/rest/v1/rpc/get_partner_compatible_auth_membership" && request.method === "POST") {
+    return json(response, 200, [{ workspace_id: workspaceId, identity_kind: "canonical", app_shop_id: appShopId, wp_shop_id: null, shop_slug: "shop-a", role: "owner" }]);
   }
-  if (request.url === "/rest/v1/rpc/get_partner_workspace_identity" && request.method === "POST") {
-    return json(response, 200, [{ workspace_id: workspaceId, wp_shop_id: 101, shop_slug: "shop-a", shop_name: "Partner Shop A", canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/", state: "free_official_partner" }]);
+  if (request.url === "/rest/v1/rpc/get_partner_compatible_workspace_identity" && request.method === "POST") {
+    return json(response, 200, [{ workspace_id: workspaceId, identity_kind: "canonical", app_shop_id: appShopId, wp_shop_id: null, shop_slug: "shop-a", shop_name: "Partner Shop A", canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/", state: "free_official_partner" }]);
   }
   if (request.url === "/rest/v1/rpc/get_partner_login_email_management" && request.method === "POST") {
     return json(response, 200, [{ status: "not_set", workspace_id: workspaceId, auth_user_id: authUserId, email: null, intent: null, updated_at: null }]);
@@ -85,7 +89,7 @@ let log = "";
 next.stdout.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 next.stderr.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}) });
 try {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
@@ -118,14 +122,19 @@ try {
       ]);
       assert.equal(postResponse.status(), 202, await postResponse.text());
       await page.getByRole("status").getByText(/変更を受け付けました/).waitFor({ state: "visible" });
+      if (screenshotDir) await page.screenshot({ path: `${screenshotDir}/partner-login-email-390.png`, fullPage: true });
     }
+    if (viewport.width === 1280 && screenshotDir) await page.screenshot({ path: `${screenshotDir}/partner-login-email-1280.png`, fullPage: true });
     await context.close();
   }
   assert.equal(recordedEmail, "new-owner@example.invalid", "Partner settings must record only the authenticated Partner's requested email");
 
   const operator = await browser.newPage();
-  const denied = await operator.goto(`${baseUrl}/api/dashboard/shops/768/login-email/`, { waitUntil: "domcontentloaded" });
-  assert.equal(denied?.status(), 401, "Operator login email endpoint must retain Basic Auth");
+  await assert.rejects(
+    () => operator.goto(`${baseUrl}/api/dashboard/shops/768/login-email/`, { waitUntil: "domcontentloaded" }),
+    /ERR_INVALID_AUTH_CREDENTIALS/,
+    "Partner login-email access must not satisfy the separate operator Basic Auth challenge",
+  );
   await operator.close();
   console.log("partner login email management browser QA: PASS");
 } finally {

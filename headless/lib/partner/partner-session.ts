@@ -5,8 +5,7 @@ import { partnerLoginStateMatchesEmail } from "@/lib/partner/partner-auth-login-
 import { resolvePartnerDashboardIdentity } from "@/lib/partner/partner-dashboard";
 import { createPartnerAuthDependencies } from "@/lib/partner/partner-auth-server";
 import { resolvePartnerReviewGrowthKit } from "@/lib/partner/partner-review-growth-kit";
-import { getPartnerReviewGrowthMetrics } from "@/lib/partner/provisioning-service";
-import { partnerReviewGrowthRepository } from "@/lib/supabase/partner-workspace";
+import { getPartnerCanonicalGrowth } from "@/lib/supabase/partner-workspace";
 
 export const PARTNER_SESSION_COOKIE = "eskomi_partner_access_token";
 export const PARTNER_LOGIN_STATE_COOKIE = "eskomi_partner_login_state";
@@ -25,6 +24,21 @@ export async function authorizePartnerSession(input: {
   }, dependencies);
 }
 
+/**
+ * Authorizes therapist tools with the same Partner access-token cookie.  It
+ * intentionally does not accept a workspace id from a route or form: the
+ * service-only membership projection is the authority for the workspace.
+ */
+export async function authorizePartnerTherapistSession(input: { accessToken: string | null }) {
+  const dependencies = createPartnerAuthDependencies(process.env);
+  if (!dependencies) return { status: "unavailable" as const };
+  const user = await dependencies.getUser(input.accessToken ?? "");
+  if (!user) return { status: "unauthenticated" as const };
+  const scope = await dependencies.getTherapistWorkspaceScope(user.id);
+  if (!scope) return { status: "forbidden" as const };
+  return { status: "allowed" as const, access: { ...scope, authUserId: user.id } };
+}
+
 export async function authorizePartnerLoginCompletion(input: { accessToken: string; state: string }) {
   const dependencies = createPartnerAuthDependencies(process.env);
   if (!dependencies) return { status: "unavailable" as const };
@@ -32,7 +46,7 @@ export async function authorizePartnerLoginCompletion(input: { accessToken: stri
   if (!authUser || !partnerLoginStateMatchesEmail(input.state, authUser.email, process.env)) {
     return { status: "unauthenticated" as const };
   }
-  return authorizePartnerAccess({
+  const access = await authorizePartnerAccess({
     accessToken: input.accessToken,
     requestedWorkspaceId: null,
     requestedShopId: null,
@@ -40,6 +54,7 @@ export async function authorizePartnerLoginCompletion(input: { accessToken: stri
     ...dependencies,
     getUser: async (accessToken) => accessToken === input.accessToken ? authUser : null,
   });
+  return access;
 }
 
 export async function authorizePartnerDashboardSession(input: {
@@ -55,7 +70,9 @@ export async function authorizePartnerDashboardSession(input: {
     requestedShopId: input.requestedShopId ?? null,
   }, dependencies);
   if (access.status !== "allowed") return access;
-  return resolvePartnerDashboardIdentity(access.access, dependencies);
+  const user = await dependencies.getUser(input.accessToken ?? "");
+  if (!user) return { status: "unauthenticated" as const };
+  return resolvePartnerDashboardIdentity(access.access, user.id, dependencies);
 }
 
 /**
@@ -72,10 +89,10 @@ export async function authorizePartnerLoginEmailSession(input: { accessToken: st
     requestedShopId: null,
   }, dependencies);
   if (access.status !== "allowed") return access;
-  const identity = await resolvePartnerDashboardIdentity(access.access, dependencies);
-  if (identity.status !== "allowed") return identity;
   const authUser = await dependencies.getUser(input.accessToken ?? "");
   if (!authUser) return { status: "unauthenticated" as const };
+  const identity = await resolvePartnerDashboardIdentity(access.access, authUser.id, dependencies);
+  if (identity.status !== "allowed") return identity;
   return { status: "allowed" as const, access: access.access, identity: identity.identity, authUser };
 }
 
@@ -93,10 +110,18 @@ export async function authorizePartnerReviewGrowthSession(input: {
   }, dependencies);
   if (access.status !== "allowed") return access;
 
-  const dashboard = await resolvePartnerDashboardIdentity(access.access, dependencies);
+  const authUser = await dependencies.getUser(input.accessToken ?? "");
+  if (!authUser) return { status: "unauthenticated" as const };
+  const dashboard = await resolvePartnerDashboardIdentity(access.access, authUser.id, dependencies);
   if (dashboard.status !== "allowed") return dashboard;
+  if (dashboard.identity.identityKind === "legacy") {
+    // Legacy users retain a successful login and can reach their settings
+    // while an operator performs the reviewed app_shop_id mapping.  Do not
+    // fabricate canonical links, widgets, or listing mutations for them.
+    return { status: "legacy_migration_required" as const, identity: dashboard.identity };
+  }
 
-  const metrics = await getPartnerReviewGrowthMetrics(access.access.workspaceId, partnerReviewGrowthRepository);
+  const metrics = await getPartnerCanonicalGrowth({ workspaceId: access.access.workspaceId, authUserId: authUser.id });
   const growthKit = resolvePartnerReviewGrowthKit(dashboard.identity, metrics);
   if (growthKit.status !== "allowed") return growthKit;
   return { status: "allowed" as const, identity: dashboard.identity, growthKit, metrics };

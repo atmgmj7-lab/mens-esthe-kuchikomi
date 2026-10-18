@@ -3,6 +3,7 @@ export const STATIC_PAGE_SLUGS = [
   "about",
   "sitemap",
   "storelisting",
+  "advertise",
   "osaka-nihonbashi"
 ] as const;
 
@@ -36,6 +37,10 @@ export const STATIC_PAGE_META: Record<StaticPageSlug, StaticPageMeta> = {
     title: "掲載について",
     description:
       "Eskomi（エスコミ）への店舗掲載について。掲載のメリット・お問い合わせ方法をご案内します。"
+  },
+  advertise: {
+    title: "広告掲載について",
+    description: "Eskomiの広告掲載について、表示場所やサイズなどを個別にご相談いただく窓口です。"
   },
   "osaka-nihonbashi": {
     title: "日本橋メンズエステで失敗しない選び方｜料金相場・口コミの見方を解説",
@@ -104,6 +109,17 @@ export function getStaticPageFallback(slug: StaticPageSlug): string {
         <p class="hl-static-page-cta">
           <a href="#listing-actions" class="hl-static-page-btn">窓口を選ぶ</a>
         </p>
+      `;
+    case "advertise":
+      return `
+        <p>地域ページなどの広告掲載について、表示場所・サイズ・掲載条件を確認してから個別にご案内します。</p>
+        <p>料金、空き枠、掲載可否はこのページでは確定しません。通常順位や口コミ評価とは分けて扱います。</p>
+        <h2>ご相談時に確認すること</h2>
+        <ul>
+          <li>掲載を検討するページや地域</li>
+          <li>ご希望の表示内容・期間</li>
+          <li>店舗またはご担当者の連絡先</li>
+        </ul>
       `;
     case "osaka-nihonbashi":
       return `

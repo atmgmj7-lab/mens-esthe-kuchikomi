@@ -1,5 +1,19 @@
 # Task Plan: SEOを守るSupabase段階移行
 
+## 2026-10-18 — v1.1 pre-production QA P2 correction
+
+- [x] Correct the first-pilot mapping packet so unbound → bind → re-read ready
+  → map is distinct from the already-bound no-rebind path.
+- [x] State the synthetic rehearsal's superuser/private-function evidence
+  boundary and explicitly exclude Next/Auth/RLS/PostgREST/migration-ledger
+  proof.
+- [x] Retain the two non-target workspace UUIDs and assert their legacy
+  identity, null canonical ID, and no alias after the selected mapping.
+- [x] Prove that an intentional disposable non-target mutation is rejected,
+  then rerun the clean synthetic rehearsal.
+- [ ] Stop before production hosting/cutover choice; no production action is
+  authorized by this correction.
+
 ## Goal
 
 公開中のURL・検索向け設定・WordPress表示を変えずに、承認済みの本番SupabaseへWordPress全382店舗・34地域を非公開で移し、検証後にSEOと視認性改善の次実装へ進む。
@@ -736,3 +750,45 @@ base `649d2474f6029de16b10cd4bf53f55338843cadf`から、既存の多対多Area�
 | planning session catchupがCodex session非対応 | 1 | Git、既存planning files、current task packetを直接照合した |
 | Supabase公式Markdown直読がunsupported content-type | 1 | 同じ取得を繰り返さず、公式domain限定HTML検索へ切り替えた |
 | T1 commitの`git add`を`headless/`からroot相対pathで実行 | 1 | stage 0を確認し、repository rootから同じ明示pathだけをstageする |
+# 2026-10-18 first-pilot minimum gate packet
+
+## Objective
+
+Produce a branch-local, executable release packet for one first pilot store.
+It must separate disposable-fixture evidence from production proof, make no
+production change, and not imply that the global public-review cutover is
+store-scoped.
+
+## Phases
+
+- [x] Read repository instructions, approved design, acceptance matrix, and current evidence.
+- [x] Inspect the legacy workspace mapping contract and public-review source switch scope.
+- [x] Write the minimal pilot gate, including migration ordering, read-only binding, backup/recovery, and global-reader impact gates.
+- [x] Add a harmless source/packet consistency check and run it.
+- [x] Update the acceptance packet, verify diffs, commit, push the approved branch, and confirm its remote SHA.
+
+## Post-completion visibility clarification
+
+- [x] Trace the fixed Mrs.Rank UP (WP Shop 768) review/link/widget/public-reader routes.
+- [x] Record that the direct v1.1 widget can show an approved canonical review, while the normal shop and global readers require the separate global v1.1 source cutover.
+- [x] Save the clarification on the approved branch and confirm its remote SHA.
+
+## Production-ledger reconciliation (documentation only)
+
+- [x] Reconfirm the approved remote SHA and derive the source migration suffix after the authorized read-only ledger boundary.
+- [x] Compare fresh/representative-upgrade fixture scope with the actual boundary and record Mrs.Rank UP mapping hard stops without private identifiers.
+- [x] Verify, commit, push the reconciliation packet, and confirm its remote SHA.
+
+## Synthetic `20261015182000` baseline rehearsal
+
+- [x] Fix scope: repository pre-v1.1 schema plus synthetic 382-shop/zero-native-review shape only; no production snapshot or identifiers.
+- [x] Inspect and reuse the existing fresh/populated-upgrade runners and write a failing safety/contract check.
+- [x] Implement the disposable baseline fixture: apply the post-ledger suffix, then normal managed projection, exact mapping, and publication flow.
+- [x] Run the isolated rehearsal and public legacy-reader aggregate check when available; retain only local evidence.
+- [x] Record scope/evidence, commit, push the approved branch, and confirm its remote SHA.
+
+## Guardrails
+
+- No main merge, deployment, production DB/auth write, secret retrieval, backup upload, file deletion, or Docker resource change.
+- The existing `ESKOMI_V11_PUBLIC_REVIEW_SOURCE` is a global reader cutover; do not add a new per-store flag in this task.
+- Keep T43 explicitly unknown/unimplemented and preserve untracked screenshots and `banner-library/`.

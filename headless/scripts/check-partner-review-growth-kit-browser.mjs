@@ -12,6 +12,8 @@ const workspaceA = "11111111-1111-4111-8111-111111111111";
 const workspaceB = "22222222-2222-4222-8222-222222222222";
 const userA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const userB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const appShopA = "66666666-6666-4666-8666-666666666666";
+const appShopB = "77777777-7777-4777-8777-777777777777";
 const tokenQr = "33333333-3333-4333-8333-333333333333";
 const tokenLine = "44444444-4444-4444-8444-444444444444";
 const tokenWebsite = "55555555-5555-4555-8555-555555555555";
@@ -47,45 +49,43 @@ const mock = http.createServer(async (request, response) => {
     if (token === "partner-b-session-token") return json(response, 200, { id: userB, email: "b@example.invalid" });
     return json(response, 401, { message: "invalid" });
   }
-  if (request.url === "/rest/v1/rpc/get_partner_auth_membership" && request.method === "POST") {
+  if (request.url === "/rest/v1/rpc/get_partner_compatible_auth_membership" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const authUserId = JSON.parse(body).p_auth_user_id;
-    if (authUserId === userA) return json(response, 200, [{ workspace_id: workspaceA, wp_shop_id: 101, shop_slug: "shop-a", role: "owner" }]);
-    if (authUserId === userB) return json(response, 200, [{ workspace_id: workspaceB, wp_shop_id: 202, shop_slug: "shop-b", role: "owner" }]);
+    if (authUserId === userA) return json(response, 200, [{ workspace_id: workspaceA, identity_kind: "canonical", app_shop_id: appShopA, wp_shop_id: null, shop_slug: "shop-a", role: "owner" }]);
+    if (authUserId === userB) return json(response, 200, [{ workspace_id: workspaceB, identity_kind: "canonical", app_shop_id: appShopB, wp_shop_id: null, shop_slug: "shop-b", role: "owner" }]);
     return json(response, 200, []);
   }
-  if (request.url === "/rest/v1/rpc/get_partner_workspace_identity" && request.method === "POST") {
+  if (request.url === "/rest/v1/rpc/get_partner_compatible_workspace_identity" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const workspaceId = JSON.parse(body).p_workspace_id;
     if (workspaceId === workspaceA) return json(response, 200, [{
-      workspace_id: workspaceA, wp_shop_id: 101, shop_slug: "shop-a", shop_name: "Partner Shop A",
-      canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/", state: "free_official_partner",
+      workspace_id: workspaceA, identity_kind: "canonical", app_shop_id: appShopA, wp_shop_id: null, shop_slug: "shop-a", shop_name: "Partner Shop A",
+      canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-a/", state: "free_official_partner", role: "owner",
     }]);
     if (workspaceId === workspaceB) return json(response, 200, [{
-      workspace_id: workspaceB, wp_shop_id: 202, shop_slug: "shop-b", shop_name: "Partner Shop B",
-      canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-b/", state: "active_partner",
+      workspace_id: workspaceB, identity_kind: "canonical", app_shop_id: appShopB, wp_shop_id: null, shop_slug: "shop-b", shop_name: "Partner Shop B",
+      canonical_url: "https://mens-esthe-kuchikomi.com/shops/shop-b/", state: "active_partner", role: "owner",
     }]);
     return json(response, 200, []);
   }
-  if (request.url === "/rest/v1/rpc/get_partner_review_growth_metrics" && request.method === "POST") {
+  if (request.url === "/rest/v1/rpc/get_partner_canonical_growth_v11" && request.method === "POST") {
     let body = "";
     for await (const chunk of request) body += chunk;
     const workspaceId = JSON.parse(body).p_workspace_id;
     metricWorkspaceRequests.push(workspaceId);
     if (workspaceId === workspaceA) return json(response, 200, [{
       workspace_id: workspaceA,
-      wp_shop_id: 101,
+      app_shop_id: appShopA,
+      review_handle: tokenQr,
+      widget_handle: tokenWebsite,
+      shop_name: "Partner Shop A",
+      canonical_path: "/shops/shop-a/",
       submitted_reviews: 8,
       pending_reviews: 2,
-      public_reviews: 5,
-      campaigns: [
-        { id: "77777777-7777-4777-8777-777777777777", channel: "counter_qr", token: tokenQr, isActive: true, openCount: 12, startCount: 8, conversionCount: 4 },
-        { id: "88888888-8888-4888-8888-888888888888", channel: "line_after_visit", token: tokenLine, isActive: true, openCount: 9, startCount: 7, conversionCount: 3 },
-        { id: "99999999-9999-4999-8999-999999999999", channel: "shop_website", token: tokenWebsite, isActive: true, openCount: 6, startCount: 4, conversionCount: 2 },
-        { id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", channel: "eskomi_shop_page", token: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", isActive: true, openCount: 5, startCount: 3, conversionCount: 1 },
-      ],
+      published_reviews: 5,
     }]);
     return json(response, 200, []);
   }
@@ -110,7 +110,7 @@ let log = "";
 next.stdout.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 next.stderr.on("data", (chunk) => { log = `${log}${chunk}`.slice(-4000); });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.ESKOMI_E2E_CHROMIUM ? { executablePath: process.env.ESKOMI_E2E_CHROMIUM } : {}) });
 try {
   const deadline = Date.now() + 45_000;
   while (Date.now() < deadline) {
@@ -139,7 +139,7 @@ try {
   assert.doesNotMatch(await partnerA.locator("body").innerText(), /店舗 ID|Partner workspace|11111111-1111-4111-8111-111111111111/, "Partner Home must not render private identity rows or workspace identifiers");
   assert.equal(response?.headers()["cache-control"], "private, no-store", "Partner Growth Kit must remain no-store");
   assert.equal(response?.headers()["x-robots-tag"], "noindex, nofollow", "Partner Growth Kit must remain noindex");
-  await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`).waitFor({ state: "visible" });
+  await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`, { exact: true }).waitFor({ state: "visible" });
   const qr = partnerA.getByRole("img", { name: "口コミ投稿リンクのQRコード" });
   await qr.waitFor({ state: "visible" });
   assert.match(await qr.getAttribute("src") ?? "", /^data:image\/(png|svg\+xml);/i, "the QR must be a local server-derived image asset, not an external tracker");
@@ -177,7 +177,7 @@ try {
   await partnerA.getByText("評価の指定、特典や報酬による依頼、良い口コミだけを求める案内は行いません。").waitFor({ state: "visible" });
   await partnerA.getByRole("heading", { name: "お客様に送る口コミ投稿リンク" }).waitFor({ state: "visible" });
   await partnerA.getByText("このリンクから、お客様がこの店舗の口コミを投稿できます。").waitFor({ state: "visible" });
-  await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`).last().waitFor({ state: "visible" });
+  await partnerA.getByText(`https://mens-esthe-kuchikomi.com/r/${tokenQr}/`, { exact: true }).waitFor({ state: "visible" });
   const reviewPreview = partnerA.getByRole("link", { name: "投稿ページを確認" });
   assert.equal(await reviewPreview.getAttribute("href"), `https://mens-esthe-kuchikomi.com/r/${tokenQr}/`, "the review preview must use the authorized shop's canonical review URL");
   assert.equal(await reviewPreview.getAttribute("target"), "_blank", "the QA must not navigate to the review URL");

@@ -6,6 +6,23 @@ import { useEffect } from "react";
 import { GA_MEASUREMENT_ID, gaEvent, pageview } from "@/lib/gtag";
 import { normalizePublicShopSlug } from "@/lib/shop-slug";
 
+let publicAccessContextQueue: Promise<void> = Promise.resolve();
+
+function recordPublicShopAccess(shopSlug: string, eventKind: "shop_view" | "official_line_click") {
+  // Serialize first-party context issuance within a tab.  The server also
+  // accepts independently issued signed sessions, so two fresh tabs cannot
+  // invalidate one another when their Set-Cookie responses race.
+  publicAccessContextQueue = publicAccessContextQueue.catch(() => undefined).then(async () => {
+    const response = await fetch(`/api/analytics/shop-access/context/?shopSlug=${encodeURIComponent(shopSlug)}&eventKind=${eventKind}`, { cache: "no-store" });
+    const data = response.ok ? await response.json() as { context?: unknown } : null;
+    if (typeof data?.context === "string") {
+      await fetch("/api/analytics/shop-access/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shopSlug, eventKind, context: data.context }), keepalive: true, cache: "no-store" });
+    }
+  });
+  void publicAccessContextQueue
+    .catch(() => undefined);
+}
+
 function isExternalHref(href: string): boolean {
   if (!href || href.startsWith("#") || href.startsWith("/") || href.startsWith("tel:")) {
     return false;
@@ -47,11 +64,11 @@ export function GoogleAnalytics() {
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard")) return;
-    if (!GA_MEASUREMENT_ID) return;
-
     const shopSlug = normalizePublicShopSlug(
       pathname.match(/^\/shops\/([^/]+)\/?$/)?.[1] || ""
     );
+    if (shopSlug) recordPublicShopAccess(shopSlug, "shop_view");
+    if (!GA_MEASUREMENT_ID) return;
     if (shopSlug) {
       gaEvent("shop_view", {
         shop_slug: shopSlug,
@@ -62,7 +79,6 @@ export function GoogleAnalytics() {
 
   useEffect(() => {
     if (pathname.startsWith("/dashboard")) return;
-    if (!GA_MEASUREMENT_ID) return;
 
     const onClick = (event: MouseEvent) => {
       const anchor = (event.target as Element | null)?.closest("a");
@@ -83,6 +99,8 @@ export function GoogleAnalytics() {
           anchor.getAttribute("data-shop-slug") || ""
         );
         const shopSlug = dataShopSlug || pathShopSlug;
+        if (ctaKind === "line" && shopSlug) recordPublicShopAccess(shopSlug, "official_line_click");
+        if (!GA_MEASUREMENT_ID) return;
         const ctaPosition =
           anchor.getAttribute("data-shop-cta-position") || "unknown";
         const eventName =

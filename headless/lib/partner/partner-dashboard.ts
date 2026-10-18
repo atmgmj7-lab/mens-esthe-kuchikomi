@@ -1,17 +1,28 @@
 import type { PartnerMembershipAccess } from "@/lib/partner/partner-auth";
 import type { PartnerReviewGrowthKit } from "@/lib/partner/partner-review-growth-kit";
 
-export type PartnerWorkspaceIdentity = Readonly<{
+export type CanonicalPartnerWorkspaceIdentity = Readonly<{
   workspaceId: string;
-  shopId: number;
+  identityKind: "canonical";
+  appShopId: string;
   shopSlug: string;
   shopName: string;
   canonicalUrl: string;
   state: "free_official_partner" | "active_partner";
 }>;
+export type LegacyPartnerWorkspaceIdentity = Readonly<{
+  workspaceId: string;
+  identityKind: "legacy";
+  wpShopId: number;
+  shopSlug: string;
+  shopName: string;
+  canonicalUrl: string;
+  state: "free_official_partner" | "active_partner";
+}>;
+export type PartnerWorkspaceIdentity = CanonicalPartnerWorkspaceIdentity | LegacyPartnerWorkspaceIdentity;
 
 export type PartnerDashboardIdentityDependencies = Readonly<{
-  getWorkspaceIdentity: (workspaceId: string) => Promise<PartnerWorkspaceIdentity | null>;
+  getWorkspaceIdentity: (workspaceId: string, authUserId: string) => Promise<PartnerWorkspaceIdentity | null>;
 }>;
 
 export type PartnerDashboardIdentityResult =
@@ -61,26 +72,30 @@ export type PartnerGuidedOnboardingResult =
     }>
   | Readonly<{ status: "forbidden" }>;
 
-function isCanonicalIdentity(
+function isWorkspaceIdentity(
   membership: PartnerMembershipAccess,
   identity: PartnerWorkspaceIdentity | null,
 ): identity is PartnerWorkspaceIdentity {
   return identity !== null
     && identity.workspaceId === membership.workspaceId
-    && identity.shopId === membership.shopId
     && identity.shopSlug === membership.shopSlug
     && identity.shopName.trim().length > 0
     && identity.canonicalUrl === `https://mens-esthe-kuchikomi.com/shops/${identity.shopSlug}/`
-    && (identity.state === "free_official_partner" || identity.state === "active_partner");
+    && (identity.state === "free_official_partner" || identity.state === "active_partner")
+    && identity.identityKind === membership.identityKind
+    && (identity.identityKind === "canonical" && membership.identityKind === "canonical"
+      ? identity.appShopId === membership.appShopId
+      : identity.identityKind === "legacy" && membership.identityKind === "legacy" && identity.wpShopId === membership.wpShopId);
 }
 
 export async function resolvePartnerDashboardIdentity(
   membership: PartnerMembershipAccess,
+  authUserId: string,
   dependencies: PartnerDashboardIdentityDependencies,
 ): Promise<PartnerDashboardIdentityResult> {
   try {
-    const identity = await dependencies.getWorkspaceIdentity(membership.workspaceId);
-    return isCanonicalIdentity(membership, identity)
+    const identity = await dependencies.getWorkspaceIdentity(membership.workspaceId, authUserId);
+    return isWorkspaceIdentity(membership, identity)
       ? { status: "allowed", identity }
       : { status: "forbidden" };
   } catch {
@@ -104,7 +119,7 @@ function collectionAsset(
  * accepts no workspace or shop identifier from a route or browser.
  */
 export function resolvePartnerActionFirstHome(
-  identity: PartnerWorkspaceIdentity,
+  identity: CanonicalPartnerWorkspaceIdentity,
   growthKit: PartnerReviewGrowthKit,
 ): PartnerActionFirstHome {
   const performance = growthKit.reviewMetrics.status === "available"
@@ -165,7 +180,7 @@ export function resolvePartnerActionFirstHome(
 
 /** A pure checklist from the existing Partner identity and Growth Kit only. */
 export function resolvePartnerGuidedOnboarding(
-  identity: PartnerWorkspaceIdentity,
+  identity: CanonicalPartnerWorkspaceIdentity,
   growthKit: PartnerReviewGrowthKit,
 ): PartnerGuidedOnboardingResult {
   if (identity.state !== "free_official_partner" && identity.state !== "active_partner") return { status: "forbidden" };
