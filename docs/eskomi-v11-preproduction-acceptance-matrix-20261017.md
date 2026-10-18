@@ -162,6 +162,26 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T55 | WP-free lifecycle、area switch、provision、registration review、legacy one-to-one mapping fixture | 実行済 PASS | 写真/投稿を含む Chromium 完走、production legacy差分確認 |
 | T56 | managed CRUD/direct edit/revision/restore fixtures | 実行済 PASS | production 非変更確認と画面通過 |
 
+## 2026-10-18 continuation — retained browser fixture evidence and remaining release boundaries
+
+Temporary-profile Chrome 155 fixture QA now covers the Partner login/resend
+state flow, listing input/confirmation/back/save, login-email management,
+therapist invalid/oversized-image errors, growth/POP/QR, and an explicit
+canonical dashboard approval UI at 390px and 1280px (growth additionally at
+320px and 768px). The canonical dashboard action uses the normal
+`/api/dashboard/managed-shops/` `review` operation; its browser fixture proves
+the canonical review RPC request shape. The isolated internal Partner HTTP
+fixture remains the distinct evidence for the actual disposable database
+approval and public projection.
+
+The retained local screenshots and exact mock boundaries are documented in
+`docs/technical/artifacts/2026-10-18-partner-browser-qa-continuation.md`.
+They are not production evidence and are not Git-uploaded binary artifacts.
+The open release boundaries are device-camera QR, real email-change delivery,
+preview/production browser traversal, production non-change, WordPress public
+data checks, and every deployment or production database action. No PASS in
+this update authorizes production release.
+
 ## B01--B10 の公開条件
 
 すべての banner は `headless/lib/eskomi-banner-v2.ts` にコピーと destination を記録し、

@@ -359,3 +359,27 @@ The temporary-profile browser scope does not yet include an interactive
 therapist-photo error UI, an interactive login-email management UI, a real
 device-camera QR scan, preview/production pages, or a live external email
 delivery check. Image error handling is proven by real internal HTTP only.
+
+## 2026-10-18 continuation — retained evidence and browser UI completion
+
+The previously missing browser fixtures for login-email management and
+therapist-photo errors now pass. The latter sends a bad text file and a
+5MB+1-byte file through the real Next photo route from the file input; both
+return the expected visible 400 error. The partner session fixture uses `/`,
+matching the real complete-link cookie scope so that same-origin
+`/api/partner/*` requests receive it.
+
+The canonical dashboard had a server review route but no explicit submitted
+Partner approval action in its current UI. A minimal `承認して公開` / `差し戻し`
+control now calls that normal route. A browser fixture verifies the approval
+button produces the canonical review RPC request; the separate fresh internal
+HTTP fixture remains the actual disposable PostgreSQL evidence.
+
+All replacement screenshots are retained locally under
+`headless/docs/technical/artifacts/v11-fixture-qa/2026-10-18-continuation/`.
+An earlier cleanup removed only this task's `/tmp/eskomi-v11-browser-qa.Lhoate`
+temporary Chrome output, before the preservation instruction; it did not alter
+the existing untracked `banner-library/` or prior fixture QA artifacts. The
+new images are not staged or uploaded. See
+`2026-10-18-partner-browser-qa-continuation.md` for the exact scopes and
+remaining production boundaries.
