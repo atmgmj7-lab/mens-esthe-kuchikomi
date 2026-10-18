@@ -8,6 +8,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "workers:build": "WP_API_BASE_URL=http://127.0.0.1:9/wp-json NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid opennextjs-cloudflare build",
+    "workers:preview": "WP_API_BASE_URL=http://127.0.0.1:9/wp-json NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "lint": "eslint",
     "seo:cutover-check": "node scripts/seo-cutover-check.mjs",
     "seo:url-parity": "node scripts/url-parity-check.mjs",
@@ -15,6 +17,7 @@
     "perf:check": "node scripts/performance-check.mjs",
     "typecheck": "tsc --noEmit",
     "test:supabase-server-secret": "node scripts/check-supabase-server-secret.mjs",
+    "test:cloudflare-workers-contract": "node scripts/check-cloudflare-workers-contract.mjs",
     "test:eskomi-v11-first-pilot-gate": "node scripts/check-eskomi-v11-first-pilot-gate.mjs",
     "test:eskomi-v11-synthetic-baseline-rehearsal": "node scripts/check-eskomi-v11-synthetic-baseline-rehearsal.mjs",
     "test:area-integrity": "node scripts/check-area-content-integrity.mjs",
@@ -202,6 +205,7 @@
   "dependencies": {
     "@fontsource-variable/playfair-display": "5.3.0",
     "@fontsource/shippori-mincho": "5.3.0",
+    "@opennextjs/cloudflare": "1.20.9",
     "next": "16.3.8",
     "nodemailer": "10.0.16",
     "qrcode": "1.5.4",
@@ -219,7 +223,8 @@
     "eslint-config-next": "16.3.3",
     "jsqr": "^1.4.0",
     "server-only": "^0.0.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "4.151.1"
   },
   "overrides": {
     "sharp": "0.35.5",

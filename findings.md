@@ -1,5 +1,55 @@
 # Findings & Decisions
 
+## 2026-10-18 — Cloudflare Workers preparation research
+
+- Dedicated branch: `codex/cloudflare-workers-prep-20261018`, starting from
+  the preserved P2 commit `70aab14411f290f5367b8d4aaec7f13b6b43813f`; existing
+  untracked banner/QA artifacts remain untouched.
+- Current Cloudflare Workers guidance recommends vinext for new full-stack
+  Next deployments and says its initializer can coexist with an existing Next
+  setup. Its OpenNext guide instead describes OpenNext as the maintenance path
+  for an existing OpenNext deployment. Neither source is authorization to
+  rewrite this app or connect an account.
+- Initial decision: compare adapter compatibility against this application's
+  actual Next 16, cache-components, Node mail, image, and route behavior
+  before choosing an implementation. No Cloudflare/Wrangler command has run.
+- The app depends on `cacheComponents`, `"use cache"`, `cacheLife`, `cacheTag`,
+  `revalidateTag`/`revalidatePath`, remote `next/image`, a Node `https`
+  WordPress origin request with explicit TLS server name, and Nodemailer SMTP.
+  GitHub Actions currently owns the daily scheduled updater; the app has no
+  Workers scheduled handler.
+- Cloudflare documents OpenNext support for ISR, PPR, composable caching, and
+  image optimization. Its Node compatibility documents HTTP/HTTPS support but
+  only partial TLS support, so the fixed-TLS WordPress path requires a runtime
+  proof rather than a documentation-only conclusion. Workers block outbound TCP
+  port 25. Cloudflare Email Sending is a paid-plan path and requires a separate
+  decision/credentials; it is not being adopted here. Existing SMTP must be
+  tested only against the actual configured submission port and service later.
+- Workers Cron Triggers would require a Worker `scheduled()` handler and are
+  UTC. They are not a like-for-like automatic migration of the current GitHub
+  Actions schedule, so the current schedule remains in place pending a separate
+  approved job-ownership decision. Cloudflare Images has a free 5,000 unique
+  transformation monthly allowance and paid usage beyond it; no Images product
+  or image-storage configuration is authorized in this preparation.
+- Local OpenNext runtime proof used only a dummy loopback WordPress origin and
+  dry-run email flag. It confirms static asset serving plus fail-closed/no-store
+  dashboard and partner-auth behavior when configuration is absent; it does
+  not prove authenticated middleware, Supabase magic links, WordPress-backed
+  dynamic pages, submissions, image objects, SMTP, or cache invalidation.
+- The existing `proxy.ts` produces OpenNext's experimental Node-middleware
+  warning. Treat it as a release gate until it passes in the account's isolated
+  preview runtime without relaxing routing or authentication rules.
+- The default OpenNext cache configuration uses dummy backends. It avoids an
+  unapproved KV/R2/DO/cache binding but leaves durable distributed tag/path
+  revalidation unproved. Cache backend, cost, and no-store parity need a
+  separate approved decision before traffic migration.
+- `@opennextjs/cloudflare` is pinned to 1.20.9, not the newest 1.20.12 or the
+  initially compatible 1.20.11. 1.20.12 does not accept Next 16.3.8; 1.20.11
+  produced four production high npm audit findings through its OpenNext AWS /
+  node-minify / `glob` path. The 1.20.9 fix path accepts Next 16.3.8 and
+  `npm audit --omit=dev --json` reports zero production findings. Do not use a
+  forced peer resolution or an unreviewed adapter upgrade.
+
 ## 2026-10-18 — P2 mapping and synthetic-guard correction
 
 - `ready` means the managed projection is already bound; the operator packet

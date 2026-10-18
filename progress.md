@@ -1,5 +1,71 @@
 # Progress Log
 
+## 2026-10-18 — Cloudflare Workers offline preparation started
+
+- Preserved the P2 baseline and untracked artifacts, then created
+  `codex/cloudflare-workers-prep-20261018`.
+- Read root/headless instructions and the current official Workers framework
+  guidance. Account connection, deployment, credential creation, DNS, main,
+  and production data changes remain prohibited and have not occurred.
+- Next: inspect only local runtime and behavior dependencies, then select the
+  minimum independently verifiable path.
+
+### Runtime inventory update
+
+- Confirmed cache-components/tag invalidation, remote Next Image, Node HTTPS
+  WordPress origin path, Nodemailer SMTP, and GitHub Actions-owned daily cron.
+- Current official compatibility/docs research is recorded in `findings.md`.
+  Next action is the official read-only vinext compatibility check; it will not
+  connect a Cloudflare account or create a deployment.
+
+### Adapter resolution update
+
+- `npx vinext check` (v1.2.1) exited zero without output or repository changes.
+- The first OpenNext installation attempt stopped safely: version 1.20.12
+  requires Next `<16` or `>=16.4.1`, while this approved app is Next 16.3.8.
+  No forced peer resolution or Next upgrade was attempted. The next step is a
+  registry-only search for an adapter release that explicitly supports 16.3.8.
+
+### Offline build update
+
+- Installed the Next-16.3.8-compatible, audited `@opennextjs/cloudflare`
+  1.20.9 and peer-compatible Wrangler 4.151.1 from npm. The initial 1.20.11
+  candidate produced four production high findings through `glob`; 1.20.9 is
+  the npm audit fix path and `npm audit --omit=dev --json` is now 0 findings.
+  The normal build and OpenNext Worker build pass. OpenNext emits an
+  experimental Node middleware warning.
+- The first local preview could not bind sandbox loopback (`listen EPERM
+  127.0.0.1`); no application change is needed. Request local-loopback-only
+  sandbox execution before attempting route-level Workers QA.
+
+### Local runtime update
+
+- Corrected preview uses an ignored `.dev.vars` with only a dummy loopback WP
+  origin and `CONTACT_FORM_DRY_RUN=true`; it does not read the normal public
+  origin. The local Worker served `robots.txt` (200), preserved dashboard
+  fail-closed headers (503/no-store/noindex), ran contact in dry-run mode
+  (200), and kept the partner login API fail-closed without Supabase (503/
+  no-store/noindex). The Worker process was stopped after QA.
+- `/contact/` timed out against the deliberate unreachable WP fixture, so
+  dynamic public rendering is not proved. OpenNext also warned that the
+  existing Node middleware is experimental. No login, editing, review, image,
+  mail delivery, cache-revalidation, or production-host proof is claimed.
+- Next: complete dependency audit and final local checks, commit/push this
+  dedicated preparation branch only, then wait for the user-created separate
+  Cloudflare account and a later isolated preview/staging design.
+
+### Final offline verification update
+
+- `test:cloudflare-workers-contract`, lint, typecheck, isolated normal build,
+  isolated OpenNext build, and production-only npm audit all pass. The initial
+  lint failure was generated adapter output outside the former ESLint ignores;
+  `.open-next/**` and `.wrangler/**` are now explicitly ignored and that
+  requirement is part of the Workers contract.
+- Existing `test:wp-origin-tls` is deliberately not a Workers result: its
+  positive preflight reaches the live WordPress TLS endpoint. It fails in the
+  offline sandbox and was not retried against production. This is a retained
+  proof gap, not an application regression or a pass.
+
 ## 2026-10-18 — P2 correction complete; awaiting hosting/cutover direction
 
 - Updated first-pilot mapping sequencing and the synthetic evidence boundary.

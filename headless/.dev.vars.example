@@ -1,0 +1,5 @@
+# Local Workers fixture only. These values are intentionally non-secret and
+# unreachable; copy to .dev.vars for offline OpenNext/Wrangler preview.
+CONTACT_FORM_DRY_RUN=true
+WP_API_BASE_URL=http://127.0.0.1:9/wp-json
+NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid

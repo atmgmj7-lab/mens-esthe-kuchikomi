@@ -1,5 +1,48 @@
 # Task Plan: SEOを守るSupabase段階移行
 
+## 2026-10-18 — Cloudflare Workers migration preparation
+
+### Goal
+
+Preserve the approved Next.js/Supabase behavior, canonical URLs, SEO, access
+boundaries, and private-data no-cache policy while preparing a separately
+operated Cloudflare Workers deployment without connecting an account, deploying,
+changing DNS, issuing credentials, or touching production.
+
+### Phases
+
+- [x] Preserve `70aab14` and untracked artifacts; create a dedicated Workers
+  preparation branch without using existing Wrangler credentials.
+- [x] Read project/Next instructions, operation blockers, and current official
+  Cloudflare guidance.
+- [x] Inventory runtime, cache, image, mail, and scheduled-work dependencies;
+  choose the smallest verifiable adapter path.
+- [x] Add only offline-safe configuration/contracts and a migration artifact;
+  do not add account-specific values or deploy commands to normal workflows.
+- [x] Run local build and Workers-runtime checks with isolated fixtures; record
+  exact proof boundaries and blockers.
+- [ ] Commit/push only the dedicated branch; stop for Cloudflare account setup
+  and explicit production cutover authorization.
+
+### Hard boundaries
+
+- No Cloudflare login, Wrangler account reuse, deployment, DNS, credential,
+  paid-plan, production database/Auth, or `main` change.
+- Preserve unknown/untracked `banner-library/` and fixture QA artifacts.
+- Do not replace the existing Next application with vinext without a verified
+  compatibility result and explicit design approval.
+
+### Errors encountered
+
+| Error | Attempt | Resolution |
+| --- | --- | --- |
+| `@opennextjs/cloudflare@1.20.12` peer dependency excludes `next@16.3.8` (`>=16.4.1` required for Next 16) | 1 | Do not use `--force`/`--legacy-peer-deps`; inspect trusted-registry versions for a supported adapter before changing Next. |
+| Initial compatible OpenNext 1.20.11 caused 4 High production audit findings through `glob` | 1 | Use the audit fix path 1.20.9, which accepts Next 16.3.8; `npm audit --omit=dev --json` then reports 0 findings. |
+| Local OpenNext preview could not bind sandbox loopback (`listen EPERM 127.0.0.1`) | 1 | Retry only with the required local-loopback sandbox approval; do not change host/network configuration or connect Cloudflare. |
+| Dynamic `/contact/` could not respond through the intentionally unreachable WordPress fixture within 10 seconds | 1 | Record as an isolation limitation, not a pass. Use a Workers-visible non-production fixture for staged dynamic-route parity. |
+| ESLint included generated `.open-next`/`.wrangler` files after a Workers build | 1 | Root cause was missing ignores, not application lint. Explicitly ignore only generated outputs and regression-test those ignores. |
+| Existing WordPress TLS contract positive preflight needs the live origin and failed in isolation | 1 | Do not retry against production in this task; record the test as outside the offline proof boundary. |
+
 ## 2026-10-18 — v1.1 pre-production QA P2 correction
 
 - [x] Correct the first-pilot mapping packet so unbound → bind → re-read ready
