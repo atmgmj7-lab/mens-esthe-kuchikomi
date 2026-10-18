@@ -28,7 +28,8 @@ the user Mac Google Chrome and not the real database/Auth/Storage/email stack.
 
 | Check | Result | Boundary |
 | --- | --- | --- |
-| Review input, confirmation, send, native rejection/error, PC/SP layout | PASS | `check-partner-review-growth-browser.mjs` fixture |
+| v1.1 entry route: input → confirm → back, person switch → shop-only, committed-response loss → same receipt replay, target-change rejection, PC/SP layout | PASS | `npm run qa:eskomi-review-entry-v11` fixture; actual `/r/[token] → /reviews/entry/[entryHandle]` components and v1.1 API routes |
+| Legacy Partner review-growth flow | PASS — legacy only | `check-partner-review-growth-browser.mjs` fixture, which targets `/reviews/submit/`; it is not v1.1 entry-route evidence |
 | Partner review link, QR image, POP/print, canonical widget snippet, ready/unavailable partner states | PASS | `check-partner-review-growth-kit-browser.mjs` fixture |
 | Listing editor confirmation → back → changed input → confirmation → draft save; public value unchanged | PASS | `check-partner-listing-editor-browser.mjs` fixture |
 | Review-widget public/empty/count-only security contract | PASS | `check-partner-review-widget.mjs` contract |

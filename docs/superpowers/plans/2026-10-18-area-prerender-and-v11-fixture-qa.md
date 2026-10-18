@@ -25,8 +25,11 @@ that can run without a production database or browser session.
    contracts.
 3. [x] Run a full static build (917 generated pages), typecheck, lint, and
    focused area contracts.
-4. [x] Run isolated Playwright fixtures for review flow, Partner growth/POP,
-   widget snippet, and listing confirmation/back/draft behavior on PC and SP.
+4. [x] Run an isolated Playwright fixture against the v1.1 entry components
+   (including same-receipt replay and target-change error), plus the legacy
+   Partner growth/POP, widget snippet, and listing confirmation/back/draft
+   fixtures on PC and SP. The legacy review-growth fixture is retained as
+   legacy-flow evidence only; it does not evidence v1.1.
 5. [x] Record the exact environment boundary and remaining real-service and
    Mac-Chrome checks in the evidence note.
 

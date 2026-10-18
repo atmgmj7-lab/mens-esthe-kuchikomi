@@ -109,11 +109,11 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T02 | canonical provision、通常登録→審査一覧→承認、session、growth/widget、公開 projection | 実行済 PASS | 実HTTP/Chromium は未試験 |
 | T03 | therapist selection と公開 snapshot | 実行済 PASS | 実写真/同名データはユーザー前提待ち |
 | T04 | ownership/expiry/membership RPC reject | 実行済 PASS | 実 Auth 失効イベントは未試験 |
-| T05 | review entry v2 acceptance | 実行済 PASS / 隔離 HTTP context 200 | Next→PostgREST の context 実HTTPは確認済み。実入力・送信 Chromium はCDP/proxy環境制約で未試験。 |
-| T06 | draft/confirmation contract | 実行済 PASS | 長文ブラウザ操作・送信/replay Chromium はCDP/proxy環境制約で未試験。 |
-| T07 | idempotency/race SQL | 実行済 PASS | 実ネットワーク中断は未試験 |
+| T05 | review entry v2 acceptance、実コンポーネント `/r/[token] → /reviews/entry/[entryHandle]` fixture | 実行済 PASS / 隔離 HTTP context 200 / headless fixture PASS | mock RPC の実画面入力・送信は確認済み。実 DB/Auth/Storage/email と Mac Google Chrome は未試験。 |
+| T06 | draft/confirmation contract、実画面の入力→確認→戻ると人物変更→店舗のみ | 実行済 PASS | v1.1 fixture で入力保持を確認。実 DB/Auth/Storage/email と Mac Google Chrome は未試験。 |
+| T07 | idempotency/race SQL、commit後応答喪失から同一受付票を返す v1.1 route fixture | 実行済 PASS | 競合の原子性は隔離 SQL、応答喪失 replay は mock RPC を通す実 route fixture。実ネットワーク中断/実 DB は未試験。 |
 | T08 | invite/permanent-link SQL | 実行済 PASS | 実 QR scan は未試験 |
-| T09 | replay/recovery contract | 実行済 PASS | browser abort は未試験 |
+| T09 | replay/recovery contract、commit後応答喪失の v1.1 route fixture | 実行済 PASS | mock RPC を通す同一受付票 replay は headless fixture で確認。実 browser abort/実 DB は未試験。 |
 | T10 | revision expected-version RPC | 実行済 PASS | 運営画面実操作は未試験 |
 | T11 | withdrawal/public projection | 実行済 PASS | HTTP/JSON-LD 観測は未試験 |
 | T12 | redemption race fixture | 実行済 PASS | 実担当者並列は未試験 |
@@ -124,8 +124,8 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T17 | aggregate/source isolation | 実行済 PASS | production backfill はユーザー前提待ち |
 | T18 | canonical/legacy/manager role matrix | 実行済 PASS | 実 Auth revoke は未試験 |
 | T19 | explicit legacy mapping candidate/bind/map fixture | 実行済 PASS | production mapping dry-run はユーザー前提待ち |
-| T20 | failure contracts | 実行済 PASS | 実 service outage は未試験 |
-| T21 | responsive UI source/static contracts | 未試験 | 320--1440px Chromium・a11y が必要 |
+| T20 | failure contracts、v1.1 `TARGET_CHANGED` を入力へ戻す実 route fixture | 実行済 PASS | mock RPC の target-change で表示を確認。実 service outage は未試験。 |
+| T21 | responsive UI source/static contracts、v1.1 entry の 390/1280px overflow check | 一部 fixture PASS | 320--1440px、a11y、Mac Google Chrome が必要。 |
 | T22 | canonical readers/SEO implementation、UUID人物プロフィール/写真proxy/店舗詳細リンク/sitemap | 未試験 | preview HTTP canonical/404/robots/sitemap/ProfilePage JSON-LD |
 | T23 | CRUD/stop/restore/listing/POP/widget fixtures | 実行済 PASS | 実 dashboard 操作は未試験 |
 | T24 | deny/tombstone rollback design + SQL controls | 実行済 PASS | flag rollback preview は未試験 |
@@ -158,15 +158,14 @@ bind、(3) 同じ三IDを `api.map_legacy_partner_workspace_to_canonical_v11(wor
 | T51 | reaction expiry/concurrency | 実行済 PASS | UI/HTTP は未試験 |
 | T52 | read-only candidate mechanism | ユーザー前提待ち | 権利・正規ID・実画像の確認 |
 | T53 | R1--R4 ranking | 実行済 PASS | hub・通常地域とも全候補をページング前に、地域関係→料金/営業時間/アクセス/公式連絡・予約の180日以内確認数→各店の最古有効確認日が新しい順→正規化店名→正規app_shop_id UUID（旧データは安定WP ID）で安定比較。公式サイト/LINE等のOR候補は各々を先に有効期限判定し、古い予約証跡が新しい公式確認を隠さない。PRは別枠。2ページ超の逆順fixture、料金のみ/予約先のみ、同名UUID同点を静的契約で確認。 |
-| T54 | B01--B10 config/slot safety | 実行済 PASS | Library 素材・各提供条件/実在先の承認 |
+| T54 | B01--B10 config/slot safety、承認済み10画像を `/public/images/eskomi-banners/` から実表示 | 実行済 PASS | Mac Google Chrome での PC/SP preview、各導線・提供条件の最終確認。Library への追加アップロードはこのマトリクスの根拠にしない。 |
 | T55 | WP-free lifecycle、area switch、provision、registration review、legacy one-to-one mapping fixture | 実行済 PASS | 写真/投稿を含む Chromium 完走、production legacy差分確認 |
 | T56 | managed CRUD/direct edit/revision/restore fixtures | 実行済 PASS | production 非変更確認と画面通過 |
 
 ## B01--B10 の公開条件
 
 すべての banner は `headless/lib/eskomi-banner-v2.ts` にコピーと destination を記録し、
-`EskomiBannerV2Slot` は `assetStatus === "ready"`、ローカル承認済み `imageSrc`、実在する `href` の
-三つが揃うまで `null` を返す。現在は Library 素材のネットワーク許可待ちであり、画像を取得・生成・
-公開していない。B03/B05/B06/B07/B10 は提供条件又は実在リンクが未確認のため、素材到着だけで公開しては
-ならない。B01/B02/B04/B08/B09 の配置・CTA は承認設計に記録済みだが、実素材/previewで PC-SP・頻度・
-リンク先を確認するまで非表示を維持する。入力画面には営業 banner を置かない。
+`EskomiBannerV2Slot` は `assetStatus === "ready"`、承認済み `imageSrc`、実在する `href` の
+三つが揃うまで `null` を返す。承認済み10画像はすでにリポジトリへ導入済みで、B01--B09 の導線と
+B10 の `/advertise/` 相談フォームは実装済みである。残るのは本番反映ではなく、隔離 preview/Mac Google
+Chrome による PC/SP・頻度・リンク先の最終確認である。入力画面には営業 banner を置かない。
