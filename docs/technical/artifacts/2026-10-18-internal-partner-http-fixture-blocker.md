@@ -140,6 +140,52 @@ cannot be claimed in this cloud workspace until a platform-provided,
 certificate-valid dependency source is available. These remain blocked rather
 than converted to static-only PASS results.
 
+## 2026-10-18 cloud continuation — host dependency path and remaining platform blocks
+
+The cloud workspace's ordinary npm path was then tested with the repository
+lockfile and normal TLS verification intact. `npm ci` completed successfully
+(`381` packages); no lifecycle script was configured. Host Node was `v24.19.0`
+and the pinned Node 24 fixture image was `v24.22.0`; both report ABI `137`.
+The installed, lockfile-resolved Linux dependency tree was copied to one
+fixture-owned volume after excluding `.env*`, `.npmrc`, and `.next`, then used
+with the runner's explicit prepared-volume opt-in.
+
+That real fixture advanced past the former `npm ci` boundary and completed
+fresh PostgreSQL initialization. It then stopped before application startup
+because Docker was denied the pinned official Mailpit pull:
+
+```text
+Get "https://public.ecr.aws/v2/": Forbidden
+```
+
+No alternate registry, image, network route, or authentication setting was
+used. The runner and outer prepared-volume cleanup were checked afterward; no
+fixture container, network, or volume remained.
+
+With the safe host dependency tree available, the following passed:
+
+```text
+npm run typecheck                              PASS
+npm run lint                                   PASS
+npm run build                                  PASS (WordPress reads used existing safe fallbacks)
+npm run test:partner-auth-membership           PASS
+npm run test:partner-listing-editor            PASS
+npm run test:partner-listing-editor-ui         PASS
+npm run test:partner-review-growth-kit         PASS
+npm run test:partner-review-growth-center      PASS
+npm run test:partner-access-report             PASS
+npm run test:partner-review-widget             PASS
+```
+
+The broad `npm test` command began normally but its first legacy PHP check
+could not run because this cloud image has no `php` executable; this is a
+platform prerequisite, not a test pass. The standard Playwright browser QA
+also cannot be started: the browser binary is absent and the official
+`npx playwright install chromium` download returns `403 Domain forbidden`.
+The partial temporary browser directory was removed. Thus the acceptance
+matrix still has no new real Chromium, QR decode, widget HTTP, or complete
+GoTrue/Mailpit/Storage pass; those entries remain explicitly blocked.
+
 Resume from `headless/` after the focused test-first change with:
 
 ```bash
