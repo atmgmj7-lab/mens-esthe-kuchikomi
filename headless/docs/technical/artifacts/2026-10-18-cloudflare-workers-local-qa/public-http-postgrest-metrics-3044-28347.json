@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-10-18T13:00:31.127Z",
+  "scope": "PostgREST HTTP calls only; this is not a SQL query count. Paths omit query strings and no request headers, bodies, credentials, or response data are recorded.",
+  "measurements": [
+    {
+      "path": "/",
+      "mode": "first",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        229.837
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 1,
+          "totalMs": 52.877,
+          "minMs": 52.877,
+          "maxMs": 52.877
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 1,
+          "totalMs": 45.88,
+          "minMs": 45.88,
+          "maxMs": 45.88
+        }
+      ]
+    },
+    {
+      "path": "/",
+      "mode": "repeat",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        5661.013
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 1,
+          "totalMs": 103.477,
+          "minMs": 103.477,
+          "maxMs": 103.477
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 1,
+          "totalMs": 99.268,
+          "minMs": 99.268,
+          "maxMs": 99.268
+        }
+      ]
+    },
+    {
+      "path": "/",
+      "mode": "parallel-3",
+      "pageRequests": 3,
+      "pageLatencyMs": [
+        122.259,
+        143.349,
+        133.794
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 3,
+          "totalMs": 55.872,
+          "minMs": 5.687,
+          "maxMs": 39.407
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 3,
+          "totalMs": 54.988,
+          "minMs": 6.74,
+          "maxMs": 38.462
+        }
+      ]
+    },
+    {
+      "path": "/area/fixture-area/",
+      "mode": "first",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        92.751
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 4,
+          "totalMs": 35.047,
+          "minMs": 5.386,
+          "maxMs": 12.199
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 4,
+          "totalMs": 36.027,
+          "minMs": 7.011,
+          "maxMs": 11.438
+        }
+      ]
+    },
+    {
+      "path": "/area/fixture-area/",
+      "mode": "repeat",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        70.038
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 4,
+          "totalMs": 26.978,
+          "minMs": 4.524,
+          "maxMs": 8.705
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 4,
+          "totalMs": 26.537,
+          "minMs": 4.313,
+          "maxMs": 8.977
+        }
+      ]
+    },
+    {
+      "path": "/area/fixture-area/",
+      "mode": "parallel-3",
+      "pageRequests": 3,
+      "pageLatencyMs": [
+        107.194,
+        115.414,
+        106.722
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 12,
+          "totalMs": 79.895,
+          "minMs": 3.229,
+          "maxMs": 11.974
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 12,
+          "totalMs": 74.483,
+          "minMs": 3.076,
+          "maxMs": 10.052
+        }
+      ]
+    },
+    {
+      "path": "/shops/fixture-partner-store/",
+      "mode": "first",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        49.671
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/get_public_listing_store_by_slug",
+          "count": 2,
+          "totalMs": 12.429,
+          "minMs": 5.042,
+          "maxMs": 7.387
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_public_therapists_for_shop_v11",
+          "count": 1,
+          "totalMs": 4.845,
+          "minMs": 4.845,
+          "maxMs": 4.845
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 6,
+          "totalMs": 22.981,
+          "minMs": 2.339,
+          "maxMs": 4.92
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 4,
+          "totalMs": 16.322,
+          "minMs": 3.751,
+          "maxMs": 4.921
+        }
+      ]
+    },
+    {
+      "path": "/shops/fixture-partner-store/",
+      "mode": "repeat",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        50.679
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/get_public_listing_store_by_slug",
+          "count": 2,
+          "totalMs": 10.482,
+          "minMs": 4.74,
+          "maxMs": 5.742
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_public_therapists_for_shop_v11",
+          "count": 1,
+          "totalMs": 4.315,
+          "minMs": 4.315,
+          "maxMs": 4.315
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 6,
+          "totalMs": 26.366,
+          "minMs": 2.521,
+          "maxMs": 6.513
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 4,
+          "totalMs": 17.47,
+          "minMs": 2.741,
+          "maxMs": 6.018
+        }
+      ]
+    },
+    {
+      "path": "/shops/fixture-partner-store/",
+      "mode": "parallel-3",
+      "pageRequests": 3,
+      "pageLatencyMs": [
+        186.103,
+        92.146,
+        214.298
+      ],
+      "postgrest": [
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/get_public_listing_store_by_slug",
+          "count": 6,
+          "totalMs": 90.909,
+          "minMs": 4.516,
+          "maxMs": 38.324
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_public_therapists_for_shop_v11",
+          "count": 3,
+          "totalMs": 23.276,
+          "minMs": 3.946,
+          "maxMs": 14.213
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_published_managed_shops",
+          "count": 18,
+          "totalMs": 174.206,
+          "minMs": 2.603,
+          "maxMs": 38.167
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/list_unlisted_managed_shop_legacy_identities",
+          "count": 12,
+          "totalMs": 140.889,
+          "minMs": 2.909,
+          "maxMs": 37.826
+        }
+      ]
+    },
+    {
+      "path": "/reviews/",
+      "mode": "first",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        55.615
+      ],
+      "postgrest": []
+    },
+    {
+      "path": "/reviews/",
+      "mode": "repeat",
+      "pageRequests": 1,
+      "pageLatencyMs": [
+        41.871
+      ],
+      "postgrest": []
+    },
+    {
+      "path": "/reviews/",
+      "mode": "parallel-3",
+      "pageRequests": 3,
+      "pageLatencyMs": [
+        99.674,
+        113.204,
+        113.079
+      ],
+      "postgrest": []
+    }
+  ]
+}

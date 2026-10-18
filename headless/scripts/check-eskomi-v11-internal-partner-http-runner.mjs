@@ -64,6 +64,7 @@ assert.match(script, /docker rm -f/, "created-only cleanup must remove fixture c
 assert.doesNotMatch(script, /docker run -d --rm --name "\$next_container"/, "the application container must remain inspectable until created-only cleanup if Workers startup fails");
 assert.match(script, /docker network rm/, "created-only cleanup must remove fixture network");
 assert.match(script, /ESKOMI_E2E_PREPARED_RUNTIME_VOLUME/, "a prebuilt disposable runtime volume must still be explicitly marked and cleaned by the runner");
+assert.match(script, /prepared runtime volume lacks its Worker artifact or QA scripts/, "Workers may reuse only an explicitly marked prepared volume containing the Worker artifact and QA scripts");
 assert.match(script, /runtime_volume_owned=0/, "the runner must track ownership of a runtime volume separately from its availability");
 assert.match(script, /ESKOMI_E2E_PRESERVE_FIXTURE/, "the runner must offer an explicit evidence-preservation mode before deleting fixture resources");
 assert.match(script, /Starting local server/, "the Worker fixture readiness check must accept Wrangler's local-server startup message");

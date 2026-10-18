@@ -63,7 +63,12 @@ anon_key="$(make_jwt anon)"; service_key="$(make_jwt service_role)"
 
 if docker volume inspect "$runtime_volume" >/dev/null 2>&1; then
   if [ "${ESKOMI_E2E_PREPARED_RUNTIME_VOLUME:-}" != "1" ]; then echo "Refusing existing fixture volume" >&2; exit 1; fi
-  if [ "$app_runtime" = "workers" ]; then echo "Workers fixture refuses a prepared runtime volume so it never overlays an existing artifact" >&2; exit 1; fi
+  if [ "$app_runtime" = "workers" ]; then
+    if ! docker run --rm --mount "type=volume,src=$runtime_volume,dst=/app,readonly" node:24-bookworm-slim sh -ceu 'test -f /app/.open-next/worker.js; test -f /app/scripts/measure-eskomi-v11-public-http.mjs; test -f /app/scripts/check-eskomi-v11-public-seo-http.mjs'; then
+      echo "Workers fixture prepared runtime volume lacks its Worker artifact or QA scripts" >&2
+      exit 1
+    fi
+  fi
 else
   docker volume create "$runtime_volume" >/dev/null; runtime_volume_owned=1
   docker run --rm --mount "type=bind,src=$headless_root,dst=/source,readonly" --mount "type=volume,src=$runtime_volume,dst=/app" node:24-bookworm-slim sh -ceu 'tar -C /source --exclude=node_modules --exclude=.next --exclude=.open-next --exclude=.eskomi-cloudflare-dynamic-builds --exclude=.env --exclude=.env.* --exclude=.npmrc -cf - . | tar -C /app -xf -; cd /app; npm ci --ignore-scripts' >/dev/null
@@ -147,7 +152,7 @@ next_created=1
 for _ in $(seq 1 90); do next_logs="$(docker logs "$next_container" 2>&1)"; grep -Eq 'Ready|started server|Starting local server' <<<"$next_logs" && break; sleep 1; done
 grep -Eq 'Ready|started server|Starting local server' <<<"$next_logs"
 
-docker run --rm -i --network "$network_name" -e ANON_KEY="$anon_key" -e PRIMARY_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$primary_user'")" -e OTHER_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$other_user'")" -e PRIMARY_MANAGED_SHOP_ID="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select id from private.managed_shops where shop_slug='fixture-partner-store'")" -e DASHBOARD_USER="$dashboard_user" -e DASHBOARD_PASSWORD="$dashboard_password" node:24-bookworm-slim node - <<'NODE'
+docker run --rm -i --network "$network_name" -e ESKOMI_E2E_DEFER_UNLIST=1 -e ANON_KEY="$anon_key" -e PRIMARY_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$primary_user'")" -e OTHER_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$other_user'")" -e PRIMARY_MANAGED_SHOP_ID="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select id from private.managed_shops where shop_slug='fixture-partner-store'")" -e DASHBOARD_USER="$dashboard_user" -e DASHBOARD_PASSWORD="$dashboard_password" node:24-bookworm-slim node - <<'NODE'
 const assert=require('node:assert/strict'); const base='http://next:57000',origin=base,loginOrigin='http://localhost:57000'; const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgZGIGAAAOAAeCcsnOAAAAAElFTkSuQmCC','base64');
 const jar={}; const add=(r)=>{for(const x of r.headers.getSetCookie?.()||[]){const m=/^([^=]+)=([^;]*)/.exec(x);if(m)jar[m[1]]=m[2]}}; const cookies=()=>Object.entries(jar).map(([k,v])=>`${k}=${v}`).join('; '); const req=async(path,init={},expect)=>{const r=await fetch(base+path,{...init,headers:{...init.headers,Cookie:cookies()}});add(r);const t=await r.text();let j;try{j=JSON.parse(t)}catch{}if(expect!==undefined)assert.equal(r.status,expect,`${path}: ${t}`);return {r,j,t}};
 const basic=`Basic ${Buffer.from(`${process.env.DASHBOARD_USER}:${process.env.DASHBOARD_PASSWORD}`).toString('base64')}`;
