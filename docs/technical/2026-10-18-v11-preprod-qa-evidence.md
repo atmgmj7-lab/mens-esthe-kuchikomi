@@ -60,3 +60,25 @@ Local fixture screenshots, where generated, remain under
   was unavailable in this session, so headless fixture results are not a
   substitute.
 - Production deploy, migration, main push, and any production write.
+
+## Disposable real-service HTTP fixture continuation
+
+The following is separate from the browser mocks above. It uses newly created
+PostgreSQL, GoTrue, Mailpit, Storage, PostgREST, gateway, and application
+containers on one Docker `--internal` network with no published host ports.
+It never contacts production services. The GoTrue email link is consumed from
+Mailpit through the disposable gateway and its identity/session result is
+checked without logging the link token.
+
+| Check | Node Next | Local OpenNext Worker | Evidence boundary |
+| --- | --- | --- | --- |
+| Request-link → Mailpit `/verify` → callback/session | PASS | PASS | Real GoTrue and Mailpit; the Worker result covers normal auth API routing, not a production redirect allow-list. |
+| Canonical listing edit → changes requested → correction → dashboard approval | PASS | PASS | Real Partner/dashboard HTTP routes, then a fixture-DB projection assertion. |
+| Published public shop page | PASS | BLOCKED | Node renders the corrected canonical public content. Workerd returns 500 from the Next 16.3.8 Cache Components scheduling boundary. |
+| Invalid/oversized photo rejection; real PNG → Storage → public JPEG/profile | PASS | BLOCKED | The Worker invalid-image request returns 500 because the shared inspector imports Node-native `sharp`; no Worker image workaround was introduced. |
+| Individual review-link issuance | PASS | Not reached after image blocker | Link issuance is not review submission/moderation proof. |
+| Confirmed login-email change and old-email rejection; foreign-store asset denial | PASS | Not reached after image blocker | Node result uses real GoTrue confirmation and real RLS/RPC boundaries. |
+
+The Worker run intentionally remains failing for these blockers. No missing
+feature is recorded as PASS and no account, cache binding, deployment, DNS,
+or production Auth/DB change is implied.

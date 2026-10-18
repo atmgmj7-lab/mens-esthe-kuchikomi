@@ -117,6 +117,7 @@
     "qa:eskomi-v11-docker-network": "bash scripts/run-eskomi-v11-docker-network-e2e.sh",
     "qa:eskomi-v11-internal-auth-storage": "bash scripts/run-eskomi-v11-internal-auth-storage-e2e.sh",
     "qa:eskomi-v11-internal-partner-http": "bash scripts/run-eskomi-v11-internal-partner-http-e2e.sh",
+    "qa:eskomi-v11-internal-partner-workers": "npm run workers:build && ESKOMI_E2E_APP_RUNTIME=workers bash scripts/run-eskomi-v11-internal-partner-http-e2e.sh",
     "test:eskomi-canonical-integrity-local": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_eskomi_canonical_integrity_fixes.sql",
     "test:eskomi-canonical-foundation-local": "docker exec -i supabase_db_mens-esthe-kuchikomi psql -v ON_ERROR_STOP=1 -U postgres -d postgres < ../supabase/tests/verify_eskomi_canonical_foundation.sql",
     "test:review-native-repository": "node scripts/check-review-native-repository.mjs",

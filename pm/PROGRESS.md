@@ -1,5 +1,11 @@
 # 進行ログ
 
+### 2026-10-18 Cloudflare Workers offline continuation — local evidence / release blocked
+
+- Next 16.3.8 と監査済み OpenNext 1.20.9（1.20.11も隔離 fixture で比較したがHigh 4件かつ改善なしのため不採用）で、host port・host network・Docker socket・Cloudflare account を使わない disposable `--internal` fixture を実行した。通常 Next は real GoTrue→Mailpit→session、canonical 修正・承認・公開、画像の不正/容量拒否と実 PNG→Storage→JPEG proxy、レビューリンク、メール変更後の旧メール拒否、他店舗asset拒否まで PASS。
+- Local workerd は GoTrue/Mailpit session と Partner/dashboard canonical API までは PASS したが、公開店舗ページは Next Cache Components の `setTimeout()`/workerd scheduling により 500、画像拒否は Node-native `sharp` import により 500（期待 400）。どちらも PASS とせず、Cloudflare Images/WASM などの外部サービス・費用・設計判断なしに置換しない。詳細、後続の R2+D1+DO cache 候補、PPR no-interception 条件は `docs/technical/artifacts/2026-10-18-cloudflare-workers-offline-migration-plan.md` に記録した。
+- main merge、deploy、DNS、Cloudflare login/account/secret、production DB/Auth、画像の追加アップロード、既存 Docker 資源の変更は未実施。Worker 移行はこの2つの互換性ブロッカー解消と、承認済み preview account での再検証まで release 不可。
+
 ### 2026-09-20 Partner review-growth Task 3 — local implementation complete, production NOT performed
 
 - Public `/r/{opaque-token}/` resolves only an active campaign through the existing server-only service/repository and returns no-store/noindex 404 or a 307 to the existing canonical `/reviews/submit/?shop={slug}&campaign={token}` form. The review page repeats server-side campaign/canonical-Shop ID+slug matching; a valid campaign/shop mismatch denies the form and cannot submit to WordPress. Invalid tokens retain the ordinary unattributed review path.

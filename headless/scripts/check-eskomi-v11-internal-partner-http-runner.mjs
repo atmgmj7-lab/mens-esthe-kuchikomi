@@ -3,8 +3,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const runnerPath = fileURLToPath(new URL("./run-eskomi-v11-internal-partner-http-e2e.sh", import.meta.url));
+const packagePath = fileURLToPath(new URL("../package.json", import.meta.url));
 assert.equal(existsSync(runnerPath), true, "the internal partner HTTP runner must exist");
 const script = readFileSync(runnerPath, "utf8");
+const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
 
 assert.match(script, /docker network create --internal/, "the partner fixture network must be internal-only");
 assert.doesNotMatch(script, /(?:^|\s)-p\s|--publish|--network\s+host|docker\.sock|chmod\s/, "the runner must not publish ports, use host networking, mount Docker socket, or change permissions");
@@ -27,6 +29,13 @@ assert.match(script, /Old login email must be rejected after the confirmed chang
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
 assert.match(script, /SHOP_DIRECTORY_SOURCE=supabase/, "the disposable Next process must opt into the canonical public directory only for the public-projection observation");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
+assert.match(script, /ESKOMI_E2E_APP_RUNTIME/, "the runner must select a Next or local Workers application runtime explicitly");
+assert.match(script, /wrangler dev --local --ip 0\.0\.0\.0 --port 57000/, "the Workers mode must expose only the internal fixture network port");
+assert.match(script, /Unsupported ESKOMI_E2E_APP_RUNTIME/, "the runner must fail closed for an unknown runtime selector");
+assert.equal(packageJson.scripts?.["qa:eskomi-v11-internal-partner-workers"], "npm run workers:build && ESKOMI_E2E_APP_RUNTIME=workers bash scripts/run-eskomi-v11-internal-partner-http-e2e.sh", "Workers fixture must prebuild on the host before joining the internal network");
+assert.match(script, /\.open-next\/worker\.js/, "Workers mode must require the host-prebuilt Worker artifact in the disposable runtime volume");
+assert.match(script, /ESKOMI_WORKERS_BUILD_ROOT/, "Workers mode must rewrite host-only build paths before Wrangler resolves the copied output");
+assert.match(script, /find \.open-next -type f/, "Workers mode must rewrite only generated Worker artifacts in the disposable runtime volume");
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
 assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
 assert.match(script, /node scripts\/eskomi-v11-internal-prefix-proxy\.mjs/, "the disposable adapters must use the tested prefix proxy");
@@ -36,9 +45,14 @@ assert.match(script, /assert\.ok\(verified\.status >= 300 && verified\.status < 
 assert.match(script, /redirect lacks callback fragment session/, "a redirect without the callback session fragment must fail without logging its token value");
 assert.match(script, /verification did not redirect; status=/, "a non-redirect verification response must expose only safe diagnostic shape");
 assert.match(script, /foreign .*must be denied/i, "the test must prove a foreign partner is denied");
+assert.ok(
+  script.indexOf("Foreign partner access to the primary store asset must be denied") < script.indexOf("Canonical corrected resubmission must publish through the normal dashboard review"),
+  "the public shop assertion must run after the Workers-compatible API, image, and ownership boundaries",
+);
 assert.match(script, /invalid image must be rejected/i, "the test must prove invalid image rejection");
 assert.match(script, /oversized image must be rejected/i, "the test must prove oversized image rejection");
 assert.match(script, /docker rm -f/, "created-only cleanup must remove fixture containers");
+assert.doesNotMatch(script, /docker run -d --rm --name "\$next_container"/, "the application container must remain inspectable until created-only cleanup if Workers startup fails");
 assert.match(script, /docker network rm/, "created-only cleanup must remove fixture network");
 assert.match(script, /ESKOMI_E2E_PREPARED_RUNTIME_VOLUME/, "a prebuilt disposable runtime volume must still be explicitly marked and cleaned by the runner");
 assert.match(script, /runtime_volume_owned=0/, "the runner must track ownership of a runtime volume separately from its availability");

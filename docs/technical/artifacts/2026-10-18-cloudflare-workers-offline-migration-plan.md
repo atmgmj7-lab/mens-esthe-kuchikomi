@@ -122,6 +122,83 @@ a dedicated preview environment before any traffic is eligible for migration.
   TLS preflight intentionally contacts the live WordPress origin; that would
   violate this offline/preproduction run's isolation boundary.
 
+## 2026-10-18 isolated Workers fixture continuation
+
+The internal Partner HTTP fixture now has two explicit application-runtime
+modes. `next` remains the baseline. `workers` first builds the generated
+OpenNext Worker on the host, then runs `wrangler dev --local` in the fixture's
+app container. The existing prefix proxy remains loopback-only inside that
+container; it maps `/auth/v1`, `/rest/v1`, `/storage/v1`, and GoTrue's
+root-level `/verify` to the disposable network services. This does not change
+the production hostname validator.
+
+The fixture uses a random-suffix Docker `--internal` network with no published
+ports, host network, Docker socket, account, or Cloudflare secret. A Linux
+prepared runtime volume is necessary when re-running the Worker fixture: the
+native `workerd` binary must be installed on Linux, not copied from the macOS
+host. The runner treats such a prepared volume as borrowed and never deletes
+it. That is test plumbing only; it is not a persistent application or
+Cloudflare resource.
+
+### Actual HTTP evidence and non-passes
+
+| Runtime / request boundary | Result | Meaning |
+| --- | --- | --- |
+| Node Next, real GoTrue → Mailpit `/verify` → normal callback → session | PASS | The former root-level verification 404 is repaired. The test confirms a redirect and session identity without printing the token. |
+| Node Next, canonical draft → changes requested → correction → approval → public listing | PASS | The normal Partner and dashboard HTTP routes publish the canonical revision. |
+| Node Next, invalid and oversized photo rejection; PNG upload → Storage → JPEG public proxy/profile; individual review-link issuance; confirmed email change; old-email rejection; cross-store asset denial | PASS | Real fixture services and the ordinary Next runtime cover these boundaries. The review-link test issues a link; it is not a review submission/moderation proof. |
+| OpenNext 1.20.9 / 1.20.11, real GoTrue/Mailpit session and Partner/dashboard listing routes | PASS through listing approval | Auth, cookie/session, API proxy, canonical editing, and dashboard approval run in local workerd. |
+| OpenNext 1.20.9 / 1.20.11, `GET /shops/fixture-partner-store/` | **BLOCKED — 500** | Next 16.3.8 emits the Cache Components `setTimeout()` warning and workerd cancels the response as hung. The route first reaches cached managed-directory state; this is reproducible with the current compatible adapter rather than a GoTrue/proxy 404. |
+| OpenNext 1.20.11, `POST /api/partner/therapists/photo/` invalid-image case | **BLOCKED — 500, expected 400** | `inspectListingImage` imports Node-native `sharp`. It is not executable in a Worker. A Cloudflare Images or Worker-compatible WASM conversion is an architectural/storage/cost decision and is not silently substituted here. |
+
+The worker E2E deliberately executes the Worker-compatible API boundaries
+before the public-shop assertion. This prevents an early public-render failure
+from being reported as evidence that later image, email, or cross-store checks
+ran. It is not a skip: the assertion remains mandatory and keeps the Worker
+run failing until the compatibility problem is resolved.
+
+The authoritative upstream issue reports the same class of Next Cache
+Components/workerd hangs and describes its dependence on Node event-loop
+semantics. The audited 1.20.9 pin remains in the documented peer range for
+Next 16.3.8 and Wrangler 4.151.1. The compatible 1.20.11 was tested only in
+the fixture: it did not alter the hang and its production dependency audit
+introduced four High findings through `@opennextjs/aws` →
+`@node-minify/core` → `glob`. It is therefore not adopted. No main merge,
+deployment, DNS, remote cache binding, production database/Auth change, or
+Cloudflare account action was attempted.
+
+### Cache backend decision for a future approved preview
+
+Do not add cache bindings to this branch while the public page and image route
+are incompatible. If those runtime blockers are resolved and an account owner
+approves a preview environment, use the minimal OpenNext small-site topology:
+
+- R2 incremental cache (`NEXT_INC_CACHE_R2_BUCKET`), with a per-environment
+  prefix;
+- D1 Next-mode tag cache (`NEXT_TAG_CACHE_D1`) because this application uses
+  tag/path revalidation;
+- a Durable-Object queue (`NEXT_CACHE_DO_QUEUE`) plus a self-reference service
+  binding for deduplicated time-based revalidation;
+- cache interception explicitly disabled because the site uses PPR/Cache
+  Components; do not add a regional cache initially.
+
+Workers KV is not suitable for the initial write/revalidation path because the
+OpenNext guidance calls out its eventual consistency. The local `direct` queue
+is preview/debug only and must never be promoted. Same-worker Durable Object
+bindings are not a valid local production-parity proof; OpenNext documents
+that they need a separate Worker/configuration to develop locally. Therefore a
+future proof must separately show R2/D1 binding behavior locally, and queue
+deduplication in an approved preview environment. Keep Partner, dashboard,
+upload, email, review-submission, and all authenticated responses
+`private, no-store`; no cache configuration is allowed to weaken those
+contracts.
+
+The eventual account review must price R2 storage/operations, D1 usage,
+Durable Object requests/storage, and Worker requests. It must also decide
+whether a Worker-compatible image transformer replaces `sharp`. Cloudflare
+Images, cache purge credentials, Email Sending, Cron, paid plan selection,
+and production traffic remain outside this task.
+
 ## Account actions required later (not now)
 
 1. Create/confirm the dedicated Eskomi Cloudflare account, independent of the
