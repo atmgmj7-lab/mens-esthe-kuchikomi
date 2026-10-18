@@ -186,6 +186,47 @@ The partial temporary browser directory was removed. Thus the acceptance
 matrix still has no new real Chromium, QR decode, widget HTTP, or complete
 GoTrue/Mailpit/Storage pass; those entries remain explicitly blocked.
 
+## 2026-10-18 correction — collector is not an environment-only gap
+
+The earlier wording that described the access-measurement health collector as
+only an environment setting was incorrect. `app/api/internal/access-observation`
+authenticates a caller and forwards that caller's supplied `complete` or
+`partial` state to `finalize_partner_shop_access_collection_day_v11`; it does
+not independently observe collector health, detect missing coverage, or decide
+whether a day is complete. No job invoking it exists in the repository.
+
+The independent health/coverage collector is therefore **not implemented**.
+No unconditional-complete cron was added. The existing report continues to
+show partial/missing/unknown days as comparison-unavailable, and the acceptance
+matrix and store launch pack now state that a zero or complete comparison may
+not be claimed until this limited collector and its operational monitoring are
+separately implemented and verified.
+
+## 2026-10-18 follow-up — proxy path regression and local widget HTTP evidence
+
+Independent review found that the first gateway fix still stripped `/verify`
+from the upstream request (`/verify?token=…` became `/?token=…`). Both
+disposable adapters now use one tested prefix-proxy script whose verification
+route base is `http://auth:9999/verify`. A local HTTP fixture with the fake
+query `token=fixture-token&type=magiclink` proves that the upstream receives
+the exact `/verify` path and query and that its redirect is returned unchanged.
+This does not require Mailpit, Docker registry access, or a real token.
+
+The same dependency-enabled workspace also ran a real local Next production
+server against a local fixture-only RPC endpoint for the v1.1 widget. It
+verified SSR output for (1) empty reviews, (2) two ratings with a 4.9 aggregate,
+and (3) an unavailable backend. The test exposed and fixed a v1.1-only issue:
+two ratings had rendered `4.9 / 5` although the existing widget rule requires
+count-only below three ratings. It now renders `有効な評価 2件`. The unavailable
+case resolves through Next partial prerendering's embedded 404 fallback (the
+initial streamed shell is HTTP 200, while the widget segment is not rendered);
+it is recorded as an SSR fallback observation, not as an HTTP-404 assertion.
+
+No installed QR decoder exists in the lockfile or host image (`qrcode` is an
+encoder only; no `zbarimg`, `qrencode`, or QR-decoder package is present).
+No new decoding dependency was introduced merely to claim a scan pass, so POP
+QR decode remains blocked pending an approved decoder/browser environment.
+
 Resume from `headless/` after the focused test-first change with:
 
 ```bash

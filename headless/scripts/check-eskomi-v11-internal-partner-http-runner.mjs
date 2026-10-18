@@ -18,11 +18,11 @@ assert.match(script, /\/api\/dashboard\/partner-listing-revisions/, "the test mu
 assert.match(script, /\/api\/partner\/therapists\/photo/, "the test must exercise normal Next therapist photo upload");
 assert.match(script, /\/api\/partner\/review-links/, "the test must exercise normal Next review-link issuance");
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
-assert.match(script, /listen\(8000,"127\.0\.0\.1"\)/, "the test adapter must bind only to the Next container loopback");
+assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
 assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
-assert.match(script, /"\/verify":"http:\/\/auth:9999"/, "the loopback adapter must forward the GoTrue email verification path");
-assert.match(script, /--network-alias api node:24-bookworm-slim node -e 'const http=require\("node:http"\);const routes=\{[^}]*"\/verify":"http:\/\/auth:9999"/, "the disposable API gateway must forward verification links for the separate Mailpit consumer");
+assert.match(script, /node scripts\/eskomi-v11-internal-prefix-proxy\.mjs/, "the disposable adapters must use the tested prefix proxy");
+assert.match(script, /"\/verify":"http:\/\/auth:9999\/verify"/, "the gateway and loopback adapters must preserve GoTrue's verification path");
 assert.match(script, /assert\.equal\(verificationUrl\.origin,'http:\/\/api:8000','real Mailpit link must be consumed through the disposable gateway'\)/, "the real Mailpit verification URL must be asserted as a gateway URL without exposing its token");
 assert.match(script, /assert\.ok\(verified\.status >= 300 && verified\.status < 400,'magic link verification through the gateway must redirect'\)/, "the Mailpit verification request must prove that the gateway produces the normal redirect");
 assert.match(script, /redirect lacks callback fragment session/, "a redirect without the callback session fragment must fail without logging its token value");
