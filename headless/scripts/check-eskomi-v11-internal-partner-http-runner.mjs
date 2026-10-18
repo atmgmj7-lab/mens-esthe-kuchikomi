@@ -20,6 +20,8 @@ assert.match(script, /\/api\/partner\/review-links/, "the test must exercise nor
 assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use its own loopback-only test adapter without weakening the application hostname validator");
 assert.match(script, /listen\(8000,"127\.0\.0\.1"\)/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /GOTRUE_URI_ALLOW_LIST=http:\/\/localhost:57000\/partner\/auth\/callback\//, "GoTrue must permit the exact normal callback URL");
+assert.match(script, /API_EXTERNAL_URL=http:\/\/api:8000/, "GoTrue external URLs must use the disposable API gateway base, not an already-prefixed Auth path");
+assert.match(script, /"\/verify":"http:\/\/auth:9999"/, "the loopback adapter must forward the GoTrue email verification path");
 assert.match(script, /redirect lacks callback fragment session/, "a redirect without the callback session fragment must fail without logging its token value");
 assert.match(script, /verification did not redirect; status=/, "a non-redirect verification response must expose only safe diagnostic shape");
 assert.match(script, /foreign .*must be denied/i, "the test must prove a foreign partner is denied");
