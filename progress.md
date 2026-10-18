@@ -950,3 +950,5 @@
 
 - Traced the fixed WP Shop 768 target through the legacy native and v1.1 paths.  The direct v1.1 widget can display an approved v1.1 publication before the global source switch; the normal Eskomi shop/global review surfaces cannot.
 - Updated the release packet to prevent a widget-only result from being described as a completed store-page launch, and to offer the full-reader actual-data comparison/cutover as the only route to normal site visibility.
+- Saved the clarification as `840707259d2f68ee8e7fbb5470d609263ec5f9da` on the
+  approved branch; remote `main` remained unchanged.
