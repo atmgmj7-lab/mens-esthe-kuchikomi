@@ -24,6 +24,7 @@ headless/reports/
 
 # WordPress全件移行SQL（元データを含むためGit追加禁止）
 supabase/imports/*.sql
+supabase/imports/wp-media-preservation/
 
 # エディタ
 .cursor/
