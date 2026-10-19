@@ -124,7 +124,13 @@ export async function getSupabasePrimaryPublicDirectory(environment: Environment
     try {
       response = await fetchImpl(`${new URL(base).origin}/rest/v1/rpc/get_public_site_directory_v1`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }, body: "{}", cache: "no-store" });
       break;
-    } catch {
+    } catch (error) {
+      // Keep the public failure fail-closed, but retain only safe transport
+      // diagnostics for local Worker QA. Never log URL, headers, or response.
+      const name = error instanceof Error ? error.name : "non-error";
+      const causeCode = error instanceof Error && typeof error.cause === "object" && error.cause !== null && "code" in error.cause
+        ? String((error.cause as { code?: unknown }).code ?? "") : "";
+      console.warn(`Supabase-primary directory transport failure (${name}${causeCode ? `:${causeCode}` : ""})`);
       if (attempt === 1) throw new ContentMigrationIncompleteError("Supabase-primary public directory could not be read");
     }
   }

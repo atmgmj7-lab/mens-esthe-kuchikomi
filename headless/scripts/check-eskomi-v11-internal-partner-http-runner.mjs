@@ -33,6 +33,8 @@ assert.match(script, /ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase/, "the fixture mu
 assert.match(script, /--var ESKOMI_V11_PUBLIC_REVIEW_SOURCE:supabase/, "the local Worker must receive the canonical public-review source explicitly");
 assert.match(script, /ESKOMI_E2E_CONTENT_PRIMARY/, "the runner must offer an explicit Supabase-primary fixture mode");
 assert.match(script, /SUPABASE_CONTENT_EXPECTED_SHOPS/, "the primary fixture must provide explicit directory coverage counts");
+assert.match(script, /Workers primary fixture could not resolve its internal API address/, "Workers primary reads must resolve only the fixture's internal API address");
+assert.match(script, /content_primary_url="http:\/\/\$\{content_primary_host\}:8000"/, "Workerd must not depend on Node loopback or Docker DNS for the primary directory RPC");
 assert.match(script, /Supabase-primary sitemap must render the published fixture and exclude the draft fixture/, "the runner must prove primary sitemap behavior through Worker HTTP");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /ESKOMI_E2E_APP_RUNTIME/, "the runner must select a Next or local Workers application runtime explicitly");

@@ -85,7 +85,7 @@ const compiled = ts.transpileModule(executable, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText;
 const module = { exports: {} };
-vm.runInNewContext(compiled, { module, exports: module.exports, process: { env: {} }, URL, Response, Math, Object, Set, Map, Array, Number, Error });
+vm.runInNewContext(compiled, { module, exports: module.exports, process: { env: {} }, URL, Response, Math, Object, Set, Map, Array, Number, Error, console: { warn() {} } });
 const { getSupabasePrimaryPublicDirectory, publicDirectoryAreas, publicDirectoryShops, publicDirectoryPage, ContentMigrationIncompleteError } = module.exports;
 const fixture = {
   shops: [

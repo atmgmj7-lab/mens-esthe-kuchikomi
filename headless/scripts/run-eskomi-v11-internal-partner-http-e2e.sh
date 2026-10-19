@@ -194,13 +194,27 @@ common_app_args=(
 )
 primary_worker_command=""
 if [ "$content_primary" = "1" ]; then
+  content_primary_url="http://127.0.0.1:8000"
+  # Workerd does not share the Node loopback namespace used by the normal
+  # application proxy.  The primary directory RPC must therefore use the
+  # fixture's internal DNS alias in Workers mode, while Next keeps loopback.
+  if [ "$app_runtime" = "workers" ]; then
+    content_primary_host="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$proxy_container")"
+    case "$content_primary_host" in
+      ''|*[!0-9.]* ) echo "Workers primary fixture could not resolve its internal API address" >&2; exit 1 ;;
+    esac
+    # Workerd's fetch resolver runs outside Node's Docker DNS view. A literal
+    # address of this fixture-only prefix adapter avoids both host networking
+    # and a real external Supabase endpoint.
+    content_primary_url="http://${content_primary_host}:8000"
+  fi
   common_app_args+=(
     -e CONTENT_DATA_SOURCE=supabase -e SUPABASE_CONTENT_CUTOVER_APPROVED=true
-    -e SUPABASE_CONTENT_URL=http://127.0.0.1:8000 -e SUPABASE_CONTENT_PUBLISHABLE_KEY="$anon_key"
+    -e SUPABASE_CONTENT_URL="$content_primary_url" -e SUPABASE_CONTENT_PUBLISHABLE_KEY="$anon_key"
     -e SUPABASE_CONTENT_EXPECTED_SHOPS=2 -e SUPABASE_CONTENT_EXPECTED_AREAS=2
     -e SUPABASE_CONTENT_EXPECTED_POSTS=1 -e SUPABASE_CONTENT_EXPECTED_PAGES=6
   )
-  primary_worker_command=' --var CONTENT_DATA_SOURCE:supabase --var SUPABASE_CONTENT_CUTOVER_APPROVED:true --var SUPABASE_CONTENT_URL:http://127.0.0.1:8000 --var SUPABASE_CONTENT_PUBLISHABLE_KEY:"$SUPABASE_CONTENT_PUBLISHABLE_KEY" --var SUPABASE_CONTENT_EXPECTED_SHOPS:2 --var SUPABASE_CONTENT_EXPECTED_AREAS:2 --var SUPABASE_CONTENT_EXPECTED_POSTS:1 --var SUPABASE_CONTENT_EXPECTED_PAGES:6'
+  primary_worker_command=" --var CONTENT_DATA_SOURCE:supabase --var SUPABASE_CONTENT_CUTOVER_APPROVED:true --var SUPABASE_CONTENT_URL:${content_primary_url} --var SUPABASE_CONTENT_PUBLISHABLE_KEY:\"\$SUPABASE_CONTENT_PUBLISHABLE_KEY\" --var SUPABASE_CONTENT_EXPECTED_SHOPS:2 --var SUPABASE_CONTENT_EXPECTED_AREAS:2 --var SUPABASE_CONTENT_EXPECTED_POSTS:1 --var SUPABASE_CONTENT_EXPECTED_PAGES:6"
 fi
 case "$app_runtime" in
   next)
