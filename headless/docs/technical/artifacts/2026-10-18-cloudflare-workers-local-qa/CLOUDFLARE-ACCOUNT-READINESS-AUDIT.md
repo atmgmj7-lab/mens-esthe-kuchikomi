@@ -107,6 +107,40 @@ The committed Worker configuration is deliberately account-neutral:
   managed directory source. Neither setting is a default or should be enabled
   during a minimum pilot without its separate global comparison gate.
 
+## Supabase-primary readiness correction
+
+The current branch is **not yet a WordPress-free public application**. The
+configuration contract for `CONTENT_DATA_SOURCE=supabase` exists, but no
+runtime route consumes `resolveContentReadPlan`; setting it would not migrate
+the public site. `SHOP_DIRECTORY_SOURCE=supabase` is an overlay/new-publication
+path: it still starts from the legacy WordPress shop and area readers for
+existing inventory. Likewise, the v1.1 public-review flag changes review
+projections, but normal shop identity is still resolved through the legacy
+shop reader.
+
+The following runtime surfaces still require a Supabase-primary implementation
+before WordPress can be retired rather than treated as a compatibility source:
+
+- home, `/shops/`, shop detail and sitemap use WordPress shop/area readers;
+- area pages retain WordPress taxonomy, order, and legacy-shop lookups;
+- `/reviews/` still reads WordPress posts for its editorial sidebar;
+- review submission, review form, registration, and several dashboard routes
+  resolve an existing shop through WordPress before using Supabase services.
+
+`WP_REVIEW_SUBMIT_USER` and `WP_REVIEW_SUBMIT_APP_PASSWORD` belong only to the
+legacy WordPress review-submit helper. No current public submit route imports
+that helper; they must **not** be treated as standard Worker secrets for the
+Supabase-primary target.
+
+The minimum implementation sequence is therefore: introduce a complete
+server-only Supabase public directory/content repository; switch every public
+shop, area, sitemap, review-form identity, and editorial reader through an
+explicit source interface; migrate and parity-check the required content; then
+exercise a full dynamic Worker HTTP matrix before enabling the three global
+source settings. Until then, `WP_API_BASE_URL`, `WP_ORIGIN_HOST`, and
+`WP_ORIGIN_TLS_SERVERNAME` remain compatibility dependencies of the current
+application, not optional deployment settings.
+
 ## Production data and pilot hard gates
 
 The repository's redacted production reconciliation says the last observed
