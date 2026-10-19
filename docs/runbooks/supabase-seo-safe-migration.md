@@ -124,6 +124,25 @@ MUSE(695)、sirena II(709)、殿様気分(1237)をdraftで保存し、堺筋本�
 
 本番結果は地域34・子地域26・店舗382・関係782・料金252・画像241・batch 3・record 415。地域なし75・複数地域230はWordPress監査と一致し、料金/画像の重複groupは0件だった。anon公開view全9種は0件、Security/Performance Advisorはいずれもerror 0 / warning 0だった。
 
+### 4.0 2026-10-19 corpus dry-run（本番適用禁止）
+
+WordPress公開RESTを再監査した結果は、店舗394・地域34・`basic_price`254・画像241・公式URL341・地域なし74・複数地域243・地域関係810だった。以前の382件固定generatorは、この変化を検出してSQL生成前に停止する。次の明示的なスナップショット値を渡した場合だけ、Git除外のidempotentなSQL候補と検証SQLをローカルに生成できる。生成は適用ではない。
+
+```bash
+cd headless
+FULL_IMPORT_EXPECTED_SHOPS=394 \
+FULL_IMPORT_EXPECTED_AREAS=34 \
+FULL_IMPORT_EXPECTED_PRICES=254 \
+FULL_IMPORT_EXPECTED_IMAGES=241 \
+FULL_IMPORT_EXPECTED_OFFICIAL_URLS=341 \
+FULL_IMPORT_EXPECTED_WITHOUT_AREA=74 \
+FULL_IMPORT_EXPECTED_MULTIPLE_AREAS=243 \
+FULL_IMPORT_OUTPUT_LABEL=20261019-wordpress-corpus-dry-run \
+node scripts/prepare-supabase-full-import.mjs
+```
+
+このSQLは source の394件をdraftとしてupsertし、既存app-only draftを削除・公開・復活させない。14件のsource-only店舗は別途 primary area と公開可否を承認してから扱う。固定ページの `app.contents` と画像objectのアップロード/URL置換はこのshop dry-runに含めない。
+
 ### 4.1 堺筋本町 Phase 4の確認済みデータ
 
 一次情報調査から、確認済み値がある26店舗だけを既存の非公開行へ追加する。WordPressは公開データ元と比較資料のまま維持する。

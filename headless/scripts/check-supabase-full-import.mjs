@@ -22,6 +22,9 @@ assert.equal(
   existsSync(verifyPath),
   "Full import SQL and verification SQL must be generated or removed together"
 );
+const preparer = readFileSync(preparerPath, "utf8");
+assert.match(preparer, /FULL_IMPORT_EXPECTED_SHOPS/, "full import must require an explicit audited shop count");
+assert.match(preparer, /FULL_IMPORT_OUTPUT_LABEL/, "full import must refuse to overwrite a historical generated import");
 
 const packageJson = JSON.parse(readFileSync(join(headlessRoot, "package.json"), "utf8"));
 assert.equal(

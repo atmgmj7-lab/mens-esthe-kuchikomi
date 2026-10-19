@@ -11,6 +11,14 @@ import {
 const BATCH_ID = "f9949784-0aad-419b-bb69-cd35a3be2256";
 const DEFAULT_API_BASE = "https://mens-esthe-kuchikomi.com/wp-json/wp/v2";
 
+function expectedInteger(name) {
+  const raw = process.env[name]?.trim() ?? "";
+  if (!/^(0|[1-9]\d*)$/.test(raw)) {
+    throw new Error(`${name} must be an explicit non-negative integer for a corpus dry run`);
+  }
+  return Number(raw);
+}
+
 function normalizeApiBase(value) {
   const base = String(value || DEFAULT_API_BASE).trim().replace(/\/+$/, "");
   if (/\/wp-json\/wp\/v2$/i.test(base)) return base;
@@ -63,11 +71,17 @@ const [shopResult, areaResult] = await Promise.all([
   fetchAll(apiBase, "/area?per_page=100&hide_empty=false")
 ]);
 
-if (shopResult.rows.length !== 382) {
-  throw new Error(`Expected 382 WordPress shops, received ${shopResult.rows.length}`);
-}
-if (areaResult.rows.length !== 34) {
-  throw new Error(`Expected 34 WordPress areas, received ${areaResult.rows.length}`);
+const expectedSource = {
+  shops: expectedInteger("FULL_IMPORT_EXPECTED_SHOPS"),
+  areas: expectedInteger("FULL_IMPORT_EXPECTED_AREAS"),
+  prices: expectedInteger("FULL_IMPORT_EXPECTED_PRICES"),
+  images: expectedInteger("FULL_IMPORT_EXPECTED_IMAGES"),
+  officialUrls: expectedInteger("FULL_IMPORT_EXPECTED_OFFICIAL_URLS"),
+  withoutArea: expectedInteger("FULL_IMPORT_EXPECTED_WITHOUT_AREA"),
+  multipleAreas: expectedInteger("FULL_IMPORT_EXPECTED_MULTIPLE_AREAS")
+};
+if (shopResult.rows.length !== expectedSource.shops || areaResult.rows.length !== expectedSource.areas) {
+  throw new Error(`WordPress source count drift: expected ${JSON.stringify(expectedSource)}, received shops=${shopResult.rows.length}, areas=${areaResult.rows.length}`);
 }
 
 const shops = shopResult.rows.map(normalizeTrialShop);
@@ -81,13 +95,7 @@ const expected = {
   links: shops.reduce((total, shop) => total + shop.area_ids.length, 0)
 };
 
-if (
-  expected.prices !== 252
-  || expected.images !== 241
-  || expected.officialUrls !== 333
-  || expected.withoutArea !== 75
-  || expected.multipleAreas !== 230
-) {
+if (Object.entries(expected).some(([key, value]) => key !== "links" && value !== expectedSource[key])) {
   throw new Error(`WordPress completeness changed: ${JSON.stringify(expected)}`);
 }
 
@@ -95,8 +103,12 @@ const selectedAt = process.env.FULL_IMPORT_SELECTED_AT
   || (shopResult.responseDate ? new Date(shopResult.responseDate).toISOString() : new Date().toISOString());
 const repoRoot = join(fileURLToPath(new URL("..", import.meta.url)), "..");
 const importDir = join(repoRoot, "supabase", "imports");
-const importPath = join(importDir, "20260714_wordpress_382_shops.sql");
-const verifyPath = join(importDir, "verify_20260714_wordpress_382_shops.sql");
+const label = process.env.FULL_IMPORT_OUTPUT_LABEL?.trim();
+if (!/^[0-9]{8}-wordpress-[a-z0-9-]+$/.test(label || "")) {
+  throw new Error("FULL_IMPORT_OUTPUT_LABEL must be an explicit YYYYMMDD-wordpress-label value; refusing to overwrite a prior import artifact");
+}
+const importPath = join(importDir, `${label}.sql`);
+const verifyPath = join(importDir, `verify_${label}.sql`);
 const sourceUrl = `${apiBase}/shop?per_page=100&_embed=1`;
 
 mkdirSync(importDir, { recursive: true });
