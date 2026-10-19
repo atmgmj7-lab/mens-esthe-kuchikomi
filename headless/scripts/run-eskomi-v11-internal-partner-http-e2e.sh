@@ -199,14 +199,8 @@ if [ "$content_primary" = "1" ]; then
   # application proxy.  The primary directory RPC must therefore use the
   # fixture's internal DNS alias in Workers mode, while Next keeps loopback.
   if [ "$app_runtime" = "workers" ]; then
-    content_primary_host="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$proxy_container")"
-    case "$content_primary_host" in
-      ''|*[!0-9.]* ) echo "Workers primary fixture could not resolve its internal API address" >&2; exit 1 ;;
-    esac
-    # Workerd's fetch resolver runs outside Node's Docker DNS view. A literal
-    # address of this fixture-only prefix adapter avoids both host networking
-    # and a real external Supabase endpoint.
-    content_primary_url="http://${content_primary_host}:8000"
+    echo "Workers primary fixture requires a Workerd-resolvable hostname; Docker-only service names and direct IP subrequests are unsupported" >&2
+    exit 1
   fi
   common_app_args+=(
     -e CONTENT_DATA_SOURCE=supabase -e SUPABASE_CONTENT_CUTOVER_APPROVED=true
