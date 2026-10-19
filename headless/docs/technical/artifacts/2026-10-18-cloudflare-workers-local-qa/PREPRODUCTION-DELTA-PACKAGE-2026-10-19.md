@@ -118,9 +118,13 @@ candidate set as these **379 WordPress IDs**:
 
 It is computed as 394 source IDs, minus the fourteen `review_required` records,
 minus ID 1272 (`unlisted` in the managed workflow).  It contains neither of the
-Supabase-only hot-spring drafts (1255 and 1259).  Of the 379 candidates, 304
+Supabase-only hot-spring drafts (1255 and 1259). Of the 379 candidates, 304
 have at least one stored area relation, **zero have `is_primary = true`**, and
-75 have no stored area relation.  Since a published primary area is mandatory,
+74 have no stored area relation. A fresh source-grounded plan identifies 44
+explicit ACF-backed primary relations; its other 335 candidates remain deferred
+without inference. See
+[`PRIMARY-AREA-DELTA-REHEARSAL-2026-10-19.md`](PRIMARY-AREA-DELTA-REHEARSAL-2026-10-19.md).
+Since a published primary area is mandatory,
 the current approved public subset is exactly **empty**.
 
 Before this set can become a publication manifest, each candidate must have an

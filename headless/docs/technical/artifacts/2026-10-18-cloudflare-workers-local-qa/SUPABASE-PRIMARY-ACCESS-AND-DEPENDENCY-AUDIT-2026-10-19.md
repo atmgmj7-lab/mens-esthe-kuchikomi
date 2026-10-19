@@ -48,6 +48,15 @@ workspace, review, receipt, or moderation fields.  The preflight tests the
 actual RLS behavior correctly: `anon` may possess table `SELECT`, but must see
 no rows while every relevant entity is non-public.
 
+The primary-area delta described in
+[`PRIMARY-AREA-DELTA-REHEARSAL-2026-10-19.md`](PRIMARY-AREA-DELTA-REHEARSAL-2026-10-19.md)
+adds **no** grant, RLS policy, RPC, table privilege, or public state. It only
+sets selected existing `app.shop_areas.is_primary` values while shops and areas
+remain non-public. It therefore creates no new reader and, before the separate
+directory-RPC migration plus a future publication manifest, the real public
+directory remains empty. The 44 assignments are preparation, not public-access
+approval.
+
 ### Managed-shop correction
 
 The first version of the primary RPC would have selected a published app shop
