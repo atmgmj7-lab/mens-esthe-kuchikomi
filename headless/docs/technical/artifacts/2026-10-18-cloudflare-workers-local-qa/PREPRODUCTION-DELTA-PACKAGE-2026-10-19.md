@@ -112,9 +112,15 @@ primary area.  A matching row count alone is not a publication approval.
 The production migration ledger ends at
 `20261015182000_managed_shop_nonpublic_listing_states`.  Repository migration
 `20261019090000_eskomi_supabase_primary_public_directory.sql` is not present in
-that ledger.  It creates only `api.get_public_site_directory_v1()` and grants
-read access to that RPC; it does not import, publish, update, or delete source
-data.
+that ledger.  It creates a public `SECURITY DEFINER` RPC and grants execute to
+`anon`/`authenticated`; it does not import, publish, update, or delete source
+data.  This is still an access-control change, so the detailed audit is in
+[`SUPABASE-PRIMARY-ACCESS-AND-DEPENDENCY-AUDIT-2026-10-19.md`](SUPABASE-PRIMARY-ACCESS-AND-DEPENDENCY-AUDIT-2026-10-19.md).
+
+The repository has further unapplied October migrations.  They are not
+implicitly required for this narrow RPC and are excluded from this approval;
+they must never be bulk-applied merely to make the migration ledger appear
+aligned.
 
 The requested production DB-change approval must be limited to this exact
 operation, after the backup gate succeeds:

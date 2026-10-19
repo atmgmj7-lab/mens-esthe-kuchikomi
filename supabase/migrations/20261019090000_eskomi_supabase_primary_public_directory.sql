@@ -1,6 +1,6 @@
 -- Public, read-only projection used only after the explicit Supabase-primary cutover.
 -- It intentionally excludes drafts, moderation state, private import records, and
--- partner workspace data. Base tables remain inaccessible to anon/authenticated.
+-- partner workspace data. Existing base-table RLS remains the direct-read boundary.
 create or replace function api.get_public_site_directory_v1()
 returns jsonb
 language sql
@@ -21,6 +21,15 @@ as $$
        order by (i.image_role = 'featured') desc, i.sort_order, i.created_at limit 1) as image_url
     from app.shops s
     where s.publication_status = 'published'
+      -- The managed-directory workflow can explicitly withdraw a legacy
+      -- WordPress identity.  A Security Definer reader must preserve that
+      -- operator decision instead of re-exposing the matching app row.
+      and not exists (
+        select 1
+        from private.managed_shops managed
+        where managed.existing_wp_shop_id = s.wp_post_id
+          and managed.publication_state <> 'published'
+      )
   ), published_areas as (
     select a.id, a.slug, a.name, a.description, parent.slug as parent_slug
     from app.areas a left join app.areas parent on parent.id = a.parent_id and parent.is_published

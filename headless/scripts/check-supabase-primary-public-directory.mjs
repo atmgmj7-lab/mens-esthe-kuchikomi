@@ -28,6 +28,9 @@ assert.match(migration, /grant execute on function api\.get_public_site_director
 assert.doesNotMatch(migration, /grant (select|insert|update|delete).* on (app|private)\./i, "migration must not widen table privileges");
 assert.match(migration, /sa\.shop_id = s\.id and sa\.is_primary/i, "a shop must retain its authoritative primary-area assignment");
 assert.match(migration, /parent\.id = a\.parent_id and parent\.is_published/i, "an unpublished parent must not be exposed in the public area hierarchy");
+assert.match(migration, /private\.managed_shops/i, "primary projection must honor the established managed-shop visibility boundary");
+assert.match(migration, /managed\.existing_wp_shop_id = s\.wp_post_id/i, "legacy managed identities must match the canonical app shop by WordPress ID");
+assert.match(migration, /managed\.publication_state <> 'published'/i, "unlisted or deleted managed shops must be suppressed from the primary projection");
 
 const shops = readFileSync(join(root, "lib/wp/shops.ts"), "utf8");
 const areas = readFileSync(join(root, "lib/wp/areas.ts"), "utf8");
