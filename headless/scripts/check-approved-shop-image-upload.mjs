@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 
-const { buildUploadPlan } = await import("./upload-approved-shop-images.mjs");
+const { buildUploadPlan, isMissingBucketResponse } = await import("./upload-approved-shop-images.mjs");
+
+assert.equal(isMissingBucketResponse({ status: 404, body: "" }), true);
+assert.equal(isMissingBucketResponse({ status: 400, body: '{"statusCode":"404","error":"Bucket not found","message":"Bucket not found","code":"NoSuchBucket"}' }), true);
+assert.equal(isMissingBucketResponse({ status: 401, body: '{"code":"NoSuchBucket"}' }), false, "Authentication failures must not be treated as missing buckets");
+assert.equal(isMissingBucketResponse({ status: 403, body: '{"code":"NoSuchBucket"}' }), false, "Authorization failures must not be treated as missing buckets");
+assert.equal(isMissingBucketResponse({ status: 400, body: '{"code":"BadRequest"}' }), false, "General bad requests must not create buckets");
+assert.equal(isMissingBucketResponse({ status: 500, body: '{"code":"NoSuchBucket"}' }), false, "Server errors must not create buckets");
 
 const hash = "a".repeat(64);
 const plan = buildUploadPlan({

@@ -61,10 +61,27 @@ async function responseError(response, action) {
   throw new Error(`${action} failed: HTTP ${response.status}${body ? ` ${body}` : ""}`);
 }
 
+function responseErrorFromBody(status, body, action) {
+  const compact = body.replace(/\s+/g, " ").slice(0, 300);
+  throw new Error(`${action} failed: HTTP ${status}${compact ? ` ${compact}` : ""}`);
+}
+
+export function isMissingBucketResponse({ status, body }) {
+  if (status === 404) return true;
+  if (status !== 400) return false;
+  try {
+    const parsed = JSON.parse(body);
+    return parsed?.code === "NoSuchBucket" && (parsed.statusCode === 404 || parsed.error === "Bucket not found");
+  } catch {
+    return false;
+  }
+}
+
 async function ensureBucket(secret) {
   const bucketUrl = `${PROJECT_URL}/storage/v1/bucket/${BUCKET_ID}`;
   const existing = await fetch(bucketUrl, { headers: secretHeaders(secret) });
-  if (existing.status === 404) {
+  const existingBody = existing.ok ? "" : await existing.text();
+  if (isMissingBucketResponse({ status: existing.status, body: existingBody })) {
     const created = await fetch(`${PROJECT_URL}/storage/v1/bucket`, {
       method: "POST",
       headers: secretHeaders(secret, { "Content-Type": "application/json" }),
@@ -73,7 +90,7 @@ async function ensureBucket(secret) {
     if (!created.ok) await responseError(created, "Bucket creation");
     return "created";
   }
-  if (!existing.ok) await responseError(existing, "Bucket read");
+  if (!existing.ok) responseErrorFromBody(existing.status, existingBody, "Bucket read");
   const bucket = await existing.json();
   const actualTypes = [...(bucket.allowed_mime_types || [])].sort();
   const expectedTypes = [...ALLOWED_MIME_TYPES].sort();
