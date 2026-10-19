@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { buildProposedPublicationManifestArtifact } from "./prepare-supabase-publication-manifest.mjs";
 import {
+  buildLocalFixtureApproval,
+  renderApprovedFixtureApplySql,
+  renderApprovedFixtureRestoreSql,
   renderPublicationManifestPreflightSql,
   renderPublicationManifestRestoreSql
 } from "./lib/supabase-publication-manifest.mjs";
@@ -10,6 +13,10 @@ const artifact = buildProposedPublicationManifestArtifact("20261019-publication-
 const callerOptions = { manifest: artifact.manifest, sourceLabel: "20261019-publication-manifest-local-rehearsal", transactionMode: "caller" };
 const preflightSql = renderPublicationManifestPreflightSql(callerOptions);
 const restoreSql = renderPublicationManifestRestoreSql(callerOptions);
+const proposalId = "20261019-publication-manifest-v4";
+const approval = buildLocalFixtureApproval({ manifest: artifact.manifest, proposalId, approvalId: "20261019-publication-manifest-v4-local-fixture" });
+const applySql = renderApprovedFixtureApplySql({ manifest: artifact.manifest, proposalId, approval, transactionMode: "caller" });
+const approvedRestoreSql = renderApprovedFixtureRestoreSql({ manifest: artifact.manifest, proposalId, approval, transactionMode: "caller" });
 const candidateIds = artifact.manifest.candidateWpIds.join(", ");
 const areaTermIds = artifact.manifest.publicTargets.areas.join(", ");
 const imageWpMediaIds = artifact.manifest.publicTargets.imageWpMediaIds.join(", ");
@@ -56,10 +63,30 @@ end
 $$;
 
 ${preflightSql}
+set local eskomi.publication_manifest_mode = 'local-fixture';
+set local eskomi.publication_manifest_approval = '${approval.approvalId}';
+set local eskomi.publication_manifest_proposal_sha256 = '${approval.proposalSha256}';
+${applySql}
+${applySql}
+do $$
+begin
+  if (select count(*) from app.shops where wp_post_id = any(array[${candidateIds}]) and publication_status = 'published') <> ${artifact.manifest.publicTargets.shops.length} then raise exception 'fixture apply did not publish every shop'; end if;
+  if (select count(*) from app.areas where wp_term_id = any(array[${areaTermIds}]) and is_published) <> ${artifact.manifest.publicTargets.areas.length} then raise exception 'fixture apply did not publish every area'; end if;
+  if (select count(*) from app.shop_images where wp_media_id = any(array[${imageWpMediaIds}]) and is_public) <> ${artifact.manifest.publicTargets.imageWpMediaIds.length} then raise exception 'fixture apply did not publish every image'; end if;
+end $$;
+${approvedRestoreSql}
 ${restoreSql}
 
 rollback;
 `;
+
+const denied = spawnSync(
+  "docker",
+  ["exec", "-i", "supabase_db_mens-esthe-kuchikomi", "psql", "-X", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"],
+  { input: `begin;\n${applySql}\nrollback;\n`, encoding: "utf8" }
+);
+assert.notEqual(denied.status, 0, "an apply without the local-fixture gate must fail closed");
+assert.match(`${denied.stdout}\n${denied.stderr}`, /restricted to an explicit local fixture transaction/i);
 
 const result = spawnSync(
   "docker",
@@ -68,4 +95,4 @@ const result = spawnSync(
 );
 assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
 assert.match(result.stdout, /ROLLBACK/, "manifest rehearsal must roll back its entire local fixture transaction");
-console.log("Supabase proposed publication manifest local preflight/restore rehearsal: PASS");
+console.log("Supabase local-fixture approved apply, idempotence, conditional restore, and rollback rehearsal: PASS");

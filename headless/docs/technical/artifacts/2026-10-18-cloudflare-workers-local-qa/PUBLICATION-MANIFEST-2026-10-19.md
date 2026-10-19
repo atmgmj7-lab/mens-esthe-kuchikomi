@@ -12,6 +12,13 @@ an exact operator approval token and then raises an intentional exception.  A
 separately reviewed, component-specific approved manifest is required before
 any future `UPDATE`, content import, or image state change can exist.
 
+For isolated QA only, the repository can construct an in-memory
+`approved-local-fixture` document. It must exactly match the proposal ID and
+SHA-256 and requires three transaction-local settings (fixture mode, approval
+ID, and proposal hash). Without them it fails closed. The fixture rehearsal
+then proves initial application, a no-op re-run, conditional restore, and an
+outer `ROLLBACK`; it never creates an approved production manifest.
+
 ## Proposed public targets
 
 | Component | Concrete target source | Count | Proposed action | Apply status |
@@ -27,7 +34,8 @@ numeric range. It fails if the snapshot no longer has 379 shops, 34 areas, or
 
 ## Strict exclusions
 
-- The 14 review-required WordPress-only shop IDs remain outside `app.shops`.
+- The 14 WordPress-only shop IDs pending a publication decision remain outside
+  `app.shops`; they are not "review" records.
 - Managed-unlisted WordPress ID `1272` remains draft and is excluded.
 - Supabase-only hot-spring draft IDs `1255` and `1259` remain draft.
 - Fixed-page media ID `357` is never treated as a shop image.

@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 
 const {
   buildProposedPublicationManifest,
+  buildLocalFixtureApproval,
+  proposalSha256,
+  renderApprovedFixtureApplySql,
+  renderApprovedFixtureRestoreSql,
   renderPublicationManifestApplySql,
   renderPublicationManifestPreflightSql,
   renderPublicationManifestRestoreSql
@@ -21,7 +25,7 @@ assert.equal(manifest.state, "proposed");
 assert.deepEqual(manifest.approval, { state: "not-approved", application: "blocked" });
 assert.deepEqual(manifest.publicTargets, { shops: [100, 101], areas: [2, 4], pages: ["/about/", "/contact/"], imageWpMediaIds: [1150, 1151] });
 assert.deepEqual(manifest.exclusions, [
-  { wpPostId: 5070, reason: "review-required-wordpress-only" },
+  { wpPostId: 5070, reason: "wordpress-only-publication-decision-required" },
   { wpPostId: 1272, reason: "managed-unlisted" },
   { wpPostId: 1255, reason: "supabase-only-draft" },
   { wpPostId: 1259, reason: "supabase-only-draft" },
@@ -35,6 +39,10 @@ const options = { manifest, sourceLabel: "20261019-publication-manifest" };
 const preflight = renderPublicationManifestPreflightSql(options);
 const restore = renderPublicationManifestRestoreSql(options);
 const apply = renderPublicationManifestApplySql(options);
+const proposalId = "20261019-publication-manifest-v4";
+const approval = buildLocalFixtureApproval({ manifest, proposalId, approvalId: "20261019-publication-manifest-v4-local-fixture" });
+const fixtureApply = renderApprovedFixtureApplySql({ manifest, proposalId, approval, transactionMode: "caller" });
+const fixtureRestore = renderApprovedFixtureRestoreSql({ manifest, proposalId, approval, transactionMode: "caller" });
 const callerPreflight = renderPublicationManifestPreflightSql({ ...options, transactionMode: "caller" });
 assert.match(preflight, /begin read only/i);
 assert.match(preflight, /app\.shop_areas/i, "manifest must reconcile the unchanged area relation boundary");
@@ -49,5 +57,14 @@ assert.doesNotMatch(callerPreflight, /begin read only/i, "a local outer transact
 assert.match(apply, /current_setting\('eskomi\.publication_manifest_approval', true\)/i);
 assert.match(apply, /application intentionally disabled/i);
 assert.doesNotMatch(apply, /\b(?:insert into|update|delete from)\b/i, "proposal apply text must not become an executable mutation");
+assert.match(proposalSha256(manifest), /^[a-f0-9]{64}$/);
+assert.match(fixtureApply, /local-fixture-only/i);
+assert.match(fixtureApply, /current_setting\('eskomi\.publication_manifest_proposal_sha256', true\)/i);
+assert.match(fixtureApply, /is distinct from/i, "unset gate settings must fail closed rather than compare as SQL NULL");
+assert.match(fixtureApply, /update app\.shops/i);
+assert.match(fixtureApply, /update app\.areas/i);
+assert.match(fixtureApply, /update app\.shop_images/i);
+assert.match(fixtureRestore, /restore requires every approved fixture shop target/i);
+assert.throws(() => renderApprovedFixtureApplySql({ manifest, proposalId, approval: { ...approval, proposalSha256: "0".repeat(64) } }), /does not exactly match/i);
 
 console.log("Supabase proposed publication manifest contract: PASS");

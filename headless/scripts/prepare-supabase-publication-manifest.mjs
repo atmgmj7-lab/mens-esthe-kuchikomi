@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildProposedPublicationManifest,
+  proposalSha256,
   renderPublicationManifestApplySql,
   renderPublicationManifestPreflightSql,
   renderPublicationManifestRestoreSql
@@ -42,6 +43,7 @@ export function buildProposedPublicationManifestArtifact(label) {
   });
   return {
     manifest,
+    proposalSha256: proposalSha256(manifest),
     preflightSql: renderPublicationManifestPreflightSql({ manifest, sourceLabel: label }),
     restoreSql: renderPublicationManifestRestoreSql({ manifest, sourceLabel: label }),
     applySql: renderPublicationManifestApplySql({ manifest, sourceLabel: label })
@@ -60,7 +62,7 @@ function main() {
   };
   for (const path of Object.values(paths)) if (existsSync(path)) throw new Error(`Publication manifest already exists: ${path}`);
   mkdirSync(outputDir, { recursive: true });
-  writeFileSync(paths.manifest, `${JSON.stringify({ label, generatedAt: new Date().toISOString(), source: "reviewed-public-url-snapshot", ...artifact.manifest }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+  writeFileSync(paths.manifest, `${JSON.stringify({ label, generatedAt: new Date().toISOString(), source: "reviewed-public-url-snapshot", proposalSha256: artifact.proposalSha256, ...artifact.manifest }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
   writeFileSync(paths.preflight, artifact.preflightSql, { encoding: "utf8", flag: "wx" });
   writeFileSync(paths.restore, artifact.restoreSql, { encoding: "utf8", flag: "wx" });
   writeFileSync(paths.apply, artifact.applySql, { encoding: "utf8", flag: "wx" });
