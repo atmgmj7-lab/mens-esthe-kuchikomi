@@ -25,6 +25,8 @@ assert.equal(
 const preparer = readFileSync(preparerPath, "utf8");
 assert.match(preparer, /FULL_IMPORT_EXPECTED_SHOPS/, "full import must require an explicit audited shop count");
 assert.match(preparer, /FULL_IMPORT_OUTPUT_LABEL/, "full import must refuse to overwrite a historical generated import");
+assert.match(preparer, /FULL_IMPORT_BATCH_ID/, "full import must require a fresh explicit audit batch id");
+assert.match(preparer, /Generated import artifact already exists/, "full import must never overwrite an earlier generated artifact");
 
 const packageJson = JSON.parse(readFileSync(join(headlessRoot, "package.json"), "utf8"));
 assert.equal(
@@ -100,7 +102,8 @@ assert.match(verifySql, /Expected 2 draft shops/i);
 assert.match(verifySql, /Expected 2 WordPress area links/i);
 assert.match(verifySql, /Expected 1 nonpublic prices/i);
 assert.match(verifySql, /Expected 1 nonpublic images/i);
-assert.match(verifySql, /api\.published_reviews/i);
+assert.match(verifySql, /imported_published_shops/i);
+assert.doesNotMatch(verifySql, /api\.published_reviews/i, "Full importer must not query the deliberately private legacy review view as anon");
 assert.match(verifySql, /set local role anon/i);
 
 if (existsSync(importPath)) {

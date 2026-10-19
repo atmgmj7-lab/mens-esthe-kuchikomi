@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -8,7 +8,6 @@ import {
   renderFullVerifySql
 } from "./lib/supabase-trial-sql.mjs";
 
-const BATCH_ID = "f9949784-0aad-419b-bb69-cd35a3be2256";
 const DEFAULT_API_BASE = "https://mens-esthe-kuchikomi.com/wp-json/wp/v2";
 
 function expectedInteger(name) {
@@ -17,6 +16,14 @@ function expectedInteger(name) {
     throw new Error(`${name} must be an explicit non-negative integer for a corpus dry run`);
   }
   return Number(raw);
+}
+
+function expectedUuid(name) {
+  const raw = process.env[name]?.trim() ?? "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
+    throw new Error(`${name} must be an explicit UUID for an isolated corpus dry run`);
+  }
+  return raw.toLowerCase();
 }
 
 function normalizeApiBase(value) {
@@ -80,6 +87,7 @@ const expectedSource = {
   withoutArea: expectedInteger("FULL_IMPORT_EXPECTED_WITHOUT_AREA"),
   multipleAreas: expectedInteger("FULL_IMPORT_EXPECTED_MULTIPLE_AREAS")
 };
+const batchId = expectedUuid("FULL_IMPORT_BATCH_ID");
 if (shopResult.rows.length !== expectedSource.shops || areaResult.rows.length !== expectedSource.areas) {
   throw new Error(`WordPress source count drift: expected ${JSON.stringify(expectedSource)}, received shops=${shopResult.rows.length}, areas=${areaResult.rows.length}`);
 }
@@ -110,20 +118,23 @@ if (!/^[0-9]{8}-wordpress-[a-z0-9-]+$/.test(label || "")) {
 const importPath = join(importDir, `${label}.sql`);
 const verifyPath = join(importDir, `verify_${label}.sql`);
 const sourceUrl = `${apiBase}/shop?per_page=100&_embed=1`;
+if (existsSync(importPath) || existsSync(verifyPath)) {
+  throw new Error(`Generated import artifact already exists for ${label}; choose a new FULL_IMPORT_OUTPUT_LABEL`);
+}
 
 mkdirSync(importDir, { recursive: true });
 writeFileSync(importPath, renderFullImportSql({
   shops,
   areas,
-  batchId: BATCH_ID,
+  batchId,
   sourceUrl,
   selectedAt
 }));
-writeFileSync(verifyPath, renderFullVerifySql({ shops, areas, batchId: BATCH_ID }));
+writeFileSync(verifyPath, renderFullVerifySql({ shops, areas, batchId }));
 
 console.log(JSON.stringify({
   selectedAt,
-  batchId: BATCH_ID,
+  batchId,
   shops: shops.length,
   areas: areas.length,
   ...expected,

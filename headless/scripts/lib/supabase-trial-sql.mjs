@@ -974,18 +974,13 @@ set local role anon;
 
 do $$
 declare
+  full_area_ids constant bigint[] := array[${areaIds.join(", ")}];
+  full_shop_ids constant bigint[] := array[${shopIds.join(", ")}];
   public_rows integer;
 begin
   select
-    (select count(*) from api.published_areas)
-    + (select count(*) from api.published_shops)
-    + (select count(*) from api.published_shop_areas)
-    + (select count(*) from api.published_shop_prices)
-    + (select count(*) from api.published_shop_business_hours)
-    + (select count(*) from api.published_shop_images)
-    + (select count(*) from api.published_shop_sources)
-    + (select count(*) from api.published_contents)
-    + (select count(*) from api.published_reviews)
+    (select count(*) from api.published_areas where wp_term_id = any(full_area_ids))
+    + (select count(*) from api.published_shops where wp_post_id = any(full_shop_ids))
   into public_rows;
 
   if public_rows <> 0 then
@@ -995,15 +990,8 @@ end
 $$;
 
 select
-  (select count(*) from api.published_areas) as published_areas,
-  (select count(*) from api.published_shops) as published_shops,
-  (select count(*) from api.published_shop_areas) as published_shop_areas,
-  (select count(*) from api.published_shop_prices) as published_shop_prices,
-  (select count(*) from api.published_shop_business_hours) as published_shop_business_hours,
-  (select count(*) from api.published_shop_images) as published_shop_images,
-  (select count(*) from api.published_shop_sources) as published_shop_sources,
-  (select count(*) from api.published_contents) as published_contents,
-  (select count(*) from api.published_reviews) as published_reviews;
+  (select count(*) from api.published_areas where wp_term_id = any(array[${areaIds.join(", ")}])) as imported_published_areas,
+  (select count(*) from api.published_shops where wp_post_id = any(array[${shopIds.join(", ")}])) as imported_published_shops;
 
 rollback;
 `;
