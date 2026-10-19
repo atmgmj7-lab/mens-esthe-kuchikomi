@@ -24,8 +24,8 @@ function extensionFor({ mime_type: mimeType, source_url: sourceUrl }) {
   return match ? match[1].toLowerCase() : "bin";
 }
 
-function proposedTarget(media) {
-  if (!media.sha256) return { bucket: "shop-images", object_key: null, public_url: null };
+function proposedTarget(media, isShopTransferCandidate) {
+  if (!media.sha256 || !isShopTransferCandidate) return { bucket: null, object_key: null, public_url: null };
   return {
     bucket: "shop-images",
     object_key: `wordpress-media/${media.id}/${media.sha256}.${extensionFor(media)}`,
@@ -36,6 +36,7 @@ function proposedTarget(media) {
 export function buildMediaManifest({ label, media, referencesByMediaId }) {
   const objects = media.map((item) => {
     const references = referencesByMediaId.get(item.id) || [];
+    const transferCandidate = references.some((reference) => reference.content_type === "shop");
     return {
       wp_media_id: item.id,
       source_url: item.source_url,
@@ -46,7 +47,8 @@ export function buildMediaManifest({ label, media, referencesByMediaId }) {
       retrieval_status: item.retrieval_status,
       classification: references.length > 0 ? "referenced" : "unreferenced",
       references,
-      proposed_target: proposedTarget(item),
+      transfer_candidate: transferCandidate,
+      proposed_target: proposedTarget(item, transferCandidate),
       transfer_state: "not_transferred"
     };
   });
@@ -59,6 +61,8 @@ export function buildMediaManifest({ label, media, referencesByMediaId }) {
       media_total: objects.length,
       referenced: objects.filter((object) => object.classification === "referenced").length,
       unreferenced: objects.filter((object) => object.classification === "unreferenced").length,
+      shop_transfer_candidates: objects.filter((object) => object.transfer_candidate).length,
+      referenced_nonshop: objects.filter((object) => object.classification === "referenced" && !object.transfer_candidate).length,
       downloaded: objects.filter((object) => object.retrieval_status === "downloaded").length,
       failed: objects.filter((object) => object.retrieval_status === "failed").length,
       bytes_downloaded: objects.reduce((total, object) => total + (object.source_bytes || 0), 0)
@@ -162,7 +166,11 @@ async function run() {
   const outputDir = join(repoRoot, "supabase", "imports", "wp-media-preservation", label);
   const resume = process.env.WP_MEDIA_PRESERVATION_RESUME === "1";
   const reconcile = process.env.WP_MEDIA_PRESERVATION_RECONCILE === "1";
-  const manifestPath = join(outputDir, reconcile ? "manifest-reconciled.json" : "manifest.json");
+  const reconciliationName = process.env.WP_MEDIA_PRESERVATION_RECONCILE_NAME?.trim() || "manifest-reconciled.json";
+  if (reconcile && !/^manifest-[a-z0-9-]+\.json$/.test(reconciliationName)) {
+    throw new Error("WP_MEDIA_PRESERVATION_RECONCILE_NAME must be a manifest-*.json filename");
+  }
+  const manifestPath = join(outputDir, reconcile ? reconciliationName : "manifest.json");
   if (existsSync(outputDir) && !resume && !reconcile) throw new Error(`Preservation artifact already exists for ${label}; choose a new label`);
   if (resume && existsSync(join(outputDir, "manifest.json"))) throw new Error(`Preservation artifact is already complete for ${label}; choose a new label`);
   if (reconcile && !existsSync(join(outputDir, "manifest.json"))) throw new Error(`No original manifest exists for ${label}; reconciliation is not valid`);

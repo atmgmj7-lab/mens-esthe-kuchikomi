@@ -36,6 +36,14 @@ record difference under a named import batch before changing a public image
 URL. The 26 unreferenced IDs remain preserved and are not candidates for
 publication without an explicit retention decision.
 
+The difference is now resolved as **not a shop-image discrepancy**: media ID
+357 (`Gemini_Generated_Image_f8kg5yf8kg5yf8kg-scaled.png`, SHA-256
+`96f59d37e745108178e23c1ba2533328b7ffb615c079e43228f449d28dd5486c`,
+6,487,809 bytes) is the featured image of WordPress page 343,
+`/osaka-nihonbashi/`. It is a page asset and is deliberately excluded from the
+241 `shop-images` transfer candidates. The reconciled manifest records 241
+shop candidates, one referenced non-shop asset, and 26 unreferenced assets.
+
 ## Existing Storage assessment
 
 The connected project is on the Free plan. It has one existing bucket,
@@ -66,6 +74,26 @@ The target below is a proposal only:
 | Per-object limit | At least 10 MiB, covering the observed 6.19 MiB maximum with room for a retry |
 | Publication | Only rights-cleared, referenced objects after checksum verification; no blanket publish of the 26 unreferenced items |
 | Delivery | Choose either a public image bucket/CDN URL or a dedicated authenticated proxy before upload; do not change the existing private asset bucket's policy |
+
+### URL-switch dry run
+
+The generated, Git-ignored URL-switch worksheet is:
+
+`supabase/imports/shop-image-url-switch/20261019-shop-images-public-switch-dry-run.json`
+
+It has 241 unique source-url → proposed-key operations and no database write:
+every operation is marked `upload_state: not_uploaded`,
+`checksum_verification: pending_readback`, and
+`database_write: not_authorized`. Its URL values use the deliberate placeholder
+`https://<project-ref>.supabase.co/...`; they are not live URLs.
+
+After an approved upload, verify each path in this order before allowing any
+URL update: (1) uploaded object exists at its exact manifest key; (2) download
+the object through the approved delivery path; (3) recompute SHA-256 and byte
+count and match the local manifest; (4) verify MIME type and an HTTP 200
+response; (5) only then apply the named mapping batch; (6) rerun the 241-path
+comparison plus shop detail, listing, and sitemap HTTP checks. A mismatch is a
+stop condition, not a reason to substitute an image or publish a partial set.
 
 Restoration must be a mapping rollback, not object deletion:
 
@@ -109,6 +137,13 @@ The migration dry run preserves relationships but does not infer publication:
   | 5185 | Mr.Dandies |
   | 5187 | Mrs.美Witch 一条通ルーム |
   | 5189 | ミセスムーンR 堺東ルーム |
+
+  All fourteen have `status=publish`, no `shop_category`/`shop_feature`, no
+  featured media, and no public description body. All have two or more area
+  terms (5070 has three). The public metadata therefore does not establish an
+  industry classification safely; each is `review_required` rather than an
+  automatic men's-esthetic import candidate. Their official URLs, when present,
+  are evidence to review, not publication approval.
 - The two Supabase-only drafts must remain excluded: 1255 `天然温泉 ひなたの湯`
   and 1259 `あしぎぬ温泉`. Their stored payload identifies hot-spring businesses,
   not the portal's men’s-esthetic scope; both lack required price/image evidence
@@ -129,6 +164,11 @@ These results are intentionally distinct:
   local QA README and exercised the Supabase-primary fixture projection. It is
   the evidence for primary-mode HTTP behavior, not evidence that the default
   build read WordPress successfully.
+- The repository-wide `test:wp-origin-tls` remains a compatibility-mode
+  preflight, not a Supabase-primary correctness test: it requires reaching the
+  certificate-matching WordPress origin. It is currently blocked by that origin
+  reachability and must remain reported as unverified; do not describe the full
+  test suite as passing or remove it from compatibility release verification.
 
 ## Required approval packet before transfer or production import
 
