@@ -140,5 +140,9 @@ the check.
 The read-only source inventory on the same date found 394 published WordPress
 shops, 34 areas, six pages, zero public posts, and 268 media entries, while the
 production Supabase project contains 382 draft shops, 34 unpublished areas,
-241 private images, and no published contents. The 12-shop delta and all 241
-WordPress uploads URLs are release blockers; no cloud data was modified.
+241 private images, and no published contents. Reconciliation is 380 matched
+IDs, 14 source-only shops, and two app-only draft records retained as excluded;
+it is not a 12-row auto-publish delta. All 268 source media remain WordPress
+uploads (26,772,927 bytes total), and the 241 referenced URLs are release
+blockers until an object manifest and approved destination exist. No cloud data
+was modified.
