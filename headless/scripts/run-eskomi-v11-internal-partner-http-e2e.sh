@@ -14,6 +14,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 headless_root="$repo_root/headless"
 app_runtime="${ESKOMI_E2E_APP_RUNTIME:-next}"
 preserve_fixture="${ESKOMI_E2E_PRESERVE_FIXTURE:-0}"
+content_primary="${ESKOMI_E2E_CONTENT_PRIMARY:-0}"
 workers_artifact_root=""
 if [ "$app_runtime" = "workers" ]; then
   workers_artifact_root="${ESKOMI_E2E_WORKERS_ARTIFACT_ROOT:-$headless_root}"
@@ -150,6 +151,36 @@ do \$\$ declare v_shop uuid; v_workspace uuid; v_experience uuid; v_result text;
 end \$\$;
 SQL
 
+# This remains opt-in because it exercises the independent Supabase-primary
+# reader rather than the ordinary operator directory projection.  The data is
+# inserted into this disposable fixture only; it deliberately includes a draft
+# shop so sitemap/list/detail assertions can prove strict public filtering.
+if [ "$content_primary" = "1" ]; then
+  docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres <<'SQL'
+update app.shops set wp_post_id = 910000001 where slug = 'fixture-partner-store';
+update app.shops set wp_post_id = 910000002 where slug = 'fixture-other-store';
+insert into app.areas(slug,name,is_published,published_at)
+values ('fixture-secondary-area','Fixture secondary area',true,now());
+insert into app.shop_areas(shop_id,area_id,is_primary)
+select shop.id, area.id, true from app.shops shop cross join app.areas area
+where shop.slug = 'fixture-partner-store' and area.slug = 'fixture-area'
+on conflict (shop_id,area_id) do update set is_primary = true;
+update app.shop_areas set is_primary = false
+where shop_id = (select id from app.shops where slug = 'fixture-other-store');
+insert into app.shop_areas(shop_id,area_id,is_primary)
+select shop.id, area.id, true from app.shops shop cross join app.areas area
+where shop.slug = 'fixture-other-store' and area.slug = 'fixture-secondary-area'
+on conflict (shop_id,area_id) do update set is_primary = true;
+insert into app.shops(wp_post_id,slug,canonical_path,name,description_html,excerpt,publication_status)
+values (910000003,'fixture-primary-draft','/shops/fixture-primary-draft/','Fixture primary draft','draft','draft','draft');
+insert into app.contents(route_key,content_type,source_type,title,body_html,body_text,publication_status,published_at)
+select route_key,'other','unknown','Fixture ' || route_key,'<p>PRIMARY_FIXED_PAGE_MARKER</p>','PRIMARY_FIXED_PAGE_MARKER','published',now()
+from unnest(array['/contact/','/about/','/sitemap/','/storelisting/','/advertise/','/osaka-nihonbashi/']) as route_key;
+insert into app.contents(route_key,content_type,source_type,title,body_html,body_text,publication_status,published_at)
+values ('/column/fixture-primary-column/','other','unknown','Fixture primary column','<p>PRIMARY_COLUMN_MARKER</p>','PRIMARY_COLUMN_MARKER','published',now());
+SQL
+fi
+
 common_app_args=(
   --network "$network_name" --network-alias next --mount "type=volume,src=$runtime_volume,dst=/app" -w /app
   -e SUPABASE_URL=http://127.0.0.1:8000 -e SUPABASE_AUTH_PUBLISHABLE_KEY="$anon_key" -e SUPABASE_SERVICE_ROLE_KEY="$service_key"
@@ -161,12 +192,23 @@ common_app_args=(
   -e 'ESKOMI_INTERNAL_PROXY_ROUTES={"/auth/v1":"http://api:8000/auth/v1","/rest/v1":"http://api:8000/rest/v1","/rpc":"http://api:8000/rest/v1/rpc","/storage/v1":"http://api:8000/storage/v1","/verify":"http://auth:9999/verify"}'
   -e WP_API_BASE_URL=http://127.0.0.1:9/wp-json -e NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid
 )
+primary_worker_command=""
+if [ "$content_primary" = "1" ]; then
+  common_app_args+=(
+    -e CONTENT_DATA_SOURCE=supabase -e SUPABASE_CONTENT_CUTOVER_APPROVED=true
+    -e SUPABASE_CONTENT_URL=http://127.0.0.1:8000 -e SUPABASE_CONTENT_PUBLISHABLE_KEY="$anon_key"
+    -e SUPABASE_CONTENT_EXPECTED_SHOPS=2 -e SUPABASE_CONTENT_EXPECTED_AREAS=2
+    -e SUPABASE_CONTENT_EXPECTED_POSTS=1 -e SUPABASE_CONTENT_EXPECTED_PAGES=6
+  )
+  primary_worker_command=' --var CONTENT_DATA_SOURCE:supabase --var SUPABASE_CONTENT_CUTOVER_APPROVED:true --var SUPABASE_CONTENT_URL:http://127.0.0.1:8000 --var SUPABASE_CONTENT_PUBLISHABLE_KEY:"$SUPABASE_CONTENT_PUBLISHABLE_KEY" --var SUPABASE_CONTENT_EXPECTED_SHOPS:2 --var SUPABASE_CONTENT_EXPECTED_AREAS:2 --var SUPABASE_CONTENT_EXPECTED_POSTS:1 --var SUPABASE_CONTENT_EXPECTED_PAGES:6'
+fi
 case "$app_runtime" in
   next)
     docker run -d --name "$next_container" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec npm run dev -- --hostname 0.0.0.0 --port 57000' >/dev/null
     ;;
   workers)
-    docker run -d --name "$next_container" -e ESKOMI_WORKERS_BUILD_ROOT="$workers_artifact_root" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu 'find .open-next -type f \( -name "*.mjs" -o -name "*.json" \) -exec sed -i "s|${ESKOMI_WORKERS_BUILD_ROOT}|/app|g" {} +; node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec ./node_modules/.bin/wrangler dev --local --ip 0.0.0.0 --port 57000 --var SUPABASE_URL:http://127.0.0.1:8000 --var SUPABASE_AUTH_PUBLISHABLE_KEY:"$SUPABASE_AUTH_PUBLISHABLE_KEY" --var SUPABASE_SERVICE_ROLE_KEY:"$SUPABASE_SERVICE_ROLE_KEY" --var ESKOMI_V11_PUBLIC_REVIEW_SOURCE:supabase --var SHOP_DIRECTORY_SOURCE:supabase --var PARTNER_AUTH_REDIRECT_ORIGIN:http://localhost:57000 --var DASHBOARD_BASIC_AUTH_USER:"$DASHBOARD_BASIC_AUTH_USER" --var DASHBOARD_BASIC_AUTH_PASSWORD:"$DASHBOARD_BASIC_AUTH_PASSWORD" --var WP_API_BASE_URL:http://127.0.0.1:9/wp-json --var NEXT_PUBLIC_WP_BASE_URL:https://workers-fixture.invalid' >/dev/null
+    worker_command='find .open-next -type f \( -name "*.mjs" -o -name "*.json" \) -exec sed -i "s|${ESKOMI_WORKERS_BUILD_ROOT}|/app|g" {} +; node scripts/eskomi-v11-internal-prefix-proxy.mjs & exec ./node_modules/.bin/wrangler dev --local --ip 0.0.0.0 --port 57000 --var SUPABASE_URL:http://127.0.0.1:8000 --var SUPABASE_AUTH_PUBLISHABLE_KEY:"$SUPABASE_AUTH_PUBLISHABLE_KEY" --var SUPABASE_SERVICE_ROLE_KEY:"$SUPABASE_SERVICE_ROLE_KEY" --var ESKOMI_V11_PUBLIC_REVIEW_SOURCE:supabase --var SHOP_DIRECTORY_SOURCE:supabase --var PARTNER_AUTH_REDIRECT_ORIGIN:http://localhost:57000 --var DASHBOARD_BASIC_AUTH_USER:"$DASHBOARD_BASIC_AUTH_USER" --var DASHBOARD_BASIC_AUTH_PASSWORD:"$DASHBOARD_BASIC_AUTH_PASSWORD" --var WP_API_BASE_URL:http://127.0.0.1:9/wp-json --var NEXT_PUBLIC_WP_BASE_URL:https://workers-fixture.invalid'
+    docker run -d --name "$next_container" -e ESKOMI_WORKERS_BUILD_ROOT="$workers_artifact_root" "${common_app_args[@]}" node:24-bookworm-slim sh -ceu "$worker_command$primary_worker_command" >/dev/null
     ;;
   *)
     echo "Unsupported ESKOMI_E2E_APP_RUNTIME: $app_runtime" >&2
@@ -176,6 +218,23 @@ esac
 next_created=1
 for _ in $(seq 1 90); do next_logs="$(docker logs "$next_container" 2>&1)"; grep -Eq 'Ready|started server|Starting local server' <<<"$next_logs" && break; sleep 1; done
 grep -Eq 'Ready|started server|Starting local server' <<<"$next_logs"
+
+if [ "$content_primary" = "1" ]; then
+  docker run --rm --network "$network_name" node:24-bookworm-slim node - <<'NODE'
+import assert from 'node:assert/strict';
+const base='http://next:57000';
+const fetchWithin=(path)=>fetch(`${base}${path}`,{signal:AbortSignal.timeout(15_000)});
+const sitemap=await fetchWithin('/sitemap.xml'); const sitemapBody=await sitemap.text();
+assert.equal(sitemap.status,200,sitemapBody);
+assert.match(sitemapBody,/fixture-partner-store/u);
+assert.match(sitemapBody,/fixture-other-store/u);
+assert.doesNotMatch(sitemapBody,/fixture-primary-draft/u);
+const detail=await fetchWithin('/shops/fixture-partner-store/'); assert.equal(detail.status,200,await detail.text());
+const draft=await fetchWithin('/shops/fixture-primary-draft/'); assert.equal(draft.status,404,await draft.text());
+const page=await fetchWithin('/contact/'); assert.equal(page.status,200,await page.text());
+console.log('Supabase-primary sitemap must render the published fixture and exclude the draft fixture: PASS');
+NODE
+fi
 
 docker run --rm -i --network "$network_name" -e ESKOMI_E2E_DEFER_UNLIST=1 -e ANON_KEY="$anon_key" -e PRIMARY_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$primary_user'")" -e OTHER_EMAIL="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select email from auth.users where id='$other_user'")" -e PRIMARY_MANAGED_SHOP_ID="$(docker exec "$database_container" psql -X -q -A -t -U postgres -d postgres -c "select id from private.managed_shops where shop_slug='fixture-partner-store'")" -e DASHBOARD_USER="$dashboard_user" -e DASHBOARD_PASSWORD="$dashboard_password" node:24-bookworm-slim node - <<'NODE'
 const assert=require('node:assert/strict'); const base='http://next:57000',origin=base,loginOrigin='http://localhost:57000'; const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgZGIGAAAOAAeCcsnOAAAAAElFTkSuQmCC','base64');

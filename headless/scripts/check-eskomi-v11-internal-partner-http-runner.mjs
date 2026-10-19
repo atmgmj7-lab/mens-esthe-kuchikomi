@@ -31,6 +31,9 @@ assert.match(script, /SUPABASE_URL=http:\/\/127\.0\.0\.1:8000/, "Next must use i
 assert.match(script, /SHOP_DIRECTORY_SOURCE=supabase/, "the disposable Next process must opt into the canonical public directory only for the public-projection observation");
 assert.match(script, /ESKOMI_V11_PUBLIC_REVIEW_SOURCE=supabase/, "the fixture must select the canonical public-review source");
 assert.match(script, /--var ESKOMI_V11_PUBLIC_REVIEW_SOURCE:supabase/, "the local Worker must receive the canonical public-review source explicitly");
+assert.match(script, /ESKOMI_E2E_CONTENT_PRIMARY/, "the runner must offer an explicit Supabase-primary fixture mode");
+assert.match(script, /SUPABASE_CONTENT_EXPECTED_SHOPS/, "the primary fixture must provide explicit directory coverage counts");
+assert.match(script, /Supabase-primary sitemap must render the published fixture and exclude the draft fixture/, "the runner must prove primary sitemap behavior through Worker HTTP");
 assert.match(script, /ESKOMI_INTERNAL_PROXY_HOST=127\.0\.0\.1/, "the test adapter must bind only to the Next container loopback");
 assert.match(script, /ESKOMI_E2E_APP_RUNTIME/, "the runner must select a Next or local Workers application runtime explicitly");
 assert.match(script, /ESKOMI_E2E_WORKERS_ARTIFACT_ROOT/, "Workers mode must accept one explicit host-built artifact root instead of assuming the canonical source output");

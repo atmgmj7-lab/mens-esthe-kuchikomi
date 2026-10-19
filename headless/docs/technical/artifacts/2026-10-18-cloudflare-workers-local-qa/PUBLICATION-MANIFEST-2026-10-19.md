@@ -1,69 +1,51 @@
-# Conservative publication manifest — 2026-10-19
+# Proposed publication manifest — 2026-10-19
 
-## Purpose and current decision
+## Status
 
-This is a **zero-target, read-only preflight** for a future Supabase-primary
-cutover. It is not a data import, a publish operation, or an authorization to
-make any row public. The generated manifest records that there are currently
-no approved public targets for shops, areas, fixed pages, or image rows.
+This is a **proposal**, not an approved migration or an apply instruction.
+It describes the concrete current public URL corpus recovered from the reviewed
+WordPress public-read-only snapshot (`394` shops, response date 2026-10-19).
+The generator records `state: proposed` and `approval: not-approved`.
 
-The checked-in generator is:
+The generated `*.proposed.apply-blocked.sql` cannot mutate data: it requires
+an exact operator approval token and then raises an intentional exception.  A
+separately reviewed, component-specific approved manifest is required before
+any future `UPDATE`, content import, or image state change can exist.
 
-```text
-headless/scripts/prepare-supabase-publication-manifest.mjs
+## Proposed public targets
+
+| Component | Concrete target source | Count | Proposed action | Apply status |
+| --- | --- | ---: | --- | --- |
+| Shops | Exact `candidateWpIds` from `20261019-primary-area-delta.plan.json` | 379 | `draft` → candidate for published projection | blocked |
+| Areas | Exact 34 `wp_term_id` values in the reviewed corpus dry-run | 34 | candidate for `is_published=true` | blocked |
+| Fixed pages | `/contact/`, `/about/`, `/sitemap/`, `/storelisting/`, `/advertise/`, `/osaka-nihonbashi/` | 6 | require a separately reconciled page-content projection | blocked |
+| Shop images | Exact 241 `wp_media_id` values in the approved image dry-run manifest | 241 | candidate for `is_public=true` only after row/URL reconciliation | blocked |
+
+The generator intentionally reads these reviewed artifacts rather than using a
+numeric range. It fails if the snapshot no longer has 379 shops, 34 areas, or
+241 image targets.
+
+## Strict exclusions
+
+- The 14 review-required WordPress-only shop IDs remain outside `app.shops`.
+- Managed-unlisted WordPress ID `1272` remains draft and is excluded.
+- Supabase-only hot-spring draft IDs `1255` and `1259` remain draft.
+- Fixed-page media ID `357` is never treated as a shop image.
+- The public directory RPC continues to exclude every managed shop whose
+  operator state is not `published`, so deleted/unlisted identities cannot be
+  reintroduced by a broad candidate list.
+
+## Verification boundary
+
+The generated preflight is read-only and verifies the exact shop, area, and
+image target IDs plus the exclusions. It does **not** publish pages or infer a
+primary area. A local rollback-only rehearsal passed; no production database,
+Storage, DNS, or Cloudflare resource was accessed.
+
+Run the proposal generator only to create a new local artifact label:
+
+```bash
+cd headless
+PUBLICATION_MANIFEST_OUTPUT_LABEL=20261019-publication-manifest-v3 \
+  node scripts/prepare-supabase-publication-manifest.mjs
 ```
-
-Generated payloads live under the ignored
-`supabase/imports/publication-manifest/` directory because they contain a
-time-specific operational inventory. They are deliberately not committed.
-
-## Reconciled scope
-
-| Category | Current action | Reason |
-| --- | ---: | --- |
-| 379 matched WordPress/App shop IDs | retain as drafts | A WordPress-public URL is not a Supabase-publication approval. |
-| 14 WordPress-only IDs (`5070`, `5074`, `5079`, `5082`, `5129`, `5135`, `5137`, `5175`, `5177`, `5181`, `5183`, `5185`, `5187`, `5189`) | exclude | `review-required`; no corresponding App row is created. |
-| App ID `1272` | retain as draft | Managed listing is explicitly `unlisted`. |
-| App IDs `1255`, `1259` | retain as drafts | App-only draft records. |
-| Areas | retain unchanged | The 44 primary-area rows are optional metadata, not a pre-cutover gate. Existing zero/multiple memberships are untouched. |
-| Six fixed pages | retain unchanged | Canonical body/content projection has not been approved. |
-| 241 App image rows / WordPress fixed-page media (357 source media) | retain unchanged | Object/media reconciliation and an image-publication target are not approved. |
-
-The output's before/after public target count is therefore `0/0` for shops,
-areas, pages, and images. Existing WordPress public routes remain the serving
-source until a separately approved cutover has a reconciled explicit target
-list.
-
-## Safe execution plan
-
-1. Generate a label-specific manifest, for example:
-
-   ```sh
-   PUBLICATION_MANIFEST_OUTPUT_LABEL=20261019-publication-manifest-v2 \
-     npm --prefix headless run supabase:prepare-publication-manifest
-   ```
-
-2. Run the generated `*.preflight.sql` only against the intended, approved
-   environment. It starts `BEGIN READ ONLY`, asserts the retained drafts and
-   exclusions, and commits without DML.
-3. If a later publication is approved, create a new manifest with an explicit
-   reviewed target list and a separately reviewed apply migration. Do not edit
-   the zero-target manifest into an apply script.
-4. Run the generated `*.restore.sql` after any future operation as a
-   non-destructive verification of the retained exclusions. It is deliberately
-   read-only; no broad rollback, storage deletion, or restoration command is
-   present here.
-
-## Local verification
-
-`test:supabase-publication-manifest-local-rehearsal` seeds only a transaction
-in the existing local fixture, runs the caller-mode preflight and restore
-verification, and rolls the entire transaction back. It verifies the exact
-379 candidate drafts, the 14 absent review-required rows, the unlisted and
-App-only drafts, and the 241-row image inventory. It never applies the
-generated script to a cloud database.
-
-The manifest intentionally makes no assertion about global public counts in a
-shared local fixture; its contract is scoped to the reconciled future
-cutover-target inventory. This prevents unrelated fixture content from being
-misrepresented as production publication evidence.

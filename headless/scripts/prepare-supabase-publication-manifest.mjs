@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  buildConservativePublicationManifest,
+  buildProposedPublicationManifest,
+  renderPublicationManifestApplySql,
   renderPublicationManifestPreflightSql,
   renderPublicationManifestRestoreSql
 } from "./lib/supabase-publication-manifest.mjs";
@@ -10,54 +11,60 @@ import {
 const REVIEW_REQUIRED_WP_IDS = [5070, 5074, 5079, 5082, 5129, 5135, 5137, 5175, 5177, 5181, 5183, 5185, 5187, 5189];
 const MANAGED_UNLISTED_WP_IDS = [1272];
 const RETAINED_DRAFT_WP_IDS = [1255, 1259];
-const CANDIDATE_WP_IDS = [
-  ...Array.from({ length: 255 }, (_, index) => 640 + index),
-  ...Array.from({ length: 90 }, (_, index) => 1165 + index),
-  1256, 1257, 1258,
-  ...Array.from({ length: 12 }, (_, index) => 1260 + index),
-  ...Array.from({ length: 19 }, (_, index) => 1273 + index)
-];
+const FIXED_PAGE_ROUTES = ["/contact/", "/about/", "/sitemap/", "/storelisting/", "/advertise/", "/osaka-nihonbashi/"];
+const repoRoot = join(fileURLToPath(new URL("..", import.meta.url)), "..");
 
 function parseLabel(value) {
-  if (!/^\d{8}-publication-manifest(?:-v[1-9]\d*)?$/.test(value || "")) {
-    throw new Error("PUBLICATION_MANIFEST_OUTPUT_LABEL must be YYYYMMDD-publication-manifest or YYYYMMDD-publication-manifest-vN");
-  }
+  if (!/^\d{8}-publication-manifest(?:-v[1-9]\d*)?$/.test(value || "")) throw new Error("PUBLICATION_MANIFEST_OUTPUT_LABEL must be YYYYMMDD-publication-manifest or YYYYMMDD-publication-manifest-vN");
   return value;
 }
 
-export function buildZeroTargetPublicationManifest(label) {
-  const manifest = buildConservativePublicationManifest({
-    candidateWpIds: CANDIDATE_WP_IDS,
+function readJson(relativePath) { return JSON.parse(readFileSync(join(repoRoot, relativePath), "utf8")); }
+
+function sourceTargets() {
+  const plan = readJson("supabase/imports/primary-area-delta/20261019-primary-area-delta.plan.json");
+  const imagePlan = readJson("supabase/imports/shop-image-url-switch/20261019-shop-images-public-switch-dry-run.json");
+  const corpusSql = readFileSync(join(repoRoot, "supabase/imports/20261019-wordpress-corpus-dry-run.sql"), "utf8");
+  const areaTermIds = [...corpusSql.matchAll(/^-- area wp_term_id=(\d+)$/gm)].map((match) => Number(match[1]));
+  const imageWpMediaIds = imagePlan.operations.map((operation) => operation.wp_media_id);
+  if (plan.candidateWpIds.length !== 379 || areaTermIds.length !== 34 || imageWpMediaIds.length !== 241) throw new Error("proposal source inventory changed; regenerate from a reviewed public-source snapshot");
+  return { candidateWpIds: plan.candidateWpIds, areaTermIds, imageWpMediaIds };
+}
+
+export function buildProposedPublicationManifestArtifact(label) {
+  const source = sourceTargets();
+  const manifest = buildProposedPublicationManifest({
+    ...source,
     reviewRequiredWpIds: REVIEW_REQUIRED_WP_IDS,
     managedUnlistedWpIds: MANAGED_UNLISTED_WP_IDS,
     retainedDraftWpIds: RETAINED_DRAFT_WP_IDS,
-    imageCount: 241,
-    publicTargets: { shops: [], areas: [], pages: [], imageRows: [] }
+    fixedPageRoutes: FIXED_PAGE_ROUTES
   });
   return {
     manifest,
     preflightSql: renderPublicationManifestPreflightSql({ manifest, sourceLabel: label }),
-    restoreSql: renderPublicationManifestRestoreSql({ manifest, sourceLabel: label })
+    restoreSql: renderPublicationManifestRestoreSql({ manifest, sourceLabel: label }),
+    applySql: renderPublicationManifestApplySql({ manifest, sourceLabel: label })
   };
 }
 
 function main() {
   const label = parseLabel(process.env.PUBLICATION_MANIFEST_OUTPUT_LABEL);
-  const artifact = buildZeroTargetPublicationManifest(label);
-  if (artifact.manifest.candidateWpIds.length !== 379) throw new Error("candidate manifest changed unexpectedly");
-  const repoRoot = join(fileURLToPath(new URL("..", import.meta.url)), "..");
+  const artifact = buildProposedPublicationManifestArtifact(label);
   const outputDir = join(repoRoot, "supabase", "imports", "publication-manifest");
   const paths = {
-    manifest: join(outputDir, `${label}.json`),
-    preflight: join(outputDir, `${label}.preflight.sql`),
-    restore: join(outputDir, `${label}.restore.sql`)
+    manifest: join(outputDir, `${label}.proposed.json`),
+    preflight: join(outputDir, `${label}.proposed.preflight.sql`),
+    restore: join(outputDir, `${label}.proposed.restore.sql`),
+    apply: join(outputDir, `${label}.proposed.apply-blocked.sql`)
   };
   for (const path of Object.values(paths)) if (existsSync(path)) throw new Error(`Publication manifest already exists: ${path}`);
   mkdirSync(outputDir, { recursive: true });
-  writeFileSync(paths.manifest, `${JSON.stringify({ label, generatedAt: new Date().toISOString(), ...artifact.manifest }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+  writeFileSync(paths.manifest, `${JSON.stringify({ label, generatedAt: new Date().toISOString(), source: "reviewed-public-url-snapshot", ...artifact.manifest }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
   writeFileSync(paths.preflight, artifact.preflightSql, { encoding: "utf8", flag: "wx" });
   writeFileSync(paths.restore, artifact.restoreSql, { encoding: "utf8", flag: "wx" });
-  console.log(JSON.stringify({ output: paths, candidateCount: artifact.manifest.candidateWpIds.length, publicTargets: artifact.manifest.publicTargets, exclusions: artifact.manifest.exclusions }, null, 2));
+  writeFileSync(paths.apply, artifact.applySql, { encoding: "utf8", flag: "wx" });
+  console.log(JSON.stringify({ output: paths, state: artifact.manifest.state, approval: artifact.manifest.approval, targets: artifact.manifest.publicTargets, exclusions: artifact.manifest.exclusions }, null, 2));
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
