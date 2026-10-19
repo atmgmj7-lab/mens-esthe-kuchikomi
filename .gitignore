@@ -27,6 +27,7 @@ supabase/imports/*.sql
 supabase/imports/wp-media-preservation/
 supabase/imports/shop-image-url-switch/
 supabase/imports/primary-area-delta/
+supabase/imports/publication-manifest/
 
 # エディタ
 .cursor/

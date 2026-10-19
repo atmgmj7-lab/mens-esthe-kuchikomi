@@ -119,10 +119,16 @@ export async function getSupabasePrimaryPublicDirectory(environment: Environment
   if (plan.primary !== "supabase") throw new ContentMigrationIncompleteError("Supabase-primary directory was requested while CONTENT_DATA_SOURCE is not supabase");
   const base = environment.SUPABASE_CONTENT_URL?.trim(); const key = environment.SUPABASE_CONTENT_PUBLISHABLE_KEY?.trim();
   if (!base || !key) throw new ContentMigrationIncompleteError("Supabase-primary public reader is not configured");
-  let response: Response;
-  try {
-    response = await fetchImpl(`${new URL(base).origin}/rest/v1/rpc/get_public_site_directory_v1`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }, body: "{}", cache: "no-store" });
-  } catch { throw new ContentMigrationIncompleteError("Supabase-primary public directory could not be read"); }
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetchImpl(`${new URL(base).origin}/rest/v1/rpc/get_public_site_directory_v1`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }, body: "{}", cache: "no-store" });
+      break;
+    } catch {
+      if (attempt === 1) throw new ContentMigrationIncompleteError("Supabase-primary public directory could not be read");
+    }
+  }
+  if (!response) throw new ContentMigrationIncompleteError("Supabase-primary public directory could not be read");
   if (!response.ok) throw new ContentMigrationIncompleteError(`Supabase-primary public directory returned HTTP ${response.status}`);
   const directory = parseDirectory(await response.json());
   if (!directory) throw new ContentMigrationIncompleteError("Supabase-primary public directory response violates the public contract");

@@ -59,6 +59,7 @@ assert.match(pages, /isSupabasePrimaryContent[\s\S]*ContentMigrationIncompleteEr
 assert.match(pages, /getSupabasePrimaryPublicDirectory/, "fixed pages must resolve the canonical primary directory before WordPress");
 assert.match(home, /isSupabasePrimaryContent\(\) \? Promise\.resolve\(\[\]\) : getHomeFeaturedAreas\(\)/, "home must skip the WordPress-only featured-area endpoint in primary mode");
 assert.match(home, /isSupabasePrimaryContent\(\)[\s\S]*result\.status === "rejected"[\s\S]*throw result\.reason/, "home must not turn a failed primary read into an empty successful page");
+assert.match(sitemap, /if \(isSupabasePrimaryContent\(\)\) \{[\s\S]*getSupabasePrimaryPublicDirectory\(\)[\s\S]*publicDirectoryAreas\(directory\)[\s\S]*directory\.shops[\s\S]*publicDirectoryPosts\(directory\)/, "primary sitemap must derive every public URL family from one directory read");
 assert.match(sitemap, /catch \(error\) \{\s*if \(isSupabasePrimaryContent\(\)\) throw error;/, "sitemap must not hide a failed primary read behind an empty sitemap");
 assert.match(shopDetail, /<Link href="\/shops\/">店舗情報<\/Link>/, "a shop detail must retain the generic store path before any area breadcrumb");
 assert.match(shopDetail, /areaPath && primaryArea/, "a missing primary area must omit, not invent, the area breadcrumb");
@@ -105,10 +106,11 @@ const environment = {
   SUPABASE_CONTENT_EXPECTED_SHOPS: "2", SUPABASE_CONTENT_EXPECTED_AREAS: "2", SUPABASE_CONTENT_EXPECTED_POSTS: "1", SUPABASE_CONTENT_EXPECTED_PAGES: "6"
 };
 const rpcCalls = [];
-const directory = await getSupabasePrimaryPublicDirectory(environment, async (url, init) => {
+const fixtureFetch = async (url, init) => {
   rpcCalls.push({ url, init });
   return new Response(JSON.stringify(fixture), { status: 200 });
-});
+};
+const directory = await getSupabasePrimaryPublicDirectory(environment, fixtureFetch);
 assert.equal(rpcCalls.length, 1);
 assert.match(rpcCalls[0].url, /\/rest\/v1\/rpc\/get_public_site_directory_v1$/);
 assert.equal(rpcCalls[0].init.cache, "no-store");
@@ -125,6 +127,14 @@ await assert.rejects(
   () => getSupabasePrimaryPublicDirectory({ ...environment, SUPABASE_CONTENT_EXPECTED_POSTS: "2" }, async () => new Response(JSON.stringify(fixture), { status: 200 })),
   ContentMigrationIncompleteError,
 );
+let transientAttempts = 0;
+const transientDirectory = await getSupabasePrimaryPublicDirectory(environment, async () => {
+  transientAttempts += 1;
+  if (transientAttempts === 1) throw new Error("fixture transport interrupted");
+  return new Response(JSON.stringify(fixture), { status: 200 });
+});
+assert.equal(transientAttempts, 2, "one transient public-directory transport failure must retry once");
+assert.equal(transientDirectory.shops.length, 2);
 
 const compiledResilience = ts.transpileModule(
   resilience.replace(/import \{ isManagedShopSourceUnavailableError \} from "@\/lib\/shop-management-source";/, "const isManagedShopSourceUnavailableError = () => false;"),

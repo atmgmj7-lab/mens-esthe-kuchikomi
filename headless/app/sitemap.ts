@@ -5,7 +5,12 @@ import { getAreas } from "@/lib/wp/areas";
 import { getPostsForSitemap } from "@/lib/wp/posts";
 import { getShopsForSitemap } from "@/lib/wp/shops";
 import { getPublicTherapistsForSitemap } from "@/lib/public-therapist";
-import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
+import {
+  getSupabasePrimaryPublicDirectory,
+  isSupabasePrimaryContent,
+  publicDirectoryAreas,
+  publicDirectoryPosts,
+} from "@/lib/content-source/public-directory";
 
 const FIXED_PAGE_PRIORITY: Record<string, number> = {
   "osaka-nihonbashi": 0.75
@@ -24,6 +29,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: FIXED_PAGE_PRIORITY[slug] ?? 0.5
     }))
   ];
+
+  // The Supabase-primary projection is a single coherent public snapshot.
+  // Derive all three route families from that one request: this keeps sitemap
+  // generation within the request-local read boundary and does not introduce
+  // a cross-request cache.
+  if (isSupabasePrimaryContent()) {
+    const directory = await getSupabasePrimaryPublicDirectory();
+    const therapists = await getPublicTherapistsForSitemap();
+    const areaRoutes = publicDirectoryAreas(directory).map((area) => ({
+      url: canonicalUrl(`/area/${area.slug}/`),
+      lastModified: now,
+      changeFrequency: "daily" as const,
+      priority: area.parent === 0 ? 0.85 : 0.8
+    }));
+    const shopRoutes = directory.shops.map((shop) => ({
+      url: canonicalUrl(`/shops/${shop.slug}/`),
+      lastModified: new Date(shop.modified_at),
+      changeFrequency: "weekly" as const,
+      priority: 0.7
+    }));
+    const postRoutes = publicDirectoryPosts(directory).map((post) => ({
+      url: canonicalUrl(`/column/${post.slug}/`),
+      lastModified: new Date(post.modified),
+      changeFrequency: "monthly" as const,
+      priority: 0.6
+    }));
+    const therapistRoutes = therapists.map((therapist) => ({
+      url: canonicalUrl(`/therapists/${therapist.assignmentId}/`),
+      lastModified: therapist.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+    }));
+    return [...staticRoutes, ...areaRoutes, ...shopRoutes, ...therapistRoutes, ...postRoutes];
+  }
 
   let areaRoutes: MetadataRoute.Sitemap = [];
   let shopRoutes: MetadataRoute.Sitemap = [];

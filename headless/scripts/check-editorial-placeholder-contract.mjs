@@ -159,6 +159,13 @@ const postsReader = compileModule("lib/wp/posts.ts", {
   "next/cache": { cacheLife: () => {}, cacheTag: () => {} },
   "@/lib/wp/normalize": { normalizePost },
   "@/lib/wp/build-resilience": { logWpBuildFallback: () => {} },
+  "@/lib/content-source/public-directory": {
+    isSupabasePrimaryContent: () => false,
+    getSupabasePrimaryPublicDirectory: async () => {
+      throw new Error("Supabase-primary reader must not run in the WordPress editorial contract");
+    },
+    publicDirectoryPosts: () => []
+  },
 });
 
 const topPosts = await postsReader.getLatestPosts(6);
