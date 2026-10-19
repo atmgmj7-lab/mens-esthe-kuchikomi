@@ -107,6 +107,28 @@ pages**.  This is intentional: 74 source shops have no area, 243 have multiple
 areas, and a Supabase-primary public shop requires one explicit, published
 primary area.  A matching row count alone is not a publication approval.
 
+### Defined publication-candidate ID set (not an approval to publish)
+
+The read-only 2026-10-19 reconciliation defines the source-matching draft
+candidate set as these **379 WordPress IDs**:
+
+```text
+640–894, 1165–1254, 1256–1258, 1260–1271, 1273–1291
+```
+
+It is computed as 394 source IDs, minus the fourteen `review_required` records,
+minus ID 1272 (`unlisted` in the managed workflow).  It contains neither of the
+Supabase-only hot-spring drafts (1255 and 1259).  Of the 379 candidates, 304
+have at least one stored area relation, **zero have `is_primary = true`**, and
+75 have no stored area relation.  Since a published primary area is mandatory,
+the current approved public subset is exactly **empty**.
+
+Before this set can become a publication manifest, each candidate must have an
+explicit primary-area decision, its chosen area must be separately approved for
+publication, and all expected public counts/routes must be reviewed as one
+immutable manifest.  Never infer a primary area from relation ordering or from
+the presence of a secondary area.
+
 ## Required production migration, but not executed here
 
 The production migration ledger ends at
