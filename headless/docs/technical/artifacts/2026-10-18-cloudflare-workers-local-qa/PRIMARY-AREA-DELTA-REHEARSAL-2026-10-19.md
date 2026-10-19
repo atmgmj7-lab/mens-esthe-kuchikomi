@@ -10,9 +10,9 @@ slug, or single-area membership.
 | --- | ---: | --- |
 | candidate source rows | 379 | 394 source rows minus 14 `review_required` rows and managed-unlisted ID 1272 |
 | executable `is_primary` assignments | 44 | only rows with `acf.shop_primary_area_term_id` that is already an existing source area relation |
-| deferred: no area relation | 74 | no allocation is possible |
-| deferred: missing field, multiple relations | 187 | requires an explicit editor/owner primary-area selection |
-| deferred: missing field, single relation | 74 | still requires explicit source data; no single-area inference is allowed |
+| deferred: no area relation | 74 | keeps the canonical detail URL and generic breadcrumb; no allocation is needed |
+| deferred: missing field, multiple relations | 187 | all existing area relations remain visible in their respective area lists; primary is optional |
+| deferred: missing field, single relation | 74 | primary remains optional; no single-area inference is performed |
 | exclusions | 15 | 14 review-required source-only rows plus ID 1272 managed-unlisted |
 
 The ignored, non-overwriting local deliverables are:
@@ -39,8 +39,9 @@ production database without mutation:
 
 This confirms the narrow SQL has an exact current target set. It does not make
 those rows public: after a successful apply all shops remain `draft`, all areas
-remain unpublished, and the primary public RPC continues to return zero shops
-until a separate publication manifest is approved.
+remain unpublished, and the public RPC continues to return zero shops until a
+separate publication manifest is approved. The 44 assignments are optional
+display metadata, not a prerequisite for publishing the other 335 candidates.
 
 ## What the apply and rollback SQL can change
 

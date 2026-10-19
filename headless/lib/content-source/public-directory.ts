@@ -12,7 +12,7 @@ type DirectoryArea = Readonly<{ id: string; slug: string; name: string; descript
 type DirectoryShop = Readonly<{
   id: string; legacy_wp_shop_id: number | null; slug: string; canonical_path: string; name: string;
   description_html: string; excerpt: string; official_url: string | null; image_url: string | null;
-  area_slug: string; area_name: string; modified_at: string;
+  area_slugs: readonly string[]; primary_area_slug: string | null; modified_at: string;
 }>;
 type DirectoryPost = Readonly<{ id: string; route_key: string; title: string; body_html: string; body_text: string; modified_at: string }>;
 type DirectoryPage = Readonly<{ id: string; route_key: string; title: string; body_html: string; body_text: string; modified_at: string }>;
@@ -35,6 +35,11 @@ function string(value: unknown): string | null { return typeof value === "string
 function integer(value: unknown): number | null { return Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : null; }
 function nullableInteger(value: unknown): number | null | undefined { return value === null ? null : integer(value) ?? undefined; }
 function nullableString(value: unknown): string | null | undefined { return value === null ? null : string(value) ?? undefined; }
+function stringArray(value: unknown): readonly string[] | null {
+  if (!Array.isArray(value) || value.some((item) => string(item) === null)) return null;
+  const entries = value as string[];
+  return new Set(entries).size === entries.length ? Object.freeze([...entries]) : null;
+}
 
 function stableNumericId(value: string): number {
   let hash = 2166136261;
@@ -54,9 +59,9 @@ function parseDirectory(value: unknown): SupabasePublicDirectory | null {
     if (!record(entry)) return null;
     const id = string(entry.id); const legacy = nullableInteger(entry.legacy_wp_shop_id); const slug = string(entry.slug); const path = string(entry.canonical_path); const name = string(entry.name);
     const description = typeof entry.description_html === "string" ? entry.description_html : null; const excerpt = typeof entry.excerpt === "string" ? entry.excerpt : null;
-    const official = nullableString(entry.official_url); const image = nullableString(entry.image_url); const areaSlug = string(entry.area_slug); const areaName = string(entry.area_name); const modified = string(entry.modified_at);
-    return id && legacy !== undefined && slug && path && name && description !== null && excerpt !== null && official !== undefined && image !== undefined && areaSlug && areaName && modified
-      ? Object.freeze({ id, legacy_wp_shop_id: legacy, slug, canonical_path: path, name, description_html: description, excerpt, official_url: official, image_url: image, area_slug: areaSlug, area_name: areaName, modified_at: modified }) : null;
+    const official = nullableString(entry.official_url); const image = nullableString(entry.image_url); const areaSlugs = stringArray(entry.area_slugs); const primaryAreaSlug = nullableString(entry.primary_area_slug); const modified = string(entry.modified_at);
+    return id && legacy !== undefined && slug && path && name && description !== null && excerpt !== null && official !== undefined && image !== undefined && areaSlugs !== null && primaryAreaSlug !== undefined && (primaryAreaSlug === null || areaSlugs.includes(primaryAreaSlug)) && modified
+      ? Object.freeze({ id, legacy_wp_shop_id: legacy, slug, canonical_path: path, name, description_html: description, excerpt, official_url: official, image_url: image, area_slugs: areaSlugs, primary_area_slug: primaryAreaSlug, modified_at: modified }) : null;
   });
   const posts = value.posts.map((entry): DirectoryPost | null => {
     if (!record(entry)) return null;
@@ -74,7 +79,11 @@ function parseDirectory(value: unknown): SupabasePublicDirectory | null {
   };
   if (areas.some((entry) => entry === null) || shops.some((entry) => entry === null) || posts.some((entry) => entry === null) || pages.some((entry) => entry === null)
     || Object.values(coverage).some((entry) => entry === null)) return null;
-  return Object.freeze({ shops: Object.freeze(shops as DirectoryShop[]), areas: Object.freeze(areas as DirectoryArea[]), posts: Object.freeze(posts as DirectoryPost[]), pages: Object.freeze(pages as DirectoryPage[]), coverage: Object.freeze(coverage as DirectoryCoverage) });
+  const parsedAreas = areas as DirectoryArea[];
+  const parsedShops = shops as DirectoryShop[];
+  const publicAreaSlugs = new Set(parsedAreas.map((area) => area.slug));
+  if (parsedShops.some((shop) => shop.area_slugs.some((slug) => !publicAreaSlugs.has(slug)))) return null;
+  return Object.freeze({ shops: Object.freeze(parsedShops), areas: Object.freeze(parsedAreas), posts: Object.freeze(posts as DirectoryPost[]), pages: Object.freeze(pages as DirectoryPage[]), coverage: Object.freeze(coverage as DirectoryCoverage) });
 }
 
 function expectedCount(environment: Environment, name: "SUPABASE_CONTENT_EXPECTED_SHOPS" | "SUPABASE_CONTENT_EXPECTED_AREAS" | "SUPABASE_CONTENT_EXPECTED_POSTS" | "SUPABASE_CONTENT_EXPECTED_PAGES"): number {
@@ -123,15 +132,16 @@ export async function getSupabasePrimaryPublicDirectory(environment: Environment
 
 export function publicDirectoryAreas(directory: SupabasePublicDirectory): AreaView[] {
   const ids = new Map(directory.areas.map((area) => [area.slug, stableNumericId(area.id)]));
-  return directory.areas.map((area) => ({ id: ids.get(area.slug) as number, slug: area.slug, name: area.name, parent: area.parent_slug ? ids.get(area.parent_slug) ?? 0 : 0, count: directory.shops.filter((shop) => shop.area_slug === area.slug).length, description: area.description, acf: {} }));
+  return directory.areas.map((area) => ({ id: ids.get(area.slug) as number, slug: area.slug, name: area.name, parent: area.parent_slug ? ids.get(area.parent_slug) ?? 0 : 0, count: directory.shops.filter((shop) => shop.area_slugs.includes(area.slug)).length, description: area.description, acf: {} }));
 }
 
 export function publicDirectoryShops(directory: SupabasePublicDirectory): ShopView[] {
-  const terms: WpTerm[] = publicDirectoryAreas(directory).map((area) => ({ id: area.id, slug: area.slug, name: area.name, parent: area.parent, count: area.count, description: area.description, acf: {} }));
+  const termsBySlug: ReadonlyMap<string, WpTerm> = new Map(publicDirectoryAreas(directory).map((area): [string, WpTerm] => [area.slug, { id: area.id, slug: area.slug, name: area.name, parent: area.parent, count: area.count, description: area.description, acf: {} }]));
   return directory.shops.map((shop) => {
-    const primary = terms.find((area) => area.slug === shop.area_slug) ?? null;
+    const terms = shop.area_slugs.map((slug) => termsBySlug.get(slug)).filter((area): area is WpTerm => Boolean(area));
+    const primary = shop.primary_area_slug === null ? null : termsBySlug.get(shop.primary_area_slug) ?? null;
     const imageUrl = shop.image_url ?? "";
-    return { id: shop.legacy_wp_shop_id ?? stableNumericId(shop.id), canonicalShopId: shop.id, publicationStatus: "publish", slug: shop.slug, link: shop.canonical_path, title: shop.name, contentHtml: shop.description_html, excerpt: shop.excerpt, imageUrl, media: { cardSquare: { mediaId: null, source: imageUrl ? "legacy-acf" : "fallback", url: imageUrl, alt: shop.name }, detailBanner: null }, terms: primary ? [primary] : [], acf: {}, officialUrl: shop.official_url ?? "", areaSlug: shop.area_slug, primaryArea: primary ? { id: primary.id, slug: primary.slug, name: primary.name } : null, ranking: normalizeShopRanking({}), strictRanking: unavailableStrictRanking("shop") };
+    return { id: shop.legacy_wp_shop_id ?? stableNumericId(shop.id), canonicalShopId: shop.id, publicationStatus: "publish", slug: shop.slug, link: shop.canonical_path, title: shop.name, contentHtml: shop.description_html, excerpt: shop.excerpt, imageUrl, media: { cardSquare: { mediaId: null, source: imageUrl ? "legacy-acf" : "fallback", url: imageUrl, alt: shop.name }, detailBanner: null }, terms, acf: {}, officialUrl: shop.official_url ?? "", areaSlug: primary?.slug ?? "", primaryArea: primary ? { id: primary.id, slug: primary.slug, name: primary.name } : null, ranking: normalizeShopRanking({}), strictRanking: unavailableStrictRanking("shop") };
   });
 }
 

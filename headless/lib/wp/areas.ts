@@ -200,7 +200,7 @@ export async function getAreaShops(
     const directory = await getSupabasePrimaryPublicDirectory();
     const area = publicDirectoryAreas(directory).find((candidate) => candidate.id === areaId);
     if (!area) return { shops: [], totalPages: 1 };
-    const shops = publicDirectoryShops(directory).filter((shop) => shop.areaSlug === area.slug);
+    const shops = publicDirectoryShops(directory).filter((shop) => shop.terms.some((term) => term.slug === area.slug));
     const totalPages = Math.max(1, Math.ceil(shops.length / perPage));
     return { shops: shops.slice((page - 1) * perPage, page * perPage), totalPages };
   }
@@ -249,7 +249,7 @@ export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
   if (isSupabasePrimaryContent()) {
     const directory = await getSupabasePrimaryPublicDirectory();
     const area = publicDirectoryAreas(directory).find((candidate) => candidate.id === areaId);
-    return area ? publicDirectoryShops(directory).filter((shop) => shop.areaSlug === area.slug) : [];
+    return area ? publicDirectoryShops(directory).filter((shop) => shop.terms.some((term) => term.slug === area.slug)) : [];
   }
   try {
     if (!useSupabaseManagedShopDirectory()) {

@@ -10,13 +10,17 @@ as $$
   with published_shops as (
     select s.id, s.wp_post_id, s.slug, s.canonical_path, s.name, s.description_html, s.excerpt,
       s.official_url, s.updated_at,
-      -- A public shop has one authoritative primary area. Do not silently replace an
-      -- unpublished primary assignment with a secondary area: that would change its
-      -- canonical public location during a staged area withdrawal.
+      -- Primary area is optional metadata. Public listing membership remains every
+      -- existing relation whose area is public; a shop without any area still keeps
+      -- its stable canonical detail URL and generic breadcrumb.
       (select a.slug from app.shop_areas sa join app.areas a on a.id = sa.area_id and a.is_published
-       where sa.shop_id = s.id and sa.is_primary limit 1) as area_slug,
-      (select a.name from app.shop_areas sa join app.areas a on a.id = sa.area_id and a.is_published
-       where sa.shop_id = s.id and sa.is_primary limit 1) as area_name,
+       where sa.shop_id = s.id and sa.is_primary limit 1) as primary_area_slug,
+      coalesce((
+        select jsonb_agg(a.slug order by a.slug)
+        from app.shop_areas sa
+        join app.areas a on a.id = sa.area_id and a.is_published
+        where sa.shop_id = s.id
+      ), '[]'::jsonb) as area_slugs,
       (select i.image_url from app.shop_images i where i.shop_id = s.id and i.is_public
        order by (i.image_role = 'featured') desc, i.sort_order, i.created_at limit 1) as image_url
     from app.shops s
@@ -53,8 +57,8 @@ as $$
     'shops', coalesce((select jsonb_agg(jsonb_build_object(
       'id', id, 'legacy_wp_shop_id', wp_post_id, 'slug', slug, 'canonical_path', canonical_path,
       'name', name, 'description_html', description_html, 'excerpt', excerpt, 'official_url', official_url,
-      'image_url', image_url, 'area_slug', area_slug, 'area_name', area_name, 'modified_at', updated_at
-    ) order by slug) from published_shops where area_slug is not null), '[]'::jsonb),
+      'image_url', image_url, 'area_slugs', area_slugs, 'primary_area_slug', primary_area_slug, 'modified_at', updated_at
+    ) order by slug) from published_shops), '[]'::jsonb),
     'areas', coalesce((select jsonb_agg(jsonb_build_object(
       'id', id, 'slug', slug, 'name', name, 'description', description, 'parent_slug', parent_slug
     ) order by slug) from published_areas), '[]'::jsonb),
@@ -65,11 +69,11 @@ as $$
       'id', id, 'route_key', route_key, 'title', title, 'body_html', body_html, 'body_text', body_text, 'modified_at', updated_at
     ) order by route_key) from published_pages), '[]'::jsonb),
     'coverage', jsonb_build_object(
-      'published_shop_count', (select count(*) from published_shops where area_slug is not null),
+      'published_shop_count', (select count(*) from published_shops),
       'published_area_count', (select count(*) from published_areas),
       'public_column_count', (select count(*) from published_posts),
       'public_static_page_count', (select count(*) from published_pages),
-      'mapped_wp_shop_count', (select count(*) from published_shops where area_slug is not null and wp_post_id is not null)
+      'mapped_wp_shop_count', (select count(*) from published_shops where wp_post_id is not null)
     )
   )
 $$;

@@ -38,10 +38,22 @@ enforce its public filter in its SQL body.
 
 The audited function exposes only the selected public fields for:
 
-- `app.shops` with `publication_status = 'published'` and a published primary
-  area;
+- every `app.shops` row with `publication_status = 'published'`, including a
+  shop with no area; its optional primary-area slug and all *published* area
+  relation slugs are returned separately;
 - published areas, posts, and the exact six fixed-page routes; and
 - a featured image only when `is_public` is true.
+
+If the migration is later applied, the **only new callable surface** is
+`api.get_public_site_directory_v1()` for roles **`anon`** and
+**`authenticated`**. It returns public shop `id`, legacy WordPress ID, slug,
+canonical path, name, description/excerpt, official URL, optional public image,
+modified time, `area_slugs`, and optional `primary_area_slug`; public area
+identity/name/description/parent slug; allowed public posts and the six fixed
+pages; plus aggregate coverage counts. It returns no `private` records, partner
+workspace fields, review contents, moderation data, import payloads, or image
+object metadata. No `SELECT`, `INSERT`, `UPDATE`, or `DELETE` grant is added to
+any base table.
 
 It does not grant table privileges, touch `private.import_*`, or return private
 workspace, review, receipt, or moderation fields.  The preflight tests the

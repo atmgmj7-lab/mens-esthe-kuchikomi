@@ -49,7 +49,7 @@ double-counted or published.
 | exact WordPress/Supabase `wp_post_id` matches | 380 | preserve existing draft row, associations, and Storage image URL |
 | WordPress-only posts | 14 | keep out of `app`; create/retain a human `review_required` queue only |
 | Supabase-only drafts | 2 | keep draft and excluded; do not delete, publish, or infer source intent |
-| source areas / current `app.areas` | 34 / 34 | preserve unpublished state until a primary-area approval manifest exists |
+| source areas / current `app.areas` | 34 / 34 | preserve unpublished state until a publication manifest exists; no primary-area decision is required |
 | source posts | 0 | no column projection |
 
 The 14 WordPress-only records are deliberately not auto-classified because
@@ -103,9 +103,12 @@ canonical content are reconciled, `SUPABASE_CONTENT_EXPECTED_PAGES` must remain
 unset and primary public mode must not be enabled in production.
 
 The only safe public target now is **0 shops / 0 areas / 0 columns / 0 fixed
-pages**.  This is intentional: 74 source shops have no area, 243 have multiple
-areas, and a Supabase-primary public shop requires one explicit, published
-primary area.  A matching row count alone is not a publication approval.
+pages**, because no publication manifest or static-page migration exists yet.
+It is **not** caused by area shape: 74 source shops have no area and 243 have
+multiple areas, both of which must retain their canonical shop detail URL.
+The public reader keeps every published shop, returns all of its published area
+relations for area lists, and uses a generic store breadcrumb when no explicit
+primary area exists. A matching row count alone is not a publication approval.
 
 ### Defined publication-candidate ID set (not an approval to publish)
 
@@ -120,18 +123,17 @@ It is computed as 394 source IDs, minus the fourteen `review_required` records,
 minus ID 1272 (`unlisted` in the managed workflow).  It contains neither of the
 Supabase-only hot-spring drafts (1255 and 1259). Of the 379 candidates, 304
 have at least one stored area relation, **zero have `is_primary = true`**, and
-74 have no stored area relation. A fresh source-grounded plan identifies 44
-explicit ACF-backed primary relations; its other 335 candidates remain deferred
-without inference. See
+74 have no stored area relation. A source-grounded plan identifies 44 explicit
+ACF-backed primary relations; its other 335 candidates need no manual decision
+for publication and remain optional metadata without inference. See
 [`PRIMARY-AREA-DELTA-REHEARSAL-2026-10-19.md`](PRIMARY-AREA-DELTA-REHEARSAL-2026-10-19.md).
-Since a published primary area is mandatory,
-the current approved public subset is exactly **empty**.
+The current approved public subset remains **empty** only because no rows or
+areas are approved for publication.
 
-Before this set can become a publication manifest, each candidate must have an
-explicit primary-area decision, its chosen area must be separately approved for
-publication, and all expected public counts/routes must be reviewed as one
-immutable manifest.  Never infer a primary area from relation ordering or from
-the presence of a secondary area.
+Before this set can become a publication manifest, each candidate's publication
+state and all expected public counts/routes must be reviewed as one immutable
+manifest. Never infer a primary area from relation ordering or the presence of
+a secondary area; missing primary metadata simply selects the generic route.
 
 ## Required production migration, but not executed here
 
