@@ -14,10 +14,6 @@ function hash(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function objectUrl(key) {
-  return `${PROJECT_URL}/storage/v1/object/${BUCKET_ID}/${key.split("/").map(encodeURIComponent).join("/")}`;
-}
-
 function assertCandidate(item) {
   if (!Number.isInteger(item.wp_media_id) || !item.source_url || !item.sha256 || !item.local_path) {
     throw new Error(`Invalid manifest item: ${item.wp_media_id ?? "unknown"}`);
@@ -77,51 +73,80 @@ export function isMissingBucketResponse({ status, body }) {
   }
 }
 
-async function ensureBucket(secret) {
-  const bucketUrl = `${PROJECT_URL}/storage/v1/bucket/${BUCKET_ID}`;
-  const existing = await fetch(bucketUrl, { headers: secretHeaders(secret) });
-  const existingBody = existing.ok ? "" : await existing.text();
-  if (isMissingBucketResponse({ status: existing.status, body: existingBody })) {
-    const created = await fetch(`${PROJECT_URL}/storage/v1/bucket`, {
-      method: "POST",
-      headers: secretHeaders(secret, { "Content-Type": "application/json" }),
-      body: JSON.stringify({ id: BUCKET_ID, name: BUCKET_ID, public: true, file_size_limit: FILE_SIZE_LIMIT, allowed_mime_types: ALLOWED_MIME_TYPES })
-    });
-    if (!created.ok) await responseError(created, "Bucket creation");
-    return "created";
+export function isMissingObjectResponse({ status, body }) {
+  if (status === 404) return true;
+  if (status !== 400) return false;
+  try {
+    const parsed = JSON.parse(body);
+    return parsed?.code === "NoSuchKey" && (parsed.statusCode === 404 || parsed.error === "not_found" || parsed.error === "Object not found");
+  } catch {
+    return false;
   }
-  if (!existing.ok) responseErrorFromBody(existing.status, existingBody, "Bucket read");
-  const bucket = await existing.json();
-  const actualTypes = [...(bucket.allowed_mime_types || [])].sort();
-  const expectedTypes = [...ALLOWED_MIME_TYPES].sort();
-  if (bucket.public !== true || bucket.file_size_limit !== FILE_SIZE_LIMIT || JSON.stringify(actualTypes) !== JSON.stringify(expectedTypes)) {
-    throw new Error("Existing shop-images bucket does not match the approved public/MIME/10MiB configuration; refusing to alter it");
-  }
-  return "verified_existing";
 }
 
-async function verifyOrUploadItem(secret, manifestDir, item) {
-  const localBytes = readFileSync(join(manifestDir, item.local_path));
-  if (localBytes.length !== item.bytes || hash(localBytes) !== item.sha256) throw new Error(`Local preservation checksum mismatch: ${item.wp_media_id}`);
-  const url = objectUrl(item.proposed_target.object_key);
-  const existing = await fetch(url, { headers: secretHeaders(secret) });
-  if (existing.ok) {
-    const stored = Buffer.from(await existing.arrayBuffer());
-    if (stored.length !== item.bytes || hash(stored) !== item.sha256) throw new Error(`Existing object differs; refusing overwrite: ${item.wp_media_id}`);
-    return "already_verified";
-  }
-  if (existing.status !== 404) await responseError(existing, `Existing object read for ${item.wp_media_id}`);
-  const uploaded = await fetch(url, {
-    method: "POST",
-    headers: secretHeaders(secret, { "Content-Type": item.mimeType, "x-upsert": "false" }),
-    body: new Blob([localBytes], { type: item.mimeType })
-  });
-  if (!uploaded.ok) await responseError(uploaded, `Upload for ${item.wp_media_id}`);
-  const readback = await fetch(url, { headers: secretHeaders(secret) });
-  if (!readback.ok) await responseError(readback, `Readback for ${item.wp_media_id}`);
-  const stored = Buffer.from(await readback.arrayBuffer());
-  if (stored.length !== item.bytes || hash(stored) !== item.sha256) throw new Error(`Readback checksum mismatch: ${item.wp_media_id}`);
-  return "uploaded_verified";
+export function createStorageClient({ projectUrl = PROJECT_URL, fetchImpl = fetch } = {}) {
+  const bucketUrl = `${projectUrl}/storage/v1/bucket/${BUCKET_ID}`;
+  const storageObjectUrl = (key) => `${projectUrl}/storage/v1/object/${BUCKET_ID}/${key.split("/").map(encodeURIComponent).join("/")}`;
+  const verifyBucket = (bucket) => {
+    const actualTypes = [...(bucket.allowed_mime_types || [])].sort();
+    const expectedTypes = [...ALLOWED_MIME_TYPES].sort();
+    if (bucket.public !== true || bucket.file_size_limit !== FILE_SIZE_LIMIT || JSON.stringify(actualTypes) !== JSON.stringify(expectedTypes)) {
+      throw new Error("Existing shop-images bucket does not match the approved public/MIME/10MiB configuration; refusing to alter it");
+    }
+  };
+  const readAndVerifyObject = async (secret, item) => {
+    const response = await fetchImpl(storageObjectUrl(item.proposed_target.object_key), { headers: secretHeaders(secret) });
+    if (response.ok) {
+      const stored = Buffer.from(await response.arrayBuffer());
+      if (stored.length !== item.bytes || hash(stored) !== item.sha256) throw new Error(`Existing object differs; refusing overwrite: ${item.wp_media_id}`);
+      return "verified";
+    }
+    const body = await response.text();
+    if (isMissingObjectResponse({ status: response.status, body })) return "missing";
+    responseErrorFromBody(response.status, body, `Existing object read for ${item.wp_media_id}`);
+  };
+  return {
+    async ensureBucket(secret) {
+      const existing = await fetchImpl(bucketUrl, { headers: secretHeaders(secret) });
+      if (existing.ok) {
+        verifyBucket(await existing.json());
+        return "verified_existing";
+      }
+      const existingBody = await existing.text();
+      if (!isMissingBucketResponse({ status: existing.status, body: existingBody })) {
+        responseErrorFromBody(existing.status, existingBody, "Bucket read");
+      }
+      const created = await fetchImpl(`${projectUrl}/storage/v1/bucket`, {
+        method: "POST",
+        headers: secretHeaders(secret, { "Content-Type": "application/json" }),
+        body: JSON.stringify({ id: BUCKET_ID, name: BUCKET_ID, public: true, file_size_limit: FILE_SIZE_LIMIT, allowed_mime_types: ALLOWED_MIME_TYPES })
+      });
+      if (created.ok) return "created";
+      const createBody = await created.text();
+      if (created.status === 409) {
+        const raced = await fetchImpl(bucketUrl, { headers: secretHeaders(secret) });
+        if (!raced.ok) responseErrorFromBody(raced.status, await raced.text(), "Bucket race read");
+        verifyBucket(await raced.json());
+        return "verified_existing";
+      }
+      responseErrorFromBody(created.status, createBody, "Bucket creation");
+    },
+    async verifyOrUploadItem(secret, manifestDir, item) {
+      const localBytes = readFileSync(join(manifestDir, item.local_path));
+      if (localBytes.length !== item.bytes || hash(localBytes) !== item.sha256) throw new Error(`Local preservation checksum mismatch: ${item.wp_media_id}`);
+      const before = await readAndVerifyObject(secret, item);
+      if (before === "verified") return "already_verified";
+      const uploaded = await fetchImpl(storageObjectUrl(item.proposed_target.object_key), {
+        method: "POST",
+        headers: secretHeaders(secret, { "Content-Type": item.mimeType, "x-upsert": "false" }),
+        body: new Blob([localBytes], { type: item.mimeType })
+      });
+      if (!uploaded.ok && uploaded.status !== 409) await responseError(uploaded, `Upload for ${item.wp_media_id}`);
+      const after = await readAndVerifyObject(secret, item);
+      if (after !== "verified") throw new Error(`Upload race did not yield a readable object: ${item.wp_media_id}`);
+      return "uploaded_verified";
+    }
+  };
 }
 
 function promptHidden(question) {
@@ -161,9 +186,10 @@ async function run() {
   const secret = await promptHidden("Paste existing Supabase service key (hidden; never saved): ");
   if (!secret) throw new Error("A non-empty existing service key is required");
   try {
-    const bucket = await ensureBucket(secret);
+    const client = createStorageClient();
+    const bucket = await client.ensureBucket(secret);
     const counts = { uploaded_verified: 0, already_verified: 0 };
-    for (const item of plan.items) counts[await verifyOrUploadItem(secret, dirname(manifestPath), item)] += 1;
+    for (const item of plan.items) counts[await client.verifyOrUploadItem(secret, dirname(manifestPath), item)] += 1;
     console.log(JSON.stringify({ mode: "apply", bucket, ...counts, total: plan.items.length, databaseWrites: 0, pageAssetUploads: 0, unreferencedUploads: 0 }, null, 2));
   } finally {
     secret.fill?.(" ");

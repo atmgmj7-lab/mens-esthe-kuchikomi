@@ -222,3 +222,12 @@ with `x-upsert: false`, then downloaded again and checked against the local
 byte-count and SHA-256. Re-running after a failure is safe because verified
 objects are skipped and mismatches still stop. URL/DB switching remains a
 separate, unapproved follow-up after the copy report is reviewed.
+
+The manual uploader has a local loopback Storage integration contract. It
+covers bucket-missing responses in both HTTP 404 and the observed HTTP 400
+`NoSuchBucket` form; object-missing responses in both HTTP 404 and HTTP 400
+`NoSuchKey` form; bucket creation, upload, readback hash comparison, safe
+re-run skip, readback-failure recovery, and bucket/object create races. It also
+asserts that 401/403, generic 400/500, and an object endpoint's `NoSuchBucket`
+response stop rather than being mistaken for a missing upload target. No real
+credential or external Storage endpoint is used by that contract.
