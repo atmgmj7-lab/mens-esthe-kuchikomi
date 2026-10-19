@@ -231,3 +231,36 @@ re-run skip, readback-failure recovery, and bucket/object create races. It also
 asserts that 401/403, generic 400/500, and an object endpoint's `NoSuchBucket`
 response stop rather than being mistaken for a missing upload target. No real
 credential or external Storage endpoint is used by that contract.
+
+## Completed approved shop-image URL cutover
+
+After the user-operated uploader reported 207 new verified uploads and 34
+verified retries, the project was read back before the database change:
+
+- `shop-images` is public, JPEG/PNG-only, and has the approved 10 MiB limit.
+- The bucket contains exactly 241 approved objects. Public HTTP readback of all
+  241 verified status, MIME type, byte count, and SHA-256 against the local
+  manifest with zero failures.
+- The 241 `app.shop_images.wp_media_id` values matched the 241 bucket keys
+  exactly; no app row lacked an object and no object lacked an app row.
+
+The approved database mapping batch is
+`1b6babf3-5105-4ed5-a262-32deb10de6b2` (`wordpress-media-url-cutover`). Its
+241 import records retain each original WordPress URL and the corresponding
+target URL/key/SHA-256. The idempotent update changed only the matching
+`app.shop_images.image_url` values from the legacy WordPress upload URL to
+`https://goeagrxjsjcbbatpotbu.supabase.co/storage/v1/object/public/shop-images/...`.
+No shop state, area, review, schema, DNS record, or image-publication flag was
+changed. Post-commit, all 241 rows use the new URL, zero retain the old URL,
+and all remain `is_public = false`.
+
+The fixed-page image 357 and the 26 unreferenced objects are not present in
+`shop-images` and were not changed in the database.
+
+Rollback is a mapping-only transaction using the retained batch records: join
+`private.import_records` on batch
+`1b6babf3-5105-4ed5-a262-32deb10de6b2`, restore
+`source_payload->>'image_url'` only where the current URL still equals the
+recorded target URL, verify 241 restored rows, then mark that import batch
+`rolled-back`. Do not delete Storage objects or WordPress source files as part
+of rollback. A rollback execution requires separate approval.
