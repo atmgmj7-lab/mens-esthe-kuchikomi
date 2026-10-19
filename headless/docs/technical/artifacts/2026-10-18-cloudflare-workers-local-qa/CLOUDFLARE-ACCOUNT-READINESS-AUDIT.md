@@ -10,18 +10,36 @@ DNS record, deployment, database migration, or billing change.
 
 ## Access finding
 
-The local Wrangler 4.151.1 session is valid, but its account table contains
-only the older live-chat account `78cb988048dcda850ba76c3ad4d96d04`. The
-requested Eskomi account is not available in that existing CLI session, so the
-following target-account facts remain **unverified**:
+At the initial audit, the local Wrangler 4.151.1 `default` session was valid
+but its account table contained only the older live-chat account
+`78cb988048dcda850ba76c3ad4d96d04`. The target-specific follow-up below
+supersedes that initial authentication result; the following facts either
+remain unverified or require recurring pre-deployment confirmation:
 
 | Required read-only fact | Status | Required evidence source |
 | --- | --- | --- |
-| Account name and exact ID | ID supplied; name unverified | Account Home or Wrangler with the Eskomi account selected |
+| Account name and exact ID | `Eskomi` / target ID confirmed by Dashboard and restricted-profile API result | Reconfirm before any deployment |
 | Current Workers plan and billing eligibility | Unverified | Account Home > Plans / Workers & Pages overview |
 | workers.dev subdomain and existing Worker routes | Unverified | Workers & Pages overview; do not claim or edit a subdomain |
-| Existing Workers / Pages / KV / R2 / D1 / Queues resources | Unverified | Account-specific resource lists, recorded as names/counts only |
+| Existing Workers / Pages | Dashboard reports no projects; candidate Worker is absent | Reconfirm before deployment; no resource creation |
+| KV / R2 / D1 / Queues resources | Unverified | Account-specific resource lists, recorded as names/counts only |
 | Domains and zones | Unverified | Websites / Zones list, recorded as zones and status only |
+
+### 2026-10-19 named-profile follow-up
+
+The user completed the official Cloudflare consent flow for named profile
+`eskomi-workers-deploy`, selecting only the Eskomi account and the approved
+`account:read` and `workers_scripts:write` permissions (plus OAuth background
+access). The existing `default` profile remains separate and unchanged; the
+new profile is not bound to any directory and must be selected explicitly.
+
+With `CLOUDFLARE_ACCOUNT_ID=0641c11bf1431e5ee5cd3fca94c417e2`, the new
+profile made a read-only deployment-list request for `eskomi-workers-prep`.
+Cloudflare returned `code 10007` / `This Worker does not exist on your
+account`, not an authentication or authorization failure. This confirms that
+the restricted profile reaches the target account and is consistent with the
+user-provided Workers & Pages screen showing no projects. It does not prove a
+paid plan, workers.dev registration, zone inventory, or deployment readiness.
 
 ### User-Mac browser connection follow-up
 
