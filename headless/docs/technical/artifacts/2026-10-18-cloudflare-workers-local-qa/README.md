@@ -119,3 +119,26 @@ The fixture proves the route selection and fail-closed data gate locally. It
 does not prove a production corpus migration; static pages currently fail
 closed in primary mode until their `app.contents` projection and reconciliation
 are implemented.
+
+## Fixed-page projection and WordPress-disabled HTTP rehearsal — 2026-10-19
+
+The public directory projection now includes the exact six fixed routes
+(`/contact/`, `/about/`, `/sitemap/`, `/storelisting/`, `/advertise/`, and
+`/osaka-nihonbashi/`). Its expected-count gate also checks the exact route set,
+so duplicates, substitutions, or an omitted page cannot be hidden by a matching
+count. The local rollback fixture verifies the projection and excludes routes
+outside that allowlist.
+
+For a fresh HTTP rehearsal, Next ran with
+`CONTENT_DATA_SOURCE=supabase` and `WP_API_BASE_URL=http://127.0.0.1:9/wp-json`.
+`/`, shop listing/detail, area, column, every fixed route, `/sitemap.xml`, and
+the review form all returned HTTP 200; the five WordPress-backed fixed pages
+rendered the Supabase fixture marker. The sitemap included the published fixture
+shop and omitted its draft counterpart. The temporary server was stopped after
+the check.
+
+The read-only source inventory on the same date found 394 published WordPress
+shops, 34 areas, six pages, zero public posts, and 268 media entries, while the
+production Supabase project contains 382 draft shops, 34 unpublished areas,
+241 private images, and no published contents. The 12-shop delta and all 241
+WordPress uploads URLs are release blockers; no cloud data was modified.

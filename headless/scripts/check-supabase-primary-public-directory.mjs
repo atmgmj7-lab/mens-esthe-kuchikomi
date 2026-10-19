@@ -14,6 +14,7 @@ assert.doesNotMatch(reader, /@\/lib\/wp\/(shops|areas|posts|client)/, "primary r
 assert.match(reader, /SUPABASE_CONTENT_EXPECTED_SHOPS/, "primary reader must require an explicit shop migration count");
 assert.match(reader, /SUPABASE_CONTENT_EXPECTED_AREAS/, "primary reader must require an explicit area migration count");
 assert.match(reader, /SUPABASE_CONTENT_EXPECTED_POSTS/, "primary reader must require an explicit article migration count");
+assert.match(reader, /SUPABASE_CONTENT_EXPECTED_PAGES/, "primary reader must require an explicit fixed-page migration count");
 assert.match(reader, /ContentMigrationIncompleteError/, "missing or incomplete migrations must fail closed");
 
 const migrationPath = join(root, "../supabase/migrations/20261019090000_eskomi_supabase_primary_public_directory.sql");
@@ -22,6 +23,7 @@ const migration = readFileSync(migrationPath, "utf8");
 assert.match(migration, /create(?:\s+or\s+replace)?\s+function api\.get_public_site_directory_v1\(\)/i);
 assert.match(migration, /security definer/i, "public projection must not expose base tables directly");
 assert.match(migration, /publication_status = 'published'/i, "only published records may enter the public projection");
+assert.match(migration, /'pages'/, "public projection must include allowlisted fixed pages");
 assert.match(migration, /grant execute on function api\.get_public_site_directory_v1\(\) to anon, authenticated/i);
 assert.doesNotMatch(migration, /grant (select|insert|update|delete).* on (app|private)\./i, "migration must not widen table privileges");
 assert.match(migration, /sa\.shop_id = s\.id and sa\.is_primary/i, "a shop must retain its authoritative primary-area assignment");
@@ -45,6 +47,7 @@ assert.match(shops, /export async function getShopsForSitemap[\s\S]*isSupabasePr
 assert.match(areas, /export async function getAreaShops[\s\S]*isSupabasePrimaryContent/, "area listing must avoid WordPress in primary mode");
 assert.match(posts, /export async function getPostsForSitemap[\s\S]*isSupabasePrimaryContent/, "article sitemap must avoid WordPress in primary mode");
 assert.match(pages, /isSupabasePrimaryContent[\s\S]*ContentMigrationIncompleteError/, "unmigrated static pages must fail closed instead of reading WordPress in primary mode");
+assert.match(pages, /getSupabasePrimaryPublicDirectory/, "fixed pages must resolve the canonical primary directory before WordPress");
 assert.match(home, /isSupabasePrimaryContent\(\) \? Promise\.resolve\(\[\]\) : getHomeFeaturedAreas\(\)/, "home must skip the WordPress-only featured-area endpoint in primary mode");
 assert.match(home, /isSupabasePrimaryContent\(\)[\s\S]*result\.status === "rejected"[\s\S]*throw result\.reason/, "home must not turn a failed primary read into an empty successful page");
 assert.match(sitemap, /catch \(error\) \{\s*if \(isSupabasePrimaryContent\(\)\) throw error;/, "sitemap must not hide a failed primary read behind an empty sitemap");
@@ -52,6 +55,7 @@ assert.match(resilience, /isFailClosedPrimaryContentError/, "route fallback help
 assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_SHOPS=/m, "primary reconciliation shop count must be documented");
 assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_AREAS=/m, "primary reconciliation area count must be documented");
 assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_POSTS=/m, "primary reconciliation article count must be documented");
+assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_PAGES=/m, "primary reconciliation fixed-page count must be documented");
 
 const executable = reader
   .replace('import "server-only";\n', "")
@@ -62,23 +66,25 @@ const executable = reader
   `)
   .replace(/import \{ normalizeShopRanking \} from "@\/lib\/shop-ranking";/, "const normalizeShopRanking = () => ({});")
   .replace(/import \{ unavailableStrictRanking \} from "@\/lib\/ux-production-data-boundary";/, "const unavailableStrictRanking = () => ({ state: 'unavailable' });")
+  .replace(/import \{ STATIC_PAGE_SLUGS \} from "@\/lib\/static-pages";/, "const STATIC_PAGE_SLUGS = ['contact', 'about', 'sitemap', 'storelisting', 'advertise', 'osaka-nihonbashi'];")
   .replace(/import type \{[^;]+\} from "@\/lib\/wp\/types";/, "");
 const compiled = ts.transpileModule(executable, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText;
 const module = { exports: {} };
 vm.runInNewContext(compiled, { module, exports: module.exports, process: { env: {} }, URL, Response, Math, Object, Set, Map, Array, Number, Error });
-const { getSupabasePrimaryPublicDirectory, publicDirectoryShops, ContentMigrationIncompleteError } = module.exports;
+const { getSupabasePrimaryPublicDirectory, publicDirectoryShops, publicDirectoryPage, ContentMigrationIncompleteError } = module.exports;
 const fixture = {
   shops: [{ id: "11111111-1111-4111-8111-111111111111", legacy_wp_shop_id: 768, slug: "primary-shop", canonical_path: "/shops/primary-shop/", name: "正本店舗", description_html: "<p>紹介</p>", excerpt: "紹介", official_url: null, image_url: null, area_slug: "osaka", area_name: "大阪", modified_at: "2026-10-19T00:00:00Z" }],
   areas: [{ id: "22222222-2222-4222-8222-222222222222", slug: "osaka", name: "大阪", description: "", parent_slug: null }],
   posts: [{ id: "33333333-3333-4333-8333-333333333333", route_key: "/column/primary-article/", title: "正本記事", body_html: "<p>本文</p>", body_text: "本文", modified_at: "2026-10-19T00:00:00Z" }],
-  coverage: { published_shop_count: 1, published_area_count: 1, public_column_count: 1, mapped_wp_shop_count: 1 }
+  pages: ["contact", "about", "sitemap", "storelisting", "advertise", "osaka-nihonbashi"].map((slug, index) => ({ id: `44444444-4444-4444-8444-00000000000${index + 1}`, route_key: `/${slug}/`, title: slug === "contact" ? "お問い合わせ" : slug, body_html: "<p>本文</p>", body_text: "本文", modified_at: "2026-10-19T00:00:00Z" })),
+  coverage: { published_shop_count: 1, published_area_count: 1, public_column_count: 1, public_static_page_count: 6, mapped_wp_shop_count: 1 }
 };
 const environment = {
   CONTENT_DATA_SOURCE: "supabase", SUPABASE_CONTENT_CUTOVER_APPROVED: "true",
   SUPABASE_CONTENT_URL: "https://fixture.supabase.co", SUPABASE_CONTENT_PUBLISHABLE_KEY: "public-fixture-key",
-  SUPABASE_CONTENT_EXPECTED_SHOPS: "1", SUPABASE_CONTENT_EXPECTED_AREAS: "1", SUPABASE_CONTENT_EXPECTED_POSTS: "1"
+  SUPABASE_CONTENT_EXPECTED_SHOPS: "1", SUPABASE_CONTENT_EXPECTED_AREAS: "1", SUPABASE_CONTENT_EXPECTED_POSTS: "1", SUPABASE_CONTENT_EXPECTED_PAGES: "6"
 };
 const rpcCalls = [];
 const directory = await getSupabasePrimaryPublicDirectory(environment, async (url, init) => {
@@ -90,6 +96,7 @@ assert.match(rpcCalls[0].url, /\/rest\/v1\/rpc\/get_public_site_directory_v1$/);
 assert.equal(rpcCalls[0].init.cache, "no-store");
 assert.equal(rpcCalls[0].init.headers.apikey, "public-fixture-key");
 assert.equal(publicDirectoryShops(directory)[0].id, 768);
+assert.equal(publicDirectoryPage(directory, "contact")?.title, "お問い合わせ");
 await assert.rejects(
   () => getSupabasePrimaryPublicDirectory({ ...environment, SUPABASE_CONTENT_EXPECTED_POSTS: "2" }, async () => new Response(JSON.stringify(fixture), { status: 200 })),
   ContentMigrationIncompleteError,

@@ -1,7 +1,7 @@
 import { rendered, stripHtml, wpFetch } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
-import { ContentMigrationIncompleteError, isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
+import { ContentMigrationIncompleteError, getSupabasePrimaryPublicDirectory, isSupabasePrimaryContent, publicDirectoryPage } from "@/lib/content-source/public-directory";
 import type { WpPostBase } from "@/lib/wp/types";
 
 export type PageView = {
@@ -17,7 +17,9 @@ export async function getPageBySlug(slug: string): Promise<PageView | null> {
   cacheLife("hours");
   cacheTag("wp", "pages", `page:${slug}`);
   if (isSupabasePrimaryContent()) {
-    throw new ContentMigrationIncompleteError(`Static page /${slug}/ has no canonical Supabase projection; migrate it before enabling Supabase-primary`);
+    const page = publicDirectoryPage(await getSupabasePrimaryPublicDirectory(), slug);
+    if (!page) throw new ContentMigrationIncompleteError(`Static page /${slug}/ has no canonical Supabase projection; migrate it before enabling Supabase-primary`);
+    return page;
   }
   try {
     const pages = await wpFetch<WpPostBase[]>(

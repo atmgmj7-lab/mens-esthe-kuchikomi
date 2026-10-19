@@ -31,3 +31,13 @@ values
   ('42000000-0000-4000-8000-000000000005', '/column/primary-http-article/', 'other', 'editorial-comment', 'HTTP正本公開記事', '<p>HTTP公開本文</p>', 'HTTP公開本文', 'published', now()),
   ('42000000-0000-4000-8000-000000000006', '/column/primary-http-draft/', 'other', 'editorial-comment', 'HTTP下書き記事', '<p>非公開本文</p>', '非公開本文', 'draft', null)
 on conflict (id) do nothing;
+
+insert into app.contents(id, route_key, content_type, source_type, title, body_html, body_text, publication_status, published_at)
+values
+  ('42000000-0000-4000-8000-000000000007', '/contact/', 'other', 'editorial-comment', 'HTTPお問い合わせ', '<p>HTTP固定ページ</p>', 'HTTP固定ページ', 'published', now()),
+  ('42000000-0000-4000-8000-000000000008', '/about/', 'other', 'editorial-comment', 'HTTP運営者情報', '<p>HTTP固定ページ</p>', 'HTTP固定ページ', 'published', now()),
+  ('42000000-0000-4000-8000-000000000009', '/sitemap/', 'other', 'editorial-comment', 'HTTPサイトマップ', '<p>HTTP固定ページ</p>', 'HTTP固定ページ', 'published', now()),
+  ('42000000-0000-4000-8000-000000000010', '/storelisting/', 'other', 'editorial-comment', 'HTTP掲載について', '<p>HTTP固定ページ</p>', 'HTTP固定ページ', 'published', now()),
+  ('42000000-0000-4000-8000-000000000011', '/advertise/', 'other', 'editorial-comment', 'HTTP広告掲載について', '<p>HTTP固定ページ</p>', 'HTTP固定ページ', 'published', now()),
+  ('42000000-0000-4000-8000-000000000012', '/osaka-nihonbashi/', 'other', 'editorial-comment', 'HTTP日本橋ガイド', '<p>HTTP固定ページ</p>', 'HTTP固定ページ', 'published', now())
+on conflict (id) do nothing;

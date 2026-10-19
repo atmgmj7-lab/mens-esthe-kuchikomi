@@ -32,6 +32,13 @@ as $$
       and c.shop_id is null and c.area_id is null
       and c.route_key ~ '^/column/[^/]+/$'
       and nullif(btrim(c.title), '') is not null
+  ), published_pages as (
+    select c.id, c.route_key, c.title, c.body_html, c.body_text, c.updated_at
+    from app.contents c
+    where c.publication_status = 'published'
+      and c.shop_id is null and c.area_id is null
+      and c.route_key = any(array['/contact/', '/about/', '/sitemap/', '/storelisting/', '/advertise/', '/osaka-nihonbashi/'])
+      and nullif(btrim(c.title), '') is not null
   )
   select jsonb_build_object(
     'shops', coalesce((select jsonb_agg(jsonb_build_object(
@@ -45,10 +52,14 @@ as $$
     'posts', coalesce((select jsonb_agg(jsonb_build_object(
       'id', id, 'route_key', route_key, 'title', title, 'body_html', body_html, 'body_text', body_text, 'modified_at', updated_at
     ) order by route_key) from published_posts), '[]'::jsonb),
+    'pages', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', id, 'route_key', route_key, 'title', title, 'body_html', body_html, 'body_text', body_text, 'modified_at', updated_at
+    ) order by route_key) from published_pages), '[]'::jsonb),
     'coverage', jsonb_build_object(
       'published_shop_count', (select count(*) from published_shops where area_slug is not null),
       'published_area_count', (select count(*) from published_areas),
       'public_column_count', (select count(*) from published_posts),
+      'public_static_page_count', (select count(*) from published_pages),
       'mapped_wp_shop_count', (select count(*) from published_shops where area_slug is not null and wp_post_id is not null)
     )
   )

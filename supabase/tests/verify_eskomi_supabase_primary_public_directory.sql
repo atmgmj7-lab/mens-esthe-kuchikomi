@@ -17,6 +17,13 @@ declare
   published_primary_shop_id uuid := '41000000-0000-4000-8000-000000000014';
   payload jsonb;
 begin
+  update app.contents
+    set publication_status = 'archived', published_at = null
+    where id in (
+      '42000000-0000-4000-8000-000000000007', '42000000-0000-4000-8000-000000000008',
+      '42000000-0000-4000-8000-000000000009', '42000000-0000-4000-8000-000000000010',
+      '42000000-0000-4000-8000-000000000011', '42000000-0000-4000-8000-000000000012'
+    );
   insert into app.areas(id, slug, name, is_published, published_at)
   values (fixture_parent_id, 'primary-fixture-parent', '正本親エリア', true, now()),
     (area_id, 'primary-fixture-area', '正本エリア', true, now());
@@ -51,6 +58,15 @@ begin
   insert into app.contents(id, route_key, content_type, source_type, title, body_html, body_text, publication_status, published_at)
   values (post_id, '/column/primary-fixture-article/', 'other', 'editorial-comment', '正本公開記事', '<p>公開本文</p>', '公開本文', 'published', now()),
     ('41000000-0000-4000-8000-000000000006', '/column/primary-fixture-draft/', 'other', 'editorial-comment', '下書き記事', '<p>非公開本文</p>', '非公開本文', 'draft', null);
+  insert into app.contents(id, route_key, content_type, source_type, title, body_html, body_text, publication_status, published_at)
+  values
+    ('41000000-0000-4000-8000-000000000015', '/contact/', 'other', 'editorial-comment', 'お問い合わせ', '<p>公開固定ページ</p>', '公開固定ページ', 'published', now()),
+    ('41000000-0000-4000-8000-000000000016', '/about/', 'other', 'editorial-comment', '運営者情報', '<p>公開固定ページ</p>', '公開固定ページ', 'published', now()),
+    ('41000000-0000-4000-8000-000000000017', '/sitemap/', 'other', 'editorial-comment', 'サイトマップ', '<p>公開固定ページ</p>', '公開固定ページ', 'published', now()),
+    ('41000000-0000-4000-8000-000000000018', '/storelisting/', 'other', 'editorial-comment', '掲載について', '<p>公開固定ページ</p>', '公開固定ページ', 'published', now()),
+    ('41000000-0000-4000-8000-000000000019', '/advertise/', 'other', 'editorial-comment', '広告掲載について', '<p>公開固定ページ</p>', '公開固定ページ', 'published', now()),
+    ('41000000-0000-4000-8000-000000000020', '/osaka-nihonbashi/', 'other', 'editorial-comment', '日本橋ガイド', '<p>公開固定ページ</p>', '公開固定ページ', 'published', now()),
+    ('41000000-0000-4000-8000-000000000021', '/not-public-route/', 'other', 'editorial-comment', '対象外', '<p>対象外</p>', '対象外', 'published', now());
 
   set local role anon;
   select api.get_public_site_directory_v1() into payload;
@@ -73,6 +89,11 @@ begin
   if not (payload->'posts' @> '[{"route_key":"/column/primary-fixture-article/","title":"正本公開記事"}]'::jsonb)
     or payload->'posts' @> '[{"route_key":"/column/primary-fixture-draft/"}]'::jsonb then
     raise exception 'public article projection leaked a draft or omitted the published fixture: %', payload->'posts';
+  end if;
+  if not (payload->'pages' @> '[{"route_key":"/contact/"},{"route_key":"/about/"},{"route_key":"/sitemap/"},{"route_key":"/storelisting/"},{"route_key":"/advertise/"},{"route_key":"/osaka-nihonbashi/"}]'::jsonb)
+    or payload->'pages' @> '[{"route_key":"/not-public-route/"}]'::jsonb
+    or (payload->'coverage'->>'public_static_page_count')::integer <> 6 then
+    raise exception 'public fixed-page projection leaked an unsupported route or omitted a required page: %', payload->'pages';
   end if;
 end
 $$;

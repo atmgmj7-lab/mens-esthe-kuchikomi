@@ -3,6 +3,7 @@ import "server-only";
 import { resolveContentReadPlan } from "@/lib/content-source/config";
 import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
+import { STATIC_PAGE_SLUGS } from "@/lib/static-pages";
 import type { AreaView, BlogPostView, ShopView, WpTerm } from "@/lib/wp/types";
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -14,12 +15,14 @@ type DirectoryShop = Readonly<{
   area_slug: string; area_name: string; modified_at: string;
 }>;
 type DirectoryPost = Readonly<{ id: string; route_key: string; title: string; body_html: string; body_text: string; modified_at: string }>;
-type DirectoryCoverage = Readonly<{ published_shop_count: number; published_area_count: number; public_column_count: number; mapped_wp_shop_count: number }>;
+type DirectoryPage = Readonly<{ id: string; route_key: string; title: string; body_html: string; body_text: string; modified_at: string }>;
+type DirectoryCoverage = Readonly<{ published_shop_count: number; published_area_count: number; public_column_count: number; public_static_page_count: number; mapped_wp_shop_count: number }>;
 
 export type SupabasePublicDirectory = Readonly<{
   shops: readonly DirectoryShop[];
   areas: readonly DirectoryArea[];
   posts: readonly DirectoryPost[];
+  pages: readonly DirectoryPage[];
   coverage: DirectoryCoverage;
 }>;
 
@@ -40,7 +43,7 @@ function stableNumericId(value: string): number {
 }
 
 function parseDirectory(value: unknown): SupabasePublicDirectory | null {
-  if (!record(value) || !Array.isArray(value.shops) || !Array.isArray(value.areas) || !Array.isArray(value.posts) || !record(value.coverage)) return null;
+  if (!record(value) || !Array.isArray(value.shops) || !Array.isArray(value.areas) || !Array.isArray(value.posts) || !Array.isArray(value.pages) || !record(value.coverage)) return null;
   const areas = value.areas.map((entry): DirectoryArea | null => {
     if (!record(entry)) return null;
     const id = string(entry.id); const slug = string(entry.slug); const name = string(entry.name); const description = typeof entry.description === "string" ? entry.description : null;
@@ -60,16 +63,21 @@ function parseDirectory(value: unknown): SupabasePublicDirectory | null {
     const id = string(entry.id); const route = string(entry.route_key); const title = string(entry.title); const bodyHtml = typeof entry.body_html === "string" ? entry.body_html : null; const bodyText = typeof entry.body_text === "string" ? entry.body_text : null; const modified = string(entry.modified_at);
     return id && route && title && bodyHtml !== null && bodyText !== null && modified ? Object.freeze({ id, route_key: route, title, body_html: bodyHtml, body_text: bodyText, modified_at: modified }) : null;
   });
+  const pages = value.pages.map((entry): DirectoryPage | null => {
+    if (!record(entry)) return null;
+    const id = string(entry.id); const route = string(entry.route_key); const title = string(entry.title); const bodyHtml = typeof entry.body_html === "string" ? entry.body_html : null; const bodyText = typeof entry.body_text === "string" ? entry.body_text : null; const modified = string(entry.modified_at);
+    return id && route && title && bodyHtml !== null && bodyText !== null && modified ? Object.freeze({ id, route_key: route, title, body_html: bodyHtml, body_text: bodyText, modified_at: modified }) : null;
+  });
   const coverage = {
     published_shop_count: integer(value.coverage.published_shop_count), published_area_count: integer(value.coverage.published_area_count),
-    public_column_count: integer(value.coverage.public_column_count), mapped_wp_shop_count: integer(value.coverage.mapped_wp_shop_count),
+    public_column_count: integer(value.coverage.public_column_count), public_static_page_count: integer(value.coverage.public_static_page_count), mapped_wp_shop_count: integer(value.coverage.mapped_wp_shop_count),
   };
-  if (areas.some((entry) => entry === null) || shops.some((entry) => entry === null) || posts.some((entry) => entry === null)
+  if (areas.some((entry) => entry === null) || shops.some((entry) => entry === null) || posts.some((entry) => entry === null) || pages.some((entry) => entry === null)
     || Object.values(coverage).some((entry) => entry === null)) return null;
-  return Object.freeze({ shops: Object.freeze(shops as DirectoryShop[]), areas: Object.freeze(areas as DirectoryArea[]), posts: Object.freeze(posts as DirectoryPost[]), coverage: Object.freeze(coverage as DirectoryCoverage) });
+  return Object.freeze({ shops: Object.freeze(shops as DirectoryShop[]), areas: Object.freeze(areas as DirectoryArea[]), posts: Object.freeze(posts as DirectoryPost[]), pages: Object.freeze(pages as DirectoryPage[]), coverage: Object.freeze(coverage as DirectoryCoverage) });
 }
 
-function expectedCount(environment: Environment, name: "SUPABASE_CONTENT_EXPECTED_SHOPS" | "SUPABASE_CONTENT_EXPECTED_AREAS" | "SUPABASE_CONTENT_EXPECTED_POSTS"): number {
+function expectedCount(environment: Environment, name: "SUPABASE_CONTENT_EXPECTED_SHOPS" | "SUPABASE_CONTENT_EXPECTED_AREAS" | "SUPABASE_CONTENT_EXPECTED_POSTS" | "SUPABASE_CONTENT_EXPECTED_PAGES"): number {
   const value = environment[name]?.trim() ?? "";
   if (!/^(0|[1-9]\d*)$/.test(value)) throw new ContentMigrationIncompleteError(`${name} must be an explicit non-negative integer before Supabase-primary can start`);
   return Number(value);
@@ -79,10 +87,17 @@ function assertCoverage(directory: SupabasePublicDirectory, environment: Environ
   const expectedShops = expectedCount(environment, "SUPABASE_CONTENT_EXPECTED_SHOPS");
   const expectedAreas = expectedCount(environment, "SUPABASE_CONTENT_EXPECTED_AREAS");
   const expectedPosts = expectedCount(environment, "SUPABASE_CONTENT_EXPECTED_POSTS");
+  const expectedPages = expectedCount(environment, "SUPABASE_CONTENT_EXPECTED_PAGES");
   const actual = directory.coverage;
   if (actual.published_shop_count !== expectedShops || directory.shops.length !== expectedShops) throw new ContentMigrationIncompleteError(`Supabase-primary shop migration is incomplete: expected ${expectedShops}, received ${actual.published_shop_count}`);
   if (actual.published_area_count !== expectedAreas || directory.areas.length !== expectedAreas) throw new ContentMigrationIncompleteError(`Supabase-primary area migration is incomplete: expected ${expectedAreas}, received ${actual.published_area_count}`);
   if (actual.public_column_count !== expectedPosts || directory.posts.length !== expectedPosts) throw new ContentMigrationIncompleteError(`Supabase-primary article migration is incomplete: expected ${expectedPosts}, received ${actual.public_column_count}`);
+  if (actual.public_static_page_count !== expectedPages || directory.pages.length !== expectedPages) throw new ContentMigrationIncompleteError(`Supabase-primary fixed-page migration is incomplete: expected ${expectedPages}, received ${actual.public_static_page_count}`);
+  const expectedPageRoutes = new Set(STATIC_PAGE_SLUGS.map((slug) => `/${slug}/`));
+  const receivedPageRoutes = new Set(directory.pages.map((page) => page.route_key));
+  if (expectedPages !== expectedPageRoutes.size || receivedPageRoutes.size !== expectedPageRoutes.size || [...expectedPageRoutes].some((route) => !receivedPageRoutes.has(route))) {
+    throw new ContentMigrationIncompleteError("Supabase-primary fixed-page migration does not cover the exact public static-route set");
+  }
   if (expectedShops > 0 && actual.mapped_wp_shop_count !== expectedShops) throw new ContentMigrationIncompleteError(`Supabase-primary requires a legacy WordPress identity for every migrated shop: expected ${expectedShops}, received ${actual.mapped_wp_shop_count}`);
 }
 
@@ -122,4 +137,9 @@ export function publicDirectoryShops(directory: SupabasePublicDirectory): ShopVi
 
 export function publicDirectoryPosts(directory: SupabasePublicDirectory): BlogPostView[] {
   return directory.posts.map((post) => ({ id: stableNumericId(post.id), slug: post.route_key.split("/").filter(Boolean).at(-1) as string, link: post.route_key, title: post.title, date: post.modified_at, modified: post.modified_at, contentHtml: post.body_html, excerpt: post.body_text.slice(0, 160), imageUrl: "", terms: [], acf: {} }));
+}
+
+export function publicDirectoryPage(directory: SupabasePublicDirectory, slug: string): { slug: string; title: string; contentHtml: string; excerpt: string; modified: string } | null {
+  const page = directory.pages.find((candidate) => candidate.route_key === `/${slug}/`);
+  return page ? { slug, title: page.title, contentHtml: page.body_html, excerpt: page.body_text.slice(0, 160), modified: page.modified_at } : null;
 }
