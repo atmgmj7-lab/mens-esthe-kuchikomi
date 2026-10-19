@@ -87,9 +87,9 @@ starting or deleting another Docker fixture.
 
 ## Remaining production gates
 
-Production remains at zero publicly readable directory rows. Before any write,
-an authorized executor needs a fresh preflight, an immutable regenerated plan,
-and a scoped backup/PITR or approved logical export according to the operation's
-recovery objective. The connected interface permits the reads above but does
-not expose `pg_dump`, provider PITR creation, or Storage export/restore; that is
-the specific capability gap for a full-data recovery proof.
+Production remains at zero publicly readable directory rows. Before the optional
+primary-area write, an authorized executor needs a fresh preflight, immutable
+regenerated plan, and a logical snapshot only of its 44 `app.shop_areas` tuples
+and its own batch/record rows. The connected interface's lack of `pg_dump`,
+provider PITR creation, or Storage export/restore is not a blocker for this
+bounded delta because it does not modify the broader database or Storage.

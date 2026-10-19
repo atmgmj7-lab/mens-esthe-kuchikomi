@@ -167,23 +167,29 @@ projection, a primary-area inference, or image ID 357 in this approval.
 
 ## Backup, verification, and rollback gates
 
-No backup or restore was run as part of this package.  The approval executor
-must attach all of the following before applying even the read-only projection
-migration:
+No provider-wide backup, PITR purchase, or Storage export/restore is a gate for
+this narrow package. The approval executor must instead attach the smallest
+logical snapshot that can restore the exact changed scope:
 
-1. a provider backup/PITR identifier and timestamp taken immediately before
-   migration;
-2. a read-only preflight export of the count table above and the 241 image
-   identity/URL pairs (checksum of the exported manifest included);
-3. a transaction-wrapped staging/branch restore rehearsal that applies the
-   migration and verifies `anon` can call the RPC but cannot read base tables;
-4. a post-apply readback proving migration ledger membership, unchanged
-   382/34/0/0 counts, unchanged unlisted ID 1272, and the same 241 URLs; and
-5. an approved, separately scoped rollback decision.  SQL function rollback is
-   a schema action; the image rollback is mapping-only from the stored old/new
-   pairs and must never delete objects.
+1. for `20261019090000_eskomi_supabase_primary_public_directory.sql`, the
+   migration ledger state, function absence/definition, function grants, and
+   the read-only count/RLS preflight; its rollback is removal of that function
+   and a PostgREST reload;
+2. for the optional 44-row primary-area delta, the exact `(shop_id, area_id,
+   is_primary)` tuples plus the identified `private.import_batches` and
+   `private.import_records` rows; its rollback SQL restores only those flags
+   and marks that batch rolled back;
+3. a transaction-wrapped local/branch rehearsal that applies and restores the
+   exact scope, including `anon` RPC behavior and managed unlisting; and
+4. a post-apply readback of only those snapshot fields, unchanged public counts,
+   and unchanged ID 1272 state.
 
-If any precondition differs, stop rather than adapting the input in place.
+The existing 241 image URL reconciliation is a no-touch invariant, not a
+request to export or restore Storage. Do not add Storage credentials or a new
+export capability for data this package never changes.
+
+If any scoped precondition differs, stop rather than adapting the input in
+place.
 
 ## Local HTTP evidence for management and public boundaries
 

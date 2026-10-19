@@ -127,6 +127,13 @@ No paid PITR purchase is needed for this single-function migration.
   it does not delete or restore any data or Storage object.  That operation
   still needs its own execution approval.
 
+The optional primary-area delta is similarly bounded to 44
+`app.shop_areas.is_primary` values and its own `private.import_batches` /
+`private.import_records` audit rows. Its before-image is those tuples and rows,
+and its supplied rollback restores those tuples without deleting audit or
+Storage objects. A full database backup, provider export, or new Storage
+export/restore permission is therefore outside this change's recovery scope.
+
 The available connected DB interface does not expose a row-restorable
 `pg_dump`/Storage export.  A full logical export of all 382 shop rows is not
 needed to reverse this data-free function migration, but is a required separate
