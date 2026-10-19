@@ -190,3 +190,35 @@ Approve all of the following as one named batch:
    database import batch → primary HTTP/sitemap validation → explicit release;
    rollback restores source URL mappings and reader mode without deleting source
    or uploaded objects.
+
+## Approved manual Storage-copy handoff
+
+The approved copy can be performed from the Mac that already holds a valid
+Supabase **service key**, without placing that key in this repository, a shell
+argument, an environment variable, a log, or a generated artifact.
+
+1. First inspect the fixed target project in the official dashboard:
+   <https://supabase.com/dashboard/project/goeagrxjsjcbbatpotbu/storage/buckets>
+2. Optionally verify the scope without any network write:
+   `cd headless && node scripts/upload-approved-shop-images.mjs --dry-run`
+3. To perform the approved copy, run exactly:
+   `cd headless && node scripts/upload-approved-shop-images.mjs --apply`
+4. Paste the existing service key only when the local TTY displays the hidden
+   prompt. Characters are not echoed; the script does not accept the key by
+   flag, environment, pipe, or redirected input.
+
+The script is hard-coded to the project URL
+`https://goeagrxjsjcbbatpotbu.supabase.co` and only creates/verifies a public
+`shop-images` bucket with a 10 MiB limit and JPEG/PNG MIME allow-list. It
+refuses a pre-existing bucket whose public flag, limit, or MIME list differs.
+It considers only the 241 `transfer_candidate` manifest records. The fixed-page
+image (357), 26 unreferenced images, all private application assets, and all
+database writes are excluded.
+
+For each proposed key, it reads a pre-existing object first. A matching
+byte-count/SHA-256 object is recorded as already verified; a different object
+causes an immediate stop and is never overwritten. Missing objects are uploaded
+with `x-upsert: false`, then downloaded again and checked against the local
+byte-count and SHA-256. Re-running after a failure is safe because verified
+objects are skipped and mismatches still stop. URL/DB switching remains a
+separate, unapproved follow-up after the copy report is reviewed.
