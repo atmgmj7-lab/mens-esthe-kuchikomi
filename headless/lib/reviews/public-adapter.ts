@@ -16,6 +16,7 @@ import {
 import { getAllShopsForListing } from "@/lib/wp/shops";
 import type { ShopView } from "@/lib/wp/types";
 import { RANK_UP_WP_SHOP_ID, useRankUpNativeReviewPilot } from "@/lib/reviews/rankup-native-review-pilot";
+import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
 
 export type ReviewReadSource = "wordpress" | "supabase";
 export type PublicReviewId = number | string;
@@ -126,12 +127,12 @@ const MAX_PER_PAGE = 20;
 const CANONICAL_AREA_SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function resolveReviewReadSource(environment: Environment): ReviewReadSource {
-  return environment.REVIEW_READ_SOURCE === "supabase" ? "supabase" : "wordpress";
+  return isSupabasePrimaryContent(environment) || environment.REVIEW_READ_SOURCE === "supabase" ? "supabase" : "wordpress";
 }
 
 /** The canonical v1.1 projection is opt-in until its migration/backfill audit is approved. */
 export function useV11PublicShopReviewSource(environment: Environment): boolean {
-  return environment.ESKOMI_V11_PUBLIC_REVIEW_SOURCE === "supabase";
+  return isSupabasePrimaryContent(environment) || environment.ESKOMI_V11_PUBLIC_REVIEW_SOURCE === "supabase";
 }
 
 export { useRankUpNativeReviewPilot } from "@/lib/reviews/rankup-native-review-pilot";

@@ -26,6 +26,7 @@ import { getAreaShopRankings } from "@/lib/wp/area-shop-rankings";
 import { getHomeFeaturedAreas } from "@/lib/wp/home-featured-areas";
 import { getStaticParamsOrFallback, withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { canonicalUrl, makeDescription, pageMetadata } from "@/lib/seo";
+import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -146,10 +147,12 @@ async function AreaPageContent({ params, searchParams }: Props) {
     currentPage > 1
       ? withWpBuildFallback(`area seo shops ${area.slug}`, () => getAreaShops(area.id, 1), null)
       : Promise.resolve(null),
-    shouldLoadLegacyAreaRanking(area)
+    !isSupabasePrimaryContent() && shouldLoadLegacyAreaRanking(area)
       ? withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
       : Promise.resolve({}),
-    withWpBuildFallback("home featured areas for area archive hero", getHomeFeaturedAreas, [])
+    isSupabasePrimaryContent()
+      ? Promise.resolve([])
+      : withWpBuildFallback("home featured areas for area archive hero", getHomeFeaturedAreas, [])
   ]);
   const rankingEntries = resolveAreaRankingEntries(rankingMap, area);
 

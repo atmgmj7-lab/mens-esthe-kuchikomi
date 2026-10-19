@@ -20,7 +20,7 @@ remain unverified or require recurring pre-deployment confirmation:
 | --- | --- | --- |
 | Account name and exact ID | `Eskomi` / target ID confirmed by Dashboard and restricted-profile API result | Reconfirm before any deployment |
 | Current Workers plan and billing eligibility | Unverified | Account Home > Plans / Workers & Pages overview |
-| workers.dev subdomain and existing Worker routes | Unverified | Workers & Pages overview; do not claim or edit a subdomain |
+| workers.dev subdomain and existing Worker routes | `eskomi.workers.dev` confirmed by user-provided Workers & Pages screen; no routes/projects found | Reconfirm before deployment; do not claim or edit the subdomain |
 | Existing Workers / Pages | Dashboard reports no projects; candidate Worker is absent | Reconfirm before deployment; no resource creation |
 | KV / R2 / D1 / Queues resources | Unverified | Account-specific resource lists, recorded as names/counts only |
 | Domains and zones | Unverified | Websites / Zones list, recorded as zones and status only |
@@ -40,6 +40,15 @@ account`, not an authentication or authorization failure. This confirms that
 the restricted profile reaches the target account and is consistent with the
 user-provided Workers & Pages screen showing no projects. It does not prove a
 paid plan, workers.dev registration, zone inventory, or deployment readiness.
+
+### User-provided Dashboard screen follow-up
+
+The user directly provided a Workers & Pages screen captured on 2026-10-19
+18:27 JST for account `Eskomi` / `0641c11bf1431e5ee5cd3fca94c417e2`. It shows
+the already-registered subdomain `eskomi.workers.dev`, no projects, and zero
+Workers usage (0 of 100,000 requests; 0 ms CPU). No new workers.dev
+registration is needed. The screen does not name a plan, so plan/billing
+eligibility remains unverified.
 
 ### User-Mac browser connection follow-up
 
@@ -107,25 +116,49 @@ The committed Worker configuration is deliberately account-neutral:
   managed directory source. Neither setting is a default or should be enabled
   during a minimum pilot without its separate global comparison gate.
 
+## Supabase-primary implementation status — 2026-10-19
+
+This branch now contains a fail-closed Supabase-primary public-reader path:
+
+- `api.get_public_site_directory_v1()` projects only published `app.shops`,
+  published `app.areas`, and published `/column/` `app.contents`; drafts,
+  moderation state, import records, and partner workspace data are excluded.
+- Primary mode validates explicit reconciled shop/area/article counts and a
+  legacy WordPress ID for every public shop. A malformed response, count
+  mismatch, or unavailable reader raises an error; it does not fall back to
+  WordPress.
+- Shop listing/detail, area readers, sitemap, review-form identity, homepage
+  listings, and column readers use that path before compatibility readers.
+  The review adapter forces the existing approved v1.1 Supabase projection in
+  primary mode. WordPress-only area promotion/ranking fetches are skipped.
+- Legacy static pages lack a canonical `app.contents` projection today. Their
+  reader therefore fails closed in primary mode rather than issuing a hidden
+  WordPress request. Migrating those pages is a production cutover blocker.
+
+The local `anon` RPC rehearsal verified published-vs-draft isolation in a
+rolled-back transaction. A persistent local-only HTTP fixture then returned
+HTTP 200 for home, `/shops/`, a shop detail, an area page, `/sitemap.xml`, and
+review-submit prefill. It rendered only the published fixture records; the
+WordPress proxy observed no application request. This is local evidence only,
+not production migration evidence.
+
 ## Supabase-primary readiness correction
 
-The current branch is **not yet a WordPress-free public application**. The
-configuration contract for `CONTENT_DATA_SOURCE=supabase` exists, but no
-runtime route consumes `resolveContentReadPlan`; setting it would not migrate
-the public site. `SHOP_DIRECTORY_SOURCE=supabase` is an overlay/new-publication
-path: it still starts from the legacy WordPress shop and area readers for
-existing inventory. Likewise, the v1.1 public-review flag changes review
-projections, but normal shop identity is still resolved through the legacy
-shop reader.
+The current branch has a Supabase-primary implementation, but it is **not yet
+ready for a production WordPress retirement**. No production-sized shop, area,
+article, or static-page corpus has been imported or reconciled. The old
+`SHOP_DIRECTORY_SOURCE=supabase` overlay remains a compatibility path and
+still starts from WordPress for legacy inventory when `CONTENT_DATA_SOURCE`
+is not `supabase`.
 
 The following runtime surfaces still require a Supabase-primary implementation
 before WordPress can be retired rather than treated as a compatibility source:
 
-- home, `/shops/`, shop detail and sitemap use WordPress shop/area readers;
-- area pages retain WordPress taxonomy, order, and legacy-shop lookups;
-- `/reviews/` still reads WordPress posts for its editorial sidebar;
-- review submission, review form, registration, and several dashboard routes
-  resolve an existing shop through WordPress before using Supabase services.
+- static pages must be migrated to an explicit canonical projection before
+  primary can serve every existing public URL without a fail-closed response;
+- dashboard and compatibility management paths still intentionally retain
+  WordPress lookups; they are outside the public primary reader boundary and
+  need their own administration migration plan.
 
 `WP_REVIEW_SUBMIT_USER` and `WP_REVIEW_SUBMIT_APP_PASSWORD` belong only to the
 legacy WordPress review-submit helper. No current public submit route imports

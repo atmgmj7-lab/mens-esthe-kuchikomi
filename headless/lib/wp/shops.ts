@@ -5,6 +5,7 @@ import { normalizeShop } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
 import { applyManagedShopFactsToList, isManagedShopSourceUnavailableError } from "@/lib/shop-management-source";
 import { composeManagedShopDirectory, findPublishedManagedShopBySlug, getManagedShopDirectoryState, isManagedShopDirectoryUnavailableError, isManagedShopLegacySuppressedBySlug } from "@/lib/managed-shop-source";
+import { getSupabasePrimaryPublicDirectory, isSupabasePrimaryContent, publicDirectoryShops } from "@/lib/content-source/public-directory";
 import type { ShopView, WpShop } from "@/lib/wp/types";
 
 function safeDecodeURIComponent(value: string): string {
@@ -106,6 +107,7 @@ export async function getLatestShops(limit = 6): Promise<ShopView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", `shops:list:${limit}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryShops(await getSupabasePrimaryPublicDirectory()).slice(0, limit);
   try {
     const shops = await wpFetch<WpShop[]>(`/wp/v2/shop?per_page=${limit}&_embed=1`);
     return applyPublicShopSources(shops.map(normalizeShop));
@@ -120,6 +122,7 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "shops", shopSlugCacheTag(slug));
+  if (isSupabasePrimaryContent()) return publicDirectoryShops(await getSupabasePrimaryPublicDirectory()).find((shop) => slugsMatch(shop.slug, slug)) ?? null;
 
   if (await isManagedShopLegacySuppressedBySlug(slug)) return null;
   const managedOnly = await findPublishedManagedShopBySlug(slug);
@@ -148,6 +151,7 @@ export async function getShopById(id: number): Promise<ShopView | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "shops", shopIdCacheTag(id));
+  if (isSupabasePrimaryContent()) return publicDirectoryShops(await getSupabasePrimaryPublicDirectory()).find((shop) => shop.id === id) ?? null;
 
   const shop = await getWordPressShopById(id);
   return shop ? applyPublicShopSource(shop) : null;
@@ -239,6 +243,10 @@ export async function getShopsForSitemap(): Promise<SitemapEntry[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "shops", "shops:sitemap");
+  if (isSupabasePrimaryContent()) {
+    const directory = await getSupabasePrimaryPublicDirectory();
+    return directory.shops.map((shop) => ({ slug: shop.slug, modified: shop.modified_at }));
+  }
 
   const perPage = 100;
   const entries: Array<SitemapEntry & { id: number }> = [];
@@ -282,6 +290,7 @@ export async function getAllWordPressShops(maxShops = Number.MAX_SAFE_INTEGER): 
 }
 
 export async function getAllShopsForListing(maxShops = 500): Promise<ShopView[]> {
+  if (isSupabasePrimaryContent()) return publicDirectoryShops(await getSupabasePrimaryPublicDirectory()).slice(0, maxShops);
   return applyPublicShopSources(await getAllWordPressShops(maxShops), true);
 }
 
@@ -289,6 +298,7 @@ export async function getShopCount(): Promise<number> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", "shops:count");
+  if (isSupabasePrimaryContent()) return (await getSupabasePrimaryPublicDirectory()).shops.length;
   try {
     const { pagination } = await wpFetchPaginated<WpShop[]>("/wp/v2/shop?per_page=1");
     const { publications, suppressions } = await getManagedShopDirectoryState();

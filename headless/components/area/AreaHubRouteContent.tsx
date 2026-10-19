@@ -24,6 +24,7 @@ import { getAreaShopRankings } from "@/lib/wp/area-shop-rankings";
 import { getHomeFeaturedAreas } from "@/lib/wp/home-featured-areas";
 import { withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { canonicalUrl, pageMetadata } from "@/lib/seo";
+import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
 import type { AreaView } from "@/lib/wp/types";
 
 export async function renderAreaHubRouteContent(area: AreaView, currentPage: number) {
@@ -32,10 +33,12 @@ export async function renderAreaHubRouteContent(area: AreaView, currentPage: num
     withWpBuildFallback(`area hub siblings ${area.slug}`, () => getSiblingAreas(area), []),
     withWpBuildFallback(`area hub parent ${area.slug}`, () => getParentArea(area), null),
     withWpBuildFallback(`area hub shops ${area.slug}`, () => getAreaRankingShops(area.id), []),
-    shouldLoadLegacyAreaRanking(area)
+    !isSupabasePrimaryContent() && shouldLoadLegacyAreaRanking(area)
       ? withWpBuildFallback("area shop rankings", getAreaShopRankings, {})
       : Promise.resolve({}),
-    withWpBuildFallback("home featured areas for area hero", getHomeFeaturedAreas, []),
+    isSupabasePrimaryContent()
+      ? Promise.resolve([])
+      : withWpBuildFallback("home featured areas for area hero", getHomeFeaturedAreas, []),
     withWpBuildFallback(
       `priority area approved reviews ${area.slug}`,
       () => loadPriorityAreaApprovedReviews(area),

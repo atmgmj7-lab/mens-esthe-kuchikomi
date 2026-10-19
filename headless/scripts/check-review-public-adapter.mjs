@@ -105,6 +105,9 @@ const wpGlobalResult = {
 const module = loadTypeScript("lib/reviews/public-adapter.ts", {
   "server-only": {},
   "next/cache": { cacheLife: () => {}, cacheTag: () => {} },
+  "@/lib/content-source/public-directory": {
+    isSupabasePrimaryContent: (environment) => environment.CONTENT_DATA_SOURCE === "supabase",
+  },
   "@/lib/reviews/rankup-native-review-pilot": {
     RANK_UP_WP_SHOP_ID: 768,
     useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
@@ -124,9 +127,11 @@ const module = loadTypeScript("lib/reviews/public-adapter.ts", {
 assert.equal(module.resolveReviewReadSource({}), "wordpress");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "wordpress" }), "wordpress");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "supabase" }), "supabase");
+assert.equal(module.resolveReviewReadSource({ CONTENT_DATA_SOURCE: "supabase" }), "supabase");
 assert.equal(module.resolveReviewReadSource({ REVIEW_READ_SOURCE: "unexpected" }), "wordpress");
 assert.equal(module.useV11PublicShopReviewSource({}), false);
 assert.equal(module.useV11PublicShopReviewSource({ ESKOMI_V11_PUBLIC_REVIEW_SOURCE: "supabase" }), true);
+assert.equal(module.useV11PublicShopReviewSource({ CONTENT_DATA_SOURCE: "supabase" }), true);
 assert.equal(module.useRankUpNativeReviewPilot({}), false);
 assert.equal(module.useRankUpNativeReviewPilot({ RANKUP_NATIVE_REVIEW_READ_SOURCE: "supabase" }), true);
 assert.equal(module.useRankUpNativeReviewPilot({ RANKUP_NATIVE_REVIEW_READ_SOURCE: "wordpress" }), false);

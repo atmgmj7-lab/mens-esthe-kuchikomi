@@ -87,3 +87,35 @@ secret, private UUID, or production-row value.
 
 No Cloudflare account, DNS, secret, OAuth, production database/Auth, main
 merge, or deployment was used.
+
+## Supabase-primary local public-read rehearsal — 2026-10-19
+
+The dedicated contract test `test:eskomi-supabase-primary-public-directory`
+and local database rehearsal `test:eskomi-supabase-primary-public-directory-local`
+cover the new public directory RPC. The database test runs inside a rolled-back
+transaction and proves `anon` receives a published shop, hierarchy, and column
+article while receiving neither draft shop nor draft article.
+
+The rehearsal also proves that a shop whose **primary** area is unpublished is
+omitted even when it has a published secondary area, that a published primary
+area remains authoritative, and that a published child does not expose an
+unpublished parent's slug. Primary-mode route fallbacks rethrow migration and
+coverage failures, so they cannot return an empty HTTP 200 page or sitemap.
+
+For the actual local HTTP rehearsal, an idempotent local-only fixture added one
+published shop, two published areas, one published column article, and matching
+draft rows to the existing fixture. With `CONTENT_DATA_SOURCE=supabase`, the
+explicit expected counts `1/2/1`, and a loopback WordPress request proxy:
+
+- `/`, `/shops/`, `/shops/primary-http-shop/`,
+  `/area/primary-http-area/`, `/sitemap.xml`, and
+  `/reviews/submit/?shop=primary-http-shop` all returned HTTP 200;
+- every page rendered the published fixture marker and omitted the draft marker;
+- the sitemap contained the published shop and excluded the draft slug; and
+- the WordPress proxy received no application request (the sole recorded
+  `/probe` request was the proxy readiness check).
+
+The fixture proves the route selection and fail-closed data gate locally. It
+does not prove a production corpus migration; static pages currently fail
+closed in primary mode until their `app.contents` projection and reconciliation
+are implemented.

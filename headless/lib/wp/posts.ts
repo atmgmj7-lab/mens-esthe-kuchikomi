@@ -2,6 +2,7 @@ import { wpFetch, wpFetchPaginated } from "@/lib/wp/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { normalizePost } from "@/lib/wp/normalize";
 import { logWpBuildFallback } from "@/lib/wp/build-resilience";
+import { getSupabasePrimaryPublicDirectory, isSupabasePrimaryContent, publicDirectoryPosts } from "@/lib/content-source/public-directory";
 import type { BlogPostView, WpPostBase } from "@/lib/wp/types";
 
 function isWordPressDefaultSamplePost(post: WpPostBase): boolean {
@@ -16,6 +17,7 @@ export async function getLatestPosts(limit = 6): Promise<BlogPostView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "posts", `posts:list:${limit}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryPosts(await getSupabasePrimaryPublicDirectory()).slice(0, limit);
   try {
     const perPage = Math.min(limit + 1, 100);
     const posts = await wpFetch<WpPostBase[]>(`/wp/v2/posts?per_page=${perPage}&_embed=1`);
@@ -38,6 +40,7 @@ export async function getPostsForSitemap(): Promise<PostSitemapEntry[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "posts", "posts:sitemap");
+  if (isSupabasePrimaryContent()) return publicDirectoryPosts(await getSupabasePrimaryPublicDirectory()).map((post) => ({ slug: post.slug, modified: post.modified }));
 
   const perPage = 100;
   const entries: PostSitemapEntry[] = [];
@@ -64,6 +67,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPostView | null> 
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "posts", `post:${slug}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryPosts(await getSupabasePrimaryPublicDirectory()).find((post) => post.slug === slug) ?? null;
   try {
     const posts = await wpFetch<WpPostBase[]>(`/wp/v2/posts?slug=${encodeURIComponent(slug)}&_embed=1`);
     return posts[0] ? normalizePost(posts[0]) : null;

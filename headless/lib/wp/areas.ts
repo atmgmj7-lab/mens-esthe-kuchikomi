@@ -12,6 +12,7 @@ import {
 import { useSupabaseManagedShopDirectory } from "@/lib/supabase/managed-shop-directory";
 import { getWordPressShopById } from "@/lib/wp/shops";
 import { getAreaInformationOrderingReferenceTimestamp, isAreaInformationOrderingTarget, paginateAreaShopInformationOrder } from "@/lib/area-shop-ordering";
+import { getSupabasePrimaryPublicDirectory, isSupabasePrimaryContent, publicDirectoryAreas, publicDirectoryShops } from "@/lib/content-source/public-directory";
 import type { AreaView, ShopView, WpTerm } from "@/lib/wp/types";
 
 function normalizeArea(term: WpTerm): AreaView {
@@ -60,6 +61,7 @@ export async function getAreas(): Promise<AreaView[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", "areas:all");
+  if (isSupabasePrimaryContent()) return publicDirectoryAreas(await getSupabasePrimaryPublicDirectory());
   try {
     const terms = await wpFetch<WpTerm[]>("/wp/v2/area?per_page=100&hide_empty=false");
     const legacy = terms.map(normalizeArea);
@@ -78,6 +80,7 @@ export async function getAreaBySlug(slug: string): Promise<AreaView | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", `area:${slug}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryAreas(await getSupabasePrimaryPublicDirectory()).find((area) => area.slug === slug) ?? null;
   try {
     const terms = await wpFetch<WpTerm[]>(`/wp/v2/area?slug=${encodeURIComponent(slug)}&hide_empty=false`);
     return terms[0] ? normalizeArea(terms[0]) : await managedAreaBySlug(slug);
@@ -94,6 +97,7 @@ export async function getChildAreas(parentId: number): Promise<AreaView[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", `area:children:${parentId}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryAreas(await getSupabasePrimaryPublicDirectory()).filter((area) => area.parent === parentId);
   try {
     const terms = await wpFetch<WpTerm[]>(`/wp/v2/area?parent=${parentId}&per_page=100&hide_empty=false`);
     return terms.map(normalizeArea);
@@ -112,6 +116,7 @@ export async function getAreaById(id: number): Promise<AreaView | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", `area:id:${id}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryAreas(await getSupabasePrimaryPublicDirectory()).find((area) => area.id === id) ?? null;
   const canonical = await managedAreaById(id);
   if (canonical) return canonical;
   try {
@@ -127,6 +132,7 @@ export async function getSiblingAreas(area: AreaView): Promise<AreaView[]> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "areas", `area:siblings:${area.id}`);
+  if (isSupabasePrimaryContent()) return publicDirectoryAreas(await getSupabasePrimaryPublicDirectory()).filter((candidate) => candidate.parent === area.parent && candidate.id !== area.id);
   if (!area.parent) return [];
   try {
     const terms = await wpFetch<WpTerm[]>(
@@ -189,6 +195,15 @@ export async function getAreaShops(
     `area:shops:${areaId}:pp:${perPage}`,
     `area:shops:${areaId}:pp:${perPage}:page:${page}`
   );
+  if (isSupabasePrimaryContent()) {
+    if (!Number.isSafeInteger(page) || page < 1) throw new Error("Invalid area page request");
+    const directory = await getSupabasePrimaryPublicDirectory();
+    const area = publicDirectoryAreas(directory).find((candidate) => candidate.id === areaId);
+    if (!area) return { shops: [], totalPages: 1 };
+    const shops = publicDirectoryShops(directory).filter((shop) => shop.areaSlug === area.slug);
+    const totalPages = Math.max(1, Math.ceil(shops.length / perPage));
+    return { shops: shops.slice((page - 1) * perPage, page * perPage), totalPages };
+  }
   try {
     if (!Number.isSafeInteger(page) || page < 1 || !Number.isSafeInteger(perPage) || perPage < 1 || perPage > 100) throw new Error("Invalid area page request");
     const area = await getAreaById(areaId);
@@ -231,6 +246,11 @@ export async function getAreaRankingShops(areaId: number): Promise<ShopView[]> {
   "use cache";
   cacheLife("minutes");
   cacheTag("wp", "shops", `area:shops:${areaId}`, `area:shops:${areaId}:ranking`);
+  if (isSupabasePrimaryContent()) {
+    const directory = await getSupabasePrimaryPublicDirectory();
+    const area = publicDirectoryAreas(directory).find((candidate) => candidate.id === areaId);
+    return area ? publicDirectoryShops(directory).filter((shop) => shop.areaSlug === area.slug) : [];
+  }
   try {
     if (!useSupabaseManagedShopDirectory()) {
       const index = await getAreaShopOrderIndex(areaId);

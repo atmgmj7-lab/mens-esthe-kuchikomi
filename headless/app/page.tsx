@@ -8,6 +8,7 @@ import { getAreas } from "@/lib/wp/areas";
 import { getHomeFeaturedAreas } from "@/lib/wp/home-featured-areas";
 import { getLatestPosts } from "@/lib/wp/posts";
 import { getLatestShops, getShopCount } from "@/lib/wp/shops";
+import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
 
 export const metadata: Metadata = pageMetadata({
   title: "Eskomi | 関西メンズエステ口コミナビ",
@@ -33,9 +34,14 @@ export default async function HomePage() {
     getLatestShops(6),
     getAreas(),
     getLatestPosts(6),
-    getHomeFeaturedAreas(),
+    isSupabasePrimaryContent() ? Promise.resolve([]) : getHomeFeaturedAreas(),
     getCachedHomeReviews(),
   ]);
+  if (isSupabasePrimaryContent()) {
+    for (const result of [shopCountResult, shopsResult, areasResult, postsResult]) {
+      if (result.status === "rejected") throw result.reason;
+    }
+  }
   const shopCount = settledValue(shopCountResult, 0);
   const shops = settledValue(shopsResult, []);
   const areas = settledValue(areasResult, []);

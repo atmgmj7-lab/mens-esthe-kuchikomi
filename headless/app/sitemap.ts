@@ -5,6 +5,7 @@ import { getAreas } from "@/lib/wp/areas";
 import { getPostsForSitemap } from "@/lib/wp/posts";
 import { getShopsForSitemap } from "@/lib/wp/shops";
 import { getPublicTherapistsForSitemap } from "@/lib/public-therapist";
+import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
 
 const FIXED_PAGE_PRIORITY: Record<string, number> = {
   "osaka-nihonbashi": 0.75
@@ -37,7 +38,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: area.parent === 0 ? 0.85 : 0.8
     }));
-  } catch {
+  } catch (error) {
+    if (isSupabasePrimaryContent()) throw error;
     areaRoutes = [];
   }
 
@@ -49,7 +51,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.7
     }));
-  } catch {
+  } catch (error) {
+    if (isSupabasePrimaryContent()) throw error;
     shopRoutes = [];
   }
 
@@ -61,7 +64,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly" as const,
       priority: 0.6
     }));
-  } catch {
+  } catch (error) {
+    if (isSupabasePrimaryContent()) throw error;
     postRoutes = [];
   }
 
@@ -73,7 +77,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.5,
     }));
-  } catch {
+  } catch (error) {
+    if (isSupabasePrimaryContent()) throw error;
     therapistRoutes = [];
   }
 

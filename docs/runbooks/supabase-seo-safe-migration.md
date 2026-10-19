@@ -180,6 +180,9 @@ shadowでも公開表示の正本はWordPressとする。Supabaseの結果は件
 ```text
 CONTENT_DATA_SOURCE=supabase
 SUPABASE_CONTENT_CUTOVER_APPROVED=true
+SUPABASE_CONTENT_EXPECTED_SHOPS=<reconciled published shop count>
+SUPABASE_CONTENT_EXPECTED_AREAS=<reconciled published area count>
+SUPABASE_CONTENT_EXPECTED_POSTS=<reconciled public /column/ count>
 ```
 
 設定moduleは承認フラグがないSupabase単独参照を拒否する。ただし、現在の公開routeへはまだ接続していないため、この設定だけで切替は起きない。
