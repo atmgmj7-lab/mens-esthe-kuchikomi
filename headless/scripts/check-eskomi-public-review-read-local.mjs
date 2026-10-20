@@ -12,6 +12,8 @@ const result = spawnSync("docker", ["exec", "-i", database, "psql", "-X", "-v", 
   input: `begin;\n${migration}\n${verification}\nrollback;\n`, encoding: "utf8",
 });
 assert.equal(result.status, 0, result.stderr || result.stdout);
-assert.match(result.stdout, /anon_can_read_global_projection[\s\S]*t/iu);
-assert.match(result.stdout, /anon_can_read_shop_summary[\s\S]*t/iu);
+assert.match(result.stdout, /anon_global_only_published[\s\S]*t/iu);
+assert.match(result.stdout, /anon_area_count_only_published[\s\S]*t/iu);
+assert.match(result.stdout, /anon_shop_detail_only_published[\s\S]*t/iu);
+assert.match(result.stdout, /anon_empty_shop_summary[\s\S]*t/iu);
 console.log("Eskomi public review anonymous local contract: PASS");

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import ts from "typescript";
 
@@ -12,6 +12,26 @@ assert.ok(existsSync(migrationPath), "public review read RPC migration must exis
 assert.ok(existsSync(transportPath), "publishable-key review transport must exist");
 
 const migration = read("../supabase/migrations/20261020030000_eskomi_public_review_read_rpc.sql");
+assert.doesNotMatch(migration, /create table|create trigger|create view|\b(?:insert|update|delete|truncate|drop)\s+(?:into\s+)?(?:app|private)\./iu, "the public-reader migration must not invent an unsynchronised projection or mutate existing data");
+for (const dependency of [
+  "app.review_experience_publications",
+  "private.review_experience_revisions",
+  "private.review_experience_reply_revisions",
+  "private.managed_shops",
+  "private.managed_shop_publications",
+]) {
+  assert.match(migration, new RegExp(`\\b${dependency.replaceAll(".", "\\.")}\\b`, "u"), `public reader must query the canonical v1.1 dependency ${dependency}`);
+}
+assert.match(migration, /security definer\s+set search_path\s*=\s*''/iu, "security-definer readers must use an empty search path and qualified names");
+assert.doesNotMatch(migration, /enable row level security/iu, "the read migration must not alter canonical source-table RLS");
+const historicalV11Migrations = readdirSync(resolve(root, "../supabase/migrations"))
+  .filter((name) => /^202610171(?:2|3|4|5)\d{4}_.*\.sql$/u.test(name));
+assert.ok(historicalV11Migrations.length > 0, "the historical v1.1 migration chain must remain present for compatibility review");
+const moderationSource = read("../supabase/migrations/20261017146000_eskomi_moderation_and_membership_race_fix.sql");
+const publicationFoundation = read("../supabase/migrations/20261017130000_eskomi_v11_private_receipts_and_publications.sql");
+assert.match(publicationFoundation, /alter table app\.review_experience_publications enable row level security/iu, "canonical publication source must retain RLS");
+assert.match(moderationSource, /if p_decision='approved' then insert into app\.review_experience_publications[\s\S]*?'published'/iu, "approval must create or publish the canonical source row");
+assert.match(moderationSource, /update app\.review_experience_publications set publication_state='hidden'/iu, "withdrawal must hide the canonical source row");
 for (const signature of [
   /api\.list_public_review_experience_publications_global\(\s*integer,\s*integer,\s*text\)/u,
   /api\.count_public_review_experience_publications_global\(\s*text\)/u,

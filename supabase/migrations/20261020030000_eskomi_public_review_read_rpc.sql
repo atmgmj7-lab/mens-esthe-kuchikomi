@@ -1,5 +1,7 @@
--- Public read-only v1.1 review projections. Security-definer functions expose
--- only approved publications; no base-table privileges are granted to public roles.
+-- Public read-only v1.1 review projections. These security-definer readers
+-- expose only canonical approved publications. They do not create a second
+-- review store: moderation writes app.review_experience_publications and
+-- withdrawals hide it in the v1.1 source chain.
 
 create or replace function api.list_public_shop_detail_reviews_v11(
   p_shop_slug text, p_limit integer default 20, p_offset integer default 0
@@ -8,7 +10,7 @@ create or replace function api.list_public_shop_detail_reviews_v11(
   therapist_display_name text, published_at timestamptz,
   reply_body text, reply_published_at timestamptz
 )
-language sql security definer set search_path = private, app, api, pg_temp as $$
+language sql security definer set search_path = '' as $$
   select publication.public_handle,
     nullif(revision.assessment_snapshot->>'shopRating', '')::smallint,
     coalesce(revision.experience_comment, ''), nullif(btrim(revision.nickname), ''),
@@ -38,7 +40,7 @@ returns table(
   review_count bigint, rating_count bigint, average_rating numeric,
   oldest_published_at timestamptz, latest_published_at timestamptz
 )
-language sql security definer set search_path = private, app, api, pg_temp as $$
+language sql security definer set search_path = '' as $$
   select count(*), count(rating), avg(rating)::numeric, min(published_at), max(published_at)
   from (
     select publication.published_at, nullif(revision.assessment_snapshot->>'shopRating', '')::smallint as rating
@@ -61,7 +63,7 @@ create or replace function api.list_public_review_experience_publications_global
   therapist_display_name text, published_at timestamptz, directory_id bigint,
   shop_slug text, shop_name text, area_slug text, area_name text
 )
-language sql security definer set search_path = private, app, api, pg_temp as $$
+language sql security definer set search_path = '' as $$
   select publication.public_handle,
     nullif(revision.assessment_snapshot->>'shopRating', '')::smallint,
     coalesce(revision.experience_comment, ''), nullif(btrim(revision.nickname), ''),
@@ -85,7 +87,7 @@ $$;
 
 create or replace function api.count_public_review_experience_publications_global(p_area_slug text default null)
 returns bigint
-language sql security definer set search_path = private, app, api, pg_temp as $$
+language sql security definer set search_path = '' as $$
   select count(*)
   from app.review_experience_publications as publication
   join private.review_experience_revisions as revision on revision.id = publication.active_revision_id and revision.moderation_state = 'approved'
