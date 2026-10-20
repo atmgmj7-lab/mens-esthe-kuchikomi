@@ -12,6 +12,7 @@ const proxy = readFileSync(join(projectDirectory, "proxy.ts"), "utf8");
 
 assert.equal(packageJson.scripts?.["workers:preview-prepare"], "node scripts/build-cloudflare-dynamic-public-read.mjs --prepare-only", "preview preparation must only create an isolated derived source tree");
 assert.equal(packageJson.scripts?.["test:cloudflare-noindex-preview"], "node scripts/check-cloudflare-noindex-preview.mjs", "preview safety contract must be runnable");
+assert.match(previewConfig, /"name":\s*"eskomi-workers-prep"/u, "preview must deploy only to the approved Worker name");
 assert.match(previewConfig, /"ESKOMI_WORKERS_PREVIEW_NO_INDEX":\s*"true"/u, "preview must opt into global noindex");
 assert.match(previewConfig, /"WP_API_BASE_URL":\s*"https:\/\/preview-origin-disabled\.invalid\/wp-json"/u, "preview must not read the WordPress origin");
 assert.match(previewConfig, /"SUPABASE_CONTENT_URL":\s*"https:\/\/preview-data-disabled\.invalid"/u, "preview must not read public Supabase data");
