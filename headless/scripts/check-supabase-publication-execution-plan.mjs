@@ -3,7 +3,9 @@ import {
   buildPublicationExecutionPlan,
   buildLocalFixtureExecutionApproval,
   renderExecutionApplySql,
-  renderExecutionRollbackSql
+  renderExecutionRollbackSql,
+  renderProductionExecutionApplySql,
+  renderProductionExecutionRollbackSql
 } from "./lib/supabase-publication-execution-plan.mjs";
 import { buildPublicationExecutionArtifact } from "./prepare-supabase-publication-execution-plan.mjs";
 
@@ -54,6 +56,14 @@ assert.match(applySql, /is_public = true/i);
 assert.match(applySql, /https:\/\/project\.test\/storage\/357\.png/i);
 assert.match(rollbackSql, /delete from app\.contents/i);
 assert.match(rollbackSql, /local-fixture/i);
+
+assert.throws(() => renderProductionExecutionApplySql({ plan, approval: { ...approval, state: "approved-local-fixture" } }), /separately approved production/i);
+const productionApproval = { state: "approved-production", environment: "production-approved-only", proposalId: "production-execution-fixture", approvalId: "production-execution-fixture-approved", proposalSha256: approval.proposalSha256 };
+const productionApply = renderProductionExecutionApplySql({ plan, approval: productionApproval });
+const productionRollback = renderProductionExecutionRollbackSql({ plan, approval: productionApproval });
+assert.match(productionApply, /production-approved/i);
+assert.match(productionApply, /shop execution precondition changed/i);
+assert.match(productionRollback, /rollback requires every image target/i);
 
 const artifact = buildPublicationExecutionArtifact({
   label: "20261020-publication-execution-v1",
