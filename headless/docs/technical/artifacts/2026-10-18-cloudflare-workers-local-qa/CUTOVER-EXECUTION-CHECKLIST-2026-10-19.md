@@ -12,8 +12,12 @@
 
 ## Before any Cloudflare deployment
 
-- [ ] Obtain explicit approval for the named public-directory RPC migration and
-  its production execution. The current repository work is only local QA.
+- [x] The named public-directory RPC migration was approved and applied as
+  remote ledger entry `20261020020548_eskomi_supabase_primary_public_directory`.
+  Before any future schema command, run the read-only mapping preflight in
+  [`SUPABASE-MIGRATION-LEDGER-RECONCILIATION-2026-10-20.md`](SUPABASE-MIGRATION-LEDGER-RECONCILIATION-2026-10-20.md).
+  Its `already_applied_do_not_apply_source` result forbids applying the older
+  local source filename again.
 - [ ] Create a production backup limited to the rows/files in the approved
   change set; record batch ID, row counts, checksums, and restore predicates.
 - [ ] Verify the backup/restore rehearsal changes only the approved shops,
@@ -74,7 +78,7 @@ Completed locally: proposal inventory, local-fixture-only fail-closed apply
 rehearsal, idempotence/conditional restore/rollback proof, ordinary Workers
 review and unlisting HTTP evidence, and static/type/lint checks.
 
-Remaining: explicit production RPC approval, bounded backup/restore approval,
-fixed-page media 357 copy/mapping approval, publication approval, any required
-user-entered runtime secrets, Cloudflare deployment approval, and real-host
-post-deploy QA. None is authorized by this checklist.
+Remaining: bounded backup/restore approval, fixed-page media 357 copy/mapping
+approval, publication approval, any required user-entered runtime secrets,
+Cloudflare deployment approval, and real-host post-deploy QA. None is
+authorized by this checklist.

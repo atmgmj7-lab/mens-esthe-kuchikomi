@@ -135,15 +135,17 @@ state and all expected public counts/routes must be reviewed as one immutable
 manifest. Never infer a primary area from relation ordering or the presence of
 a secondary area; missing primary metadata simply selects the generic route.
 
-## Required production migration, but not executed here
+## Public-directory RPC migration record
 
-The production migration ledger ends at
-`20261015182000_managed_shop_nonpublic_listing_states`.  Repository migration
-`20261019090000_eskomi_supabase_primary_public_directory.sql` is not present in
-that ledger.  It creates a public `SECURITY DEFINER` RPC and grants execute to
-`anon`/`authenticated`; it does not import, publish, update, or delete source
-data.  This is still an access-control change, so the detailed audit is in
-[`SUPABASE-PRIMARY-ACCESS-AND-DEPENDENCY-AUDIT-2026-10-19.md`](SUPABASE-PRIMARY-ACCESS-AND-DEPENDENCY-AUDIT-2026-10-19.md).
+The reviewed public-directory source was applied without a data publication as
+remote ledger entry `20261020020548_eskomi_supabase_primary_public_directory`.
+The repository source filename remains
+`20261019090000_eskomi_supabase_primary_public_directory.sql`; this is a
+recorded mapping, not an unapplied migration. It creates the read-only public
+`SECURITY DEFINER` RPC and grants execute to `anon`/`authenticated`; it did not
+import, publish, update, or delete source data. The detailed audit and the
+mandatory read-only no-reapply preflight are in
+[`SUPABASE-MIGRATION-LEDGER-RECONCILIATION-2026-10-20.md`](SUPABASE-MIGRATION-LEDGER-RECONCILIATION-2026-10-20.md).
 
 The repository has further unapplied October migrations.  They are not
 implicitly required for this narrow RPC and are excluded from this approval;

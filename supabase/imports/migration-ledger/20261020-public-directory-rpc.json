@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Maps the reviewed local public-directory migration to the already-applied production ledger entry without renaming, deleting, or rewriting either history.",
+  "projectRef": "goeagrxjsjcbbatpotbu",
+  "source": {
+    "version": "20261019090000",
+    "name": "eskomi_supabase_primary_public_directory",
+    "path": "supabase/migrations/20261019090000_eskomi_supabase_primary_public_directory.sql",
+    "sha256": "a05d5f2923f7d67300103b7c8d429e6c818b1e2253ab30cc8920544b5fbd48c7"
+  },
+  "remoteApplied": {
+    "version": "20261020020548",
+    "name": "eskomi_supabase_primary_public_directory",
+    "appliedVia": "approved Supabase management migration execution",
+    "state": "applied"
+  },
+  "executionRule": "Before any future schema-migration command, execute the paired read-only preflight. If it returns already_applied_do_not_apply_source, do not run the source migration or attempt migration-history repair. Any other result is a stop condition."
+}
