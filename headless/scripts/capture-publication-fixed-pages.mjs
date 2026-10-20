@@ -34,8 +34,8 @@ function media357() {
     wpMediaId: 357,
     sourceUrl: item.source_url,
     sourceSha256: item.sha256,
-    targetUrl: `https://${projectRef}.supabase.co/storage/v1/object/public/fixed-page-media/${item.proposed_target.object_key}`,
-    targetBucket: "fixed-page-media",
+    targetUrl: `https://${projectRef}.supabase.co/storage/v1/object/public/shop-images/${item.proposed_target.object_key}`,
+    targetBucket: "shop-images",
     targetObjectKey: item.proposed_target.object_key,
     referencedByRoute: "/osaka-nihonbashi/",
     transferState: "not-uploaded-and-not-verified"

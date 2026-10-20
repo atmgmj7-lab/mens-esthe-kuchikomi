@@ -19,9 +19,9 @@ Its non-content evidence is: page IDs 316/323/321/319 had empty rendered bodies
 19,494 rendered HTML bytes (`bfc01d6e…27b6c7d`) and keeps its WordPress body.
 Media 357 is the 6,487,809-byte PNG with SHA-256
 `96f59d37e745108178e23c1ba2533328b7ffb615c079e43228f449d28dd5486c`.
-Its target is deliberately only a proposed `fixed-page-media` object; it has
-not been uploaded, exposed, or verified. The generated bundle proposal hash is
-`1c2962bab01a2e87e56d0049183504faa81c1607584a388c3de4ba419d00c699`.
+Its target is deliberately only a proposed `shop-images` object; it has not
+been uploaded, exposed, or verified. Any earlier ignored local bundle that
+used a different bucket is superseded and must be regenerated before approval.
 
 Read-only capture and generation (writes only ignored local files):
 
