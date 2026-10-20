@@ -7,7 +7,8 @@ import {
   renderProductionExecutionApplySql,
   renderProductionExecutionRollbackSql
 } from "./lib/supabase-publication-execution-plan.mjs";
-import { buildPublicationExecutionArtifact } from "./prepare-supabase-publication-execution-plan.mjs";
+import { renderPublicationManifestPreflightSql } from "./lib/supabase-publication-manifest.mjs";
+import { buildPublicationExecutionArtifact, renderProductionReadbackSql, renderProductionSqlEditorApplySql, renderProductionSqlEditorRollbackSql } from "./prepare-supabase-publication-execution-plan.mjs";
 
 const routes = ["/about/", "/advertise/", "/contact/", "/osaka-nihonbashi/", "/sitemap/", "/storelisting/"];
 const pageInputs = routes.map((route) => ({
@@ -64,6 +65,29 @@ const productionRollback = renderProductionExecutionRollbackSql({ plan, approval
 assert.match(productionApply, /production-approved/i);
 assert.match(productionApply, /shop execution precondition changed/i);
 assert.match(productionRollback, /rollback requires every image target/i);
+const sqlEditorApply = renderProductionSqlEditorApplySql({
+  plan,
+  approval: productionApproval,
+  preflightSql: renderPublicationManifestPreflightSql({ manifest: publicationManifest, sourceLabel: "publication-execution-fixture" })
+});
+assert.match(sqlEditorApply, /^begin;$/mu, "SQL Editor apply must own one outer transaction");
+assert.equal((sqlEditorApply.match(/^begin;$/gmu) ?? []).length, 1, "SQL Editor apply must not nest transactions");
+assert.equal((sqlEditorApply.match(/^commit;$/gmu) ?? []).length, 1, "SQL Editor apply must commit only its outer transaction");
+assert.match(sqlEditorApply, /set local eskomi\.publication_manifest_mode = 'production-approved';/i);
+assert.match(sqlEditorApply, /set local eskomi\.publication_manifest_approval = 'production-execution-fixture-approved';/i);
+assert.match(sqlEditorApply, /set local eskomi\.publication_manifest_proposal_sha256 = '[a-f0-9]{64}';/i);
+assert.match(sqlEditorApply, /set local eskomi\.fixed_page_media_357_verified = 'a{64}';/i);
+assert.match(sqlEditorApply, /WordPress-only shops pending a publication decision/i, "SQL Editor apply must retain the preflight exclusions");
+assert.match(sqlEditorApply, /shop execution precondition changed/i, "SQL Editor apply must retain the production apply guard");
+const sqlEditorRollback = renderProductionSqlEditorRollbackSql({ plan, approval: productionApproval });
+assert.equal((sqlEditorRollback.match(/^begin;$/gmu) ?? []).length, 1, "SQL Editor rollback must own one outer transaction");
+assert.match(sqlEditorRollback, /rollback requires every image target/i);
+assert.match(sqlEditorRollback, /set local eskomi\.fixed_page_media_357_verified = 'a{64}';/i);
+const readbackSql = renderProductionReadbackSql({ plan, sourceManifest: publicationManifest, sourceLabel: "publication-execution-fixture" });
+assert.match(readbackSql, /^begin read only;$/mu);
+assert.match(readbackSql, /post-apply shop count mismatch/i);
+assert.match(readbackSql, /unresolved WordPress-only shops were introduced/i);
+assert.match(readbackSql, /media 357 entered shop-image scope/i);
 
 const artifact = buildPublicationExecutionArtifact({
   label: "20261020-publication-execution-v1",
