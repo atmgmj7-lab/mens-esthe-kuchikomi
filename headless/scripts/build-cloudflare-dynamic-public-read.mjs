@@ -227,6 +227,13 @@ function writeDerivedNoopInvalidationModule(derivedDirectory) {
   writeNewFile(modulePath, `/**\n * Generated only in the Cloudflare dynamic-public-read source tree. Public reads\n * have no cache entries there, so mutation invalidation is intentionally a no-op.\n */\nexport function revalidateTag(_tag: string, _profile: { expire: 0 }): void {}\nexport function revalidatePath(_path: string, _type?: "page" | "layout"): void {}\n`);
 }
 
+function writeDerivedPreviewStaticHeaders(derivedDirectory) {
+  writeNewFile(join(derivedDirectory, "public", "_headers"), `/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: private, no-store
+`);
+}
+
 function ensureNoSecretFiles(derivedDirectory) {
   for (const forbidden of [".env", ".env.local", ".dev.vars", ".npmrc"]) {
     assert.equal(existsSync(join(derivedDirectory, forbidden)), false, `derived source must not copy ${forbidden}`);
@@ -261,6 +268,9 @@ function prepareDerivedSource() {
     writeNewFile(join(derivedDirectory, relativePath), contents);
   }
   writeDerivedNoopInvalidationModule(derivedDirectory);
+  // Static assets bypass Next middleware, so keep this preview-only header out
+  // of the canonical production source and add it only to the derived Worker.
+  writeDerivedPreviewStaticHeaders(derivedDirectory);
   ensureNoSecretFiles(derivedDirectory);
 
   writeNewFile(join(derivedDirectory, "dynamic-source-manifest.json"), `${JSON.stringify({
