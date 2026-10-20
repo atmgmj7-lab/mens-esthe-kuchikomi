@@ -172,6 +172,7 @@
     "test:supabase-primary-migration-ledger": "node scripts/check-supabase-public-directory-migration-ledger.mjs",
     "test:supabase-publication-execution-plan": "node scripts/check-supabase-publication-execution-plan.mjs",
     "test:supabase-publication-execution-plan-local-rehearsal": "node scripts/check-supabase-publication-execution-plan-local-rehearsal.mjs",
+    "test:fixed-page-media-357-upload": "node scripts/check-fixed-page-media-357-upload.mjs && node scripts/check-fixed-page-media-357-upload-integration.mjs",
     "supabase:prepare-primary-delta": "node scripts/prepare-supabase-primary-delta.mjs",
     "supabase:prepare-primary-area-delta": "node scripts/prepare-supabase-primary-area-delta.mjs",
     "supabase:prepare-publication-manifest": "node scripts/prepare-supabase-publication-manifest.mjs",
