@@ -111,5 +111,5 @@ end;
 $$;
 
 select 1 / case when not has_function_privilege('anon', 'api.create_and_publish_canonical_managed_shop(text,jsonb,text)', 'execute') then 1 else 0 end as anon_cannot_create_canonical_shop;
-select 1 / case when not has_function_privilege('anon', 'api.list_public_review_experience_publications_global(integer,integer,text)', 'execute') then 1 else 0 end as anon_cannot_read_global_review_projection;
+select 1 / case when has_function_privilege('anon', 'api.list_public_review_experience_publications_global(integer,integer,text)', 'execute') then 1 else 0 end as anon_can_read_global_review_projection;
 rollback;

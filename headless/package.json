@@ -130,6 +130,8 @@
     "test:review-native-submit-api": "node scripts/check-review-native-submit-api.mjs",
     "test:review-native-moderation": "node scripts/check-review-native-moderation.mjs",
     "test:review-public-adapter": "node scripts/check-review-public-adapter.mjs",
+    "test:eskomi-public-review-read": "node scripts/check-eskomi-public-review-read-contract.mjs",
+    "test:eskomi-public-review-read-local": "node scripts/check-eskomi-public-review-read-local.mjs",
     "test:review-growth-backend": "node scripts/check-review-growth-backend.mjs",
     "test:review-public-ui": "node scripts/check-review-public-ui.mjs",
     "test:review-native-isolated-e2e": "node scripts/check-review-native-isolated-e2e.mjs",

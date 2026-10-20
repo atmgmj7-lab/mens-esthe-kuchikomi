@@ -1,5 +1,6 @@
 import "server-only";
 
+import { requestPublicReviewRpc, resolvePublicReviewReadTransport, type PublicReviewRpcName } from "@/lib/supabase/public-review-read";
 import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -79,6 +80,8 @@ function parseSummary(value: unknown): EskomiPublicShopDetailReviewSummaryV11 | 
 }
 
 async function rpc(name: string, values: Record<string, unknown>): Promise<unknown | null> {
+  const publicTransport = resolvePublicReviewReadTransport();
+  if (publicTransport) return requestPublicReviewRpc(publicTransport, name as PublicReviewRpcName, values);
   const secret = resolveSupabaseServerSecret()?.value;
   const origin = process.env.SUPABASE_URL?.replace(/\/$/, "");
   if (!secret || !origin) return null;

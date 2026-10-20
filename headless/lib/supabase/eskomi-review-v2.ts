@@ -1,5 +1,6 @@
 import "server-only";
 
+import { requestPublicReviewRpc, resolvePublicReviewReadTransport, type PublicReviewReadTransport, type PublicReviewRpcName } from "@/lib/supabase/public-review-read";
 import { createSupabaseServerHeaders, resolveSupabaseServerSecret } from "@/lib/supabase/server-secret";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -45,6 +46,7 @@ export type EskomiPublicGlobalReview = EskomiPublicReview & Readonly<{
 type Configuration = Readonly<{
   baseUrl: string | undefined;
   serviceRoleKey: string | undefined;
+  publicTransport?: PublicReviewReadTransport | null;
   allowRawPostgrest?: boolean;
   fetchImpl?: typeof fetch;
 }>;
@@ -127,6 +129,7 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
   const fetchImpl = configuration.fetchImpl ?? fetch;
 
   async function rpc(name: string, payload: Record<string, unknown>): Promise<unknown | null> {
+    if (configuration.publicTransport) return requestPublicReviewRpc(configuration.publicTransport, name as PublicReviewRpcName, payload, fetchImpl);
     if (!url || !secret) return null;
     try {
       const rawPostgrest = configuration.allowRawPostgrest || ["127.0.0.1", "localhost"].includes(new URL(url).hostname);
@@ -175,7 +178,9 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
     },
     async listPublications(shopSlug: string): Promise<readonly EskomiPublicReview[] | null> {
       if (!/^[a-z0-9][a-z0-9-]{1,118}[a-z0-9]$/.test(shopSlug)) return null;
-      const result = await rpc("list_public_review_experience_publications", { p_shop_slug: shopSlug, p_limit: 20, p_offset: 0 });
+      const result = configuration.publicTransport
+        ? await rpc("list_public_shop_detail_reviews_v11", { p_shop_slug: shopSlug, p_limit: 20, p_offset: 0 })
+        : await rpc("list_public_review_experience_publications", { p_shop_slug: shopSlug, p_limit: 20, p_offset: 0 });
       if (!Array.isArray(result)) return null;
       const publications = result.map(parsePublicReview);
       return publications.every((publication): publication is EskomiPublicReview => publication !== null) ? publications : null;
@@ -196,8 +201,10 @@ export function createEskomiReviewV2Repository(configuration: Configuration) {
   };
 }
 
+const publicTransport = resolvePublicReviewReadTransport();
 export const eskomiReviewV2Repository = createEskomiReviewV2Repository({
-  baseUrl: process.env.SUPABASE_URL,
-  serviceRoleKey: resolveSupabaseServerSecret()?.value,
+  baseUrl: publicTransport?.origin ?? process.env.SUPABASE_URL,
+  serviceRoleKey: publicTransport ? undefined : resolveSupabaseServerSecret()?.value,
+  publicTransport,
   allowRawPostgrest: process.env.ESKOMI_E2E_RAW_POSTGREST === "1",
 });
