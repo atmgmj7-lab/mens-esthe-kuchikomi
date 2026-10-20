@@ -90,10 +90,14 @@ create, edit, deploy, rotate, or checkout flow:
    applicable retention/plan limit. Do not open log-tail sessions carrying
    request content.
 
-If CLI access is preferred, first ensure `wrangler whoami` lists the exact
-target account. Use only documented list/get calls bound to that account, and
-redact emails and all credential material from saved evidence. Do not extract
-or copy the local OAuth token to use raw API calls.
+`wrangler whoami` cannot select a named profile, so it is not valid evidence
+for this target. Instead, bind every read-only or deployment command to both
+`CLOUDFLARE_ACCOUNT_ID=0641c11bf1431e5ee5cd3fca94c417e2` and
+`--profile eskomi-workers-deploy`. A target-bound list request returning the
+expected missing Worker (`10007`) is valid account-reachability evidence;
+an authentication or authorization error is not. Redact emails and all
+credential material from saved evidence. Do not extract or copy the local OAuth
+token to use raw API calls.
 
 ## Application configuration findings
 
