@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "eskomi-workers-preview",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "ESKOMI_WORKERS_PREVIEW_NO_INDEX": "true",
+    "CONTENT_DATA_SOURCE": "supabase",
+    "SUPABASE_CONTENT_CUTOVER_APPROVED": "true",
+    "SUPABASE_CONTENT_URL": "https://preview-data-disabled.invalid",
+    "SUPABASE_CONTENT_PUBLISHABLE_KEY": "preview-public-data-disabled",
+    "SUPABASE_CONTENT_EXPECTED_SHOPS": "0",
+    "SUPABASE_CONTENT_EXPECTED_AREAS": "0",
+    "SUPABASE_CONTENT_EXPECTED_POSTS": "0",
+    "SUPABASE_CONTENT_EXPECTED_PAGES": "0",
+    "WP_API_BASE_URL": "https://preview-origin-disabled.invalid/wp-json",
+    "NEXT_PUBLIC_WP_BASE_URL": "https://preview-origin-disabled.invalid"
+  }
+}

@@ -28,6 +28,8 @@ supabase/imports/wp-media-preservation/
 supabase/imports/shop-image-url-switch/
 supabase/imports/primary-area-delta/
 supabase/imports/publication-manifest/
+supabase/imports/publication-execution/*.json
+supabase/imports/publication-execution/*.sql
 
 # エディタ
 .cursor/

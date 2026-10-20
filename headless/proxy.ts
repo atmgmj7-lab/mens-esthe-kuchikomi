@@ -13,7 +13,7 @@ const LEGACY_DASHBOARD_PREFIX = "/wp-content/themes/swell_child/dashboard";
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (!isDashboardProtectedPath(pathname)) {
-    return NextResponse.next();
+    return noindexPreviewResponse(NextResponse.next());
   }
 
   const isListingApi = pathname.startsWith("/api/dashboard/listing-applications");
@@ -45,6 +45,14 @@ export function proxy(request: NextRequest) {
   const response = continueDashboardRequest(request.headers);
   const session = createDashboardSessionValue(process.env);
   if (session) response.cookies.set(dashboardSessionCookieName(), session, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 30 * 60 });
+  return response;
+}
+
+function noindexPreviewResponse(response: NextResponse): NextResponse {
+  if (process.env.ESKOMI_WORKERS_PREVIEW_NO_INDEX === "true") {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set("Cache-Control", "private, no-store");
+  }
   return response;
 }
 
@@ -85,6 +93,7 @@ function unauthorizedResponse(): NextResponse {
 
 export const config = {
   matcher: [
+    "/:path*",
     "/dashboard/:path*",
     "/api/dashboard/:path*",
     "/wp-content/themes/swell_child/dashboard",

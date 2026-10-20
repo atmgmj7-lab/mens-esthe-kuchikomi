@@ -116,9 +116,20 @@ explicit expected counts `1/2/1`, and a loopback WordPress request proxy:
   `/probe` request was the proxy readiness check).
 
 The fixture proves the route selection and fail-closed data gate locally. It
-does not prove a production corpus migration; static pages currently fail
-closed in primary mode until their `app.contents` projection and reconciliation
-are implemented.
+does not prove a production corpus migration. The separately generated,
+ignored fixed-page execution bundle now exercises `app.contents` locally, but
+remains proposal-only and cannot be used as a production apply artifact.
+
+## Fixed-page execution-bundle rehearsal — 2026-10-20
+
+The local-only bundle is constructed from the reviewed 379 shop, 34 area, and
+241 shop-image targets plus six fixed page records. It has a separately gated
+media-357 reference and requires an exact checksum receipt before inserting
+the page projection. The local Docker rehearsal applies the exact scope,
+reapplies it idempotently, then conditionally rolls it back in one transaction.
+It passed without leaving fixture changes. Public WordPress bodies are stored
+only in Git-ignored inputs; the tracked instructions and non-content evidence
+are in `supabase/imports/publication-execution/README.md`.
 
 ## Fixed-page projection and WordPress-disabled HTTP rehearsal — 2026-10-19
 

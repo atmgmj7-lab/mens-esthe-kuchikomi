@@ -76,6 +76,7 @@ const copyFiles = Object.freeze([
   "proxy.ts",
   "tsconfig.json",
   "wrangler.jsonc",
+  "wrangler.preview.jsonc",
 ]);
 
 function readSource(relativePath) {
