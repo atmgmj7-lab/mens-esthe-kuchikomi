@@ -33,6 +33,10 @@ const imageIds = plan.sourceManifest.publicTargets.imageWpMediaIds.join(", ");
 
 const fixture = `
 begin;
+-- The retained fixture may include placeholder fixed pages. Remove only the
+-- canonical routes inside this transaction so the test proves fresh insert,
+-- idempotent reapply, and conditional rollback using the stable plan IDs.
+delete from app.contents where route_key = any(array['/about/','/advertise/','/contact/','/osaka-nihonbashi/','/sitemap/','/storelisting/']);
 do $$
 begin
   insert into app.areas(id, wp_term_id, slug, name, is_published)

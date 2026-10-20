@@ -57,6 +57,11 @@ function sqlIdList(values) { return values.join(", "); }
 function renderPageValues(pages) {
   return pages.map((page) => `(${quoteSql(page.contentId)}::uuid, ${quoteSql(page.routeKey)}, 'other', 'editorial-comment', ${quoteSql(page.title)}, ${quoteSql(page.bodyHtml)}, ${quoteSql(page.bodyText)}, 'published', now())`).join(",\n    ");
 }
+function pageMatchPredicate(pages) {
+  // Stable per-route IDs make rollback ownership explicit. A later editor changing
+  // body copy does not turn a safe rollback into an opaque partial failure.
+  return pages.map((page) => `(id = ${quoteSql(page.contentId)}::uuid and route_key = ${quoteSql(page.routeKey)} and publication_status = 'published')`).join(" or ");
+}
 function requireLocalFixtureApproval(plan, approval) {
   if (!approval || approval.state !== "approved-local-fixture" || approval.environment !== "local-fixture-only") throw new Error("a local-fixture-only execution approval is required");
   if (approval.proposalSha256 !== planSha256(plan)) throw new Error("execution approval does not match the proposal hash");
@@ -140,6 +145,7 @@ export function renderExecutionApplySql({ plan, approval, transactionMode = "scr
   const { shops, areas, imageWpMediaIds } = plan.sourceManifest.publicTargets;
   const routes = plan.pages.map((page) => page.routeKey);
   const pageValues = renderPageValues(plan.pages);
+  const pageMatches = pageMatchPredicate(plan.pages);
   return `-- Local-fixture-only execution plan. It cannot run without all transaction-local gates.
 ${transactionMode === "script" ? "begin;" : ""}
 do $$
@@ -159,7 +165,7 @@ begin${renderFixtureGate(plan, gate)}
     insert into app.contents(id, route_key, content_type, source_type, title, body_html, body_text, publication_status, published_at)
     values
       ${pageValues};
-  elsif actual_count <> ${routes.length} or exists (select 1 from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]) and publication_status <> 'published') then
+  elsif actual_count <> ${routes.length} or (select count(*) from app.contents where ${pageMatches}) <> ${routes.length} then
     raise exception 'fixed-page execution precondition changed';
   end if;
   update app.shops set publication_status = 'published', published_at = now() where wp_post_id = any(array[${sqlIdList(shops)}]) and publication_status = 'draft';
@@ -176,12 +182,13 @@ export function renderExecutionRollbackSql({ plan, approval, transactionMode = "
   const gate = requireLocalFixtureApproval(plan, approval);
   const { shops, areas, imageWpMediaIds } = plan.sourceManifest.publicTargets;
   const routes = plan.pages.map((page) => page.routeKey);
+  const pageMatches = pageMatchPredicate(plan.pages);
   return `-- Local-fixture-only conditional rollback. It removes only the six inserted page records.
 ${transactionMode === "script" ? "begin;" : ""}
 do $$
 declare actual_count integer;
 begin${renderFixtureGate(plan, gate)}
-  select count(*) into actual_count from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]) and publication_status = 'published';
+  select count(*) into actual_count from app.contents where ${pageMatches};
   if actual_count <> ${routes.length} then raise exception 'rollback requires all six exact inserted page records'; end if;
   select count(*) into actual_count from app.shops where wp_post_id = any(array[${sqlIdList(shops)}]) and publication_status = 'published';
   if actual_count <> ${shops.length} then raise exception 'rollback requires every shop target to remain published'; end if;
@@ -190,7 +197,7 @@ begin${renderFixtureGate(plan, gate)}
   select count(*) into actual_count from app.shop_images where wp_media_id = any(array[${sqlIdList(imageWpMediaIds)}]) and is_public;
   if actual_count <> ${imageWpMediaIds.length} then raise exception 'rollback requires every image target to remain public'; end if;
 
-  delete from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]) and publication_status = 'published';
+  delete from app.contents where ${pageMatches};
   update app.shops set publication_status = 'draft', published_at = null where wp_post_id = any(array[${sqlIdList(shops)}]);
   update app.areas set is_published = false, published_at = null where wp_term_id = any(array[${sqlIdList(areas)}]);
   update app.shop_images set is_public = false, verified_at = null where wp_media_id = any(array[${sqlIdList(imageWpMediaIds)}]);
@@ -206,6 +213,7 @@ export function renderProductionExecutionApplySql({ plan, approval, transactionM
   const { shops, areas, imageWpMediaIds } = plan.sourceManifest.publicTargets;
   const routes = plan.pages.map((page) => page.routeKey);
   const pageValues = renderPageValues(plan.pages);
+  const pageMatches = pageMatchPredicate(plan.pages);
   return `-- Production-only execution. Generated only from a separately approved execution object; never from the proposed manifest alone.
 ${transactionMode === "script" ? "begin;" : ""}
 set local statement_timeout = '60s';
@@ -220,7 +228,7 @@ begin${renderProductionGate(plan, approved)}
   if private_count + public_count <> ${imageWpMediaIds.length} or (private_count <> 0 and private_count <> ${imageWpMediaIds.length}) then raise exception 'image execution precondition changed'; end if;
   select count(*) into actual_count from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]);
   if actual_count = 0 then insert into app.contents(id, route_key, content_type, source_type, title, body_html, body_text, publication_status, published_at) values ${pageValues};
-  elsif actual_count <> ${routes.length} or exists (select 1 from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]) and publication_status <> 'published') then raise exception 'fixed-page execution precondition changed'; end if;
+  elsif actual_count <> ${routes.length} or (select count(*) from app.contents where ${pageMatches}) <> ${routes.length} then raise exception 'fixed-page execution precondition changed'; end if;
   update app.shops set publication_status = 'published', published_at = now() where wp_post_id = any(array[${sqlIdList(shops)}]) and publication_status = 'draft';
   update app.areas set is_published = true, published_at = now() where wp_term_id = any(array[${sqlIdList(areas)}]) and is_published = false;
   update app.shop_images set is_public = true, verified_at = now() where wp_media_id = any(array[${sqlIdList(imageWpMediaIds)}]) and is_public = false;
@@ -235,13 +243,14 @@ export function renderProductionExecutionRollbackSql({ plan, approval, transacti
   const approved = requireProductionApproval(plan, approval);
   const { shops, areas, imageWpMediaIds } = plan.sourceManifest.publicTargets;
   const routes = plan.pages.map((page) => page.routeKey);
+  const pageMatches = pageMatchPredicate(plan.pages);
   return `-- Production-only conditional rollback. It refuses partial or drifted targets.
 ${transactionMode === "script" ? "begin;" : ""}
 set local statement_timeout = '60s';
 do $$
 declare actual_count integer;
 begin${renderProductionGate(plan, approved)}
-  select count(*) into actual_count from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]) and publication_status = 'published';
+  select count(*) into actual_count from app.contents where ${pageMatches};
   if actual_count <> ${routes.length} then raise exception 'rollback requires all six exact inserted page records'; end if;
   select count(*) into actual_count from app.shops where wp_post_id = any(array[${sqlIdList(shops)}]) and publication_status = 'published';
   if actual_count <> ${shops.length} then raise exception 'rollback requires every shop target to remain published'; end if;
@@ -249,7 +258,7 @@ begin${renderProductionGate(plan, approved)}
   if actual_count <> ${areas.length} then raise exception 'rollback requires every area target to remain published'; end if;
   select count(*) into actual_count from app.shop_images where wp_media_id = any(array[${sqlIdList(imageWpMediaIds)}]) and is_public;
   if actual_count <> ${imageWpMediaIds.length} then raise exception 'rollback requires every image target to remain public'; end if;
-  delete from app.contents where route_key = any(array[${routes.map(quoteSql).join(", ")}]) and publication_status = 'published';
+  delete from app.contents where ${pageMatches};
   update app.shops set publication_status = 'draft', published_at = null where wp_post_id = any(array[${sqlIdList(shops)}]);
   update app.areas set is_published = false, published_at = null where wp_term_id = any(array[${sqlIdList(areas)}]);
   update app.shop_images set is_public = false, verified_at = null where wp_media_id = any(array[${sqlIdList(imageWpMediaIds)}]);
