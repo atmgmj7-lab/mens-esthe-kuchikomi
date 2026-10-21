@@ -11,6 +11,7 @@ const source = readFileSync(filename, "utf8")
   .replace(/import \{[\s\S]*?\} from "@\/lib\/supabase\/server-secret";/, `
     const createSupabaseServerHeaders = (secret, headers = {}) => ({ ...headers, apikey: secret, Authorization: 'Bearer ' + secret });
     const resolveSupabaseServerSecret = (environment) => environment.SUPABASE_SERVICE_ROLE_KEY ? { value: environment.SUPABASE_SERVICE_ROLE_KEY } : null;
+    const supabaseRpcUrl = (base, name) => base + '/rest/v1/rpc/' + name;
   `);
 const output = ts.transpileModule(source, { fileName: filename, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const module = { exports: {} };
@@ -22,7 +23,7 @@ assert.equal(useSupabaseManagedShopDirectory({ SHOP_DIRECTORY_SOURCE: "wordpress
 
 const calls = [];
 const publication = {
-  managed_shop_id: "11111111-1111-4111-8111-111111111111", directory_id: 1_000_000_001, existing_wp_shop_id: 768,
+  managed_shop_id: "11111111-1111-4111-8111-111111111111", app_shop_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", directory_id: 1_000_000_001, existing_wp_shop_id: 768,
   shop_slug: "managed-rank-up", canonical_url: "https://mens-esthe-kuchikomi.com/shops/managed-rank-up/", approved_revision: 3,
   shop_name: "管理済み店舗", area_slug: "osaka", area_name: "大阪市", official_url: "https://example.test/official",
   introduction: "承認済み紹介文", address: "大阪市", business_hours: "10:00〜翌2:00", phone: "06-0000-0000",
