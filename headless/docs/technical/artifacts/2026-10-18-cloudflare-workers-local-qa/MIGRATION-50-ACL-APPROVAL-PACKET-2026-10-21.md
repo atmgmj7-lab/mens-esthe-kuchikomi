@@ -141,8 +141,18 @@ non-public managed states must remain excluded.
 Official migration documentation confirms ordered tracking in
 `supabase_migrations.schema_migrations`, but the available production
 `apply_migration` description/docs do not promise atomic source-file plus ledger
-write. The repository's earlier synthetic runner used autocommit. No production
-runner was executed or trialled.
+write. Read-only inspection of the official
+`supabase-community/supabase-mcp` source at
+`f50318a15ea5b73dffd3b754d5968bb526fdbec4` confirms that its tool only POSTs
+`name` and `query` to `/v1/projects/{ref}/database/migrations`; it neither sets
+an `Idempotency-Key` nor wraps the request in a client transaction. Its own
+integration test expects the server-created migration `version` to match
+`^\\d{14}$`, independently of the caller's `name`. The public endpoint type
+accepts no caller-supplied source version. Therefore this MCP tool cannot
+preserve the source packet's 50 version identifiers in the ledger, and its
+public client source is not evidence of the Management API's server-side
+atomicity. The repository's earlier synthetic runner used autocommit. No
+production runner was executed or trialled.
 
 The new synthetic-only runner
 `headless/scripts/run-eskomi-v11-synthetic-atomic-migration-rehearsal.sh` uses
@@ -154,6 +164,12 @@ public-RPC verifier passed. A second run injected an exception after
 nor `app.therapists` remained. This proves the synthetic runner design only,
 not production MCP behavior.
 
-Production remains blocked until an execution path explicitly guarantees this
-per-file SQL-plus-ledger transaction, or a user separately accepts documented
-non-atomic runner risk.
+Do not use `apply_migration` to apply these 50 files one-by-one: it would create
+server-time versions rather than the checked-in source versions and make the
+ledger diverge. Production remains blocked until an execution path both preserves
+each source version and explicitly guarantees per-file SQL-plus-ledger
+transactionality, or a user separately accepts that documented divergence and
+non-atomic runner risk. If a suitable route is later approved, the minimum
+operational fallback is: one file, immediate read-only ledger/catalog/ACL
+verification, no retry after a timeout until that state is checked, and stop
+before the next file on any mismatch or uncertain response.
