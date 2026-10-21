@@ -103,3 +103,35 @@ deferred; it must not be repaired by any heuristic.
 
 No WordPress request, browser/Playwright request, Mailpit request, migration,
 mapping write, or public-content change was made for this audit.
+
+## Current WordPress public-read reacquisition — blocked
+
+The repository contract identifies the authoritative public-read endpoint as:
+
+```text
+GET https://mens-esthe-kuchikomi.com/wp-json/wp/v2/shop
+  ?per_page=1&page=1&_fields=id,slug,status,area,acf,modified_gmt
+```
+
+`headless/scripts/prepare-supabase-primary-area-delta.mjs` uses this same
+hostname and requests the fields required to validate an explicit
+`acf.shop_primary_area_term_id` against a shop ID, slug, area relation, and
+`modified_gmt`.  The WordPress contract exposes only a validated explicit
+value (or `null`) through that ACF envelope; it does not permit a breadcrumb,
+single relation, name, or address to stand in for the field.
+
+On 2026-10-21 this cloud environment could not reacquire that public source:
+
+| Attempt | Result | Classification |
+| --- | --- | --- |
+| Normal hostname resolution with ordinary HTTPS verification | `getaddrinfo EAI_AGAIN mens-esthe-kuchikomi.com` before connection | unavailable; no HTTP request completed |
+| Existing repository lookup policy (same HTTPS hostname, repository-pinned origin `85.131.213.108`, normal TLS) | `ECONNREFUSED 85.131.213.108:443` before HTTP response | blocked; no source data read |
+
+No TLS check was disabled.  No alternate host, proxy, mirror, credential,
+network workaround, or further retry was used.  Therefore this audit cannot
+say whether the public API presently supplies additional valid primary values;
+the 335 deferred records remain deferred rather than being recategorized from
+historical relations.  The next permitted read-only step is one successful
+ordinary HTTPS response from the endpoint above, followed by an exact
+WP-ID/slug/revision/relation comparison.  It must leave an invalid, missing,
+duplicate, or relation-external ACF value deferred.
