@@ -88,7 +88,12 @@ begin
     raise exception 'trusted network scope was not short-lived HMAC-shaped';
   end if;
   insert into private.partner_shop_access_rollup_state_v11(shop_id,first_observed_on) values(v_shop_b,v_today-2) on conflict(shop_id) do update set first_observed_on=excluded.first_observed_on;
-  perform api.finalize_partner_shop_access_collection_day_v11(v_today-1,'complete');
+  begin
+    perform api.finalize_partner_shop_access_collection_day_v11(v_today-1,'complete');
+    raise exception 'complete collection without a manifest was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  perform api.record_partner_shop_access_collection_manifest_v11(v_today-1,'profile_access_health',4::smallint,4::smallint,repeat('e',64));
   select has_data,measurement_state into v_has,v_measurement from api.get_partner_shop_access_report_v11(v_workspace_b,v_user_b,v_today-1,v_today-1);
   if not v_has or v_measurement<>'complete' then raise exception 'scheduled complete day did not permit a confirmed zero'; end if;
   perform api.finalize_partner_shop_access_collection_day_v11(v_today-2,'partial');

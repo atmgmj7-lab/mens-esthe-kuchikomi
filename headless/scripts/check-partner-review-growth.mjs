@@ -60,8 +60,11 @@ function verifySourceContract() {
   assert.match(provisioning, /export async function recordPartnerReviewCampaignSubmission/);
   assert.match(repository, /import "server-only"/);
   assert.match(repository, /resolveSupabaseServerSecret/);
-  assert.match(repository, /rest\/v1\/rpc\/review_partner_registration/);
-  assert.match(repository, /rest\/v1\/rpc\/list_partner_registration_reviews/);
+  // Registration moderation was superseded by the canonical v1.1 identity
+  // boundary.  Campaign creation and attribution remain on the original
+  // compatibility RPCs below.
+  assert.match(repository, /supabaseRpcUrl\(baseUrl, "review_partner_registration_v11"\)/);
+  assert.match(repository, /supabaseRpcUrl\(baseUrl, "list_partner_registration_reviews_v11"\)/);
   assert.match(repository, /rest\/v1\/rpc\/open_partner_review_campaign/);
   assert.match(repository, /rest\/v1\/rpc\/record_partner_review_campaign_submission/);
   assert.doesNotMatch(repository, /rest\/v1\/(?:partner_review_campaigns|partner_review_campaign_submissions)/);

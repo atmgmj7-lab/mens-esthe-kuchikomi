@@ -31,7 +31,10 @@ while IFS= read -r migration; do
 done < <(LC_ALL=C find "$repo_root/supabase/migrations" -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort)
 
 [[ "${#base_migrations[@]}" -gt 0 ]] || { echo "missing synthetic baseline migrations" >&2; exit 1; }
-[[ "${#upgrade_migrations[@]}" -eq 48 ]] || { echo "expected 48 migrations after $ledger_boundary, found ${#upgrade_migrations[@]}" >&2; exit 1; }
+# Keep this explicit so a future migration cannot silently extend the rehearsed
+# chain.  The current branch includes the v1.1 continuation plus the primary
+# directory and canonical public-review reader migrations.
+[[ "${#upgrade_migrations[@]}" -eq 51 ]] || { echo "expected 51 migrations after $ledger_boundary, found ${#upgrade_migrations[@]}" >&2; exit 1; }
 
 docker network create --internal "$network_name" >/dev/null
 network_created=1

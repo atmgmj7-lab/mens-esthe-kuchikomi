@@ -115,6 +115,8 @@
     "test:eskomi-v11-internal-partner-http-proxy": "node scripts/test-eskomi-v11-internal-prefix-proxy.mjs",
     "test:eskomi-v11-internal-partner-http-runner": "node scripts/check-eskomi-v11-internal-partner-http-runner.mjs",
     "test:eskomi-v11-access-collection-runner": "node scripts/test-eskomi-v11-access-collection-runner.mjs",
+    "test:eskomi-v11-access-health-collection-runner": "node scripts/test-eskomi-v11-access-health-collection-runner.mjs",
+    "test:eskomi-v11-access-health-collection-http": "node scripts/test-eskomi-v11-access-health-collection-http.mjs",
     "test:eskomi-v11-access-collection-http": "node scripts/test-eskomi-v11-access-collection-http.mjs",
     "test:eskomi-v11-pop-qr-decode": "node scripts/test-eskomi-v11-pop-qr-decode.mjs",
     "test:eskomi-v11-widget-http": "node scripts/test-eskomi-v11-widget-http.mjs",

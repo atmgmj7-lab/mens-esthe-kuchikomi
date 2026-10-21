@@ -130,4 +130,21 @@ begin
     or (select count(*) from app.review_experience_publications) <> 0 then
     raise exception 'synthetic rehearsal must not add review data';
   end if;
+  if not exists(select 1 from private.partner_shop_access_rollup_state_v11 where shop_id=v_app_shop) then
+    insert into private.partner_shop_access_rollup_state_v11(shop_id,first_observed_on) values(v_app_shop,((now() at time zone 'Asia/Tokyo')::date)-2);
+  end if;
+  begin
+    perform api.finalize_partner_shop_access_collection_day_v11(((now() at time zone 'Asia/Tokyo')::date)-1,'complete');
+    raise exception 'complete collection without a manifest was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  if api.record_partner_shop_access_collection_manifest_v11(
+    ((now() at time zone 'Asia/Tokyo')::date)-1,'synthetic_health',4::smallint,4::smallint,repeat('e',64)
+  ) <> 'complete' then raise exception 'complete health manifest did not finalize the day'; end if;
+  if not exists(select 1 from private.partner_shop_access_collection_manifests_v11 where observed_on=((now() at time zone 'Asia/Tokyo')::date)-1 and collection_state='complete') then
+    raise exception 'complete health manifest was not retained';
+  end if;
+  if has_table_privilege('anon','private.partner_shop_access_collection_manifests_v11','select') then
+    raise exception 'anonymous role can read private collection manifests';
+  end if;
 end $$;
