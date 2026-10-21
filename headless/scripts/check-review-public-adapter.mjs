@@ -102,6 +102,7 @@ const wpGlobalResult = {
   status: "available",
   page: { reviews: [], total: 0, totalPages: 0, page: 1 },
 };
+let v11Global = null;
 const module = loadTypeScript("lib/reviews/public-adapter.ts", {
   "server-only": {},
   "next/cache": { cacheLife: () => {}, cacheTag: () => {} },
@@ -113,7 +114,7 @@ const module = loadTypeScript("lib/reviews/public-adapter.ts", {
     useRankUpNativeReviewPilot: (environment) => environment.RANKUP_NATIVE_REVIEW_READ_SOURCE === "supabase",
   },
   "@/lib/supabase/review-native": { reviewNativeRepository: repository },
-  "@/lib/supabase/eskomi-review-v2": { eskomiReviewV2Repository: { listGlobalPublications: async () => null } },
+  "@/lib/supabase/eskomi-review-v2": { eskomiReviewV2Repository: { listGlobalPublications: async () => v11Global } },
   "@/lib/supabase/eskomi-public-shop-detail-reviews-v11": { getPublicShopDetailReviewsV11: async () => null },
   "@/lib/wp/reviews": {
     getApprovedShopReviews: async (...args) => { calls.push(["wp-shop", args]); return wpShopResult; },
@@ -191,6 +192,20 @@ assert.deepEqual(v11Calls, [["current-slug", 20, 0]], "v1.1 reads must use the c
 assert.equal(result.page.metrics.total.average, 1);
 assert.equal(result.page.reviews[0].therapistDisplayName, "担当者");
 assert.equal(result.page.reviews[0].reply.body, "確認して改善します。");
+
+v11Global = {
+  total: 1,
+  reviews: [{
+    publicHandle: "33333333-3333-4333-8333-333333333333", rating: 5, body: "主エリア未確定でも全体一覧に出る", displayName: null,
+    therapistDisplayName: null, publishedAt: "2026-10-17T00:00:00.000Z", shopId: "44444444-4444-4444-8444-444444444444",
+    shopSlug: "primary-null-shop", shopName: "Primary null shop", areaId: null, areaSlug: null, areaName: null,
+  }],
+};
+result = await adapter.getGlobalReviews(1, 20, null);
+assert.equal(result.status, "available");
+assert.equal(result.page.reviews[0].shop.id, "44444444-4444-4444-8444-444444444444", "global v1.1 uses canonical app identity, not a directory ID");
+assert.equal(result.page.reviews[0].shop.primaryArea, null, "primary-null must remain nullable, not an id=0 sentinel");
+assert.deepEqual(result.page.reviews[0].areas, [], "primary-null global reviews must not invent a regional membership");
 
 adapter = module.createPublicReviewAdapter({
   repository,

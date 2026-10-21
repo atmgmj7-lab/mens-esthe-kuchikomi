@@ -17,6 +17,13 @@ The ordered candidate packet contains 50 files: all 47 files from
 ended at `20261017156000`; the additional 19 files are `17157000` through
 `17175000`, and are required dependencies rather than optional add-ons.
 
+`20261020030000_eskomi_public_review_read_rpc.sql` remains **unapplied** and
+was corrected in this packet before any production execution: its global
+readers now use canonical `app.shops.id`, retain primary-null shops only in the
+unfiltered feed, and reject any managed non-published state through a
+non-multiplying `not exists` guard.  It does not create a projection or change
+tables, RLS, or direct table grants.  The old hash below must not be used.
+
 ## SHA-256 manifest
 
 Calculated with `sha256sum` from the pinned repository worktree, in lexical
@@ -72,7 +79,7 @@ cbf74c135c81d683a2907b36221baa06d982c9911c34eaebe22b248d653ed316  20261017173000
 8524ef543a1318b224b33ddce0c75bc22f941e2dc9586a2029d8ceb7080b401e  20261017174000_eskomi_access_context_abuse_and_report_integrity.sql
 29031eebc60d709a6975b76823761d4f3467c391faaa4bd9d1381176377dbee8  20261017175000_eskomi_access_context_named_rpc.sql
 282156343e6cf5fe5cdc8e7ff040bc617236cad18a8c6955188b9381e37de7c9  20261018100000_partner_login_email_canonical_audit.sql
-996d821af1cf6596ec0ff24a044f9a8d00ac2a4862ae63b95997d5fdc5cf539d  20261020030000_eskomi_public_review_read_rpc.sql
+c073a3b926b65c7120c9b7a2c13ca4323693197dc143470818d2d3c57a0ed184  20261020030000_eskomi_public_review_read_rpc.sql
 11c947be9326299e53e6dabb2c70ad738040f664cb1586cdf901c57a0d98f11f  20261021000000_eskomi_access_collection_manifest_health.sql
 ```
 

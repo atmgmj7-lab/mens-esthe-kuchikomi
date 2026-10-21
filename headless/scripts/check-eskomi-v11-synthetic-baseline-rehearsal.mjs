@@ -25,6 +25,7 @@ assert.doesNotMatch(runner, /(?:^|\s)-p\s|--publish/u, "runner must not publish 
 assert.doesNotMatch(runner, /\/var\/run\/docker\.sock/u, "runner must not mount the Docker socket");
 assert.match(runner, /fixture_eskomi_20261015182000_synthetic_baseline/u, "runner must seed only the synthetic baseline");
 assert.match(runner, /verify_eskomi_20261015182000_synthetic_rehearsal/u, "runner must run the synthetic verification");
+assert.match(runner, /verify_eskomi_public_review_read_rpc/u, "runner must exercise the anonymous public-review reader against the synthetic database");
 assert.match(runner, /ESKOMI_SYNTHETIC_BASELINE_PROVE_NON_TARGET_GUARD/u, "runner must expose the expected-failure non-target guard proof mode");
 
 const fixture = readFileSync(fixturePath, "utf8");

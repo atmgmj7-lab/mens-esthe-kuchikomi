@@ -61,10 +61,10 @@ export type PublicShopReviewResult =
       reason: "request-failed" | "invalid-response";
     }>;
 
-export type PublicReviewArea = Readonly<{ id: number; slug: string; name: string }>;
+export type PublicReviewArea = Readonly<{ id: PublicReviewId; slug: string; name: string }>;
 export type PublicGlobalReview = PublicReview & Readonly<{
   shop: Readonly<{
-    id: number;
+    id: PublicReviewId;
     slug: string;
     name: string;
     primaryArea: PublicReviewArea | null;
@@ -406,12 +406,16 @@ export function createPublicReviewAdapter(
               reply: null,
               ratings: { total: review.rating, price: null, service: null, cleanliness: null },
               shop: {
-                id: review.directoryId,
+                id: review.shopId,
                 slug: review.shopSlug,
                 name: review.shopName,
-                primaryArea: { id: 0, slug: review.areaSlug, name: review.areaName },
+                primaryArea: review.areaId === null || review.areaSlug === null || review.areaName === null
+                  ? null
+                  : { id: review.areaId, slug: review.areaSlug, name: review.areaName },
               },
-              areas: [{ id: 0, slug: review.areaSlug, name: review.areaName }],
+              areas: review.areaId === null || review.areaSlug === null || review.areaName === null
+                ? []
+                : [{ id: review.areaId, slug: review.areaSlug, name: review.areaName }],
             })),
             total: global.total,
             totalPages: global.total === 0 ? 0 : Math.ceil(global.total / perPage),

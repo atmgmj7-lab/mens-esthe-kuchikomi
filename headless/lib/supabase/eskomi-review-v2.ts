@@ -36,11 +36,12 @@ export type EskomiPublicReview = Readonly<{
 }>;
 
 export type EskomiPublicGlobalReview = EskomiPublicReview & Readonly<{
-  directoryId: number;
+  shopId: string;
   shopSlug: string;
   shopName: string;
-  areaSlug: string;
-  areaName: string;
+  areaId: string | null;
+  areaSlug: string | null;
+  areaName: string | null;
 }>;
 
 type Configuration = Readonly<{
@@ -115,12 +116,15 @@ function parsePublicReview(value: unknown): EskomiPublicReview | null {
 function parsePublicGlobalReview(value: unknown): EskomiPublicGlobalReview | null {
   const review = parsePublicReview(value);
   if (!review || !record(value)
-    || !Number.isSafeInteger(value.directory_id) || (value.directory_id as number) < 1
+    || !UUID_RE.test(String(value.shop_id ?? ""))
     || typeof value.shop_slug !== "string" || !value.shop_slug
     || typeof value.shop_name !== "string" || !value.shop_name
-    || typeof value.area_slug !== "string" || !value.area_slug
-    || typeof value.area_name !== "string" || !value.area_name) return null;
-  return { ...review, directoryId: value.directory_id as number, shopSlug: value.shop_slug, shopName: value.shop_name, areaSlug: value.area_slug, areaName: value.area_name };
+    || !(UUID_RE.test(String(value.area_id ?? "")) || value.area_id === null)
+    || !((typeof value.area_slug === "string" && value.area_slug) || value.area_slug === null)
+    || !((typeof value.area_name === "string" && value.area_name) || value.area_name === null)
+    || (value.area_id === null) !== (value.area_slug === null)
+    || (value.area_slug === null) !== (value.area_name === null)) return null;
+  return { ...review, shopId: value.shop_id as string, shopSlug: value.shop_slug, shopName: value.shop_name, areaId: value.area_id as string | null, areaSlug: value.area_slug as string | null, areaName: value.area_name as string | null };
 }
 
 export function createEskomiReviewV2Repository(configuration: Configuration) {

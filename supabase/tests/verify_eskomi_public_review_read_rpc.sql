@@ -116,6 +116,61 @@ begin
 end
 $$;
 
+-- A legacy public shop can be canonical and review-visible without a managed
+-- directory row or a primary area.  The global unfiltered feed must include
+-- it, while an area filter must not infer a membership.  A separate explicit
+-- primary fixture proves the same filter still works only from is_primary.
+do $$
+declare
+  v_null_shop uuid;
+  v_primary_shop uuid;
+  v_draft_shop uuid;
+  v_area uuid;
+  v_null_experience uuid;
+  v_primary_experience uuid;
+  v_draft_experience uuid;
+  v_null_revision uuid;
+  v_primary_revision uuid;
+  v_draft_revision uuid;
+begin
+  insert into app.areas(wp_term_id,slug,name,is_published,published_at)
+  values(990001,'fixture-explicit-primary-area','Fixture explicit primary area',true,now())
+  returning id into v_area;
+  insert into app.shops(slug,canonical_path,name,publication_status,published_at)
+  values('fixture-legacy-primary-null','/shops/fixture-legacy-primary-null/','Fixture legacy primary null','published',now())
+  returning id into v_null_shop;
+  insert into app.shops(slug,canonical_path,name,publication_status,published_at)
+  values('fixture-legacy-primary-explicit','/shops/fixture-legacy-primary-explicit/','Fixture legacy primary explicit','published',now())
+  returning id into v_primary_shop;
+  insert into app.shops(slug,canonical_path,name,publication_status,published_at)
+  values('fixture-legacy-draft','/shops/fixture-legacy-draft/','Fixture legacy draft','draft',null)
+  returning id into v_draft_shop;
+  insert into app.shop_areas(shop_id,area_id,is_primary,source_system)
+  values(v_primary_shop,v_area,true,'fixture');
+
+  insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,reviewed_at)
+  values(v_null_shop,'Fixture legacy reviewer',repeat('5',64),'approved',now()) returning id into v_null_experience;
+  insert into private.review_experience_revisions(experience_id,revision,nickname,experience_comment,assessment_snapshot,moderation_state,reviewed_at)
+  values(v_null_experience,1,'Fixture legacy reviewer','LEGACY_NULL_PRIMARY_VISIBLE',jsonb_build_object('shopRating',5),'approved',now()) returning id into v_null_revision;
+  insert into app.review_experience_publications(experience_id,active_revision_id,shop_id,publication_state,published_at)
+  values(v_null_experience,v_null_revision,v_null_shop,'published',now());
+
+  insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,reviewed_at)
+  values(v_primary_shop,'Fixture legacy reviewer',repeat('6',64),'approved',now()) returning id into v_primary_experience;
+  insert into private.review_experience_revisions(experience_id,revision,nickname,experience_comment,assessment_snapshot,moderation_state,reviewed_at)
+  values(v_primary_experience,1,'Fixture legacy reviewer','LEGACY_EXPLICIT_PRIMARY_VISIBLE',jsonb_build_object('shopRating',5),'approved',now()) returning id into v_primary_revision;
+  insert into app.review_experience_publications(experience_id,active_revision_id,shop_id,publication_state,published_at)
+  values(v_primary_experience,v_primary_revision,v_primary_shop,'published',now());
+
+  insert into private.review_experiences(shop_id,guest_display_name,edit_receipt_hash,state,reviewed_at)
+  values(v_draft_shop,'Fixture legacy reviewer',repeat('7',64),'approved',now()) returning id into v_draft_experience;
+  insert into private.review_experience_revisions(experience_id,revision,nickname,experience_comment,assessment_snapshot,moderation_state,reviewed_at)
+  values(v_draft_experience,1,'Fixture legacy reviewer','DRAFT_REVIEW_MUST_NOT_BE_VISIBLE',jsonb_build_object('shopRating',5),'approved',now()) returning id into v_draft_revision;
+  insert into app.review_experience_publications(experience_id,active_revision_id,shop_id,publication_state,published_at)
+  values(v_draft_experience,v_draft_revision,v_draft_shop,'published',now());
+end
+$$;
+
 set local role anon;
 
 do $$
@@ -147,6 +202,23 @@ begin
   end loop;
 end
 $$;
+
+select exists(
+  select 1 from api.list_public_review_experience_publications_global(50,0,null)
+  where body='LEGACY_NULL_PRIMARY_VISIBLE' and area_id is null and area_slug is null and area_name is null
+) as anon_global_primary_null_is_visible;
+select not exists(
+  select 1 from api.list_public_review_experience_publications_global(50,0,'fixture-explicit-primary-area')
+  where body='LEGACY_NULL_PRIMARY_VISIBLE'
+) as anon_area_filter_does_not_infer_primary;
+select exists(
+  select 1 from api.list_public_review_experience_publications_global(50,0,'fixture-explicit-primary-area')
+  where body='LEGACY_EXPLICIT_PRIMARY_VISIBLE'
+) as anon_area_filter_uses_explicit_primary;
+select not exists(
+  select 1 from api.list_public_review_experience_publications_global(50,0,null)
+  where body='DRAFT_REVIEW_MUST_NOT_BE_VISIBLE'
+) as anon_global_draft_never_visible;
 
 select count(*) = 1 as anon_global_only_published
 from api.list_public_review_experience_publications_global(20, 0, 'fixture-public-read-area');

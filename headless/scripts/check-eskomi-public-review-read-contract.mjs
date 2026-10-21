@@ -18,10 +18,13 @@ for (const dependency of [
   "private.review_experience_revisions",
   "private.review_experience_reply_revisions",
   "private.managed_shops",
-  "private.managed_shop_publications",
 ]) {
   assert.match(migration, new RegExp(`\\b${dependency.replaceAll(".", "\\.")}\\b`, "u"), `public reader must query the canonical v1.1 dependency ${dependency}`);
 }
+assert.doesNotMatch(migration, /private\.managed_shop_publications/u, "global public reviews must not require a managed-directory projection");
+assert.match(migration, /left join app\.shop_areas as shop_area on shop_area\.shop_id = shop\.id and shop_area\.is_primary/iu, "global reads must retain primary-null shops for the unfiltered feed");
+assert.match(migration, /and not exists \([\s\S]*?managed\.publication_state <> 'published'/iu, "managed non-public states must fail closed without multiplying rows");
+assert.match(migration, /shop_id uuid,[\s\S]*?area_id uuid/iu, "global DTO must use canonical shop and area identities rather than managed directory IDs or sentinels");
 assert.match(migration, /security definer\s+set search_path\s*=\s*''/iu, "security-definer readers must use an empty search path and qualified names");
 assert.doesNotMatch(migration, /enable row level security/iu, "the read migration must not alter canonical source-table RLS");
 const historicalV11Migrations = readdirSync(resolve(root, "../supabase/migrations"))

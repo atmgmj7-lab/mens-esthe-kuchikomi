@@ -81,5 +81,6 @@ if [[ "${ESKOMI_SYNTHETIC_BASELINE_PROVE_NON_TARGET_GUARD:-0}" == "1" ]]; then
 fi
 
 docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$verification_sql"
+docker exec -i "$database_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d "$database_name" < "$repo_root/supabase/tests/verify_eskomi_public_review_read_rpc.sql"
 
 echo "Eskomi synthetic 20261015182000 baseline rehearsal: PASS"
