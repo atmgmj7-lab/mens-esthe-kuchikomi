@@ -37,8 +37,10 @@ The next exact source migration is
 (SHA-256 `f11cf8b97e12872758e42897dac8e52589c0d85bdfdc10d6b1120e98de65281f`).
 
 Its initial execution and the one permitted retry each returned
-`McpServerError: Invalid or expired requestState`. Read-only state confirmation
-after each attempt found both its ledger version absent and its new
+`McpServerError: Invalid or expired requestState`. That message makes the
+request state unusable but does not distinguish an invalid state from an
+expired state; no form-status API is exposed in this executor. Read-only state
+confirmation after each attempt found both its ledger version absent and its new
 `private.therapist_assignment_rights_history` table absent. It is therefore
 known not to have executed. No subsequent file was sent.
 
@@ -52,7 +54,6 @@ once. Do not replay an expired request state or skip ahead.
 The provided manager notification IDs are orchestration notifications, not
 accepted parameters for any available read-only status tool in this executor.
 No tool for inspecting or reviving a `requestState` is exposed. The actual
-execution result is unambiguous at the time of invocation: it was expired,
-not an authorization denial. A fresh supported form/request state must be
-issued by the platform workflow before resuming; user chat approval does not
-impersonate that form.
+execution result is unambiguous only in being unusable, not an authorization
+denial. A fresh supported form/request state must be issued by the platform
+workflow before resuming; user chat approval does not impersonate that form.
