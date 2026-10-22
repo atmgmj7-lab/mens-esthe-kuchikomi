@@ -101,7 +101,8 @@ const { getSupabasePrimaryPublicDirectory, publicDirectoryAreas, publicDirectory
 const fixture = {
   shops: [
     { id: "11111111-1111-4111-8111-111111111111", legacy_wp_shop_id: 768, slug: "primary-shop", canonical_path: "/shops/primary-shop/", name: "正本店舗", description_html: "<p>紹介</p>", excerpt: "紹介", official_url: null, image_url: null, area_slugs: ["osaka", "naniwa"], primary_area_slug: "osaka", modified_at: "2026-10-19T00:00:00Z" },
-    { id: "55555555-5555-4555-8555-555555555555", legacy_wp_shop_id: 769, slug: "area-free-shop", canonical_path: "/shops/area-free-shop/", name: "地域未設定店舗", description_html: "<p>紹介</p>", excerpt: "紹介", official_url: null, image_url: null, area_slugs: [], primary_area_slug: null, modified_at: "2026-10-19T00:00:00Z" }
+    { id: "55555555-5555-4555-8555-555555555555", legacy_wp_shop_id: 769, slug: "area-free-shop", canonical_path: "/shops/area-free-shop/", name: "地域未設定店舗", description_html: "<p>紹介</p>", excerpt: "紹介", official_url: null, image_url: null, area_slugs: [], primary_area_slug: null, modified_at: "2026-10-19T00:00:00Z" },
+    { id: "77777777-7777-4777-8777-777777777777", legacy_wp_shop_id: 5070, slug: "eskomi-m0145", canonical_path: "/shops/eskomi-m0145/", name: "公開済み引継ぎ店舗", description_html: "", excerpt: "", official_url: "https://example.test/", image_url: null, area_slugs: ["osaka", "naniwa"], primary_area_slug: null, modified_at: "2026-10-22T00:00:00Z", legacy_public_facts: { shop_tel: "090-0000-0000", shop_address: "大阪府大阪市", shop_access: null, shop_booking_url: "https://example.test/reserve", shop_hours: "11:00〜翌6:00", shop_booking: "電話", basic_price: 16000 } }
   ],
   areas: [
     { id: "22222222-2222-4222-8222-222222222222", slug: "osaka", name: "大阪", description: "", parent_slug: null },
@@ -109,12 +110,12 @@ const fixture = {
   ],
   posts: [{ id: "33333333-3333-4333-8333-333333333333", route_key: "/column/primary-article/", title: "正本記事", body_html: "<p>本文</p>", body_text: "本文", modified_at: "2026-10-19T00:00:00Z" }],
   pages: ["contact", "about", "sitemap", "storelisting", "advertise", "osaka-nihonbashi"].map((slug, index) => ({ id: `44444444-4444-4444-8444-00000000000${index + 1}`, route_key: `/${slug}/`, title: slug === "contact" ? "お問い合わせ" : slug, body_html: "<p>本文</p>", body_text: "本文", modified_at: "2026-10-19T00:00:00Z" })),
-  coverage: { published_shop_count: 2, published_area_count: 2, public_column_count: 1, public_static_page_count: 6, mapped_wp_shop_count: 2 }
+  coverage: { published_shop_count: 3, published_area_count: 2, public_column_count: 1, public_static_page_count: 6, mapped_wp_shop_count: 3 }
 };
 const environment = {
   CONTENT_DATA_SOURCE: "supabase", SUPABASE_CONTENT_CUTOVER_APPROVED: "true",
   SUPABASE_CONTENT_URL: "https://fixture.supabase.co", SUPABASE_CONTENT_PUBLISHABLE_KEY: "public-fixture-key",
-  SUPABASE_CONTENT_EXPECTED_SHOPS: "2", SUPABASE_CONTENT_EXPECTED_AREAS: "2", SUPABASE_CONTENT_EXPECTED_POSTS: "1", SUPABASE_CONTENT_EXPECTED_PAGES: "6"
+  SUPABASE_CONTENT_EXPECTED_SHOPS: "3", SUPABASE_CONTENT_EXPECTED_AREAS: "2", SUPABASE_CONTENT_EXPECTED_POSTS: "1", SUPABASE_CONTENT_EXPECTED_PAGES: "6"
 };
 const rpcCalls = [];
 const fixtureFetch = async (url, init) => {
@@ -128,12 +129,18 @@ assert.equal(rpcCalls[0].init.cache, "no-store");
 assert.equal(rpcCalls[0].init.headers.apikey, "public-fixture-key");
 assert.equal(Object.hasOwn(rpcCalls[0].init.headers, "Authorization"), false, "anonymous public RPC transport must use only the apikey header, not a bearer credential");
 const directoryShops = publicDirectoryShops(directory);
-assert.equal(directoryShops.length, 2, "canonical shop detail routes must include area-free shops");
+assert.equal(directoryShops.length, 3, "canonical shop detail routes must include area-free shops");
 assert.equal(directoryShops[0].terms.map((term) => term.slug).join(","), "osaka,naniwa", "multiple existing area relations must be retained");
 assert.equal(directoryShops[0].primaryArea?.slug, "osaka");
 assert.equal(directoryShops[1].primaryArea, null, "missing primary area must not be inferred");
 assert.equal(directoryShops[1].areaSlug, "", "generic detail navigation must not invent an area breadcrumb");
-assert.equal(publicDirectoryAreas(directory).find((area) => area.slug === "naniwa")?.count, 1, "area listing membership must use all public relations, not only primary");
+assert.deepEqual(
+  JSON.parse(JSON.stringify(directoryShops.find((shop) => shop.id === 5070)?.acf)),
+  { shop_tel: "090-0000-0000", shop_address: "大阪府大阪市", shop_booking_url: "https://example.test/reserve", shop_hours: "11:00〜翌6:00", shop_booking: "電話", basic_price: 16000 },
+  "only the allowlisted legacy-public facts may reach the matching preserved shop view",
+);
+assert.deepEqual(JSON.parse(JSON.stringify(directoryShops[0].acf)), {}, "a non-allowlisted directory shop must not receive legacy-public facts");
+assert.equal(publicDirectoryAreas(directory).find((area) => area.slug === "naniwa")?.count, 2, "area listing membership must use all public relations, not only primary");
 assert.equal(publicDirectoryPage(directory, "contact")?.title, "お問い合わせ");
 await assert.rejects(
   () => getSupabasePrimaryPublicDirectory({ ...environment, SUPABASE_CONTENT_EXPECTED_POSTS: "2" }, async () => new Response(JSON.stringify(fixture), { status: 200 })),
@@ -146,7 +153,7 @@ const transientDirectory = await getSupabasePrimaryPublicDirectory(environment, 
   return new Response(JSON.stringify(fixture), { status: 200 });
 });
 assert.equal(transientAttempts, 2, "one transient public-directory transport failure must retry once");
-assert.equal(transientDirectory.shops.length, 2);
+assert.equal(transientDirectory.shops.length, 3);
 await assert.rejects(
   () => getSupabasePrimaryPublicDirectory({ ...environment, ESKOMI_PUBLIC_DIRECTORY_DIAGNOSTICS: "true" }, async () => new Response("not-json", { status: 200 })),
   ContentMigrationIncompleteError,

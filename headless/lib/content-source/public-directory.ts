@@ -10,10 +10,14 @@ import type { AreaView, BlogPostView, ShopView, WpTerm } from "@/lib/wp/types";
 type Environment = Readonly<Record<string, string | undefined>>;
 
 type DirectoryArea = Readonly<{ id: string; slug: string; name: string; description: string; parent_slug: string | null }>;
+type LegacyPublicFacts = Readonly<Partial<{
+  shop_tel: string; shop_address: string; shop_access: string; shop_booking_url: string;
+  shop_hours: string; shop_booking: string; basic_price: number;
+}>>;
 type DirectoryShop = Readonly<{
   id: string; legacy_wp_shop_id: number | null; slug: string; canonical_path: string; name: string;
   description_html: string; excerpt: string; official_url: string | null; image_url: string | null;
-  area_slugs: readonly string[]; primary_area_slug: string | null; modified_at: string;
+  area_slugs: readonly string[]; primary_area_slug: string | null; modified_at: string; legacy_public_facts: LegacyPublicFacts | null;
 }>;
 type DirectoryPost = Readonly<{ id: string; route_key: string; title: string; body_html: string; body_text: string; modified_at: string }>;
 type DirectoryPage = Readonly<{ id: string; route_key: string; title: string; body_html: string; body_text: string; modified_at: string }>;
@@ -36,6 +40,25 @@ function string(value: unknown): string | null { return typeof value === "string
 function integer(value: unknown): number | null { return Number.isSafeInteger(value) && (value as number) >= 0 ? value as number : null; }
 function nullableInteger(value: unknown): number | null | undefined { return value === null ? null : integer(value) ?? undefined; }
 function nullableString(value: unknown): string | null | undefined { return value === null ? null : string(value) ?? undefined; }
+function legacyPublicFacts(value: unknown): LegacyPublicFacts | null | undefined {
+  if (value === undefined) return null;
+  if (!record(value)) return undefined;
+  const allowed = new Set(["shop_tel", "shop_address", "shop_access", "shop_booking_url", "shop_hours", "shop_booking", "basic_price"]);
+  if (Object.keys(value).some((key) => !allowed.has(key))) return undefined;
+  const facts: Record<string, string | number> = {};
+  for (const key of ["shop_tel", "shop_address", "shop_access", "shop_booking_url", "shop_hours", "shop_booking"] as const) {
+    const candidate = value[key];
+    if (candidate === undefined || candidate === null) continue;
+    if (typeof candidate !== "string" || candidate.length === 0) return undefined;
+    facts[key] = candidate;
+  }
+  const basicPrice = value.basic_price;
+  if (basicPrice !== undefined && basicPrice !== null) {
+    if (typeof basicPrice !== "number" || !Number.isSafeInteger(basicPrice) || basicPrice < 0) return undefined;
+    facts.basic_price = basicPrice;
+  }
+  return Object.freeze(facts) as LegacyPublicFacts;
+}
 function stringArray(value: unknown): readonly string[] | null {
   if (!Array.isArray(value) || value.some((item) => string(item) === null)) return null;
   const entries = value as string[];
@@ -60,9 +83,9 @@ function parseDirectory(value: unknown): SupabasePublicDirectory | null {
     if (!record(entry)) return null;
     const id = string(entry.id); const legacy = nullableInteger(entry.legacy_wp_shop_id); const slug = string(entry.slug); const path = string(entry.canonical_path); const name = string(entry.name);
     const description = typeof entry.description_html === "string" ? entry.description_html : null; const excerpt = typeof entry.excerpt === "string" ? entry.excerpt : null;
-    const official = nullableString(entry.official_url); const image = nullableString(entry.image_url); const areaSlugs = stringArray(entry.area_slugs); const primaryAreaSlug = nullableString(entry.primary_area_slug); const modified = string(entry.modified_at);
-    return id && legacy !== undefined && slug && path && name && description !== null && excerpt !== null && official !== undefined && image !== undefined && areaSlugs !== null && primaryAreaSlug !== undefined && (primaryAreaSlug === null || areaSlugs.includes(primaryAreaSlug)) && modified
-      ? Object.freeze({ id, legacy_wp_shop_id: legacy, slug, canonical_path: path, name, description_html: description, excerpt, official_url: official, image_url: image, area_slugs: areaSlugs, primary_area_slug: primaryAreaSlug, modified_at: modified }) : null;
+    const official = nullableString(entry.official_url); const image = nullableString(entry.image_url); const areaSlugs = stringArray(entry.area_slugs); const primaryAreaSlug = nullableString(entry.primary_area_slug); const modified = string(entry.modified_at); const facts = legacyPublicFacts(entry.legacy_public_facts);
+    return id && legacy !== undefined && slug && path && name && description !== null && excerpt !== null && official !== undefined && image !== undefined && areaSlugs !== null && primaryAreaSlug !== undefined && facts !== undefined && (primaryAreaSlug === null || areaSlugs.includes(primaryAreaSlug)) && modified
+      ? Object.freeze({ id, legacy_wp_shop_id: legacy, slug, canonical_path: path, name, description_html: description, excerpt, official_url: official, image_url: image, area_slugs: areaSlugs, primary_area_slug: primaryAreaSlug, modified_at: modified, legacy_public_facts: facts }) : null;
   });
   const posts = value.posts.map((entry): DirectoryPost | null => {
     if (!record(entry)) return null;
@@ -205,7 +228,7 @@ export function publicDirectoryShops(directory: SupabasePublicDirectory): ShopVi
     const terms = shop.area_slugs.map((slug) => termsBySlug.get(slug)).filter((area): area is WpTerm => Boolean(area));
     const primary = shop.primary_area_slug === null ? null : termsBySlug.get(shop.primary_area_slug) ?? null;
     const imageUrl = shop.image_url ?? "";
-    return { id: shop.legacy_wp_shop_id ?? stableNumericId(shop.id), canonicalShopId: shop.id, publicationStatus: "publish", slug: shop.slug, link: shop.canonical_path, title: shop.name, contentHtml: shop.description_html, excerpt: shop.excerpt, imageUrl, media: { cardSquare: { mediaId: null, source: imageUrl ? "legacy-acf" : "fallback", url: imageUrl, alt: shop.name }, detailBanner: null }, terms, acf: {}, officialUrl: shop.official_url ?? "", areaSlug: primary?.slug ?? "", primaryArea: primary ? { id: primary.id, slug: primary.slug, name: primary.name } : null, ranking: normalizeShopRanking({}), strictRanking: unavailableStrictRanking("shop") };
+    return { id: shop.legacy_wp_shop_id ?? stableNumericId(shop.id), canonicalShopId: shop.id, publicationStatus: "publish", slug: shop.slug, link: shop.canonical_path, title: shop.name, contentHtml: shop.description_html, excerpt: shop.excerpt, imageUrl, media: { cardSquare: { mediaId: null, source: imageUrl ? "legacy-acf" : "fallback", url: imageUrl, alt: shop.name }, detailBanner: null }, terms, acf: { ...(shop.legacy_public_facts ?? {}) }, officialUrl: shop.official_url ?? "", areaSlug: primary?.slug ?? "", primaryArea: primary ? { id: primary.id, slug: primary.slug, name: primary.name } : null, ranking: normalizeShopRanking({}), strictRanking: unavailableStrictRanking("shop") };
   });
 }
 

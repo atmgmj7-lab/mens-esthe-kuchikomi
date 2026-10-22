@@ -1,0 +1,95 @@
+-- Narrowly restore only the already-public WordPress facts for the fourteen
+-- records preserved by 20261022180959. This preserves the existing RPC name,
+-- security-definer boundary, grants, RLS, and published/withdrawn predicates.
+-- It never returns legacy_payload or facts for any other shop.
+create or replace function api.get_public_site_directory_v1()
+returns jsonb
+language sql
+security definer
+set search_path = app, api, pg_temp
+as $$
+  with published_shops as (
+    select s.id, s.wp_post_id, s.slug, s.canonical_path, s.name, s.description_html, s.excerpt,
+      s.official_url, s.updated_at,
+      case when s.wp_post_id = any(array[5070::bigint,5074,5079,5082,5129,5135,5137,5175,5177,5181,5183,5185,5187,5189])
+        then jsonb_strip_nulls(jsonb_build_object(
+          'shop_tel', s.phone,
+          'shop_address', s.address_text,
+          'shop_access', s.access_text,
+          'shop_booking_url', s.booking_url,
+          'shop_hours', nullif(s.legacy_payload ->> 'shop_hours', ''),
+          'shop_booking', nullif(s.legacy_payload ->> 'shop_booking', ''),
+          'basic_price', case when coalesce(s.legacy_payload ->> 'basic_price', '') ~ '^[0-9]+$' then (s.legacy_payload ->> 'basic_price')::integer else null end
+        ))
+        else null
+      end as legacy_public_facts,
+      -- Primary area is optional metadata. Public listing membership remains every
+      -- existing relation whose area is public; a shop without any area still keeps
+      -- its stable canonical detail URL and generic breadcrumb.
+      (select a.slug from app.shop_areas sa join app.areas a on a.id = sa.area_id and a.is_published
+       where sa.shop_id = s.id and sa.is_primary limit 1) as primary_area_slug,
+      coalesce((
+        select jsonb_agg(a.slug order by a.slug)
+        from app.shop_areas sa
+        join app.areas a on a.id = sa.area_id and a.is_published
+        where sa.shop_id = s.id
+      ), '[]'::jsonb) as area_slugs,
+      (select i.image_url from app.shop_images i where i.shop_id = s.id and i.is_public
+       order by (i.image_role = 'featured') desc, i.sort_order, i.created_at limit 1) as image_url
+    from app.shops s
+    where s.publication_status = 'published'
+      -- The managed-directory workflow can explicitly withdraw a legacy
+      -- WordPress identity. A Security Definer reader must preserve that
+      -- operator decision instead of re-exposing the matching app row.
+      and not exists (
+        select 1
+        from private.managed_shops managed
+        where managed.existing_wp_shop_id = s.wp_post_id
+          and managed.publication_state <> 'published'
+      )
+  ), published_areas as (
+    select a.id, a.slug, a.name, a.description, parent.slug as parent_slug
+    from app.areas a left join app.areas parent on parent.id = a.parent_id and parent.is_published
+    where a.is_published
+  ), published_posts as (
+    select c.id, c.route_key, c.title, c.body_html, c.body_text, c.updated_at
+    from app.contents c
+    where c.publication_status = 'published'
+      and c.shop_id is null and c.area_id is null
+      and c.route_key ~ '^/column/[^/]+/$'
+      and nullif(btrim(c.title), '') is not null
+  ), published_pages as (
+    select c.id, c.route_key, c.title, c.body_html, c.body_text, c.updated_at
+    from app.contents c
+    where c.publication_status = 'published'
+      and c.shop_id is null and c.area_id is null
+      and c.route_key = any(array['/contact/', '/about/', '/sitemap/', '/storelisting/', '/advertise/', '/osaka-nihonbashi/'])
+      and nullif(btrim(c.title), '') is not null
+  )
+  select jsonb_build_object(
+    'shops', coalesce((select jsonb_agg(
+      jsonb_build_object(
+        'id', id, 'legacy_wp_shop_id', wp_post_id, 'slug', slug, 'canonical_path', canonical_path,
+        'name', name, 'description_html', description_html, 'excerpt', excerpt, 'official_url', official_url,
+        'image_url', image_url, 'area_slugs', area_slugs, 'primary_area_slug', primary_area_slug, 'modified_at', updated_at
+      ) || case when legacy_public_facts is null or legacy_public_facts = '{}'::jsonb then '{}'::jsonb else jsonb_build_object('legacy_public_facts', legacy_public_facts) end
+      order by slug
+    ) from published_shops), '[]'::jsonb),
+    'areas', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', id, 'slug', slug, 'name', name, 'description', description, 'parent_slug', parent_slug
+    ) order by slug) from published_areas), '[]'::jsonb),
+    'posts', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', id, 'route_key', route_key, 'title', title, 'body_html', body_html, 'body_text', body_text, 'modified_at', updated_at
+    ) order by route_key) from published_posts), '[]'::jsonb),
+    'pages', coalesce((select jsonb_agg(jsonb_build_object(
+      'id', id, 'route_key', route_key, 'title', title, 'body_html', body_html, 'body_text', body_text, 'modified_at', updated_at
+    ) order by route_key) from published_pages), '[]'::jsonb),
+    'coverage', jsonb_build_object(
+      'published_shop_count', (select count(*) from published_shops),
+      'published_area_count', (select count(*) from published_areas),
+      'public_column_count', (select count(*) from published_posts),
+      'public_static_page_count', (select count(*) from published_pages),
+      'mapped_wp_shop_count', (select count(*) from published_shops where wp_post_id is not null)
+    )
+  )
+$$;
