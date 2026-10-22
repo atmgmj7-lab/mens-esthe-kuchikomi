@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { dirname, join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -66,6 +66,10 @@ const workerImageRoutePaths = Object.freeze([
   "app/api/partner/therapists/photo/route.ts",
 ]);
 
+const runtimePublicMetadataPaths = Object.freeze([
+  "app/sitemap.ts",
+]);
+
 const copyDirectories = Object.freeze(["app", "components", "lib", "public", "scripts", "tests", "types"]);
 const copyFiles = Object.freeze([
   "eslint.config.mjs",
@@ -78,6 +82,36 @@ const copyFiles = Object.freeze([
   "wrangler.jsonc",
   "wrangler.preview.jsonc",
 ]);
+
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function sourceFiles(directory, relativeDirectory = "") {
+  return readdirSync(directory, { withFileTypes: true })
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .flatMap((entry) => {
+      const relativePath = relativeDirectory ? join(relativeDirectory, entry.name) : entry.name;
+      const absolutePath = join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if ([".next", ".open-next", ".wrangler", "node_modules"].includes(entry.name)) return [];
+        return sourceFiles(absolutePath, relativePath);
+      }
+      return entry.isFile() ? [{ path: relativePath, sha256: sha256(readFileSync(absolutePath)) }] : [];
+    });
+}
+
+function canonicalSourceSnapshot() {
+  const entries = [
+    ...copyDirectories.flatMap((directory) => sourceFiles(join(projectDirectory, directory), directory)),
+    ...copyFiles.map((path) => ({ path, sha256: sha256(readFileSync(join(projectDirectory, path))) })),
+  ].sort((left, right) => left.path.localeCompare(right.path));
+  return { directories: [...copyDirectories], files: [...copyFiles], entries, sha256: sha256(JSON.stringify(entries)) };
+}
+
+function directorySha256(directory) {
+  return sha256(JSON.stringify(sourceFiles(directory)));
+}
 
 function readSource(relativePath) {
   const absolutePath = join(projectDirectory, relativePath);
@@ -131,6 +165,11 @@ function transformWorkerImageRoute(relativePath, original = readSource(relativeP
   return transformed;
 }
 
+function transformRuntimePublicMetadata(relativePath, original = readSource(relativePath)) {
+  assert.doesNotMatch(original, /^export const dynamic\s*=/mu, `${relativePath} must not already select a canonical runtime mode`);
+  return `export const dynamic = "force-dynamic";\n${original}`;
+}
+
 function transformNextConfig() {
   const original = readSource("next.config.ts");
   assert.match(original, /cacheComponents:\s*true/u, "canonical Next config must keep Cache Components enabled for Node/Vercel");
@@ -151,7 +190,7 @@ function transformPackageJson() {
 }
 
 function copyProjectSkeleton(derivedDirectory) {
-  const generatedPaths = new Set(["next.config.ts", "package.json", ...publicReaderPaths, ...instantRoutePaths, ...mutationRoutePaths, ...workerImageRoutePaths]);
+  const generatedPaths = new Set(["next.config.ts", "package.json", ...publicReaderPaths, ...instantRoutePaths, ...mutationRoutePaths, ...workerImageRoutePaths, ...runtimePublicMetadataPaths]);
   for (const directory of copyDirectories) {
     const source = join(projectDirectory, directory);
     assert.equal(existsSync(source), true, `required source directory is missing: ${directory}`);
@@ -264,6 +303,9 @@ function prepareDerivedSource() {
   for (const relativePath of workerImageRoutePaths) {
     generatedSources.set(relativePath, transformWorkerImageRoute(relativePath));
   }
+  for (const relativePath of runtimePublicMetadataPaths) {
+    generatedSources.set(relativePath, transformRuntimePublicMetadata(relativePath));
+  }
   for (const [relativePath, contents] of generatedSources) {
     writeNewFile(join(derivedDirectory, relativePath), contents);
   }
@@ -273,10 +315,13 @@ function prepareDerivedSource() {
   writeDerivedPreviewStaticHeaders(derivedDirectory);
   ensureNoSecretFiles(derivedDirectory);
 
+  const source = canonicalSourceSnapshot();
   writeNewFile(join(derivedDirectory, "dynamic-source-manifest.json"), `${JSON.stringify({
     schema: 1,
     kind: "eskomi-cloudflare-dynamic-public-read",
     sourceRoot: relative(projectDirectory, derivedDirectory),
+    source,
+    previewConfigSha256: sha256(readSource("wrangler.preview.jsonc")),
     publicReaderPaths,
     instantRoutePaths,
     mutationRoutePaths,
@@ -301,12 +346,17 @@ function buildDerivedSource(derivedDirectory) {
   if (result.error) throw result.error;
   if (result.status !== 0) process.exitCode = result.status ?? 1;
   if (result.status === 0) {
-    const worker = readFileSync(join(derivedDirectory, ".open-next", "worker.js"), "utf8");
+    const workerPath = join(derivedDirectory, ".open-next", "worker.js");
+    const worker = readFileSync(workerPath, "utf8");
     assert.doesNotMatch(worker, /(?:\\bsharp\\b|\\.node["'])/u, "the generated Worker must not retain a native sharp import or binding");
     writeNewFile(join(derivedDirectory, "dynamic-build-result.json"), `${JSON.stringify({
       schema: 1,
       status: "success",
       worker: ".open-next/worker.js",
+      sourceManifestSha256: sha256(readFileSync(join(derivedDirectory, "dynamic-source-manifest.json"))),
+      previewConfigSha256: sha256(readFileSync(join(derivedDirectory, "wrangler.preview.jsonc"))),
+      workerSha256: sha256(readFileSync(workerPath)),
+      assetsSha256: directorySha256(join(derivedDirectory, ".open-next", "assets")),
     }, null, 2)}\n`);
   }
 }

@@ -64,6 +64,12 @@ assert.match(originalHome, /"use cache";/u, "canonical source must retain its Ca
 assert.doesNotMatch(derivedHome, /"use cache";|\bcacheLife\(|\bcacheTag\(/u, "derived public reader must remove Cache Components calls");
 assert.doesNotMatch(derivedHome, /export const instant\s*=/u, "derived public route must not retain Cache Components-only instant config");
 
+assert.match(
+  readFileSync(join(derivedRoot, "app/sitemap.ts"), "utf8"),
+  /^export const dynamic = "force-dynamic";/mu,
+  "derived sitemap must read the runtime public-directory binding rather than a build-time static snapshot",
+);
+
 for (const staticAreaRoute of ["app/area/sakai/page.tsx", "app/area/shinosaka/page.tsx", "app/partner/onboarding/page.tsx"]) {
   assert.match(
     readFileSync(join(derivedRoot, staticAreaRoute), "utf8"),

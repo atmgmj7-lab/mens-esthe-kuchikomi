@@ -12,6 +12,7 @@
     "workers:baseline-build": "WP_API_BASE_URL=http://127.0.0.1:9/wp-json NEXT_PUBLIC_WP_BASE_URL=https://workers-fixture.invalid opennextjs-cloudflare build",
     "workers:dynamic-build": "node scripts/build-cloudflare-dynamic-public-read.mjs",
     "workers:preview-prepare": "node scripts/build-cloudflare-dynamic-public-read.mjs --prepare-only",
+    "test:cloudflare-dynamic-deploy-guard": "node scripts/check-cloudflare-dynamic-deploy-guard.mjs",
     "lint": "eslint",
     "seo:cutover-check": "node scripts/seo-cutover-check.mjs",
     "seo:url-parity": "node scripts/url-parity-check.mjs",
