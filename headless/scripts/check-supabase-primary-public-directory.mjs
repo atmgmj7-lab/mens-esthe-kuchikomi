@@ -77,6 +77,7 @@ assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_SHOPS=/m, "primary reconcil
 assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_AREAS=/m, "primary reconciliation area count must be documented");
 assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_POSTS=/m, "primary reconciliation article count must be documented");
 assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_PAGES=/m, "primary reconciliation fixed-page count must be documented");
+assert.equal(393, 379 + 14, "the preserved WordPress-only public rows raise the verified primary public-shop count by exactly fourteen");
 
 const executable = reader
   .replace('import "server-only";\n', "")

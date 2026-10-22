@@ -10,7 +10,7 @@ const allowedFlags = new Set(["--message", "--supabase-url", "--supabase-publish
 const expectedPublicRuntimeVars = Object.freeze([
   "CONTENT_DATA_SOURCE:supabase",
   "SUPABASE_CONTENT_CUTOVER_APPROVED:true",
-  "SUPABASE_CONTENT_EXPECTED_SHOPS:379",
+  "SUPABASE_CONTENT_EXPECTED_SHOPS:393",
   "SUPABASE_CONTENT_EXPECTED_AREAS:34",
   "SUPABASE_CONTENT_EXPECTED_POSTS:0",
   "SUPABASE_CONTENT_EXPECTED_PAGES:6",

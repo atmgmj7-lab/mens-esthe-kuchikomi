@@ -18,7 +18,8 @@ assert.match(deploySource, /--strict/u, "deploy wrapper must reject conflicting 
 assert.match(deploySource, /unsupported preview deploy argument/u, "deploy wrapper must reject every configuration override");
 assert.match(deploySource, /--supabase-url/u, "the guarded preview deploy must accept the dedicated public Supabase URL input");
 assert.match(deploySource, /--supabase-publishable-key/u, "the guarded preview deploy must accept the dedicated public publishable-key input");
-assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_SHOPS:379/u, "the guarded preview deploy must pin the audited public shop count");
+assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_SHOPS:393/u, "the guarded preview deploy must pin the audited public shop count after the reviewed 14-shop preservation migration");
+assert.doesNotMatch(deploySource, /SUPABASE_CONTENT_EXPECTED_SHOPS:379/u, "the guarded preview deploy must not retain the pre-preservation public shop count");
 assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_AREAS:34/u, "the guarded preview deploy must pin the audited public area count");
 assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_POSTS:0/u, "the guarded preview deploy must pin the audited public article count");
 assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_PAGES:6/u, "the guarded preview deploy must pin the audited public fixed-page count");

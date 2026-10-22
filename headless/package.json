@@ -15,6 +15,7 @@
     "workers:release-build": "node scripts/build-cloudflare-dynamic-public-read.mjs --release",
     "workers:release-prepare": "node scripts/build-cloudflare-dynamic-public-read.mjs --release --prepare-only",
     "test:cloudflare-dynamic-deploy-guard": "node scripts/check-cloudflare-dynamic-deploy-guard.mjs",
+    "test:preserve-wordpress-only-public-shops": "node scripts/check-preserve-wordpress-only-public-shops.mjs",
     "test:eskomi-public-widget-reader": "node scripts/check-eskomi-public-widget-reader.mjs",
     "test:eskomi-public-widget-reader-local": "node scripts/check-eskomi-public-widget-reader-local.mjs",
     "lint": "eslint",
