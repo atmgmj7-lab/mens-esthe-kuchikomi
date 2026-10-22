@@ -9,6 +9,9 @@ const scriptsDirectory = dirname(fileURLToPath(import.meta.url));
 const projectDirectory = resolve(scriptsDirectory, "..");
 const buildBaseDirectory = join(projectDirectory, ".eskomi-cloudflare-dynamic-builds");
 const prepareOnly = process.argv.includes("--prepare-only");
+const release = process.argv.includes("--release");
+const target = release ? "release" : "preview";
+const runtimeConfig = release ? "wrangler.jsonc" : "wrangler.preview.jsonc";
 
 const publicReaderPaths = Object.freeze([
   "app/page.tsx",
@@ -310,9 +313,9 @@ function prepareDerivedSource() {
     writeNewFile(join(derivedDirectory, relativePath), contents);
   }
   writeDerivedNoopInvalidationModule(derivedDirectory);
-  // Static assets bypass Next middleware, so keep this preview-only header out
-  // of the canonical production source and add it only to the derived Worker.
-  writeDerivedPreviewStaticHeaders(derivedDirectory);
+  // Static assets bypass Next middleware. The noindex header belongs only to
+  // preview provenance and must never enter a release candidate.
+  if (target === "preview") writeDerivedPreviewStaticHeaders(derivedDirectory);
   ensureNoSecretFiles(derivedDirectory);
 
   const source = canonicalSourceSnapshot();
@@ -321,7 +324,9 @@ function prepareDerivedSource() {
     kind: "eskomi-cloudflare-dynamic-public-read",
     sourceRoot: relative(projectDirectory, derivedDirectory),
     source,
-    previewConfigSha256: sha256(readSource("wrangler.preview.jsonc")),
+    target,
+    runtimeConfig,
+    runtimeConfigSha256: sha256(readSource(runtimeConfig)),
     publicReaderPaths,
     instantRoutePaths,
     mutationRoutePaths,
@@ -354,7 +359,9 @@ function buildDerivedSource(derivedDirectory) {
       status: "success",
       worker: ".open-next/worker.js",
       sourceManifestSha256: sha256(readFileSync(join(derivedDirectory, "dynamic-source-manifest.json"))),
-      previewConfigSha256: sha256(readFileSync(join(derivedDirectory, "wrangler.preview.jsonc"))),
+      target,
+      runtimeConfig,
+      runtimeConfigSha256: sha256(readFileSync(join(derivedDirectory, runtimeConfig))),
       workerSha256: sha256(readFileSync(workerPath)),
       assetsSha256: directorySha256(join(derivedDirectory, ".open-next", "assets")),
     }, null, 2)}\n`);

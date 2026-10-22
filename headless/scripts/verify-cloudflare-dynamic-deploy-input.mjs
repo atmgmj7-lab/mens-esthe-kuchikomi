@@ -9,9 +9,13 @@ const projectDirectory = resolve(scriptsDirectory, "..");
 const generatedBase = join(projectDirectory, ".eskomi-cloudflare-dynamic-builds");
 const arguments_ = process.argv.slice(2);
 
-if (arguments_.length !== 2 || arguments_[0] !== "--root") {
-  throw new Error("usage: verify-cloudflare-dynamic-deploy-input.mjs --root <derived-root>");
+if (!((arguments_.length === 2 && arguments_[0] === "--root")
+  || (arguments_.length === 4 && arguments_[0] === "--root" && arguments_[2] === "--target"))) {
+  throw new Error("usage: verify-cloudflare-dynamic-deploy-input.mjs --root <derived-root> [--target preview|release]");
 }
+const target = arguments_[3] ?? "preview";
+assert.ok(target === "preview" || target === "release", "deployment target must be preview or release");
+const runtimeConfig = target === "release" ? "wrangler.jsonc" : "wrangler.preview.jsonc";
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -53,8 +57,12 @@ const result = readJson(resultPath);
 assert.equal(manifest.kind, "eskomi-cloudflare-dynamic-public-read", "unexpected derived source kind");
 assert.equal(result.status, "success", "derived build did not complete successfully");
 assert.equal(result.sourceManifestSha256, sha256(readFileSync(manifestPath)), "source manifest hash changed after build");
-assert.equal(result.previewConfigSha256, sha256(readFileSync(join(root, "wrangler.preview.jsonc"))), "derived preview config changed after build");
-assert.equal(manifest.previewConfigSha256, sha256(readFileSync(join(projectDirectory, "wrangler.preview.jsonc"))), "canonical preview config no longer matches the generated build");
+assert.equal(manifest.target, target, "derived target does not match the intended deployment target");
+assert.equal(result.target, target, "derived build result does not match the intended deployment target");
+assert.equal(manifest.runtimeConfig, runtimeConfig, "derived provenance selected the wrong Worker config");
+assert.equal(result.runtimeConfig, runtimeConfig, "derived build result selected the wrong Worker config");
+assert.equal(result.runtimeConfigSha256, sha256(readFileSync(join(root, runtimeConfig))), "derived Worker config changed after build");
+assert.equal(manifest.runtimeConfigSha256, sha256(readFileSync(join(projectDirectory, runtimeConfig))), "canonical Worker config no longer matches the generated build");
 
 assert.ok(Array.isArray(manifest.source?.entries), "source provenance entries are required");
 const currentEntries = manifest.source.directories
@@ -70,4 +78,4 @@ assert.equal(lstatSync(workerPath).isFile(), true, "derived Worker output is not
 assert.equal(result.workerSha256, sha256(readFileSync(workerPath)), "derived Worker output hash changed after build");
 assert.equal(result.assetsSha256, directorySha256(join(root, ".open-next", "assets")), "derived asset output hash changed after build");
 
-console.log(JSON.stringify({ root, sourceSha256: manifest.source.sha256, previewConfigSha256: result.previewConfigSha256, workerSha256: result.workerSha256, assetsSha256: result.assetsSha256 }));
+console.log(JSON.stringify({ root, target, sourceSha256: manifest.source.sha256, runtimeConfigSha256: result.runtimeConfigSha256, workerSha256: result.workerSha256, assetsSha256: result.assetsSha256 }));

@@ -14,9 +14,10 @@ assert.equal(packageJson.scripts?.["workers:preview-prepare"], "node scripts/bui
 assert.equal(packageJson.scripts?.["test:cloudflare-noindex-preview"], "node scripts/check-cloudflare-noindex-preview.mjs", "preview safety contract must be runnable");
 assert.match(previewConfig, /"name":\s*"eskomi-workers-prep"/u, "preview must deploy only to the approved Worker name");
 assert.match(previewConfig, /"ESKOMI_WORKERS_PREVIEW_NO_INDEX":\s*"true"/u, "preview must opt into global noindex");
-assert.match(previewConfig, /"WP_API_BASE_URL":\s*"https:\/\/preview-origin-disabled\.invalid\/wp-json"/u, "preview must not read the WordPress origin");
-assert.match(previewConfig, /"SUPABASE_CONTENT_URL":\s*"https:\/\/preview-data-disabled\.invalid"/u, "preview must not read public Supabase data");
-assert.doesNotMatch(previewConfig, /mens-esthe-kuchikomi\.com|goeagrxjsjcbbatpotbu|account_id|routes|secret/iu, "preview config must contain neither production targeting nor secrets");
+assert.match(previewConfig, /"CONTENT_DATA_SOURCE":\s*"wordpress"/u, "preview must use the WordPress compatibility reader until the Workers-to-Supabase transport issue is fixed");
+assert.match(previewConfig, /"WP_API_BASE_URL":\s*"https:\/\/mens-esthe-kuchikomi\.com\/wp-json"/u, "preview must read only the existing public WordPress API");
+assert.match(previewConfig, /"NEXT_PUBLIC_WP_BASE_URL":\s*"https:\/\/mens-esthe-kuchikomi\.com"/u, "preview canonical links must retain the existing public hostname");
+assert.doesNotMatch(previewConfig, /goeagrxjsjcbbatpotbu|SUPABASE_CONTENT|account_id|routes|secret/iu, "preview config must not carry Supabase bindings, account targeting, routes, or secrets");
 assert.match(proxy, /ESKOMI_WORKERS_PREVIEW_NO_INDEX/u, "middleware must recognize the preview noindex flag");
 assert.match(proxy, /X-Robots-Tag.*noindex, nofollow/su, "preview responses must carry an HTTP noindex header");
 assert.equal(existsSync(join(projectDirectory, "public", "_headers")), false, "the normal production source must not ship preview noindex headers");

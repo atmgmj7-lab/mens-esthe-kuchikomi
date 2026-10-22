@@ -12,8 +12,10 @@ const LEGACY_DASHBOARD_PREFIX = "/wp-content/themes/swell_child/dashboard";
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const releaseFrontend = releaseFrontendProxyUrl(request);
+  if (releaseFrontend) return noindexPreviewResponse(NextResponse.rewrite(releaseFrontend), request.nextUrl.hostname);
   if (!isDashboardProtectedPath(pathname)) {
-    return noindexPreviewResponse(NextResponse.next());
+    return noindexPreviewResponse(NextResponse.next(), request.nextUrl.hostname);
   }
 
   const isListingApi = pathname.startsWith("/api/dashboard/listing-applications");
@@ -48,8 +50,21 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-function noindexPreviewResponse(response: NextResponse): NextResponse {
-  if (process.env.ESKOMI_WORKERS_PREVIEW_NO_INDEX === "true") {
+function releaseFrontendProxyUrl(request: NextRequest): URL | null {
+  const configured = process.env.ESKOMI_PUBLIC_FRONTEND_PROXY_ORIGIN?.trim();
+  if (!configured) return null;
+  try {
+    const origin = new URL(configured);
+    if (origin.protocol !== "https:" || origin.username || origin.password || origin.pathname !== "/"
+      || origin.search || origin.hash || !origin.hostname.endsWith(".vercel.app")) return null;
+    return new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, origin);
+  } catch {
+    return null;
+  }
+}
+
+function noindexPreviewResponse(response: NextResponse, hostname: string): NextResponse {
+  if (process.env.ESKOMI_WORKERS_PREVIEW_NO_INDEX === "true" || hostname.endsWith(".workers.dev")) {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
     response.headers.set("Cache-Control", "private, no-store");
   }

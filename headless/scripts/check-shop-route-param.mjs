@@ -49,4 +49,13 @@ assert.match(
   "CI fallback must remain a non-public sentinel instead of a real non-ASCII shop slug",
 );
 
+const shopsSource = readFileSync(join(root, "lib/wp/shops.ts"), "utf8");
+assert.match(shopsSource, /resolveLegacyShopSlugAlias/u, "the public directory reader must resolve an unambiguous legacy ASCII slug alias");
+assert.match(shopsSource, /candidate\.startsWith\(`\$\{alias\}（`\)/u, "the alias must only match the canonical Japanese-suffix slug form");
+assert.match(shopsSource, /legacyMatches/u, "the WordPress fallback must search the complete listing for a legacy slug alias");
+assert.match(shopsSource, /legacyMatches\.length === 1/u, "an ambiguous legacy alias must never resolve to an arbitrary shop");
+assert.match(pageSource, /function matchesCanonicalShopSlug/u, "detail routing must compare decoded canonical slugs before redirecting");
+assert.match(pageSource, /decodeURIComponent\(canonicalSlug\)/u, "the canonical slug comparison must accept Next's decoded non-ASCII route parameter");
+assert.match(pageSource, /permanentRedirect\(`\/shops\/\$\{encodeURIComponent\(toShopRouteParam\(shop\.slug\)\)\}\/`\)/u, "a legacy shop alias must redirect with an HTTP-safe encoded canonical URL");
+
 console.log("shop route param check passed");

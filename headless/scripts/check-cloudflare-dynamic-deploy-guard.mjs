@@ -15,7 +15,7 @@ assert.equal(existsSync(deployPath), true, "preview deployment must use the guar
 const deploySource = readFileSync(deployPath, "utf8");
 assert.match(deploySource, /verify-cloudflare-dynamic-deploy-input\.mjs/u, "deploy wrapper must run the dynamic-bundle verifier");
 assert.match(deploySource, /--strict/u, "deploy wrapper must reject conflicting remote changes");
-assert.match(deploySource, /unsupported preview deploy argument/u, "deploy wrapper must reject all configuration overrides except the approved message and public variables");
+assert.match(deploySource, /unsupported preview deploy argument/u, "deploy wrapper must reject every configuration override");
 
 const build = spawnSync(process.execPath, [generatorPath], { cwd: projectDirectory, encoding: "utf8" });
 assert.equal(build.status, 0, build.stderr || build.stdout);
@@ -33,7 +33,7 @@ const nested = spawnSync(process.execPath, [verifierPath, "--root", join(root, "
 assert.notEqual(nested.status, 0, "a nested path must not be treated as a derived build root");
 assert.match(`${nested.stderr}\n${nested.stdout}`, /derived dynamic build root/u, "nested rejection must name the required generated root");
 
-const override = spawnSync(process.execPath, [deployPath, "--root", root, "--profile", "eskomi-workers-deploy", "--", "--config", "alternate.json"], { cwd: projectDirectory, encoding: "utf8" });
+const override = spawnSync(process.execPath, [deployPath, "--root", root, "--profile", "eskomi-workers-deploy", "--", "--var", "CONTENT_DATA_SOURCE:supabase"], { cwd: projectDirectory, encoding: "utf8" });
 assert.notEqual(override.status, 0, "the deploy wrapper must reject a configuration override before invoking Wrangler");
 assert.match(`${override.stderr}\n${override.stdout}`, /unsupported preview deploy argument/u, "configuration override rejection must be explicit");
 

@@ -20,6 +20,23 @@ function slugsMatch(a: string, b: string): boolean {
   return safeDecodeURIComponent(a).toLowerCase() === safeDecodeURIComponent(b).toLowerCase();
 }
 
+/**
+ * A small number of historical WordPress links omit the Japanese display-name
+ * suffix from an otherwise canonical slug. Resolve only an unambiguous ASCII
+ * prefix followed by the full-width parenthesis; never fuzzy-match titles.
+ */
+function isLegacyShopSlugAlias(canonicalSlug: string, slug: string): boolean {
+  const alias = safeDecodeURIComponent(slug).toLowerCase();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(alias)) return false;
+  const candidate = safeDecodeURIComponent(canonicalSlug).toLowerCase();
+  return candidate.startsWith(`${alias}（`);
+}
+
+function resolveLegacyShopSlugAlias(shops: readonly ShopView[], slug: string): ShopView | null {
+  const matches = shops.filter((shop) => isLegacyShopSlugAlias(shop.slug, slug));
+  return matches.length === 1 ? matches[0] : null;
+}
+
 function shopSlugCacheTag(slug: string): string {
   const normalized = safeDecodeURIComponent(slug).toLowerCase();
   const hash = createHash("sha256").update(normalized).digest("hex").slice(0, 16);
@@ -87,6 +104,7 @@ async function findShopViaSearchOrListing(slug: string): Promise<WpShop | null> 
   const perPage = 100;
   let page = 1;
   let totalPages = 1;
+  const legacyMatches: WpShop[] = [];
 
   while (page <= totalPages) {
     const { data, pagination } = await wpFetchPaginated<WpShop[]>(
@@ -96,11 +114,12 @@ async function findShopViaSearchOrListing(slug: string): Promise<WpShop | null> 
     if (listingMatch) {
       return listingMatch;
     }
+    legacyMatches.push(...data.filter((shop) => isLegacyShopSlugAlias(shop.slug, slug)));
     totalPages = pagination.totalPages;
     page += 1;
   }
 
-  return null;
+  return legacyMatches.length === 1 ? legacyMatches[0] : null;
 }
 
 export async function getLatestShops(limit = 6): Promise<ShopView[]> {
@@ -122,7 +141,10 @@ export async function getShopBySlug(slug: string): Promise<ShopView | null> {
   "use cache";
   cacheLife("hours");
   cacheTag("wp", "shops", shopSlugCacheTag(slug));
-  if (isSupabasePrimaryContent()) return publicDirectoryShops(await getSupabasePrimaryPublicDirectory()).find((shop) => slugsMatch(shop.slug, slug)) ?? null;
+  if (isSupabasePrimaryContent()) {
+    const shops = publicDirectoryShops(await getSupabasePrimaryPublicDirectory());
+    return shops.find((shop) => slugsMatch(shop.slug, slug)) ?? resolveLegacyShopSlugAlias(shops, slug);
+  }
 
   if (await isManagedShopLegacySuppressedBySlug(slug)) return null;
   const managedOnly = await findPublishedManagedShopBySlug(slug);

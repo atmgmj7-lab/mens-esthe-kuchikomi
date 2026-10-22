@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { connection } from "next/server";
 import { ShopDetail } from "@/components/ShopDetail";
 import { getAreas } from "@/lib/wp/areas";
@@ -18,6 +18,15 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 export const instant = false;
+
+function matchesCanonicalShopSlug(requestedSlug: string, canonicalSlug: string): boolean {
+  try {
+    return decodeURIComponent(requestedSlug).normalize("NFC").toLowerCase()
+      === decodeURIComponent(canonicalSlug).normalize("NFC").toLowerCase();
+  } catch {
+    return false;
+  }
+}
 
 export async function generateStaticParams() {
   return getStaticParamsOrFallback(
@@ -63,6 +72,7 @@ export default async function ShopPage({ params }: Props) {
   if (!shop && !partner) notFound();
   if (!shop && partner) return <PublicPartnerListing listing={partner} />;
   if (!shop) notFound();
+  if (!matchesCanonicalShopSlug(slug, shop.slug)) permanentRedirect(`/shops/${encodeURIComponent(toShopRouteParam(shop.slug))}/`);
   const approvedShop = partner ? { ...shop, contentHtml: partner.introduction ?? shop.contentHtml, imageUrl: partner.banner_asset_id ? `/api/partner/listing/banner/${partner.banner_asset_id}/` : shop.imageUrl, media: partner.banner_asset_id ? { ...shop.media, cardSquare: { ...shop.media.cardSquare, url: `/api/partner/listing/banner/${partner.banner_asset_id}/`, source: "legacy-acf" as const, alt: `${shop.title} の掲載画像` } } : shop.media, officialUrl: partner.website_url || shop.officialUrl } : shop;
 
   const [allAreas, reviewResult, therapists] = await Promise.all([
