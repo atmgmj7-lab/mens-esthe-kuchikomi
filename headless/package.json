@@ -13,6 +13,8 @@
     "workers:dynamic-build": "node scripts/build-cloudflare-dynamic-public-read.mjs",
     "workers:preview-prepare": "node scripts/build-cloudflare-dynamic-public-read.mjs --prepare-only",
     "test:cloudflare-dynamic-deploy-guard": "node scripts/check-cloudflare-dynamic-deploy-guard.mjs",
+    "test:eskomi-public-widget-reader": "node scripts/check-eskomi-public-widget-reader.mjs",
+    "test:eskomi-public-widget-reader-local": "node scripts/check-eskomi-public-widget-reader-local.mjs",
     "lint": "eslint",
     "seo:cutover-check": "node scripts/seo-cutover-check.mjs",
     "seo:url-parity": "node scripts/url-parity-check.mjs",
