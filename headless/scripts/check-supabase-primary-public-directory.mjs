@@ -16,6 +16,12 @@ assert.match(reader, /SUPABASE_CONTENT_EXPECTED_AREAS/, "primary reader must req
 assert.match(reader, /SUPABASE_CONTENT_EXPECTED_POSTS/, "primary reader must require an explicit article migration count");
 assert.match(reader, /SUPABASE_CONTENT_EXPECTED_PAGES/, "primary reader must require an explicit fixed-page migration count");
 assert.match(reader, /ContentMigrationIncompleteError/, "missing or incomplete migrations must fail closed");
+assert.match(reader, /import \{ cache \} from "react"/, "the public directory reader must use React request-scoped deduplication");
+assert.match(reader, /cache\(\(\) => loadSupabasePrimaryPublicDirectory\(process\.env, fetch\)\)/, "only the default in-render request reader may be deduplicated");
+assert.doesNotMatch(reader, /(?:directory|supabase)(?:Cache|cache)\s*=\s*new Map\(/iu, "the public directory reader must not add a cross-request process cache");
+assert.match(reader, /ESKOMI_PUBLIC_DIRECTORY_DIAGNOSTICS/, "directory transport diagnostics must be explicitly opt-in");
+assert.match(reader, /response_body_bytes=/, "diagnostics must record only the response byte count, not public-directory body content");
+assert.match(reader, /response_json_parse_failure/, "diagnostics must distinguish a response parse failure from upstream transport failure");
 
 const migrationPath = join(root, "../supabase/migrations/20261019090000_eskomi_supabase_primary_public_directory.sql");
 assert.ok(existsSync(migrationPath), "Supabase primary public-directory migration must exist");
@@ -39,6 +45,7 @@ const shops = readFileSync(join(root, "lib/wp/shops.ts"), "utf8");
 const areas = readFileSync(join(root, "lib/wp/areas.ts"), "utf8");
 const posts = readFileSync(join(root, "lib/wp/posts.ts"), "utf8");
 const pages = readFileSync(join(root, "lib/wp/pages.ts"), "utf8");
+const staticPageRoute = readFileSync(join(root, "app/[slug]/page.tsx"), "utf8");
 const home = readFileSync(join(root, "app/page.tsx"), "utf8");
 const sitemap = readFileSync(join(root, "app/sitemap.ts"), "utf8");
 const shopDetail = readFileSync(join(root, "components/ShopDetail.tsx"), "utf8");
@@ -57,6 +64,7 @@ assert.match(areas, /publicDirectoryShops\(directory\)\.filter\(\(shop\) => shop
 assert.match(posts, /export async function getPostsForSitemap[\s\S]*isSupabasePrimaryContent/, "article sitemap must avoid WordPress in primary mode");
 assert.match(pages, /isSupabasePrimaryContent[\s\S]*ContentMigrationIncompleteError/, "unmigrated static pages must fail closed instead of reading WordPress in primary mode");
 assert.match(pages, /getSupabasePrimaryPublicDirectory/, "fixed pages must resolve the canonical primary directory before WordPress");
+assert.match(staticPageRoute, /if \(isSupabasePrimaryContent\(\)\)/, "fixed-page metadata must avoid a duplicate public-directory read in Supabase-primary mode");
 assert.match(home, /isSupabasePrimaryContent\(\) \? Promise\.resolve\(\[\]\) : getHomeFeaturedAreas\(\)/, "home must skip the WordPress-only featured-area endpoint in primary mode");
 assert.match(home, /isSupabasePrimaryContent\(\)[\s\S]*result\.status === "rejected"[\s\S]*throw result\.reason/, "home must not turn a failed primary read into an empty successful page");
 assert.match(sitemap, /if \(isSupabasePrimaryContent\(\)\) \{[\s\S]*getSupabasePrimaryPublicDirectory\(\)[\s\S]*publicDirectoryAreas\(directory\)[\s\S]*directory\.shops[\s\S]*publicDirectoryPosts\(directory\)/, "primary sitemap must derive every public URL family from one directory read");
@@ -72,6 +80,7 @@ assert.match(envExample, /^SUPABASE_CONTENT_EXPECTED_PAGES=/m, "primary reconcil
 
 const executable = reader
   .replace('import "server-only";\n', "")
+  .replace('import { cache } from "react";\n', "const cache = (load) => load;\n")
   .replace(/import \{ resolveContentReadPlan \} from "@\/lib\/content-source\/config";/, `
     const resolveContentReadPlan = (env) => ({
       primary: env.CONTENT_DATA_SOURCE === "supabase" && env.SUPABASE_CONTENT_CUTOVER_APPROVED === "true" ? "supabase" : "wordpress"
@@ -85,7 +94,8 @@ const compiled = ts.transpileModule(executable, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText;
 const module = { exports: {} };
-vm.runInNewContext(compiled, { module, exports: module.exports, process: { env: {} }, URL, Response, Math, Object, Set, Map, Array, Number, Error, console: { warn() {} } });
+const diagnostics = [];
+vm.runInNewContext(compiled, { module, exports: module.exports, process: { env: {} }, URL, Response, TextEncoder, Date, JSON, Math, Object, Set, Map, Array, Number, Error, console: { info(message) { diagnostics.push(message); }, warn() {} } });
 const { getSupabasePrimaryPublicDirectory, publicDirectoryAreas, publicDirectoryShops, publicDirectoryPage, ContentMigrationIncompleteError } = module.exports;
 const fixture = {
   shops: [
@@ -115,6 +125,7 @@ assert.equal(rpcCalls.length, 1);
 assert.match(rpcCalls[0].url, /\/rest\/v1\/rpc\/get_public_site_directory_v1$/);
 assert.equal(rpcCalls[0].init.cache, "no-store");
 assert.equal(rpcCalls[0].init.headers.apikey, "public-fixture-key");
+assert.equal(Object.hasOwn(rpcCalls[0].init.headers, "Authorization"), false, "anonymous public RPC transport must use only the apikey header, not a bearer credential");
 const directoryShops = publicDirectoryShops(directory);
 assert.equal(directoryShops.length, 2, "canonical shop detail routes must include area-free shops");
 assert.equal(directoryShops[0].terms.map((term) => term.slug).join(","), "osaka,naniwa", "multiple existing area relations must be retained");
@@ -135,6 +146,13 @@ const transientDirectory = await getSupabasePrimaryPublicDirectory(environment, 
 });
 assert.equal(transientAttempts, 2, "one transient public-directory transport failure must retry once");
 assert.equal(transientDirectory.shops.length, 2);
+await assert.rejects(
+  () => getSupabasePrimaryPublicDirectory({ ...environment, ESKOMI_PUBLIC_DIRECTORY_DIAGNOSTICS: "true" }, async () => new Response("not-json", { status: 200 })),
+  ContentMigrationIncompleteError,
+  "an invalid upstream payload must fail closed after the safe diagnostic boundary",
+);
+assert.ok(diagnostics.some((message) => /stage=response_json_parse_failure response_body_bytes=8 exception_type=SyntaxError error_class=other/u.test(message)), "diagnostics must classify a parse boundary without recording the response body");
+assert.equal(diagnostics.some((message) => message.includes("not-json")), false, "diagnostics must never record a response body");
 
 const compiledResilience = ts.transpileModule(
   resilience.replace(/import \{ isManagedShopSourceUnavailableError \} from "@\/lib\/shop-management-source";/, "const isManagedShopSourceUnavailableError = () => false;"),

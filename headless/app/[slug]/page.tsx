@@ -15,6 +15,7 @@ import {
   type StaticPageSlug
 } from "@/lib/static-pages";
 import { makeDescription, pageMetadata } from "@/lib/seo";
+import { isSupabasePrimaryContent } from "@/lib/content-source/public-directory";
 import { parseShopOwnerRequestInitial } from "@/lib/shop-owner-request-links";
 import { withWpBuildFallback } from "@/lib/wp/build-resilience";
 import { getAreaBySlug, getAreaShops } from "@/lib/wp/areas";
@@ -59,6 +60,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const meta = getStaticPageMeta(slug);
+  if (isSupabasePrimaryContent()) {
+    return pageMetadata({
+      title: meta.title,
+      description: meta.description,
+      path: `/${slug}/`
+    });
+  }
   const page = await withWpBuildFallback(`static metadata ${slug}`, () => getPageBySlug(slug), null);
   const title = page?.title || meta.title;
   const description = makeDescription(page?.excerpt || page?.contentHtml, meta.description);

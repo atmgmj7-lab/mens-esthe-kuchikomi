@@ -69,6 +69,11 @@ assert.match(
   /^export const dynamic = "force-dynamic";/mu,
   "derived sitemap must read the runtime public-directory binding rather than a build-time static snapshot",
 );
+assert.match(
+  readFileSync(join(derivedRoot, "app/[slug]/page.tsx"), "utf8"),
+  /^export const dynamic = "force-dynamic";/mu,
+  "derived fixed pages must read the runtime public-directory binding rather than a build-time static snapshot",
+);
 
 for (const staticAreaRoute of ["app/area/sakai/page.tsx", "app/area/shinosaka/page.tsx", "app/partner/onboarding/page.tsx"]) {
   assert.match(

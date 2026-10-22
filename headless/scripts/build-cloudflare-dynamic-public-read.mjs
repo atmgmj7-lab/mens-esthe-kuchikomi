@@ -71,6 +71,7 @@ const workerImageRoutePaths = Object.freeze([
 
 const runtimePublicMetadataPaths = Object.freeze([
   "app/sitemap.ts",
+  "app/[slug]/page.tsx",
 ]);
 
 const copyDirectories = Object.freeze(["app", "components", "lib", "public", "scripts", "tests", "types"]);

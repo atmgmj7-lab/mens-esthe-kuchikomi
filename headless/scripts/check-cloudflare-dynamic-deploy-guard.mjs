@@ -16,6 +16,12 @@ const deploySource = readFileSync(deployPath, "utf8");
 assert.match(deploySource, /verify-cloudflare-dynamic-deploy-input\.mjs/u, "deploy wrapper must run the dynamic-bundle verifier");
 assert.match(deploySource, /--strict/u, "deploy wrapper must reject conflicting remote changes");
 assert.match(deploySource, /unsupported preview deploy argument/u, "deploy wrapper must reject every configuration override");
+assert.match(deploySource, /--supabase-url/u, "the guarded preview deploy must accept the dedicated public Supabase URL input");
+assert.match(deploySource, /--supabase-publishable-key/u, "the guarded preview deploy must accept the dedicated public publishable-key input");
+assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_SHOPS:379/u, "the guarded preview deploy must pin the audited public shop count");
+assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_AREAS:34/u, "the guarded preview deploy must pin the audited public area count");
+assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_POSTS:0/u, "the guarded preview deploy must pin the audited public article count");
+assert.match(deploySource, /SUPABASE_CONTENT_EXPECTED_PAGES:6/u, "the guarded preview deploy must pin the audited public fixed-page count");
 
 const build = spawnSync(process.execPath, [generatorPath], { cwd: projectDirectory, encoding: "utf8" });
 assert.equal(build.status, 0, build.stderr || build.stdout);

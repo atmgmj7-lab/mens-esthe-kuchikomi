@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { resolveContentReadPlan } from "@/lib/content-source/config";
 import { normalizeShopRanking } from "@/lib/shop-ranking";
 import { unavailableStrictRanking } from "@/lib/ux-production-data-boundary";
@@ -114,7 +115,31 @@ export function isSupabasePrimaryContent(environment: Environment = process.env)
   return resolveContentReadPlan(environment).primary === "supabase";
 }
 
-export async function getSupabasePrimaryPublicDirectory(environment: Environment = process.env, fetchImpl: typeof fetch = fetch): Promise<SupabasePublicDirectory> {
+function diagnosticsEnabled(environment: Environment): boolean {
+  return environment.ESKOMI_PUBLIC_DIRECTORY_DIAGNOSTICS?.trim().toLowerCase() === "true";
+}
+
+function safeExceptionType(error: unknown): string {
+  if (!(error instanceof Error)) return "non_error";
+  return error.name.replace(/[^a-z0-9_-]/giu, "_").slice(0, 64) || "error";
+}
+
+function safeErrorClass(error: unknown): string {
+  if (!(error instanceof Error)) return "non_error";
+  const message = error.message.toLowerCase();
+  if (message.includes("timeout") || message.includes("aborted")) return "timeout_or_abort";
+  if (message.includes("fetch")) return "fetch_failure";
+  return "other";
+}
+
+function writeDiagnostic(environment: Environment, detail: string): void {
+  if (!diagnosticsEnabled(environment)) return;
+  // Deliberately never include URL, headers, body, credentials, or raw error
+  // text: this is a temporary Worker-runtime boundary probe only.
+  console.info(`[public-directory] timestamp=${new Date().toISOString()} ${detail}`);
+}
+
+async function loadSupabasePrimaryPublicDirectory(environment: Environment, fetchImpl: typeof fetch): Promise<SupabasePublicDirectory> {
   const plan = resolveContentReadPlan(environment);
   if (plan.primary !== "supabase") throw new ContentMigrationIncompleteError("Supabase-primary directory was requested while CONTENT_DATA_SOURCE is not supabase");
   const base = environment.SUPABASE_CONTENT_URL?.trim(); const key = environment.SUPABASE_CONTENT_PUBLISHABLE_KEY?.trim();
@@ -122,24 +147,51 @@ export async function getSupabasePrimaryPublicDirectory(environment: Environment
   let response: Response | null = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      response = await fetchImpl(`${new URL(base).origin}/rest/v1/rpc/get_public_site_directory_v1`, { method: "POST", headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }, body: "{}", cache: "no-store" });
+      response = await fetchImpl(`${new URL(base).origin}/rest/v1/rpc/get_public_site_directory_v1`, { method: "POST", headers: { apikey: key, "Content-Type": "application/json", "Content-Profile": "api", "Accept-Profile": "api" }, body: "{}", cache: "no-store" });
       break;
     } catch (error) {
-      // Keep the public failure fail-closed, but retain only safe transport
-      // diagnostics for local Worker QA. Never log URL, headers, or response.
-      const name = error instanceof Error ? error.name : "non-error";
-      const causeCode = error instanceof Error && typeof error.cause === "object" && error.cause !== null && "code" in error.cause
-        ? String((error.cause as { code?: unknown }).code ?? "") : "";
-      console.warn(`Supabase-primary directory transport failure (${name}${causeCode ? `:${causeCode}` : ""})`);
+      writeDiagnostic(environment, `stage=transport attempt=${attempt + 1} exception_type=${safeExceptionType(error)} error_class=${safeErrorClass(error)}`);
       if (attempt === 1) throw new ContentMigrationIncompleteError("Supabase-primary public directory could not be read");
     }
   }
   if (!response) throw new ContentMigrationIncompleteError("Supabase-primary public directory could not be read");
-  if (!response.ok) throw new ContentMigrationIncompleteError(`Supabase-primary public directory returned HTTP ${response.status}`);
-  const directory = parseDirectory(await response.json());
-  if (!directory) throw new ContentMigrationIncompleteError("Supabase-primary public directory response violates the public contract");
+  if (!response.ok) {
+    writeDiagnostic(environment, `stage=response_headers response_status=${response.status} response_body_bytes=${response.headers.get("content-length") ?? "unknown"}`);
+    throw new ContentMigrationIncompleteError(`Supabase-primary public directory returned HTTP ${response.status}`);
+  }
+  let responseBody: string;
+  try {
+    responseBody = await response.text();
+  } catch (error) {
+    writeDiagnostic(environment, `stage=response_body_read_failure response_status=${response.status} exception_type=${safeExceptionType(error)} error_class=${safeErrorClass(error)}`);
+    throw new ContentMigrationIncompleteError("Supabase-primary public directory response body could not be read");
+  }
+  const responseBodyBytes = new TextEncoder().encode(responseBody).byteLength;
+  writeDiagnostic(environment, `stage=response_body response_status=${response.status} response_body_bytes=${responseBodyBytes}`);
+  let decoded: unknown;
+  try {
+    decoded = JSON.parse(responseBody);
+  } catch (error) {
+    writeDiagnostic(environment, `stage=response_json_parse_failure response_body_bytes=${responseBodyBytes} exception_type=${safeExceptionType(error)} error_class=${safeErrorClass(error)}`);
+    throw new ContentMigrationIncompleteError("Supabase-primary public directory response could not be parsed");
+  }
+  const directory = parseDirectory(decoded);
+  if (!directory) {
+    writeDiagnostic(environment, `stage=response_contract_failure response_body_bytes=${responseBodyBytes}`);
+    throw new ContentMigrationIncompleteError("Supabase-primary public directory response violates the public contract");
+  }
   assertCoverage(directory, environment);
   return directory;
+}
+
+// React invalidates this memoization at the request/render boundary. It only
+// deduplicates the metadata and page reads that occur together; it is never a
+// process, edge, or cross-request cache.
+const getCurrentRequestSupabasePrimaryPublicDirectory = cache(() => loadSupabasePrimaryPublicDirectory(process.env, fetch));
+
+export function getSupabasePrimaryPublicDirectory(environment: Environment = process.env, fetchImpl: typeof fetch = fetch): Promise<SupabasePublicDirectory> {
+  if (environment === process.env && fetchImpl === fetch) return getCurrentRequestSupabasePrimaryPublicDirectory();
+  return loadSupabasePrimaryPublicDirectory(environment, fetchImpl);
 }
 
 export function publicDirectoryAreas(directory: SupabasePublicDirectory): AreaView[] {
