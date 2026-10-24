@@ -40,6 +40,46 @@ function isSameOriginRequest(request: NextRequest): boolean {
   }
 }
 
+const workersDiagnosticHost = "escomi-workers-production.workers.dev";
+
+function isWorkersDiagnosticRequest(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin || request.nextUrl.hostname !== workersDiagnosticHost) return false;
+  try {
+    return new URL(origin).hostname === workersDiagnosticHost;
+  } catch {
+    return false;
+  }
+}
+
+function contactFallbackProbeHeaders(): HeadersInit {
+  return {
+    "cache-control": "no-store",
+    "x-robots-tag": "noindex, nofollow",
+  };
+}
+
+function logContactFallbackProbe(response: Response): void {
+  const location = response.headers.get("location");
+  let locationHost: string | null = null;
+  let locationPath: string | null = null;
+  if (location) {
+    try {
+      const url = new URL(location);
+      locationHost = url.host;
+      locationPath = url.pathname;
+    } catch {
+      locationPath = "invalid";
+    }
+  }
+  console.info("[contact-fallback-probe]", {
+    status: response.status,
+    locationHost,
+    locationPath,
+    contentType: response.headers.get("content-type")?.split(";", 1)[0] ?? null,
+  });
+}
+
 async function forwardToExistingVercelContact(
   fallback: NonNullable<ReturnType<typeof resolveContactVercelFallback>>,
   payload: unknown,
@@ -82,6 +122,30 @@ async function forwardToExistingVercelContact(
       { status: 503 },
     );
   }
+}
+
+/**
+ * Temporary, workers.dev-only non-sending connectivity probe. It returns no
+ * upstream details; the sanitized observation is available only in Worker logs.
+ */
+export async function OPTIONS(request: NextRequest) {
+  if (!isWorkersDiagnosticRequest(request)) return new NextResponse(null, { status: 404, headers: contactFallbackProbeHeaders() });
+  const fallback = resolveContactVercelFallback(process.env);
+  if (!fallback) {
+    console.info("[contact-fallback-probe]", { state: "disabled" });
+    return new NextResponse(null, { status: 204, headers: contactFallbackProbeHeaders() });
+  }
+  try {
+    const response = await fetch(fallback.url, {
+      method: "HEAD",
+      headers: fallback.headers,
+      redirect: "manual",
+    });
+    logContactFallbackProbe(response);
+  } catch {
+    console.info("[contact-fallback-probe]", { state: "fetch-error" });
+  }
+  return new NextResponse(null, { status: 204, headers: contactFallbackProbeHeaders() });
 }
 
 export async function POST(request: NextRequest) {

@@ -98,6 +98,41 @@ try {
   });
   assert.equal(forbidden.status, 403, "cross-origin form submissions must be rejected before Vercel forwarding");
   assert.equal(untrustedOriginFetches, 0);
+
+  let probe = null;
+  globalThis.fetch = async (url, init) => {
+    probe = { url, init };
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: "https://vercel.com/sso-api?nonce=fixture",
+        "content-type": "text/plain; charset=utf-8",
+      },
+    });
+  };
+  const diagnostic = await module.OPTIONS({
+    headers: new Headers({
+      host: "escomi-workers-production.workers.dev",
+      origin: "https://escomi-workers-production.workers.dev",
+    }),
+    nextUrl: new URL("https://escomi-workers-production.workers.dev/api/contact/"),
+  });
+  assert.equal(diagnostic.status, 204, "the probe must not send an email or expose upstream details");
+  assert.equal(diagnostic.headers.get("x-robots-tag"), "noindex, nofollow");
+  assert.equal(diagnostic.headers.get("cache-control"), "no-store");
+  assert.equal(probe?.url, fallback.url);
+  assert.equal(probe?.init?.method, "HEAD", "the probe must use a non-sending request");
+  assert.equal(probe?.init?.redirect, "manual", "the probe must observe rather than follow redirects");
+  assert.equal(new Headers(probe?.init?.headers).get("x-vercel-protection-bypass"), "fixture-bypass");
+
+  const customHostProbe = await module.OPTIONS({
+    headers: new Headers({
+      host: "mens-esthe-kuchikomi.com",
+      origin: "https://mens-esthe-kuchikomi.com",
+    }),
+    nextUrl: new URL("https://mens-esthe-kuchikomi.com/api/contact/"),
+  });
+  assert.equal(customHostProbe.status, 404, "the temporary probe must never be exposed from a custom hostname");
 } finally {
   globalThis.fetch = originalFetch;
   if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
