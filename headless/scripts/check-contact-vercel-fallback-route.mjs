@@ -6,6 +6,7 @@ import ts from "typescript";
 const root = resolve(import.meta.dirname, "..");
 const routePath = resolve(root, "app/api/contact/route.ts");
 const fallbackPath = resolve(root, "lib/contact-vercel-fallback.ts");
+const validationPath = resolve(root, "lib/contact-validation.ts");
 
 class TestNextResponse extends Response {
   static json(value, init = {}) {
@@ -34,6 +35,7 @@ function loadTypeScript(path, dependencies = {}) {
 }
 
 const fallbackModule = loadTypeScript(fallbackPath);
+const validationModule = loadTypeScript(validationPath);
 let smtpTransportCreations = 0;
 const module = loadTypeScript(routePath, {
   nodemailer: {
@@ -47,21 +49,7 @@ const module = loadTypeScript(routePath, {
   },
   "next/server": { NextResponse: TestNextResponse },
   "@/lib/contact-rate-limit": { checkRateLimit: () => ({ allowed: true, retryAfterSec: 0 }) },
-  "@/lib/contact-validation": {
-    validateContactPayload: () => ({
-      ok: true,
-      data: {
-        type: "一般問い合わせ",
-        name: "Fixture",
-        email: "reply@example.test",
-        message: "fixture",
-        consent: true,
-      },
-    }),
-    buildContactEmailText: () => {
-      throw new Error("fallback requests must not build a local email");
-    },
-  },
+  "@/lib/contact-validation": validationModule,
   // Use the compiled production resolver, not a fixture resolver. This proves
   // that the route reads process.env in the same way as the Worker runtime.
   "@/lib/contact-vercel-fallback": fallbackModule,
@@ -93,7 +81,13 @@ function request(origin = "https://mens-esthe-kuchikomi.com") {
       "cf-connecting-ip": "203.0.113.8",
       "x-forwarded-for": "untrusted-client-value",
     }),
-    json: async () => ({ type: "fixture" }),
+    json: async () => ({
+      type: "一般問い合わせ",
+      name: "Fixture",
+      email: "reply@example.test",
+      message: "fixture",
+      consent: true,
+    }),
   };
 }
 
