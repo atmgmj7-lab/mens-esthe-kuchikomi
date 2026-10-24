@@ -21,6 +21,14 @@ provider, or any contact payload.
 
 ## Prepared code contract
 
+### Production deploy guard
+
+The production deploy wrapper accepts the fallback origin only through
+`--contact-vercel-fallback-origin`. It rejects every origin except the reviewed
+fixed Vercel alias `https://escomi-headless-narikiyos-projects.vercel.app` and
+keeps arbitrary `--var` overrides rejected. This preserves direct Supabase
+delivery for every route except the explicit server-side contact fallback.
+
 - `CONTACT_VERCEL_FALLBACK_ORIGIN` is accepted only when it is exactly
   `https://escomi-headless-narikiyos-projects.vercel.app` without a path,
   query, fragment, or user info.

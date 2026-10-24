@@ -49,6 +49,8 @@ assert.match(deploy, /SUPABASE_CONTENT_EXPECTED_AREAS:34/u, "direct production w
 assert.match(deploy, /SUPABASE_CONTENT_EXPECTED_POSTS:0/u, "direct production wrapper must pin the audited public article count");
 assert.match(deploy, /SUPABASE_CONTENT_EXPECTED_PAGES:6/u, "direct production wrapper must pin the audited public fixed-page count");
 assert.doesNotMatch(deploy, /ESKOMI_WORKERS_PREVIEW_NO_INDEX|ESKOMI_PUBLIC_FRONTEND_PROXY_ORIGIN/u, "direct production wrapper must reject preview and proxy state by construction");
+assert.match(deploy, /--contact-vercel-fallback-origin/u, "direct production wrapper must accept only the dedicated contact fallback origin flag");
+assert.match(deploy, /escomi-headless-narikiyos-projects\.vercel\.app/u, "contact fallback origin must be pinned to the reviewed Vercel alias");
 
 const rejected = spawnSync(process.execPath, [deployPath, "--root", root, "--profile", "eskomi-workers-deploy", "--", "--var", "CONTENT_DATA_SOURCE:supabase"], { cwd: projectDirectory, encoding: "utf8" });
 assert.notEqual(rejected.status, 0, "direct production wrapper must reject arbitrary Worker variable overrides before invoking Wrangler");
