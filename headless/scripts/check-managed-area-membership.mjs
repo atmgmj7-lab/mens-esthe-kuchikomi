@@ -44,6 +44,12 @@ vm.runInNewContext(output, {
       isManagedShopDirectoryUnavailableError: () => false,
     },
     "@/lib/supabase/managed-shop-directory": { useSupabaseManagedShopDirectory: () => true },
+    "@/lib/content-source/public-directory": {
+      getSupabasePrimaryPublicDirectory: async () => null,
+      isSupabasePrimaryContent: () => false,
+      publicDirectoryAreas: () => [],
+      publicDirectoryShops: () => [],
+    },
     "@/lib/wp/shops": {
       getAllWordPressShops: async () => [multiAreaLegacy, movedOutLegacy],
       getWordPressShopById: async (id) => id === 3 ? movedInLegacy : null,
