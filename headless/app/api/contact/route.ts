@@ -2,8 +2,11 @@ import nodemailer from "nodemailer";
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/contact-rate-limit";
 import { buildContactEmailText, validateContactPayload } from "@/lib/contact-validation";
+import { resolveContactVercelFallback } from "@/lib/contact-vercel-fallback";
 
 function getClientIp(request: NextRequest): string {
+  const cloudflare = request.headers.get("cf-connecting-ip")?.trim();
+  if (cloudflare) return cloudflare;
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0]?.trim() || "unknown";
@@ -26,7 +29,66 @@ function isDryRun(): boolean {
   return process.env.CONTACT_FORM_DRY_RUN === "true";
 }
 
+function isSameOriginRequest(request: NextRequest): boolean {
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("host");
+  if (!origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
+async function forwardToExistingVercelContact(
+  fallback: NonNullable<ReturnType<typeof resolveContactVercelFallback>>,
+  payload: unknown,
+  clientIp: string,
+): Promise<NextResponse> {
+  const headers = new Headers(fallback.headers);
+  headers.set("x-forwarded-for", clientIp);
+
+  try {
+    const response = await fetch(fallback.url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      redirect: "error",
+    });
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().startsWith("application/json")) {
+      return NextResponse.json(
+        { ok: false, message: "現在お問い合わせを受け付けできません。時間をおいて再度お試しください。" },
+        { status: 503 },
+      );
+    }
+
+    const body = await response.json().catch(() => null) as { ok?: unknown; message?: unknown } | null;
+    if (!response.ok || body?.ok !== true) {
+      const status = response.status >= 400 && response.status <= 599 ? response.status : 502;
+      const message = typeof body?.message === "string"
+        ? body.message
+        : "送信に失敗しました。時間をおいて再度お試しください。";
+      return NextResponse.json({ ok: false, message }, { status });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      message: typeof body.message === "string" ? body.message : "送信が完了しました。",
+    });
+  } catch {
+    return NextResponse.json(
+      { ok: false, message: "現在お問い合わせを受け付けできません。時間をおいて再度お試しください。" },
+      { status: 503 },
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
+  if (!isSameOriginRequest(request)) {
+    return NextResponse.json({ ok: false, message: "不正なリクエストです。" }, { status: 403 });
+  }
+
   const ip = getClientIp(request);
   const rate = checkRateLimit(ip);
 
@@ -55,9 +117,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, message: validation.error }, { status: 400 });
   }
 
-  const submittedAt = new Date();
-  const text = buildContactEmailText(validation.data, submittedAt);
   const subject = `【Eskomi】お問い合わせ: ${validation.data.type}（${validation.data.name}）`;
+  const fallback = resolveContactVercelFallback(process.env);
+  if (fallback) {
+    return forwardToExistingVercelContact(fallback, validation.data, ip);
+  }
 
   if (isDryRun()) {
     console.info("[contact] DRY_RUN – email not sent", { subject, ip });
@@ -81,6 +145,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const submittedAt = new Date();
+    const text = buildContactEmailText(validation.data, submittedAt);
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),

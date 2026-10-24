@@ -49,6 +49,7 @@ const module = loadTypeScript("app/api/contact/route.ts", {
   nodemailer: { __esModule: true, default: nodemailer },
   "next/server": { NextResponse: TestNextResponse },
   "@/lib/contact-rate-limit": { checkRateLimit: () => ({ allowed: true, retryAfterSec: 0 }) },
+  "@/lib/contact-vercel-fallback": { resolveContactVercelFallback: () => null },
   "@/lib/contact-validation": {
     validateContactPayload: () => ({ ok: true, data: { type: "other", name: "Fixture", email: "reply@example.test" } }),
     buildContactEmailText: () => "fixture contact body",
@@ -68,7 +69,11 @@ try {
     CONTACT_FORM_DRY_RUN: "false",
   });
   const response = await module.POST({
-    headers: new Headers({ "x-forwarded-for": "203.0.113.1" }),
+    headers: new Headers({
+      host: "fixture.example.test",
+      origin: "https://fixture.example.test",
+      "x-forwarded-for": "203.0.113.1",
+    }),
     json: async () => ({ type: "other" }),
   });
   assert.equal(response.status, 200);

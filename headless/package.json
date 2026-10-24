@@ -215,6 +215,7 @@
     "qa:exact-deployment-release": "node scripts/check-exact-deployment-release.mjs",
     "test:nodemailer-security": "node scripts/check-nodemailer-security-contract.mjs",
     "test:contact-nodemailer-route": "node scripts/check-contact-nodemailer-route.mjs",
+    "test:contact-vercel-fallback": "node scripts/check-contact-vercel-fallback.mjs && node scripts/check-contact-vercel-fallback-route.mjs",
     "test:xserver-ssh-deploy": "node scripts/check-xserver-ssh-deploy-contract.mjs",
     "test:wp-phase0-security": "node scripts/check-wp-phase0-security-contract.mjs && php ../tests/php/check-ai-update-route-security.php",
     "test:daily-update-proxy": "node scripts/check-daily-update-proxy-contract.mjs && cd ../ai-site-monitor && python3 -m unittest tests.test_daily_update_payload",
