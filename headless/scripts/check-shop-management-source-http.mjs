@@ -68,7 +68,7 @@ await new Promise((resolve) => supabase.listen(supabasePort, "127.0.0.1", resolv
 async function expectStatus(name, status) {
   const appPort = await freePort();
   const baseUrl = `http://localhost:${appPort}`;
-  const next = spawn("npm", ["run", "dev", "--", "--hostname", "localhost", "--port", String(appPort)], {
+  const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--hostname", "localhost", "--port", String(appPort)], {
     cwd: root,
     stdio: ["ignore", "pipe", "pipe"],
     env: {
