@@ -112,10 +112,10 @@ try {
   };
   const diagnostic = await module.OPTIONS({
     headers: new Headers({
-      host: "escomi-workers-production.workers.dev",
-      origin: "https://escomi-workers-production.workers.dev",
+      host: "eskomi-workers-production.eskomi.workers.dev",
+      origin: "https://eskomi-workers-production.eskomi.workers.dev",
     }),
-    nextUrl: new URL("https://escomi-workers-production.workers.dev/api/contact/"),
+    nextUrl: new URL("https://eskomi-workers-production.eskomi.workers.dev/api/contact/"),
   });
   assert.equal(diagnostic.status, 204, "the probe must not send an email or expose upstream details");
   assert.equal(diagnostic.headers.get("x-robots-tag"), "noindex, nofollow");

@@ -40,7 +40,7 @@ function isSameOriginRequest(request: NextRequest): boolean {
   }
 }
 
-const workersDiagnosticHost = "escomi-workers-production.workers.dev";
+const workersDiagnosticHost = "eskomi-workers-production.eskomi.workers.dev";
 
 function isWorkersDiagnosticRequest(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
