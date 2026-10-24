@@ -72,6 +72,7 @@ const environmentKeys = [
 const previousEnvironment = Object.fromEntries(environmentKeys.map((key) => [key, process.env[key]]));
 const originalFetch = globalThis.fetch;
 const originalConsoleError = console.error;
+const errorLogs = [];
 
 function request(origin = "https://mens-esthe-kuchikomi.com") {
   return {
@@ -91,8 +92,15 @@ function request(origin = "https://mens-esthe-kuchikomi.com") {
   };
 }
 
+function takeErrorLogs() {
+  const logs = errorLogs.splice(0);
+  const serialized = JSON.stringify(logs);
+  assert.doesNotMatch(serialized, /fixture-bypass|reply@example\.test|fixture network failure|token=/u, "diagnostic logs must not include credentials, payload values, error messages, or location queries");
+  return logs;
+}
+
 try {
-  console.error = () => {};
+  console.error = (...args) => errorLogs.push(args);
   process.env.NODE_ENV = "production";
   process.env.CONTACT_VERCEL_FALLBACK_ORIGIN = approvedOrigin;
   process.env.CONTACT_VERCEL_PROTECTION_BYPASS = "fixture-bypass";
@@ -125,22 +133,41 @@ try {
     consent: true,
   });
   assert.equal(smtpTransportCreations, 0, "a configured fallback must take precedence over local SMTP");
+  assert.deepEqual(takeErrorLogs(), []);
 
   globalThis.fetch = async () => new Response("protected HTML", {
     status: 200,
-    headers: { "Content-Type": "text/html" },
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      Location: "https://vercel.com/login?token=fixture-bypass",
+    },
   });
   const nonJson = await module.POST(request());
   assert.equal(nonJson.status, 503, "an HTML redirect or protection response is intentionally not treated as mail success");
   assert.deepEqual(await nonJson.json(), { ok: false, message: genericUnavailable });
+  assert.deepEqual(takeErrorLogs(), [["[contact-fallback]", {
+    event: "contact_fallback_upstream_non_json",
+    upstreamStatus: 200,
+    contentType: "text/html",
+    location: "vercel.com/login",
+  }]]);
 
   globalThis.fetch = async () => new Response(JSON.stringify({ ok: false, message: "upstream maintenance" }), {
     status: 503,
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      Location: "https://unapproved.example.test/private?token=fixture-bypass",
+    },
   });
   const upstream503 = await module.POST(request());
   assert.equal(upstream503.status, 503, "an upstream JSON 503 is preserved rather than collapsed into a fetch failure");
   assert.deepEqual(await upstream503.json(), { ok: false, message: "upstream maintenance" });
+  assert.deepEqual(takeErrorLogs(), [["[contact-fallback]", {
+    event: "contact_fallback_upstream_json_503",
+    upstreamStatus: 503,
+    contentType: "application/json",
+    location: "unapproved",
+  }]]);
 
   globalThis.fetch = async () => new Response(JSON.stringify({ ok: false, message: "upstream contract failure" }), {
     status: 200,
@@ -149,6 +176,7 @@ try {
   const invalidSuccess = await module.POST(request());
   assert.equal(invalidSuccess.status, 502, "a JSON response without ok:true is a distinct upstream contract failure, not a generic 503");
   assert.deepEqual(await invalidSuccess.json(), { ok: false, message: "upstream contract failure" });
+  assert.deepEqual(takeErrorLogs(), []);
 
   globalThis.fetch = async () => {
     throw new TypeError("fixture network failure");
@@ -156,6 +184,10 @@ try {
   const fetchFailure = await module.POST(request());
   assert.equal(fetchFailure.status, 503, "a rejected Worker-to-Vercel fetch maps to the generic unavailable response");
   assert.deepEqual(await fetchFailure.json(), { ok: false, message: genericUnavailable });
+  assert.deepEqual(takeErrorLogs(), [["[contact-fallback]", {
+    event: "contact_fallback_fetch_exception",
+    errorName: "TypeError",
+  }]]);
 
   let untrustedOriginFetches = 0;
   globalThis.fetch = async () => {
@@ -165,6 +197,7 @@ try {
   const forbidden = await module.POST(request("https://attacker.example.test"));
   assert.equal(forbidden.status, 403, "cross-origin form submissions must be rejected before Vercel forwarding");
   assert.equal(untrustedOriginFetches, 0);
+  assert.deepEqual(takeErrorLogs(), []);
 
   // This is the only route-level 503 that does not originate in the Vercel
   // fallback: it is reachable only when the actual resolver sees no bindings.
@@ -183,6 +216,10 @@ try {
   assert.deepEqual(await missingSmtp.json(), { ok: false, message: genericUnavailable });
   assert.equal(fallbackDisabledFetches, 0);
   assert.equal(smtpTransportCreations, 0);
+  assert.deepEqual(takeErrorLogs(), [
+    ["[contact-fallback]", { event: "contact_fallback_disabled" }],
+    ["[contact]", { event: "contact_smtp_not_configured" }],
+  ]);
 } finally {
   globalThis.fetch = originalFetch;
   console.error = originalConsoleError;

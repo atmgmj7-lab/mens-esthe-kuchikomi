@@ -75,6 +75,25 @@ path only, not valid-mail delivery. A future delivery test must correlate a
 sanitized upstream status/content-type with its request and must not be
 repeated automatically.
 
+## 2026-10-24 production-safe failure classification
+
+The Worker logs only on a contact fallback failure. It does not add a probe,
+public diagnostic route, or any response detail. The client still receives the
+same generic response.
+
+Each log is a fixed event code and an allowlisted metadata object only:
+
+- `contact_fallback_disabled`
+- `contact_fallback_fetch_exception` with a fixed error-name allowlist
+- `contact_fallback_upstream_non_json` with status, normalized media type, and
+  an allowlisted Location hostname/path only
+- `contact_fallback_upstream_json_503` with the same sanitized upstream
+  metadata
+
+No event records payload fields, client IP, credentials, binding values,
+headers, error messages, full URLs, or Location queries. The route contract
+uses mocked upstream responses to prove both each event and this redaction.
+
 ## Required separate authorization before activation
 
 1. Confirm use of an **existing** Vercel deployment-protection bypass secret
