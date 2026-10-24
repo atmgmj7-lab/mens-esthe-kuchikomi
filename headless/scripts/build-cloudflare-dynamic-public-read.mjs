@@ -180,9 +180,12 @@ function transformRuntimePublicMetadata(relativePath, original = readSource(rela
 function transformNextConfig() {
   const original = readSource("next.config.ts");
   assert.match(original, /cacheComponents:\s*true/u, "canonical Next config must keep Cache Components enabled for Node/Vercel");
+  const productionWorkersDevNoindex = target === "production"
+    ? "\n  // Do not emit framework trailing-slash redirects before proxy.ts can mark the workers.dev hostname noindex.\n  skipTrailingSlashRedirect: true,"
+    : "";
   const transformed = original
     .replace('import type { NextConfig } from "next";\n', 'import { resolve } from "node:path";\nimport type { NextConfig } from "next";\n')
-    .replace("const nextConfig: NextConfig = {", "const nextConfig: NextConfig = {\n  // Keep the standalone package rooted at this generated app, not its parent workspace.\n  outputFileTracingRoot: resolve(process.cwd()),\n  // OpenNext external Node middleware copies its trace through this Next output.\n  output: \"standalone\",")
+    .replace("const nextConfig: NextConfig = {", `const nextConfig: NextConfig = {\n  // Keep the standalone package rooted at this generated app, not its parent workspace.\n  outputFileTracingRoot: resolve(process.cwd()),\n  // OpenNext external Node middleware copies its trace through this Next output.\n  output: \"standalone\",${productionWorkersDevNoindex}`)
     .replace(/cacheComponents:\s*true/u, "cacheComponents: false");
   assert.match(transformed, /cacheComponents:\s*false/u, "derived Next config must disable Cache Components");
   assert.match(transformed, /output:\s*"standalone"/u, "derived Next config must emit the standalone trace tree required by OpenNext");

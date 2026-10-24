@@ -36,6 +36,7 @@ const manifest = JSON.parse(readFileSync(join(root, "dynamic-source-manifest.jso
 assert.equal(manifest.target, "production", "production provenance must not be reusable as preview or proxy release provenance");
 assert.equal(manifest.runtimeConfig, "wrangler.production.jsonc", "production provenance must pin the direct production config");
 assert.equal(existsSync(join(root, "public", "_headers")), false, "production output must not carry preview static noindex headers");
+assert.match(readFileSync(join(root, "next.config.ts"), "utf8"), /skipTrailingSlashRedirect:\s*true/u, "production workers.dev must avoid framework redirect responses that bypass the noindex proxy header");
 const verified = spawnSync(process.execPath, [verifierPath, "--root", root, "--target", "production"], { cwd: projectDirectory, encoding: "utf8" });
 assert.equal(verified.status, 0, verified.stderr || verified.stdout);
 
