@@ -43,6 +43,38 @@ delivery for every route except the explicit server-side contact fallback.
 - The fallback returns only the upstream JSON `ok` and `message` result. It
   forwards neither response headers nor cookies and logs no payload or token.
 
+## 2026-10-24 non-delivery path comparison
+
+No normal contact POST or email delivery was used for this diagnosis.
+
+- The normal `POST` handler and the former non-delivery probe both obtain the
+  fallback exclusively through `resolveContactVercelFallback(process.env)`.
+  The application has no `getCloudflareContext` call on this path.
+- OpenNext's Worker initializer writes string bindings into `process.env`
+  before it runs the request inside its AsyncLocalStorage context. Therefore
+  this route has no separate async-context binding lookup to distinguish the
+  normal handler from the probe.
+- `check-contact-vercel-fallback-route.mjs` now compiles the actual resolver
+  and actual route handler. With only fixture values in `process.env`, it
+  proves the validated normal payload uses the fixed `/api/contact/` URL,
+  `POST`, `redirect: "error"`, the protection-bypass header, the fixed Vercel
+  `Origin`, normalized JSON, and the Cloudflare client IP. It also proves no
+  local SMTP transport is constructed while the fallback is enabled.
+- The route-level 503 outcomes are deliberately distinct in that test:
+  non-JSON upstream response -> generic 503; rejected Worker-to-Vercel fetch
+  -> generic 503; JSON upstream 503 -> its JSON message/status is preserved;
+  disabled fallback plus missing local SMTP -> the separate local production
+  SMTP 503 without any fetch. Local SMTP delivery failures use a separate
+  500 return, not either 503 branch.
+
+This narrows a generic 503 from a valid production submission to the
+fallback's rejected-fetch/non-JSON handling unless the fallback was disabled;
+it does **not** establish which case occurred for a historical real request.
+The previous invalid-payload probe established a protected Vercel 400 JSON
+path only, not valid-mail delivery. A future delivery test must correlate a
+sanitized upstream status/content-type with its request and must not be
+repeated automatically.
+
 ## Required separate authorization before activation
 
 1. Confirm use of an **existing** Vercel deployment-protection bypass secret

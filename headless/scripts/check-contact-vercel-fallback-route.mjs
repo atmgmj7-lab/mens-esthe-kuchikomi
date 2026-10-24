@@ -5,7 +5,7 @@ import ts from "typescript";
 
 const root = resolve(import.meta.dirname, "..");
 const routePath = resolve(root, "app/api/contact/route.ts");
-const source = readFileSync(routePath, "utf8");
+const fallbackPath = resolve(root, "lib/contact-vercel-fallback.ts");
 
 class TestNextResponse extends Response {
   static json(value, init = {}) {
@@ -16,9 +16,9 @@ class TestNextResponse extends Response {
   }
 }
 
-function loadRoute(dependencies) {
-  const output = ts.transpileModule(source, {
-    fileName: routePath,
+function loadTypeScript(path, dependencies = {}) {
+  const output = ts.transpileModule(readFileSync(path, "utf8"), {
+    fileName: path,
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2022,
@@ -33,32 +33,77 @@ function loadRoute(dependencies) {
   return loaded.exports;
 }
 
-const fallback = {
-  url: "https://escomi-headless-narikiyos-projects.vercel.app/api/contact/",
-  headers: new Headers({
-    "content-type": "application/json",
-    origin: "https://escomi-headless-narikiyos-projects.vercel.app",
-    "x-vercel-protection-bypass": "fixture-bypass",
-  }),
-};
-const dependencies = {
-  nodemailer: { __esModule: true, default: { createTransport: () => { throw new Error("must not create SMTP transport"); } } },
+const fallbackModule = loadTypeScript(fallbackPath);
+let smtpTransportCreations = 0;
+const module = loadTypeScript(routePath, {
+  nodemailer: {
+    __esModule: true,
+    default: {
+      createTransport: () => {
+        smtpTransportCreations += 1;
+        throw new Error("fallback requests must not create an SMTP transport");
+      },
+    },
+  },
   "next/server": { NextResponse: TestNextResponse },
   "@/lib/contact-rate-limit": { checkRateLimit: () => ({ allowed: true, retryAfterSec: 0 }) },
   "@/lib/contact-validation": {
-    validateContactPayload: () => ({ ok: true, data: { type: "一般問い合わせ", name: "Fixture", email: "reply@example.test", message: "fixture" } }),
-    buildContactEmailText: () => { throw new Error("must not build local email for fallback"); },
+    validateContactPayload: () => ({
+      ok: true,
+      data: {
+        type: "一般問い合わせ",
+        name: "Fixture",
+        email: "reply@example.test",
+        message: "fixture",
+        consent: true,
+      },
+    }),
+    buildContactEmailText: () => {
+      throw new Error("fallback requests must not build a local email");
+    },
   },
-  "@/lib/contact-vercel-fallback": { resolveContactVercelFallback: () => fallback },
-};
-const module = loadRoute(dependencies);
+  // Use the compiled production resolver, not a fixture resolver. This proves
+  // that the route reads process.env in the same way as the Worker runtime.
+  "@/lib/contact-vercel-fallback": fallbackModule,
+});
 
+const approvedOrigin = "https://escomi-headless-narikiyos-projects.vercel.app";
+const genericUnavailable = "現在お問い合わせを受け付けできません。時間をおいて再度お試しください。";
+const environmentKeys = [
+  "NODE_ENV",
+  "CONTACT_FORM_DRY_RUN",
+  "CONTACT_VERCEL_FALLBACK_ORIGIN",
+  "CONTACT_VERCEL_PROTECTION_BYPASS",
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_USER",
+  "SMTP_PASS",
+  "CONTACT_FROM_EMAIL",
+  "CONTACT_TO_EMAIL",
+];
+const previousEnvironment = Object.fromEntries(environmentKeys.map((key) => [key, process.env[key]]));
 const originalFetch = globalThis.fetch;
-const previousNodeEnv = process.env.NODE_ENV;
-const previousDryRun = process.env.CONTACT_FORM_DRY_RUN;
+const originalConsoleError = console.error;
+
+function request(origin = "https://mens-esthe-kuchikomi.com") {
+  return {
+    headers: new Headers({
+      host: "mens-esthe-kuchikomi.com",
+      origin,
+      "cf-connecting-ip": "203.0.113.8",
+      "x-forwarded-for": "untrusted-client-value",
+    }),
+    json: async () => ({ type: "fixture" }),
+  };
+}
+
 try {
+  console.error = () => {};
   process.env.NODE_ENV = "production";
+  process.env.CONTACT_VERCEL_FALLBACK_ORIGIN = approvedOrigin;
+  process.env.CONTACT_VERCEL_PROTECTION_BYPASS = "fixture-bypass";
   delete process.env.CONTACT_FORM_DRY_RUN;
+
   let forwarded = null;
   globalThis.fetch = async (url, init) => {
     forwarded = { url, init };
@@ -68,43 +113,89 @@ try {
     });
   };
 
-  const success = await module.POST({
-    headers: new Headers({
-      host: "mens-esthe-kuchikomi.com",
-      origin: "https://mens-esthe-kuchikomi.com",
-      "cf-connecting-ip": "203.0.113.8",
-      "x-forwarded-for": "untrusted-client-value",
-    }),
-    json: async () => ({ type: "fixture" }),
-  });
+  const success = await module.POST(request());
   assert.equal(success.status, 200, "the existing Vercel handler response must be returned without a local SMTP attempt");
   assert.deepEqual(await success.json(), { ok: true, message: "accepted" });
-  assert.equal(forwarded?.url, fallback.url);
+  assert.equal(forwarded?.url, `${approvedOrigin}/api/contact/`);
   assert.equal(forwarded?.init?.method, "POST");
   assert.equal(forwarded?.init?.redirect, "error");
-  assert.equal(new Headers(forwarded?.init?.headers).get("x-vercel-protection-bypass"), "fixture-bypass");
-  assert.equal(new Headers(forwarded?.init?.headers).get("x-forwarded-for"), "203.0.113.8", "a client-supplied forwarded header must not control Vercel rate limiting");
-  assert.deepEqual(JSON.parse(forwarded?.init?.body), { type: "一般問い合わせ", name: "Fixture", email: "reply@example.test", message: "fixture" });
+  const forwardedHeaders = new Headers(forwarded?.init?.headers);
+  assert.equal(forwardedHeaders.get("x-vercel-protection-bypass"), "fixture-bypass");
+  assert.equal(forwardedHeaders.get("origin"), approvedOrigin);
+  assert.equal(forwardedHeaders.get("x-forwarded-for"), "203.0.113.8", "a client-supplied forwarded header must not control Vercel rate limiting");
+  assert.deepEqual(JSON.parse(forwarded?.init?.body), {
+    type: "一般問い合わせ",
+    name: "Fixture",
+    email: "reply@example.test",
+    message: "fixture",
+    consent: true,
+  });
+  assert.equal(smtpTransportCreations, 0, "a configured fallback must take precedence over local SMTP");
+
+  globalThis.fetch = async () => new Response("protected HTML", {
+    status: 200,
+    headers: { "Content-Type": "text/html" },
+  });
+  const nonJson = await module.POST(request());
+  assert.equal(nonJson.status, 503, "an HTML redirect or protection response is intentionally not treated as mail success");
+  assert.deepEqual(await nonJson.json(), { ok: false, message: genericUnavailable });
+
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: false, message: "upstream maintenance" }), {
+    status: 503,
+    headers: { "Content-Type": "application/json" },
+  });
+  const upstream503 = await module.POST(request());
+  assert.equal(upstream503.status, 503, "an upstream JSON 503 is preserved rather than collapsed into a fetch failure");
+  assert.deepEqual(await upstream503.json(), { ok: false, message: "upstream maintenance" });
+
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: false, message: "upstream contract failure" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+  const invalidSuccess = await module.POST(request());
+  assert.equal(invalidSuccess.status, 502, "a JSON response without ok:true is a distinct upstream contract failure, not a generic 503");
+  assert.deepEqual(await invalidSuccess.json(), { ok: false, message: "upstream contract failure" });
+
+  globalThis.fetch = async () => {
+    throw new TypeError("fixture network failure");
+  };
+  const fetchFailure = await module.POST(request());
+  assert.equal(fetchFailure.status, 503, "a rejected Worker-to-Vercel fetch maps to the generic unavailable response");
+  assert.deepEqual(await fetchFailure.json(), { ok: false, message: genericUnavailable });
 
   let untrustedOriginFetches = 0;
-  globalThis.fetch = async () => { untrustedOriginFetches += 1; return new Response("unexpected"); };
-  const forbidden = await module.POST({
-    headers: new Headers({
-      host: "mens-esthe-kuchikomi.com",
-      origin: "https://attacker.example.test",
-      "cf-connecting-ip": "203.0.113.8",
-    }),
-    json: async () => ({ type: "fixture" }),
-  });
+  globalThis.fetch = async () => {
+    untrustedOriginFetches += 1;
+    return new Response("unexpected");
+  };
+  const forbidden = await module.POST(request("https://attacker.example.test"));
   assert.equal(forbidden.status, 403, "cross-origin form submissions must be rejected before Vercel forwarding");
   assert.equal(untrustedOriginFetches, 0);
 
+  // This is the only route-level 503 that does not originate in the Vercel
+  // fallback: it is reachable only when the actual resolver sees no bindings.
+  delete process.env.CONTACT_VERCEL_FALLBACK_ORIGIN;
+  delete process.env.CONTACT_VERCEL_PROTECTION_BYPASS;
+  for (const key of ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "CONTACT_FROM_EMAIL", "CONTACT_TO_EMAIL"]) {
+    delete process.env[key];
+  }
+  let fallbackDisabledFetches = 0;
+  globalThis.fetch = async () => {
+    fallbackDisabledFetches += 1;
+    return new Response("unexpected");
+  };
+  const missingSmtp = await module.POST(request());
+  assert.equal(missingSmtp.status, 503, "the local production SMTP guard is distinct from fallback fetch failures");
+  assert.deepEqual(await missingSmtp.json(), { ok: false, message: genericUnavailable });
+  assert.equal(fallbackDisabledFetches, 0);
+  assert.equal(smtpTransportCreations, 0);
 } finally {
   globalThis.fetch = originalFetch;
-  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = previousNodeEnv;
-  if (previousDryRun === undefined) delete process.env.CONTACT_FORM_DRY_RUN;
-  else process.env.CONTACT_FORM_DRY_RUN = previousDryRun;
+  console.error = originalConsoleError;
+  for (const key of environmentKeys) {
+    if (previousEnvironment[key] === undefined) delete process.env[key];
+    else process.env[key] = previousEnvironment[key];
+  }
 }
 
 console.log("Vercel contact fallback route contract: PASS");
