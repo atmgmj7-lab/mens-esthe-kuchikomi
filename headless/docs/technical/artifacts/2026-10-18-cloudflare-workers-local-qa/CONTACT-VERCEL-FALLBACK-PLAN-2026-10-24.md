@@ -29,14 +29,6 @@ fixed Vercel alias `https://escomi-headless-narikiyos-projects.vercel.app` and
 keeps arbitrary `--var` overrides rejected. This preserves direct Supabase
 delivery for every route except the explicit server-side contact fallback.
 
-### Temporary workers.dev connectivity probe
-
-Until the protected Vercel contact route is diagnosed, `OPTIONS /api/contact/`
-on the production `workers.dev` hostname makes a `HEAD` request through the
-existing protected fallback. It cannot send email and responds only `204` with
-`no-store` and `noindex`; sanitized status, redirect host/path, and content type
-are emitted to Worker logs. Custom hostnames receive `404` and no probe runs.
-
 - `CONTACT_VERCEL_FALLBACK_ORIGIN` is accepted only when it is exactly
   `https://escomi-headless-narikiyos-projects.vercel.app` without a path,
   query, fragment, or user info.
