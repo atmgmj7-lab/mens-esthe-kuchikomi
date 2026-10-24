@@ -207,6 +207,7 @@ vm.runInNewContext(rateLimitCompiled, {
           ...additional,
           ...(value.startsWith("eyJ") ? { Authorization: `Bearer ${value}` } : {}),
         }),
+        supabaseRpcUrl: (baseUrl, functionName) => `${baseUrl.replace(/\/$/, "")}/rest/v1/rpc/${functionName}`,
       };
     }
     throw new Error(`Unexpected rate-limit dependency: ${specifier}`);
