@@ -10,8 +10,10 @@ const projectDirectory = resolve(scriptsDirectory, "..");
 const buildBaseDirectory = join(projectDirectory, ".eskomi-cloudflare-dynamic-builds");
 const prepareOnly = process.argv.includes("--prepare-only");
 const release = process.argv.includes("--release");
-const target = release ? "release" : "preview";
-const runtimeConfig = release ? "wrangler.jsonc" : "wrangler.preview.jsonc";
+const production = process.argv.includes("--production");
+assert.ok(Number(release) + Number(production) <= 1, "choose at most one of --release or --production");
+const target = production ? "production" : release ? "release" : "preview";
+const runtimeConfig = production ? "wrangler.production.jsonc" : release ? "wrangler.jsonc" : "wrangler.preview.jsonc";
 
 const publicReaderPaths = Object.freeze([
   "app/page.tsx",
@@ -85,6 +87,7 @@ const copyFiles = Object.freeze([
   "tsconfig.json",
   "wrangler.jsonc",
   "wrangler.preview.jsonc",
+  "wrangler.production.jsonc",
 ]);
 
 function sha256(value) {

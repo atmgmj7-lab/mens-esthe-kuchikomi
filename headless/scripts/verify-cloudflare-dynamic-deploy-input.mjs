@@ -11,11 +11,11 @@ const arguments_ = process.argv.slice(2);
 
 if (!((arguments_.length === 2 && arguments_[0] === "--root")
   || (arguments_.length === 4 && arguments_[0] === "--root" && arguments_[2] === "--target"))) {
-  throw new Error("usage: verify-cloudflare-dynamic-deploy-input.mjs --root <derived-root> [--target preview|release]");
+  throw new Error("usage: verify-cloudflare-dynamic-deploy-input.mjs --root <derived-root> [--target preview|release|production]");
 }
 const target = arguments_[3] ?? "preview";
-assert.ok(target === "preview" || target === "release", "deployment target must be preview or release");
-const runtimeConfig = target === "release" ? "wrangler.jsonc" : "wrangler.preview.jsonc";
+assert.ok(["preview", "release", "production"].includes(target), "deployment target must be preview, release, or production");
+const runtimeConfig = target === "production" ? "wrangler.production.jsonc" : target === "release" ? "wrangler.jsonc" : "wrangler.preview.jsonc";
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
